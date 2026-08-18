@@ -24,6 +24,29 @@ Never "items" or "features".
 - **Prompts are content, not code.** Both runtimes serve the same files.
 - **Distinguish primary source, secondary summary, and own inference** in every output.
 
+## Where things live
+
+    docs/adr/                decisions; `proposed` means genuinely open
+    docs/adr/PENDING-ACTIONS.md  ADR changes the research recommends, not yet settled
+    docs/research/README.md  the research ledger — start here to find out what is known
+    docs/research/           the method brief, sections/ (working notes), findings-method.md
+    docs/prompts/            prompts as versioned content, served by both runtimes
+    skills/                  dev skills — tooling for the agent building this repo
+
+## Dev skills
+
+Real files in `skills/`, surfaced through relative symlinks in `.claude/skills/`. These are for
+the agent *building* rubricator, not for end users. (End-user skills — run an analysis, add a
+criterion, re-score a column, audit an existing analysis — ship as MCP prompts instead; see
+ADR-0003 and ADR-0007.)
+
+- **`rubricator-dev-tool-contract`** — read before adding or changing any tool. Owns the one
+  architectural rule (tools are deterministic, the loop is not), the concrete tests that enforce
+  it, and the tool-vs-prompt-vs-resource decision.
+- **`rubricator-dev-prompt-change`** — read before editing any prompt. Owns the honesty clause
+  every prompt must restate, the version-and-changelog requirement, and the rule that a prompt
+  change does not land without an evaluation run.
+
 ## Companion repo
 
 `comparanda` owns the schema and the UI. This repo depends on its published JSON Schema and
