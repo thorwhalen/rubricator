@@ -1,0 +1,21 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+node_modules/
+.DS_Store
+.env
+.env.*
+!.env.example
+.claude/handoffs/
+
+# ADR-0016 pre-publish denylist: names terms from the private originating work.
+# It must NEVER be committed to a public repo -- committing it would leak exactly what it protects.
+.denylist
+.denylist.txt
