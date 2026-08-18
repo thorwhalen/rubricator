@@ -1,5 +1,10 @@
 # Does Scoring Order (Column-wise vs Row-wise) Change Multi-Criteria Evaluations — for Humans, and for LLMs?
 
+*Filed as `docs/research/scoring-order-effects.md`. Originally filed under the full title as its
+filename (`Does Scoring Order (Column-wise vs Row-wise) Change Multi-Criteria Evaluations — for
+Humans, and for LLMs.md`); renamed for URL-safety in a public repository. The title above is
+unchanged.*
+
 **Author: Thor Whalen**
 
 ## 1. Bottom line
