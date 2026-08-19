@@ -150,6 +150,14 @@ bottom line, findings, and its own open questions and references.
   `py2mcp` and `oa` packages. ADR-0004 survives on language and fails on framework. *Evidence: strong
   — every claim comes from reading source, tests and packaging metadata.*
 
+## Review
+
+- **Phase 0 review candidates** — an **incomplete** adversarial review of the round-1
+  recommendations across both repositories. Canonical copy lives in the companion repo at
+  `comparanda: docs/research/phase0-review-candidates.md`; there is deliberately no second copy
+  here to drift. 77 candidates raised, 21 adjudicated and all 21 refuted, 56 never adjudicated.
+  Its measured precision is low — entries are questions to check, not findings.
+
 ## Open questions
 
 Carried forward. Ordered by value; the first three are the cheap experiments that unblock the most.
