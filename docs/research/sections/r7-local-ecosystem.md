@@ -1,5 +1,20 @@
 # The local ecosystem — does ADR-0004 survive contact?
 
+> [!IMPORTANT]
+> **Superseded on one point.** This section recommends building the MCP surface on `py2mcp`.
+> [`findings-method.md` § 7.5](../findings-method.md) overturns that in favour of the official MCP
+> Python SDK v2 / FastMCP 4, on a fact this section did not weigh: FastMCP 4.0.0 is the first
+> release implementing modern-protocol elicitation under revision `2026-07-28`, and elicitation is
+> the mechanism for the ADR-0005 step-4 checkpoint. `py2mcp` pins `fastmcp` unbounded and resolves
+> to 3.x today, so adopting it would make the load-bearing checkpoint depend on an upstream upgrade
+> outside this project's control.
+>
+> Everything else in this section stands, including the verified source read of `aw_agents` that
+> settles ADR-0004, and the `aix` gap list. Revisit the `py2mcp` recommendation once it carries a
+> FastMCP 4 floor.
+
+
+
 **Research question(s):** Read the local `aw_agents`, `aix`, `py2mcp` and `oa` packages properly.
 Can `aw_agents` host an MCP surface that exposes **prompts and resources**, not only tools — which
 ADR-0003 requires? Does ADR-0004 (Python for the agent runtime, on `aw_agents`) survive? Where
