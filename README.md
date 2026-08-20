@@ -35,8 +35,8 @@ you are already in; `rubricator` supplies the tools, the schema, the prompts and
 is the cheapest path to value and should work on day one.
 
 **As a deployed agent.** A standalone service with its own model access, for scheduled or
-unattended runs. Python, built on the `aw_agents` family — write the agent once, deploy to
-several platforms.
+unattended runs. Python, on the official MCP SDK — an earlier draft named a different framework;
+see [why that was rejected](https://github.com/thorwhalen/rubricator/discussions/112).
 
 The shared core is an **MCP tool specification**. The connector exposes it directly; the deployed
 agent drives the same tools through its own loop.

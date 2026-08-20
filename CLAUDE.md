@@ -54,6 +54,19 @@ validates at the boundary; the dependency never runs the other way.
 
 ## Local ecosystem
 
-`aw_agents` is the declarative agent framework to build the deployed runtime on — find it in the
-local package ecosystem and read it before designing. `oa` and neighbours may already have the LLM
-access patterns you need.
+**`aw_agents` was read and rejected as the MCP host** — do not start there, despite ADR-0004.
+Its MCP adapter wires only `list_tools` and `call_tool`, with no seam for the `prompts/*` and
+`resources/*` that ADR-0003 requires, and it supplies no model client, loop or session either.
+The research recommends the official MCP Python SDK v2 / FastMCP 4 instead, on a version floor:
+FastMCP 4.0.0 is the first release with the elicitation that ADR-0005's step-4 checkpoint needs.
+See [discussion #112](https://github.com/thorwhalen/rubricator/discussions/112) for the full
+reasoning and what would reopen it.
+
+**ADR-0004 has not been amended** — it still recommends `aw_agents`, and a human settles it. The
+superseding draft is in `docs/adr/PENDING-ACTIONS.md` § 1. Until then, treat the ADR as the
+question and the discussion as the evidence.
+
+**All LLM access goes through the local `aix` facade or an agent object — never a raw provider
+SDK.** `aix` is currently insufficient for the sampling and structured-output this project needs;
+the gaps are filed upstream and tracked from the rubricator issue that blocks on them. `oa` and
+neighbours are worth a look for access patterns, not as dependencies.
