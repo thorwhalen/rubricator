@@ -110,3 +110,31 @@ criterion, so changing it changes what every stored score means.
 
 1. [Who Validates the Validators? Aligning LLM-Assisted Evaluation of LLM Outputs with Human Preferences — Shankar, Zamfirescu-Pereira, Hartmann, Parameswaran & Arawjo (2024), UIST '24](https://arxiv.org/abs/2404.12272)
 2. [Value-Focused Thinking: A Path to Creative Decisionmaking — Keeney (1992)](https://www.hup.harvard.edu/books/9780674931985)
+
+## Amendments
+
+### 2026-08-21 — the material-bump trigger list, in the field names the corpus uses
+
+- **Deciders:** Thor Whalen
+
+**What this replaces.** The Decision above triggers a material bump on a change to a criterion's
+`question`, `scale`, `range`, `preference` or `exclusions`. There is no field named `scale`. The
+required criterion-definition fields are settled by ADR-0009's adoption of the tool surface in
+`docs/research/findings-method.md` § "Proposed MCP tool surface" (tool 7, `criteria_set`):
+`objective`, `question`, `level`, `preference`, `attribute_type`, anchors at 1/3/5 for ordinal,
+`evidence_rule`, `missing_rule`, `exclusions`. `comparanda` spells the same thing
+`measurement.level`. The trigger list pointed at a field an implementer cannot find.
+
+**The trigger list is:** `question`, **`level`** (the level of measurement, which is what "scale"
+meant), `range`, `preference`, `exclusions`, and **`anchors`**. Anchors are added rather than
+assumed: ADR-0012 makes an anchor an evidence condition that defines what a level *means*, so an
+anchor edit that moves a boundary changes what every stored score under it asserts, by exactly the
+argument that puts `question` on the list. An anchor edit that moves no boundary is editorial, like
+any other, and the caller declares it.
+
+**`superseded-by-revision` declares `terminal: false`.** The Decision names only `broader:
+not-assessed, structural: false`. `comparanda`'s ADR-0009 amendment requires `terminal` on every
+reason code, and this ADR's own Consequences settle its value — "the coverage metrics of ADR-0008
+count an invalidated cell as outstanding, which is correct — work genuinely remains". Outstanding
+work is precisely `terminal: false`. It was previously assumed rather than decided; it is decided
+now, and it agrees with the default the flag would inherit from `broader: not-assessed`.

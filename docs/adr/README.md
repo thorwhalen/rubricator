@@ -47,7 +47,7 @@ a reason).
 | # | Title | Status | What it decides |
 |---|---|---|---|
 | [0005](0005-the-elicitation-pipeline.md) | Elicit the frame before scoring anything | accepted | Six stages — frame, enumerate alternatives, propose criteria, **confirm with the user**, populate, review. The amendment specifies step 4 as an MCP elicitation carrying a flat three-field form, with a chat-plus-record fallback, stored as authored timestamped provenance. The tool never confirms on its own behalf. |
-| [0016](0016-criteria-are-revisable.md) | Criteria are revisable, and the step-4 checkpoint is a gate, not a one-way door | accepted | Criteria sets carry a version and every measure records the version it was scored against. A **material** bump invalidates the cells scored under the old definition — `missing`, reason `superseded-by-revision`, prior measures retained; an **editorial** bump re-stamps and invalidates nothing. Rejected criteria ship with the analysis. |
+| [0016](0016-criteria-are-revisable.md) | Criteria are revisable, and the step-4 checkpoint is a gate, not a one-way door | accepted | Criteria sets carry a version and every measure records the version it was scored against. A **material** bump (a change to `question`, `level`, `range`, `preference`, `exclusions` or `anchors`) invalidates the cells scored under the old definition — `missing`, reason `superseded-by-revision`, prior measures retained; an **editorial** bump re-stamps and invalidates nothing. Rejected criteria ship with the analysis. |
 | [0017](0017-durable-partial-analyses.md) | An in-progress analysis is a durable partial comparanda document | accepted | rubricator owns a store keyed by an opaque `analysis_id`, and the stored record is itself a schema-valid `comparanda` analysis. The closed missingness set carries the resume semantics, so resumption costs no schema surface. Retention runs from last write, and export defeats it. |
 
 ## Honest uncertainty — the product's central claim
@@ -55,8 +55,8 @@ a reason).
 | # | Title | Status | What it decides |
 |---|---|---|---|
 | [0006](0006-evidence-and-honest-uncertainty.md) | Cite spans, and prefer a qualified blank to a confident guess | accepted | The parent of this whole group. Every asserted value carries a confidence and, where possible, span-level evidence; a qualified blank is a first-class outcome; confidence means **evidence quality, not model certainty**; primary source, secondary summary and the agent's own inference stay distinguishable; self-critique is part of the deliverable. |
-| [0012](0012-measurement-scales-confidence-and-the-two-uncertainties.md) | Measurement scales, what confidence means, and the two uncertainties | accepted | States the consequences ADR-0006 left unstated. `score` is a 1–5 ordinal with anchors at levels 1/3/5, hashed with the criterion as a comparability rule; three enforcement rules bind `confidence`; `certainty` is an evaluation-only measure; evidential confidence (stored) and procedural stability (derived) are separated permanently. |
-| [0014](0014-evidence-reference-locator-profile.md) | The evidence-reference locator profile, and deterministic citation checking | accepted | Says what a span *is*: a narrowed W3C Web Annotation selector profile where a `TextQuoteSelector` is mandatory and **positions are hints, quotes are truth**. Chunks stay out of the citation path, normalisation is versioned, and `check_citations` is a deterministic eight-step ladder returning a graded verdict the model never writes. |
+| [0012](0012-measurement-scales-confidence-and-the-two-uncertainties.md) | Measurement scales, what confidence means, and the two uncertainties | accepted | States the consequences ADR-0006 left unstated. `score` is a 1–5 ordinal with anchors at levels 1/3/5, hashed with the criterion as a change detector — comparability keys on the criterion's last **material** version (ADR-0016); three enforcement rules bind `confidence`; `certainty` is an evaluation-only measure; evidential confidence (stored) and procedural stability (derived) are separated permanently. |
+| [0014](0014-evidence-reference-locator-profile.md) | The evidence-reference locator profile, and deterministic citation checking | accepted | Says what a span *is*: a narrowed W3C Web Annotation selector profile where a `TextQuoteSelector` is mandatory and **positions are hints, quotes are truth**. Chunks stay out of the citation path, normalisation is versioned, and `check_citations` is a deterministic eight-step ladder returning a graded verdict — `exact`/`normalised`/`fuzzy`/`moved`/`stale`/`unresolvable` — that the model never writes. |
 | [0015](0015-source-type-stance-and-derived-from.md) | Source type, stance, and the constraint that stops inference passing as source | accepted | Gives ADR-0006's "distinguish source types" a mechanism. `source_type` sits on the reference (five members, including `agent-inference`); an orthogonal `stance` records supports / contradicts / qualifies / background; three deterministic constraints make the rule checkable, including agent-authored documents being forced to `secondary` at best. |
 
 ## Scoring, and the variance that remains
@@ -88,13 +88,13 @@ a reason).
 | [0008](0008-evaluation.md) | The agent needs an evaluation suite, and it is not optional | accepted (amended) |
 | [0009](0009-python-official-mcp-sdk.md) | Python, the official MCP SDK, and the rejection of `aw_agents` as host | accepted (supersedes 0004) |
 | [0010](0010-the-determinism-boundary.md) | The determinism boundary | accepted |
-| [0011](0011-the-scoring-protocol.md) | The scoring protocol — pointwise, cell-wise, evidence first | accepted |
-| [0012](0012-measurement-scales-confidence-and-the-two-uncertainties.md) | Measurement scales, what confidence means, and the two uncertainties | accepted |
+| [0011](0011-the-scoring-protocol.md) | The scoring protocol — pointwise, cell-wise, evidence first | accepted (amended) |
+| [0012](0012-measurement-scales-confidence-and-the-two-uncertainties.md) | Measurement scales, what confidence means, and the two uncertainties | accepted (amended) |
 | [0013](0013-structured-output-and-schema-subset.md) | Structured output, and the JSON Schema subset the tool surface may use | accepted |
-| [0014](0014-evidence-reference-locator-profile.md) | The evidence-reference locator profile, and deterministic citation checking | accepted |
+| [0014](0014-evidence-reference-locator-profile.md) | The evidence-reference locator profile, and deterministic citation checking | accepted (amended) |
 | [0015](0015-source-type-stance-and-derived-from.md) | Source type, stance, and the constraint that stops inference passing as source | accepted |
-| [0016](0016-criteria-are-revisable.md) | Criteria are revisable, and the step-4 checkpoint is a gate, not a one-way door | accepted |
-| [0017](0017-durable-partial-analyses.md) | An in-progress analysis is a durable partial comparanda document | accepted |
+| [0016](0016-criteria-are-revisable.md) | Criteria are revisable, and the step-4 checkpoint is a gate, not a one-way door | accepted (amended) |
+| [0017](0017-durable-partial-analyses.md) | An in-progress analysis is a durable partial comparanda document | accepted (amended) |
 | [0018](0018-variance-mitigation-per-runtime.md) | Variance-mitigation policy per runtime, and the independence ladder | accepted |
 | [0019](0019-llm-access-through-the-aix-facade.md) | All LLM access goes through the local `aix` facade | accepted |
 

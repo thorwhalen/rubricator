@@ -128,3 +128,33 @@ the overridden recommendation in
 4. [Optimal number of response categories in rating scales — Preston & Colman (2000), Acta Psychologica 104:1–15](https://www.sciencedirect.com/science/article/abs/pii/S0001691899000505)
 5. [Can LLMs Express Their Uncertainty? An Empirical Evaluation of Confidence Elicitation in LLMs — Xiong et al. (2024), ICLR](https://arxiv.org/abs/2306.13063)
 6. [When LLMs Agree, Are They Right? Auditing Self-Consistency and Cross-Model Agreement as Confidence Signals — Ding (2026)](https://arxiv.org/abs/2607.08065) — *single-author preprint; weak evidence*
+
+## Amendments
+
+### 2026-08-21 — comparability keys on the criterion's material version, not the anchor hash
+
+- **Deciders:** Thor Whalen
+
+**What this replaces.** The Decision above rules that "two analyses sharing a criterion key but not
+an anchor hash are **not comparable** on that criterion". ADR-0016 rules that an *editorial* bump —
+"a typo, a rephrasing that moves no boundary" — "invalidates nothing". An editorial rephrase of an
+anchor changes the content hash, so as written the same edit both invalidates nothing and renders
+every prior analysis incomparable. This ADR gives way, because a content hash cannot tell a
+boundary-moving edit from a typo fix, and ADR-0016 already owns the mechanism that can: the
+materiality declaration, which defaults to material and ships with the analysis.
+
+**The comparability rule is now:** two analyses are comparable on a criterion when they share the
+criterion key **and the criterion's last material version**, per ADR-0016. An editorial bump does
+not break comparability. A material bump does, and it also invalidates the cells scored under the
+old definition — the two consequences are the same event, which is the point.
+
+**The content hash is retained, with a narrower job.** It is a *change detector*, not the
+comparability key: it is what tells the tooling that an anchor's text moved at all, and therefore
+what forces the caller to declare materiality rather than editing silently. Detecting the change is
+deterministic; classifying it is the caller's declaration, never a judgement inside the tool
+(ADR-0010).
+
+**What does not change.** The 1–5 ordinal scale, anchors at 1/3/5 written as evidence conditions,
+the three enforcement rules on `confidence`, the fencing of `certainty`, and the permanent
+separation of the two uncertainties all stand. So does the intent the hash was serving — that
+incomparability is announced at the point of comparison rather than silently aligned away.

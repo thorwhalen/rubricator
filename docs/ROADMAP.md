@@ -80,21 +80,23 @@ assumption most likely to be quietly dropped under pressure, so it needs its own
 
 Fifteen issues, in the order `docs/adr/README.md` already
 established — ordered by how much downstream work each unblocks, not by ADR number. Two ADRs
-(0004, 0007) are `proposed`; the research was commissioned to settle them. Four issues are marked
+(0004, 0007) entered the epic `proposed`; the research was commissioned to settle them, and both are
+now settled — 0004 superseded by ADR-0009, 0007 accepted. Four issues were marked
 `decision-needed` because they are genuinely contested rather than merely undecided:
 
 - **ADR-0009** (supersede vs amend ADR-0004) — the research explicitly leaves the mechanism to a
   human, though it makes a definite recommendation;
-- **ADR-0007** — a `proposed` ADR whose sequence survives but whose item count does not;
+- **ADR-0007** — entered `proposed`; its sequence survives but its item count does not;
 - **ADR-0012** — its 1–5 scale decision **overrides** the owner's own prior recommendation to widen
   to 1–10;
 - **ADR-0018** — its headline stability statistic **replaces** the owner's Kendall-τ proposal,
   because τ needs weights the companion tool refuses to compute by default.
 
-**One number is unallocated.** The pending list settled the ADR-0005 step-4 checkpoint by
-adding *a new ADR that cites ADR-0005 as parent* — but 0009 through 0019 are all claimed by the other
-fourteen items, so that ADR has no number. Allocate it (0020 is the first free) in the same pass that
-adopts § 7, and record the allocation, rather than discovering the collision while writing the file.
+**No number was allocated, and none is needed.** The pending list settled the ADR-0005 step-4
+checkpoint by adding *a new ADR that cites ADR-0005 as parent* — but 0009 through 0019 were all
+claimed by the other fourteen items. It was folded into ADR-0005 as a dated amendment instead of
+taking 0020, which ADR-0005 and `docs/adr/README.md` both record. There is no numbering gap and
+nothing to allocate; 0020 remains the first free number for the next genuinely new decision.
 
 The epic finished by deleting `PENDING-ACTIONS.md`. A pending list that outlives its pendency
 becomes a second source of truth.
@@ -116,9 +118,13 @@ ADR-0009 amendment **renames** two missingness codes — `pending` → `deferred
 `indeterminate` — and adds `not-evidenced`. This repository's ADR drafts, prompts and evaluation
 metric names are written against the old spellings (`unknown_preference_rate`, the
 always-returns-`unknown` degenerate-agent counter-metric, the resume semantics keyed on
-`not-assessed` / `pending` / `unknown`). One issue here tracks that rename and sweeps the names once
-`comparanda` records the disposition; nothing here should write a code literal into a prompt or a
-metric name before then. `comparanda: docs/cross-repo-coordination.md` §7.1.
+`not-assessed` / `pending` / `unknown`). **That disposition has now been recorded** — `comparanda`'s
+ADR-0009 amendment of 2026-08-21, with the six-code core set shipping in its code and domain model —
+so the embargo on writing a code literal is lifted and ADR-0017's amendment discharges the
+conditionals in the ADR set. One issue here still tracks the prose sweep, which is a **per-site
+mapping and never a search-and-replace**: `unknown` resolves to `not-evidenced` where the sources
+are silent and to `indeterminate` where they do not settle the level.
+`comparanda: docs/cross-repo-coordination.md` §7.1.
 
 ### 3. Upstream dependencies (Phase 0)
 
@@ -162,12 +168,23 @@ The minimum viable set is `analysis_open`, `analysis_get`, `corpus_add`, `corpus
 `measures_write`, `analysis_validate` — plus `check_citations`, which is not in the count but is not
 cuttable either, because it is the product.
 
+**One known divergence to close inside this epic.** `rubricator/tools/citations.py` ships three
+rungs of the ADR-0014 ladder under its own status names — `verified` / `normalised` / `partial` /
+`not-found` / `empty` — while ADR-0014 and tool 13 publish the verdict enum
+`exact` / `normalised` / `fuzzy` / `moved` / `stale` / `unresolvable`, and ADR-0014's 2026-08-21
+amendment retires `verified` outright. The names are not the whole of it: `verbatim_rate` there
+counts only the strictest rung, where ADR-0008's `quote_verbatim_rate` gate counts
+`verdict ∈ {exact, normalised}`; and `moved` / `stale` cannot be reached at all until the drift
+step has document and quote hashes to compare. Closing it is a rename **plus** the missing rungs,
+and until it closes the module's doctests assert a verdict the ADR no longer recognises.
+
 ### 7. Prompts (Phase 2)
 
 Ten prompt files as versioned content. `propose-criteria` is drafted first and hardest: it is the
 highest-leverage prompt in the system, and the criteria discussion is the part of the product users
-actually value. `score-cell` is the default and `score-column` is demoted to a harness arm — which
-contradicts the current prompts README, and correcting that line is part of the work.
+actually value. `score-cell` is the default and `score-column` is demoted to a harness arm; the prompts
+README has been corrected to say so, and the prompt table in
+`docs/research/sections/r6-mcp-and-agent-architecture.md` is left as the evidence trail.
 
 Medium detail from here: the deliverables are known, the wording is not.
 

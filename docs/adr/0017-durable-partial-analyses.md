@@ -113,3 +113,26 @@ per-site missingness mapping are corrections raised in the phase-0 adversarial r
 4. [LangGraph — Persistence: checkpointers, threads, stores (2026)](https://docs.langchain.com/oss/python/langgraph/persistence)
 5. [MCP — Tools, revision 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28/server/tools)
 6. [MCP — Resources, revision 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28/server/resources)
+
+## Amendments
+
+### 2026-08-21 — the missingness rename has landed; the conditional is discharged
+
+- **Deciders:** Thor Whalen
+
+The Decision and Consequences above write the missingness rename as prospective — "when
+comparanda's closed set is amended" — and so does ADR-0012's enforcement rule 1 ("when
+`comparanda`'s missingness reason set splits"). It has been amended. `comparanda`'s ADR-0009 carries
+a 2026-08-21 amendment landing `pending` → `deferred`, `unknown` → `indeterminate` and the new
+`not-evidenced`, and the six-code core set ships in that repository's code and in its
+`docs/domain-model.md`. Read every such conditional in this repository as discharged, and the
+mappings already stated as the current spelling:
+
+- **resume semantics** — `not-assessed` unchanged; `pending` is **`deferred`**; the "someone looked
+  and could not determine" branch is **`indeterminate`**;
+- **ADR-0006's honesty rule**, no citable span ⇒ never a low-confidence score — **`not-evidenced`**.
+
+What does not change is that replacing the `unknown` literal is a per-site mapping and never a
+search-and-replace: the two destinations mean different things, and `comparanda`'s ADR-0009
+amendment § 8 says so in the same words. Prose in this repository that still reads `unknown` is
+corrected site by site, and `docs/ROADMAP.md` § 2 tracks that sweep.

@@ -175,3 +175,26 @@ the selector-by-selector adjudication, the serialisation table and the full ladd
 9. [Citations — Claude Platform documentation, Anthropic (2025)](https://platform.claude.com/docs/en/build-with-claude/citations)
 10. [Evaluating Chunking Strategies for Retrieval — Chroma Research (2024)](https://www.trychroma.com/research/evaluating-chunking)
 11. [approx-string-match-js: bit-parallel approximate string matching (Myers) — Knight](https://github.com/robertknight/approx-string-match-js)
+
+## Amendments
+
+### 2026-08-21 — two names in the ladder: the drift classes and the document key
+
+- **Deciders:** Thor Whalen
+
+**The ladder returns no verdict called `verified`.** Step 5 above names four drift classes —
+*verified*, *moved*, *stale*, *unresolvable* — but the graded verdict the ladder returns is
+`exact` / `normalised` / `fuzzy` / `moved` / `stale` / `unresolvable`, and ADR-0008's
+`quote_verbatim_rate` gate keys on `verdict ∈ {exact, normalised}`. The enum wins: it is the tool's
+published contract (tool 13 of the surface ADR-0009 adopts) and a metric already depends on it.
+Read step 5 as: *document unchanged and quote found* is not a class of its own — the verdict is
+whichever of `exact`, `normalised` or `fuzzy` steps 3 and 4 reached. The prose term `verified` is
+retired and reserved for nothing.
+
+**The corpus key is `document_id`; `source_uri` is a field of the document record.** The chunking
+section above says every chunk carries `source_uri`; ADR-0010 fixes `corpus_search`'s tie-break as
+`(score, document_id, start)` and `corpus_add` returns `document_ids`. A chunk carries
+**`document_id`** plus character offsets into the normalised full text — the same key everything
+else in the corpus surface uses. `source_uri` keeps a distinct and necessary job: it is the external
+location the document was ingested from, stored once on the document record, and it is what step 2
+of the ladder resolves through the host resolver. One key for addressing, one URI for resolving.

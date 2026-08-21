@@ -147,3 +147,34 @@ uses kebab-case throughout and is the authority on the prompt set.
 reduction, and the 5-point anchored rubric all stand exactly as decided. The ordering claim —
 that reference-guided judging beats scoring-then-citing, and that scoring first produces post-hoc
 citation — is about the *stages*, and is unaffected by which of them are tools.
+
+### 2026-08-21 — missingness reason codes are kebab-case
+
+- **Deciders:** Thor Whalen
+
+**What this replaces.** The Decision above spells the negative branch's reason code
+`insufficient_evidence_to_discriminate`. The code is **`insufficient-evidence-to-discriminate`**.
+
+Snake_case names a **tool** in the pipeline vocabulary the amendment above fixes; elsewhere it is
+this repository's ordinary spelling for field names (`document_id`, `evidence_rule`) and metric
+names (`quote_verbatim_rate`), and it is never the spelling of a stored *value*. A reason code is
+neither a tool nor a prompt — it is a value that travels inside a `comparanda` document, and the
+companion repo's core set is kebab throughout in shipped code (`src/core/schema/missingness.ts`:
+`not-applicable`, `not-assessed`, `deferred`, `not-evidenced`, `indeterminate`, `withheld`) and in
+`docs/domain-model.md`, which both repositories read as the shared vocabulary. Every other code this
+repository has coined is already kebab — `superseded-by-revision`, `merged-into`, `means-objective`,
+`not-controllable`, `no-discrimination-expected`, `user-rejected` (ADR-0016). One code in snake_case
+would ship a spelling inconsistency into a cross-repo schema request, where it is expensive to
+retract.
+
+**The rule, stated once and applying everywhere in this repository:** reason codes, core and
+custom, are kebab-case. The schema request registered in ADR-0002's amendment is re-spelled
+accordingly. `docs/research/` keeps the original spelling because it is the evidence trail, not the
+specification.
+
+**Scope of the unit-word rule.** The Consequences above rule that "the unit word in the surrounding
+prose is **criterion**, not 'column'". That governs the *unit* — a criterion is never called "a
+column". It does not rename the protocols and statistics that carry "column" in their own names:
+`score-column` (the prompt and harness arm 2), column-wise traversal, and the column correlation
+that ADR-0008 reports as a `traversal_leakage_diagnostic` all keep their names, because each names a
+procedure over the matrix rather than the unit itself.

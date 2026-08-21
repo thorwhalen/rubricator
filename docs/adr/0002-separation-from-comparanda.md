@@ -45,3 +45,12 @@ the schema versions this repository can emit.
 
 Evidence: [`docs/research/findings-method.md`](../research/findings-method.md), § "Schema requests to
 comparanda" and § "Recommended ADR actions".
+
+### 2026-08-21 — the registered request is re-spelled kebab-case
+
+- **Deciders:** Thor Whalen
+
+The amendment above registers a missing reason named `insufficient_evidence_to_discriminate`. The
+request stands; the spelling does not. It is **`insufficient-evidence-to-discriminate`**, per
+ADR-0011's second amendment, which rules kebab-case for every reason code and gives the reasons.
+Nothing else about the request or the boundary changes.
