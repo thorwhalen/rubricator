@@ -17,8 +17,8 @@ Briefs pose questions and name candidate sources. Sections do the reading — ea
 evidence grade, its own citation audit and its own open questions, and each is written to be
 readable alone. A findings document reconciles the sections where they disagree, states what to
 **do**, and lists ADR actions. ADRs are immutable once accepted (ADR-0001), so research never edits
-one: it recommends *confirm*, *amend*, *supersede*, or *new*, and a human settles it. The current
-working list of unapplied actions is [`docs/adr/PENDING-ACTIONS.md`](../adr/PENDING-ACTIONS.md).
+one: it recommends *confirm*, *amend*, *supersede*, or *new*, and a human settles it. All round-1 actions have been applied; the settled set is indexed at
+[`docs/adr/README.md`](../adr/README.md).
 
 Two conventions apply everywhere in this folder. Claims the literature supports are marked EVIDENCE
 and cited to a span-checkable source; claims that are inference over evidence are marked

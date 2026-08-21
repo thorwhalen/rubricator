@@ -78,7 +78,7 @@ assumption most likely to be quietly dropped under pressure, so it needs its own
 
 ### 1. Settle the ADRs (Phase 0)
 
-Fifteen issues, in the order [`docs/adr/PENDING-ACTIONS.md`](./adr/PENDING-ACTIONS.md) already
+Fifteen issues, in the order `docs/adr/README.md` already
 established — ordered by how much downstream work each unblocks, not by ADR number. Two ADRs
 (0004, 0007) are `proposed`; the research was commissioned to settle them. Four issues are marked
 `decision-needed` because they are genuinely contested rather than merely undecided:
@@ -91,12 +91,12 @@ established — ordered by how much downstream work each unblocks, not by ADR nu
 - **ADR-0018** — its headline stability statistic **replaces** the owner's Kendall-τ proposal,
   because τ needs weights the companion tool refuses to compute by default.
 
-**One number is unallocated.** `PENDING-ACTIONS.md` § 7 settles the ADR-0005 step-4 checkpoint by
+**One number is unallocated.** The pending list settled the ADR-0005 step-4 checkpoint by
 adding *a new ADR that cites ADR-0005 as parent* — but 0009 through 0019 are all claimed by the other
 fourteen items, so that ADR has no number. Allocate it (0020 is the first free) in the same pass that
 adopts § 7, and record the allocation, rather than discovering the collision while writing the file.
 
-The epic finishes by deleting `PENDING-ACTIONS.md`. A pending list that outlives its pendency
+The epic finished by deleting `PENDING-ACTIONS.md`. A pending list that outlives its pendency
 becomes a second source of truth.
 
 ### 2. Cross-repo schema requests (Phase 0)

@@ -35,3 +35,40 @@ criteria overlap, what evidence would most change the picture.
 The output will be visibly less complete than a naive tool's, and it will be right more often. That
 trade is the product. The UI supports it directly: `comparanda` distinguishes missingness kinds and
 encodes confidence, so an honest agent produces a *better-looking* result there, not a worse one.
+
+## Amendments
+
+### 2026-08-21 — Confirmed by round-1 research (no change to the decision)
+
+Round-1 research reviewed this ADR and confirms it. Nothing above changes. One section of the
+research argued for amendment; the resolution was to confirm, and to put what was missing into new
+ADRs — see below.
+
+The evidence strengthened it from three directions.
+
+**The failure mode is measured, not feared.** An audit of four deployed generative search engines
+found only 51.5% of generated sentences fully supported by their associated citations, and only
+74.5% of citations supporting the sentence that cited them [1]. Those are shipped systems whose
+whole premise is citation. That is the empirical case for this entire policy.
+
+**"Confidence means evidence quality, not model certainty" is the only defensible reading.** Asking
+a model how sure it is yields systematically overconfident answers [2], and agreement across sampled
+draws correlates only weakly with correctness [3] (single-author preprint; treat as weak evidence).
+Evidence quality is the one uncertainty signal a deterministic tool can check — which is what makes
+this definition testable rather than declarative.
+
+**What the policy lacked was enforcement, not revision.** A rule with no stated consequence is a
+statement of intent, and an agent under pressure satisfies intent with a low-confidence 3. The
+missing consequences are now stated where they can be tested, as new ADRs citing this one as parent
+rather than as a superseding ADR: **ADR-0012** (three enforcement rules — no citable span means
+`missing` rather than a low-confidence score, the score is never hedged toward the midpoint, and
+contradiction is a downgrade with a named reason — plus the permanent separation of evidential
+confidence from procedural stability) and **ADR-0015** (`sourceType`, `stance` and `derivedFrom` —
+the machinery that makes "distinguish source types" above checkable rather than merely instructed).
+
+1. [Evaluating Verifiability in Generative Search Engines — Liu, Zhang & Liang (2023), Findings of EMNLP](https://arxiv.org/abs/2304.09848)
+2. [Can LLMs Express Their Uncertainty? An Empirical Evaluation of Confidence Elicitation in LLMs — Xiong et al. (2024), ICLR](https://arxiv.org/abs/2306.13063)
+3. [When LLMs Agree, Are They Right? Auditing Self-Consistency and Cross-Model Agreement as Confidence Signals — Ding (2026)](https://arxiv.org/abs/2607.08065)
+
+Evidence: [`docs/research/findings-method.md`](../research/findings-method.md) § 5, § 7.4, and
+§ "Recommended ADR actions".

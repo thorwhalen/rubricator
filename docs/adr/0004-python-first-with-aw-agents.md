@@ -1,6 +1,6 @@
 # ADR-0004: Python for the agent runtime, on aw_agents; JS/TS deferred
 
-- **Status:** proposed
+- **Status:** superseded by ADR-0009
 - **Date:** 2026-08-18
 
 ## Context

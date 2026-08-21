@@ -27,7 +27,7 @@ Never "items" or "features".
 ## Where things live
 
     docs/adr/                decisions; `proposed` means genuinely open
-    docs/adr/PENDING-ACTIONS.md  ADR changes the research recommends, not yet settled
+    docs/adr/README.md       the ADR index, grouped by theme
     docs/research/README.md  the research ledger — start here to find out what is known
     docs/research/           the method brief, sections/ (working notes), findings-method.md
     docs/prompts/            prompts as versioned content, served by both runtimes
@@ -62,9 +62,8 @@ FastMCP 4.0.0 is the first release with the elicitation that ADR-0005's step-4 c
 See [discussion #112](https://github.com/thorwhalen/rubricator/discussions/112) for the full
 reasoning and what would reopen it.
 
-**ADR-0004 has not been amended** — it still recommends `aw_agents`, and a human settles it. The
-superseding draft is in `docs/adr/PENDING-ACTIONS.md` § 1. Until then, treat the ADR as the
-question and the discussion as the evidence.
+**ADR-0004 is superseded by ADR-0009**, which settles this. ADR-0004 stays readable as the
+question that was asked — that is what ADR-0001's supersede-rather-than-edit rule is for.
 
 **All LLM access goes through the local `aix` facade or an agent object — never a raw provider
 SDK.** `aix` is currently insufficient for the sampling and structured-output this project needs;
