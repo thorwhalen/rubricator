@@ -1,0 +1,87 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rubricator"
+version = "0.0.1"
+description = "The agent that turns a pile of context into a defensible comparison"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+keywords = [
+    "mcp",
+    "llm-as-judge",
+    "mcda",
+    "decision-matrix",
+    "agent",
+    "evaluation",
+    "citation",
+]
+authors = [{ name = "Thor Whalen" }]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+# The tool layer is deliberately dependency-light. ADR-0003 says no tool may
+# require a model, and the corollary is that the tools need no model client --
+# so nothing here pulls one in. `jsonschema` validates against the companion
+# repo's published contract; that is the whole hard dependency set.
+dependencies = [
+    "jsonschema>=4.0.0",
+]
+
+[project.optional-dependencies]
+# The connector runtime: an MCP server. FastMCP 4 is a floor, not a preference --
+# it is the first release implementing modern-protocol elicitation, which is the
+# mechanism for the ADR-0005 step-4 checkpoint the BRIEF says must not be removed.
+mcp = ["fastmcp>=4.0.0"]
+
+# The deployed runtime, which owns model access. All of it goes through `aix`;
+# no provider SDK is a direct dependency of this package, and a test enforces it.
+agent = ["aix>=0.0.39"]
+
+# Statistics for the evaluation suite. Kept an extra rather than a hard
+# dependency: scipy is heavy, and the tool layer must stay importable without it.
+eval = ["scipy>=1.10.0"]
+
+cli = ["typer>=0.12.0"]
+
+test = ["pytest>=7.0", "pytest-cov"]
+docs = ["sphinx", "furo"]
+all = ["rubricator[mcp,agent,eval,cli]"]
+
+[project.urls]
+Homepage = "https://github.com/thorwhalen/rubricator"
+Issues = "https://github.com/thorwhalen/rubricator/issues"
+
+[project.scripts]
+rubricator = "rubricator.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["rubricator"]
+
+[tool.hatch.build]
+# Prompts are content, not code (ADR-0003). Both runtimes serve the same files,
+# so they ship inside the wheel rather than living only in docs/.
+artifacts = ["rubricator/data/**"]
+
+[tool.pytest.ini_options]
+# `rubricator` is in testpaths so the doctests in the tool layer actually run.
+# They are not decoration: several document the exact behaviour an ADR requires
+# (a seeded permutation being stable, a citation ladder's verdicts), and a
+# doctest that is never collected is a comment.
+testpaths = ["tests", "rubricator"]
+addopts = "--doctest-modules"
+
+[tool.black]
+line-length = 88
+skip-string-normalization = true

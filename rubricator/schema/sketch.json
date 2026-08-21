@@ -1,0 +1,197 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/thorwhalen/rubricator/schema/sketch.json",
+  "title": "comparanda analysis (PROVISIONAL LOCAL SKETCH)",
+  "description": "A hand-written stand-in for the companion repository's published analysis schema, derived from its domain model on 2026-08-21. It is deliberately NARROWER than the real schema: it asserts only what rubricator relies on, so a document valid here has a good chance of being valid there and never the reverse. Replace it with the published artifact via SchemaSource.published(); the issue that removes this file is thorwhalen/rubricator#111.",
+  "type": "object",
+  "required": ["schemaVersion", "id", "subject"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "id": { "type": "string", "minLength": 1 },
+    "title": { "type": "string" },
+    "subject": {
+      "type": "object",
+      "required": ["question"],
+      "properties": {
+        "question": { "type": "string", "minLength": 1 },
+        "decision": { "type": "string" },
+        "decider": { "type": "string" },
+        "context": { "type": "string" }
+      }
+    },
+    "criteriaVersion": { "type": "string" },
+    "defaultReduction": {
+      "description": "Note the deliberate absence of a bare 'median': at even k it averages the two central values, producing a level no rater could have chosen.",
+      "enum": ["single", "latest", "lower-median", "mode", "mean", "consensus"]
+    },
+    "measures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": { "name": { "type": "string" }, "label": { "type": "string" } }
+      }
+    },
+    "alternatives": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "label": { "type": "string" },
+          "description": { "type": "string" },
+          "groupIds": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "criteria": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "label": { "type": "string" },
+          "definition": {
+            "description": "Free text is not enough: an undefined criterion is scored inconsistently and the inconsistency is invisible until someone tries to reproduce a score.",
+            "type": "object",
+            "properties": {
+              "objective": { "type": "string" },
+              "question": { "type": "string" },
+              "anchors": { "type": "object", "additionalProperties": { "type": "string" } },
+              "evidenceRule": { "type": "string" },
+              "missingRule": { "type": "string" },
+              "exclusions": { "type": "array", "items": { "type": "string" } }
+            }
+          },
+          "measurements": {
+            "type": "object",
+            "additionalProperties": { "$ref": "#/$defs/measurement" }
+          },
+          "defaultMeasurement": { "$ref": "#/$defs/measurement" },
+          "groupIds": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "cells": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["alternativeId", "criterionId", "measure"],
+        "properties": {
+          "alternativeId": { "type": "string" },
+          "criterionId": { "type": "string" },
+          "measure": { "type": "string" },
+          "reduction": {
+            "enum": ["single", "latest", "lower-median", "mode", "mean", "consensus"]
+          },
+          "assertions": { "type": "array", "items": { "$ref": "#/$defs/assertion" } }
+        }
+      }
+    },
+    "authors": { "type": "array", "items": { "$ref": "#/$defs/author" } },
+    "procedures": { "type": "array", "items": { "type": "object" } },
+    "groups": { "type": "array", "items": { "type": "object" } },
+    "threads": { "type": "array", "items": { "type": "object" } }
+  },
+  "$defs": {
+    "measurement": {
+      "type": "object",
+      "required": ["level", "preference"],
+      "properties": {
+        "level": { "enum": ["nominal", "ordinal", "interval", "ratio"] },
+        "preference": {
+          "description": "Without a direction of preference, dominance and screening are not definable.",
+          "enum": ["increasing", "decreasing", "target", "ordered", "none"]
+        },
+        "range": {
+          "type": "object",
+          "required": ["min", "max"],
+          "properties": {
+            "min": { "type": "number" },
+            "max": { "type": "number" },
+            "target": { "type": "number" },
+            "unit": { "type": "string" }
+          }
+        },
+        "levels": { "type": "array" }
+      }
+    },
+    "missing": {
+      "type": "object",
+      "required": ["code"],
+      "properties": {
+        "code": {
+          "description": "not-evidenced means the sources are silent; indeterminate means they do not settle it. These lead to different next actions and must not be collapsed.",
+          "type": "string"
+        },
+        "note": { "type": "string" }
+      }
+    },
+    "assertion": {
+      "type": "object",
+      "required": ["id", "authorId", "at"],
+      "description": "Exactly one of value or missing must be present. No bare nulls: every absence names why.",
+      "properties": {
+        "id": { "type": "string" },
+        "authorId": { "type": "string" },
+        "at": { "type": "string" },
+        "value": { "type": ["number", "string", "boolean"] },
+        "missing": { "$ref": "#/$defs/missing" },
+        "justification": { "type": "string" },
+        "independence": {
+          "description": "The field that stops five draws of one model being counted as five raters.",
+          "enum": ["shared-context", "resampled", "perturbed", "independent", "consensus"]
+        },
+        "perturbation": {
+          "type": "object",
+          "properties": {
+            "kind": { "type": "string" },
+            "seed": { "type": ["string", "number"] },
+            "detail": { "type": "string" }
+          }
+        },
+        "criteriaVersion": { "type": "string" },
+        "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidenceRef" } }
+      },
+      "oneOf": [{ "required": ["value"] }, { "required": ["missing"] }]
+    },
+    "evidenceRef": {
+      "type": "object",
+      "required": ["id", "target", "sourceType"],
+      "properties": {
+        "id": { "type": "string" },
+        "target": { "type": "string" },
+        "sourceType": {
+          "description": "An agent summary mistaken for primary authorship was the most damaging error class the originating work encountered.",
+          "enum": ["primary", "secondary", "agent-summary", "agent-inference"]
+        },
+        "stance": { "enum": ["supports", "contradicts", "qualifies", "context"] },
+        "excerpt": { "type": "string" },
+        "quoteHash": { "type": "string" },
+        "derivedFrom": { "type": "array", "items": { "type": "string" } },
+        "selectors": { "type": "array", "items": { "type": "object" } },
+        "check": { "type": "object" }
+      }
+    },
+    "author": {
+      "type": "object",
+      "required": ["id", "displayName", "kind"],
+      "properties": {
+        "id": { "type": "string" },
+        "displayName": { "type": "string" },
+        "kind": { "enum": ["human", "agent", "imported", "derived"] },
+        "agent": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "model": { "type": "string" },
+            "promptVersion": { "type": "string" },
+            "runId": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}
