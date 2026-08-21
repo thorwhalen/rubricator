@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# No publish job yet, deliberately. The ecosystem convention for a
+# wads-managed package is the reusable workflow at i2mint/wads
+# (.github/workflows/uv-ci.yml), which publishes to PyPI on merge. Adopt it when
+# this package is ready to release and PYPI_PASSWORD is set on the repo -- until
+# then it would fail red on every push, which teaches people to ignore CI.
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install
+        # No extras. The tool layer must be importable and testable in a bare
+        # environment -- that is the property the connector runtime depends on,
+        # and installing [all] here would hide a regression in it.
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[test]"
+
+      - name: Tests and doctests
+        run: pytest -q
+
+  determinism:
+    # Split into its own job so that a failure here is unmistakable in the
+    # checks list. This is the one architectural rule of the project (ADR-0003):
+    # tools are deterministic, the loop is not. If it fails, the fix is to split
+    # the step into a prompt plus a validating tool -- never to relax the test.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[test]"
+      - name: The tool layer calls no model, and is reproducible
+        run: pytest tests/test_determinism_boundary.py -q
+
+  hygiene:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: No absolute local paths or personal identifiers
+        run: |
+          set -euo pipefail
+          if grep -rIn -E '/Users/[a-z]|/home/[a-z]|/root/[a-z]' \
+               --exclude-dir=.git . ; then
+            echo "::error::absolute local path found; see CLAUDE.md on public-repo hygiene"
+            exit 1
+          fi
+          echo "no absolute local paths anywhere in the tree"
+
+      - name: Pre-publish denylist
+        # Mirrors the companion repo's ADR-0016 check. The denylist names terms
+        # from the private analysis this originated in, so the file itself must
+        # never be committed; it is supplied out of band as a secret. Absent
+        # secret => skipped loudly, because a hygiene check that quietly does
+        # nothing is worse than no check.
+        env:
+          DENYLIST: ${{ secrets.ADR_0016_DENYLIST }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DENYLIST:-}" ]; then
+            echo "::warning::ADR_0016_DENYLIST secret is not set; the pre-publish check did NOT run."
+            exit 0
+          fi
+          printf '%s\n' "$DENYLIST" | grep -v '^[[:space:]]*$' > /tmp/denylist.txt
+          if grep -rIinf /tmp/denylist.txt --exclude-dir=.git . ; then
+            echo "::error::denylisted term found; this is a hard constraint, not a preference."
+            exit 1
+          fi
+          echo "denylist clean ($(wc -l < /tmp/denylist.txt) terms checked)"
