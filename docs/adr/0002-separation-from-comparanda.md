@@ -54,3 +54,61 @@ The amendment above registers a missing reason named `insufficient_evidence_to_d
 request stands; the spelling does not. It is **`insufficient-evidence-to-discriminate`**, per
 ADR-0011's second amendment, which rules kebab-case for every reason code and gives the reasons.
 Nothing else about the request or the boundary changes.
+
+### 2026-08-22 — the request register grows from seven to sixteen, and four of the nine block
+
+- **Deciders:** Thor Whalen
+
+The Decision above fixes the protocol — every schema need this repository finds is a **request**
+across the boundary, never a change it can make — and the register of those requests lives in
+`comparanda: docs/cross-repo-coordination.md` § 7. Seven requests were filed under it. The eight
+decisions of 2026-08-22 generate nine more, and this note records them here so a reader of the ADR
+set can see the register's true size without opening the other repository.
+
+| # | Request | Blocking |
+|---|---|---|
+| 8 | `Author.principalId`, `Author.actingAs`, `Author.attestation`; `effectiveIndependence`, `distinctPrincipals` | yes — the contributor filename of ADR-0023 |
+| 9 | `EvidenceRef.renditionId`; a `Rendition` record with `originalLocator`, `originalSha256`, `normaliserId`; `quoteHash` → `excerptHash` | yes — ADR-0014's amendment |
+| 10 | Reconcile the three live citation-verdict spellings onto ADR-0014's enum | yes — before the schema freezes |
+| 11 | `Reduction` widened to `string` + `ReductionDeclaration` + `Analysis.reductions` | yes — one line now, a migration through every stored analysis later |
+| 12 | Uniqueness on `(alternativeId, criterionId, measure)` | yes — a live bug the moment ADR-0023's merge lands |
+| 13 | `Measurement.scale` (optional), `Measurement.anchors`, `Analysis.scales` | yes — ADR-0012's seam |
+| 14 | `Criterion.missingCodes` overlay and a scope-aware vocabulary facade | no — analysis scope is sufficient for v1 |
+| 15 | `validateAnalysis` takes injected rule families; problems gain `family`, `fix`, `rule_id` | yes — ADR-0024 |
+| 16 | `Suggestion.proposed` typed as a partial assertion rather than `unknown` | no — before suggestion mode ships |
+
+Each of the nine was read against the companion repository's source before being written down,
+because a request for something that already ships is how a register loses its authority. **Several
+were then disposed the same day**, in `comparanda` and by `comparanda` — the contributor fields, the
+rendition and excerpt-hash fields, the widened reduction vocabulary with its declaration array, the
+scale declaration and anchor set, and the duplicate-cell defect all landed in its source on
+2026-08-22. That is the protocol working at speed, not the register being bypassed; the disposition
+belongs in the register, and the request stays on the list with its disposition recorded rather than
+being deleted from it.
+
+**Request 12 is not a field request but a defect report**, which is why it reads differently from
+its neighbours. Two readers of the same document disagreed: the indexed reader kept the **last**
+duplicate `(alternativeId, criterionId, measure)` triple, the scanning reader kept the **first**.
+Benign while nothing writes documents, and a live bug the instant a merge produces a duplicate
+triple — which is exactly what ADR-0023's merge can do.
+
+**Two clarifications the register needs and did not have.**
+
+**Request 11 is time-critical in a way the others are not.** Widening a closed enum costs one line
+before v1 freezes and a migration through every stored analysis afterwards, so it takes priority
+over requests that are larger but cheaper to defer. It was filed and disposed first, which is the
+order this clause exists to produce.
+
+**A request may be answered by the document rather than by the schema, and that is a disposition.**
+Request 7 — a missingness reason for insufficient evidence to discriminate — needs no schema change
+at all once `comparanda`'s missingness declarations are read the way they were built: it is a row in
+`Analysis.missingCodes` with `broader: 'indeterminate'`. Recording *that* as the disposition is the
+protocol working, not being bypassed. The boundary rule this ADR states is unchanged: we still may
+not write it into `comparanda`; we write it into **our own analysis document**, which is ours.
+
+All seven original requests still carry an empty disposition in the register, so the intake gate is
+formally open even where the shipped schema visibly satisfies the request. Recording those
+dispositions is a reading of existing code, not a feature, and it should not wait on the nine new
+ones.
+
+Refs #27, #28, #29, #30, #31, #32, #33.

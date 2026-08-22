@@ -136,3 +136,69 @@ What does not change is that replacing the `unknown` literal is a per-site mappi
 search-and-replace: the two destinations mean different things, and `comparanda`'s ADR-0009
 amendment § 8 says so in the same words. Prose in this repository that still reads `unknown` is
 corrected site by site, and `docs/ROADMAP.md` § 2 tracks that sweep.
+
+### 2026-08-22 — the stored record splits into a frame and N contributions, merged on read
+
+- **Deciders:** Thor Whalen
+
+**What this narrows.** The Decision states: "**The stored record is itself a schema-valid comparanda
+analysis** — not a bespoke checkpoint format that must later be converted", and fixes the physical
+layout as "one record per analysis plus a corpus-index sidecar". A decision of 2026-08-22 puts a
+team arguing over one analysis into v1, with files as the single source of truth and **one file per
+contributor per analysis, so that two people editing never collide**. A contributor's file is a
+fragment of an analysis, not a whole one. Both clauses as written are therefore no longer true of
+the bytes on disk.
+
+**Their reasoning is preserved exactly, which is why this is an amendment and not a supersession.**
+The clause exists to rule out a second schema and a conversion step. There is still exactly one
+schema. Each contributor file validates against it as a fragment; `read()` returns one whole,
+schema-valid `comparanda` analysis; every intermediate state is still renderable with no special
+handling; and nothing anywhere converts between two formats. What changed is the *granularity* of a
+record, not its kind.
+
+**The layout, which is the whole of the collision-freedom argument:**
+
+    {analysis_id}/frame.json                     subject, criteria, alternatives, groups,
+                                                 declared vocabularies, salt
+    {analysis_id}/contributors/{author_id}.json  ONE FILE PER CONTRIBUTOR
+    {analysis_id}/corpus/index.json              the rendition records
+    {analysis_id}/corpus/{sha256}                the normalised renditions
+    {analysis_id}/projection/                    generated, one-way, never read back
+
+Two contributors never write the same key. That single invariant is what makes a
+`git pull --rebase && git push` safe with no locking protocol, and it is the only reason a
+last-write-wins provider is safe on the browser side. It is load-bearing, so it is recorded as a
+capability and tested, never left as folklore.
+
+**The merge happens on read and is never written back.** `read()` reconstitutes one analysis from
+the frame plus N contributor files, deterministically: cells keyed on
+`(alternativeId, criterionId, measure)`, assertions unioned rather than concatenated, authors
+deduplicated on id, and a genuine same-version conflict **refused** — both assertions retained, the
+cell marked refused — rather than resolved by timestamp. Last-write-wins is precisely the failure
+the per-contributor layout exists to prevent, and reintroducing it inside the merge would be
+silent. Never writing the merged document back is what keeps contributor writes disjoint.
+
+**The Mapping interface this ADR mandated is now named.** "The store lives in the platform user-data
+directory, behind a Mapping interface, and never inside the package directory" stands verbatim and
+is honoured as `MutableMapping[str, bytes]` — `collections.abc`, nothing invented — with `dol`
+supplying the implementations. The user-data location stands, and it now has a second reason: the
+deploy tooling for the application of ADR-0025 hard-fails a deploy that leaves data inside its
+delete blast radius. What this ADR did not contemplate is a **second target**: a shared GitHub
+repository, reached by the same code path with a different root. That, and the write-only
+Discussions/Issues projection generated from the files and never read back as truth, are
+**ADR-0023**.
+
+**What does not change.** The opaque unguessable `analysis_id`; resume semantics read entirely off
+missingness codes with nothing branching on a literal; the step-4 confirmation stored as authored,
+timestamped provenance rather than a flag; retention running from last write with its window stated
+verbatim in `analysis_open`'s description; the server not distinguishing expired from never-existed;
+and export defeating retention.
+
+**One consequence worth stating before it is discovered.** Every read is now a merge, and v1
+deliberately caches nothing. That is free at fixture scale and O(contributors × cells) at fifty
+contributors and five hundred cells. The fix, when it hurts, is one caching decorator at the
+composition root keyed on the content hash of the contributor set — no interface changes. Naming
+the deferral is the point: an uncached merge nobody wrote down becomes a mysterious slowness six
+months from now.
+
+Refs #51, #82.

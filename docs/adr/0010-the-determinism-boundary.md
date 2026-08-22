@@ -89,3 +89,55 @@ the pricing arithmetic and the inlining recommendation are in
 3. [Late Chunking: Contextual Chunk Embeddings Using Long-Context Embedding Models — Günther et al. (2024)](https://arxiv.org/abs/2409.04701)
 4. [Pricing — Anthropic (2026)](https://platform.claude.com/docs/en/about-claude/pricing)
 5. [Writing effective tools for agents — with agents — Anthropic Engineering (2025)](https://www.anthropic.com/engineering/writing-tools-for-agents)
+
+## Amendments
+
+### 2026-08-22 — the clock is injected, and the boundary grows two denylists
+
+- **Deciders:** Thor Whalen
+
+**A wall clock is a nondeterminism the boundary does not currently see.** The Decision forbids MCP
+sampling, in-tool model calls, embedding calls and hidden network access, and the test that enforces
+it intersects each tool module's imports against three denylists. The nondeterministic one is
+`{random, secrets, uuid}`; `datetime` and `time` are in none of them. A decision of 2026-08-22
+requires every persisted citation check to carry `checkedAt` and `checkerVersion` (ADR-0014's
+amendment of the same date), and the first naive implementation of `checkedAt` reaches for
+`datetime.now()` inside a tool. That would make the tool layer's output non-reproducible in the one
+place the product's whole claim rests.
+
+**The clock becomes an injected dependency.** `rubricator/clock.py` is the only module in this
+repository permitted to import `datetime`, and it exports one thing:
+`Clock = Callable[[], str]` returning ISO-8601 UTC, with `utc_now` as the real implementation. Every
+tool that needs a timestamp takes `now: Clock` as a **required keyword-only argument with no
+default**, so the boundary cannot be crossed by forgetting. Determinism is preserved rather than
+weakened: identical input *plus identical clock* gives byte-identical output, and a test supplying a
+frozen clock is byte-reproducible forever.
+
+**`datetime` and `time` join the `NONDETERMINISTIC` denylist**, with `rubricator/clock.py` as the
+single allowlisted module.
+
+**A fourth denylist: the host must not reach the tools.** `{fastmcp, mcp, py2mcp, enlace_connector,
+fastapi, starlette, aix, openai, anthropic, litellm}` applied to `rubricator/tools/**` and
+`rubricator/schema/**`. This costs exactly what the three existing denylists cost and buys two
+things: ADR-0003's "tools know nothing about MCP" becomes mechanical, and the choice of MCP builder
+— reopened the same day by ADR-0009's amendment — becomes a one-file change rather than a
+commitment.
+
+**And one existing guard is repaired, because it cannot currently fail.**
+`test_only_the_schema_facade_loads_a_schema` asserts that the literal string `sketch.json` does not
+appear outside the schema package. A module loading a schema by any other filename passes it — and a
+second filename is about to exist, because the published artifact and the vocabulary parity file
+both land under `rubricator/schema/`. The check becomes: **no module outside `rubricator/schema/`
+opens a `.json` file under `rubricator/`.**
+
+**A rule about rules, earned by this repair.** ADR-0012's 2026-08-22 amendment already counted the
+guards in this repository that could not fail and warned that a scale seam would be the next place
+one hid. Two of them are named above — the filename grep, and a nondeterminism denylist with no
+clock in it — and a third is not a guard at all but a test enforcing a retired contract: the
+citation module's doctests, which pin a verdict enum ADR-0014 has already retired (see that ADR's
+2026-08-22 amendment). The rule that follows is general: **a boundary test must be demonstrated
+failing against a deliberate violation before it is believed**, and demonstrating it is part of the
+change that introduces it. ADR-0020 restates this as a standing discipline for every seam, not only
+for boundary tests.
+
+Refs #46, #48, #63.

@@ -79,6 +79,62 @@ design question stays open upstream and is not ours to settle — whether the fa
 - *Stating the rule in `CLAUDE.md` and reviewing for it.* This is what was already in place. It is
   how the rule came to be true everywhere and checked nowhere.
 
+## Amendments
+
+### 2026-08-22 — one chokepoint becomes one seam with two adapters, and the test gets stronger
+
+- **Deciders:** Thor Whalen
+
+**What this narrows, and why the narrowing was always implied.** The Decision reads: "Any model
+access anywhere in this repository — the agent loop, the CLI, the evaluation harness — goes through
+it." Taken literally that is unsatisfiable, and ADR-0003 is the reason: **the connector runtime has
+no API key.** Its only possible model access is the host's own — `Context.sample` on the MCP
+session, riding the user's subscription — and that call cannot route through `aix`, which resolves
+credentials the connector does not have. The three runtimes the clause enumerates are all
+key-holding runtimes; the connector was not in the list, because at the time it was assumed to need
+no model access at all.
+
+**The chokepoint is now a seam with two adapters, and `aix` remains the only key-holding one.**
+`rubricator/model/__init__.py` declares a `ModelAccess` protocol — `judge(...)` returning a tuple of
+`Judgement` records in which **a refusal is a distinguishable value, never an empty string** — plus
+a `capabilities()` report saying whether the provider honours a seed, supports structured output, or
+supports `n > 1`. Two implementations, selected at server construction and **never by a branch
+inside a tool**:
+
+- **`AixAccess`** — the deployed agent, the CLI, the evaluation harness. Everything the Decision
+  says about the facade binds here unchanged: one chokepoint for model configuration, credential
+  resolution, aliases and scoped overrides, and never a provider SDK directly.
+- **`SamplingAccess`** — the connector, over `Context.sample`, verified present on the installed
+  FastMCP release on 2026-08-22. It holds no key and resolves no credential, so it is not an
+  exception to the chokepoint; it is a runtime the chokepoint was never about.
+
+Note what this does **not** license. ADR-0010 forbids MCP sampling inside a **tool**, and that is
+untouched: `SamplingAccess` is the loop's model access, reachable only from the runtime layer, and
+the denylist below is what makes the distinction mechanical rather than a matter of care.
+
+**The import test is not weakened by this — it is strengthened.** ADR-0010's 2026-08-22 amendment
+adds a fourth denylist forbidding `aix`, `fastmcp`, `mcp` and every provider SDK anywhere under
+`rubricator/tools/**` and `rubricator/schema/**`. So the seam is also a wall: a tool module cannot
+import either adapter, and "tools are deterministic, the loop is not" is enforced against **both**
+runtimes rather than only against the one that holds a key. The existing subprocess test —
+`import rubricator.mcp` must leave `aix` and `litellm` out of `sys.modules` — stands unchanged.
+
+**Gap A3 gets a wrapper with a deletion date.** The Decision records that until A3 closes "this
+repository must not rely on that helper for scoring". Re-read on 2026-08-22, `constrained_answer`
+still checks nothing: it coerces the parsed answer to an expected type and returns it, so
+`valid_answers=[1, 2, 3, 4, 5]` can return `9` and `valid_answers=(1, 5)` — the range form — can
+return `9.0`. Either lands as data, sitting exactly on the path of ADR-0012's anchored levels.
+`AixAccess` therefore wraps it in a `ValidatingJudge` that enforces the constraint we asked for.
+The wrapper is deleted the day A3 lands, and nothing else changes; it lives behind the seam
+precisely so that its deletion is a non-event.
+
+**And v1 sidesteps all six gaps, which is luck rather than plan.** The v1 connector's intelligence
+is supplied by Claude reading the prompt files; no tool calls a model, so A1–A6 block nothing that
+ships first. That is a happy accident of ADR-0003's architecture and is not a position to depend on
+twice: A1, A2 and A4 still block the Phase-4 variance work exactly as the Decision states.
+
+Refs #34, #104.
+
 ## References
 1. [LiteLLM — Input Params for `completion()`](https://docs.litellm.ai/docs/completion/input)
 2. [LiteLLM — JSON Mode and Structured Outputs](https://docs.litellm.ai/docs/completion/json_mode)
