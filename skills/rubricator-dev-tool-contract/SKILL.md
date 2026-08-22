@@ -93,7 +93,7 @@ In the docstring, because it becomes the tool description the model actually rea
 
 ## The honesty rule applies to tools too
 
-ADR-0006 says prefer a qualified `unknown` to a plausible guess. For a tool that means: when
+ADR-0006 says prefer a qualified blank to a plausible guess. For a tool that means: when
 input is insufficient, return an explicit, typed "cannot determine, because X" — never a
 default, never a zero, never an empty list that reads as "nothing found" when it means "did not
 look".

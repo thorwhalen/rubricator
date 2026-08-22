@@ -121,9 +121,28 @@ always-returns-`unknown` degenerate-agent counter-metric, the resume semantics k
 `not-assessed` / `pending` / `unknown`). **That disposition has now been recorded** — `comparanda`'s
 ADR-0009 amendment of 2026-08-21, with the six-code core set shipping in its code and domain model —
 so the embargo on writing a code literal is lifted and ADR-0017's amendment discharges the
-conditionals in the ADR set. One issue here still tracks the prose sweep, which is a **per-site
+conditionals in the ADR set. The prose sweep is a **per-site
 mapping and never a search-and-replace**: `unknown` resolves to `not-evidenced` where the sources
-are silent and to `indeterminate` where they do not settle the level.
+are silent and to `indeterminate` where they do not settle the level, and in a *generic* statement
+of the honesty rule it resolves to neither — "prefer a qualified **blank**" names the behaviour
+without naming a code, which is what that sentence always meant.
+
+**Done for the live sites, 2026-08-22.** `BRIEF.md`, `docs/prompts/README.md`, both dev skills and
+the tool-surface table in `docs/research/findings-method.md` now read the current spellings, and
+`analysis_get`'s resume view is renamed `pending` → **`outstanding`**, since the view selects on the
+`terminal` flag and naming it after one code was the same mistake one level up. `measures_mark_missing`
+no longer enumerates codes in its signature at all: it validates against the analysis's own
+vocabulary, core six plus declared extensions, because comparanda's set is **open** and a literal
+list here would go stale on the first deployment that extends it.
+
+**Left alone deliberately:** the working notes under `docs/research/sections/`, which are dated
+records of what each research round found and are falsified rather than corrected by a rewrite; and
+`rubricator/tools/traversal.py`, whose only match is the English word in `unknown traversal order`.
+That last one is the argument for the per-site rule in miniature.
+
+What remains on the issue is the part that is not a rename: **`not-evidenced` needs a prompt that
+teaches the distinction and a fixture that exercises it**, or an explicit decline. The prompts README
+now carries the instruction; the prompt files and the fixture are Phase 2 work.
 `comparanda: docs/cross-repo-coordination.md` §7.1.
 
 ### 3. Upstream dependencies (Phase 0)
