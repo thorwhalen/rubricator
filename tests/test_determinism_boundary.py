@@ -110,8 +110,8 @@ def test_schema_layer_imports_no_model_client() -> None:
         assert not offending, f"{path.name} imports {sorted(offending)}"
 
 
-def test_only_the_schema_facade_loads_a_schema() -> None:
-    """Nothing outside the facade may open a schema file.
+def test_only_the_schema_facade_loads_a_packaged_json_resource() -> None:
+    """Nothing outside the facade may load a JSON file that ships with the package.
 
     This is what keeps the swap from the local sketch to the published contract a
     one-line change. Once tools grow their own copies of the shape, adopting the
@@ -119,27 +119,40 @@ def test_only_the_schema_facade_loads_a_schema() -> None:
     the coordination plan names as the assumption most likely to be quietly
     dropped under pressure.
 
-    **The rule is about opening a JSON file, not about one filename.** It used to
-    grep for the literal ``sketch.json``, which meant the exact violation it was
-    written to stop -- a tool reading the *published* artifact directly -- would
-    have passed it. A guard that cannot fail on the thing it guards against is
-    the fourth of its kind found in this codebase.
+    **The rule is "reads a packaged resource", not "mentions a filename".** Two
+    earlier attempts got the shape wrong in opposite directions. Grepping for the
+    literal ``sketch.json`` meant the exact violation it was written to stop -- a
+    tool reading the *published* artifact directly -- would have sailed through
+    it. Grepping for any ``.json`` string instead flagged
+    ``rubricator/store``'s key format, which names a `.json` file it will never
+    open and is data rather than a resource.
+
+    What separates them is ``__file__``: a schema artifact is loaded relative to
+    the package, and a store key is a runtime string. So the test is for the
+    *pair*, and it is checked on the AST rather than by grep so that a mention
+    inside a docstring does not trip it.
     """
     package_root = Path(rubricator.__file__).parent
-    allowed = {SCHEMA_DIR / "source.py"}
-    json_open = re.compile(r"""["'][^"']*\.json["']""")
+    schema_pkg = package_root / "schema"
 
     for path in _python_files(package_root):
-        if path in allowed or SCHEMA_DIR in path.parents or path.parent == SCHEMA_DIR:
+        if schema_pkg in path.parents or path.parent == schema_pkg:
             continue
-        text = path.read_text(encoding="utf-8")
-        hits = json_open.findall(text)
-        assert not hits, (
-            f"{path.relative_to(package_root)} names a JSON file ({', '.join(sorted(set(hits)))}). "
-            "Only rubricator/schema/ may open one; everything else goes through SchemaSource, "
-            "which is what keeps adopting the published artifact a constructor argument rather "
-            "than a sweep."
-        )
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        names = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)}
+        strings = {
+            n.value
+            for n in ast.walk(tree)
+            if isinstance(n, ast.Constant) and isinstance(n.value, str)
+        }
+        json_literals = sorted(s for s in strings if s.endswith(".json"))
+        if "__file__" in names and json_literals:
+            raise AssertionError(
+                f"{path.relative_to(package_root)} loads a packaged JSON resource "
+                f"({', '.join(json_literals)}). Only rubricator/schema/ may do that; everything "
+                "else goes through SchemaSource, which is what keeps adopting a new version of "
+                "the published contract a constructor argument rather than a sweep."
+            )
 
 
 def test_the_clock_lives_in_exactly_one_module() -> None:
