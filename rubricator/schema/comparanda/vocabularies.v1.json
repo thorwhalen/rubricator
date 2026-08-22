@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "$comment": "The closed core of every vocabulary in comparanda. Extensions are declared inside each analysis document and are not listed here; every extension names one of these as its `broader` parent, which is what lets a reader that has never heard of it classify it.",
+  "vocabularies": {
+    "missingCode": {
+      "$comment": "structural: the cell should be empty, so it leaves every denominator. terminal: someone looked and this is the answer. informative: the absence is a statement about the subject rather than about our process -- silenceRate counts only these, and not-evidenced and withheld differ on exactly this while sharing terminal.",
+      "core": [
+        "not-applicable",
+        "not-assessed",
+        "deferred",
+        "not-evidenced",
+        "indeterminate",
+        "withheld"
+      ],
+      "facts": {
+        "not-applicable": {
+          "structural": true,
+          "terminal": true,
+          "informative": true,
+          "means": "This criterion does not apply to this alternative."
+        },
+        "not-assessed": {
+          "structural": false,
+          "terminal": false,
+          "informative": false,
+          "means": "Nobody has looked yet."
+        },
+        "deferred": {
+          "structural": false,
+          "terminal": false,
+          "informative": false,
+          "means": "Deliberately left for now."
+        },
+        "not-evidenced": {
+          "structural": false,
+          "terminal": true,
+          "informative": true,
+          "means": "We looked; the sources are silent."
+        },
+        "indeterminate": {
+          "structural": false,
+          "terminal": true,
+          "informative": true,
+          "means": "We looked; the sources do not settle it."
+        },
+        "withheld": {
+          "structural": false,
+          "terminal": true,
+          "informative": false,
+          "means": "Known, but not shown here."
+        }
+      },
+      "extensible": true,
+      "declaredAt": "$.missingCodes"
+    },
+    "reduction": {
+      "$comment": "arithmetic: the reduction can produce a value nobody asserted, which is illegal on nominal and ordinal levels. A build that cannot run a declared reduction refuses rather than running its parent, because substituting changes a number a reader acts on.",
+      "core": [
+        "single",
+        "latest",
+        "lower-median",
+        "mode",
+        "mean",
+        "consensus"
+      ],
+      "facts": {
+        "single": {
+          "means": "Exactly one assertion is expected; more is a conflict.",
+          "arithmetic": false
+        },
+        "latest": {
+          "means": "The most recent assertion wins.",
+          "arithmetic": false
+        },
+        "lower-median": {
+          "means": "The lower of the two central order statistics.",
+          "arithmetic": false
+        },
+        "mode": {
+          "means": "The most frequently asserted level; ties are reported, not broken.",
+          "arithmetic": false
+        },
+        "mean": {
+          "means": "The arithmetic mean.",
+          "arithmetic": true
+        },
+        "consensus": {
+          "means": "An explicitly agreed value that supersedes the rest.",
+          "arithmetic": false
+        }
+      },
+      "extensible": true,
+      "declaredAt": "$.reductions"
+    },
+    "scale": {
+      "$comment": "One member. Everything a Stevens-family scale varies by is already a field of Measurement, and every scale-dependent function is a pure function of those fields, so a reader that has never heard of a named scale still validates, dominates and renders it.",
+      "core": [
+        "stevens"
+      ],
+      "extensible": true,
+      "declaredAt": "$.scales"
+    }
+  },
+  "closedEnums": {
+    "$comment": "Not extensible. A document naming a member outside these is wrong rather than newer, and there is no `broader` to degrade through.",
+    "citationVerdict": {
+      "$comment": "exact/normalised/fuzzy are ladder rungs -- how hard we had to look. moved/stale are about the document underneath. The retired spellings are `verified`, which read as approval, and `drifted`, which conflated moved with stale.",
+      "core": [
+        "exact",
+        "normalised",
+        "fuzzy",
+        "moved",
+        "stale",
+        "unresolvable",
+        "unchecked"
+      ]
+    },
+    "sourceType": {
+      "core": [
+        "primary",
+        "secondary",
+        "agent-summary",
+        "agent-inference"
+      ]
+    },
+    "stance": {
+      "core": [
+        "supports",
+        "contradicts",
+        "qualifies",
+        "context"
+      ]
+    },
+    "authorKind": {
+      "core": [
+        "human",
+        "agent",
+        "imported",
+        "derived"
+      ]
+    },
+    "attestationMethod": {
+      "core": [
+        "unverified",
+        "host-session",
+        "oauth",
+        "signature"
+      ]
+    },
+    "independence": {
+      "$comment": "A ladder, weakest first. An agreement statistic is labelled by the weakest rung present, and personas sharing a principal collapse before the label is chosen.",
+      "core": [
+        "shared-context",
+        "resampled",
+        "perturbed",
+        "independent",
+        "consensus"
+      ]
+    }
+  }
+}

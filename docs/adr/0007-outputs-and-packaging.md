@@ -62,6 +62,53 @@ One scope note, so the collapse is not over-read later: the artifact dissolved h
 end-user* prompt bundle. Agent-facing dev skills inside this repository are a separate category and
 are untouched by this decision.
 
+## Amendments
+
+### 2026-08-22 — a fourth deliverable, and what "the UI is comparanda" actually meant
+
+- **Deciders:** Thor Whalen
+
+**What this narrows.** The Decision closes: "Deferred: a hosted service, a JS/TS runtime
+(ADR-0009), and any UI — the UI is `comparanda`." A decision of 2026-08-22 puts a team arguing over
+a shared document into v1, and names two surfaces for it. The second is a deployed web application,
+called **`rubricator`**, both to contribute opinions and to read the analysis.
+
+**The shipping order gains a stage; it does not change.**
+
+1. MCP server, prompts included — unchanged, still first, still the minimum viable product.
+2. **The `rubricator` application** — a backend over the same store the tools use, and a small
+   Preact client. New.
+3. Python package — the deployed agent. Was 2.
+4. CLI. Was 3.
+
+The CLI moves later in the order but not entirely out of v1: **one verb is v1**, because ADR-0023
+invokes the projection from the CLI and never from a tool.
+
+**"The UI is `comparanda`" survives, correctly read.** It was a statement about *view components* —
+the matrix, the encodings, the detail panel — and it still binds: this repository writes none of
+them, and when `comparanda`'s matrix ships, the application mounts it and deletes its own
+placeholder table rather than competing with it. What the sentence never meant, because the question
+had not been asked, is that nobody may ever deploy an application that hosts those components. An
+application is a composition root, a data-access adapter and an identity source; a view library is
+a set of components. Deferring the second does not defer the first.
+
+**Nor does this reopen ADR-0009's JS/TS deferral.** That deferral is about a second *runtime* — a
+second implementation of the tool surface and the agent loop. The application is a **client** of
+the Python surface and implements none of it. One language for the runtime, one for the browser, and
+the schema is still the only thing that crosses (ADR-0002).
+
+**The `py2mcp` line of the Decision is revisited elsewhere, and in this ADR's favour.** ADR-0009's
+2026-08-22 amendment adopts `py2mcp` as the connector's builder as well as the CLI/OpenAPI one. That
+is not a contradiction of the sentence above — it collapses two lines into one manifest with two
+dispatchers, which strengthens this ADR's one-fewer-artifact argument rather than weakening it.
+
+**The risk this ADR named gets worse, and is still accepted.** "The risk is stopping after stage 1,
+because it is sufficient for the primary user." A second surface competes for the same attention.
+The mitigation is that the application is deliberately thin — one data port, one throwaway table,
+no state the files do not own — so that stopping after it costs a component, not an architecture.
+
+The shape of the application is **ADR-0025**. Refs #11, #108.
+
 ## References
 1. [MCP — Prompts, revision 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28/server/prompts)
 2. [Connect Claude Code to tools via MCP — Anthropic Claude Code documentation](https://code.claude.com/docs/en/mcp)

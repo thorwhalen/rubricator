@@ -76,6 +76,67 @@ rather than silent absorption here.
   cannot and should not try", and the premise about model access is factually wrong. Superseding
   leaves ADR-0004 readable as the question that was asked.
 
+## Amendments
+
+### 2026-08-22 — amend the pin, not the rationale; and py2mcp is the builder after all
+
+- **Deciders:** Thor Whalen
+
+**The floor is unshippable and the rationale is sound. Only the pin moves.**
+
+Checked against the package index on 2026-08-22: there is **no stable FastMCP 4.x** — the whole
+4.0.0 line is `a1` / `a2` / `b1` / `b2` / `b3` — and the latest stable release is **3.4.7**.
+`pyproject.toml` currently declares `mcp = ["fastmcp>=4.0.0"]`, an extra that no stable release can
+satisfy, which means the connector extra does not install today.
+
+The Decision's stated reason is specific and remains correct: FastMCP 4.0.0 is the first release
+implementing modern-protocol elicitation via **`InputRequiredResult`** under specification revision
+2026-07-28. That symbol was searched for in the installed `fastmcp` and `mcp` source trees on the
+same date and appears in neither, so the claim holds. **Do not amend the rationale.**
+
+**The pin becomes `fastmcp>=3.4`.** The ADR-0005 step-4 checkpoint runs on the 3.x line through
+**`Context.elicit`**, which is present well below that floor — verified on the release the local
+ecosystem currently has installed — with the documented out-of-band fallback that this ADR already
+requires us to write and test either way. `InputRequiredResult` becomes the **4.x upgrade path**,
+taken when 4.x is stable, not a condition of shipping. Nothing else in the Decision changes: the
+dual-era fallback branch was always our code, and it still is.
+
+**And py2mcp is the builder, which is not the reversal it looks like.** The same decision of
+2026-08-22 names `py2mcp` as what builds the installable connector. This ADR rejected it as the
+builder on two grounds, and both are answered rather than overruled:
+
+- *"Tools-only by design."* True, and it does not matter, because
+  `mk_mcp_server(...) -> fastmcp.server.server.FastMCP` — a fact this ADR already verified and
+  recorded, and which was re-checked against the installed signature on 2026-08-22. We decorate the
+  returned object with `.prompt` and `.resource` ourselves. The prompts and resources of ADR-0003
+  are ours to register in one file either way; py2mcp never claimed them.
+- *"Pins `fastmcp` unbounded."* We pin it in our own extras, which is where a pin belongs. The
+  amendment above sets that pin.
+
+What py2mcp buys is the thing this repository most needs and could not otherwise get cheaply: the
+tool surface is built **from a manifest of function references** — `mk_mcp_from_refs` is already
+there — so "tools are deterministic" becomes a reviewable list rather than a property someone has to
+audit by reading thirteen modules. That manifest is `rubricator/surface.py::TOOL_REFS`, and the
+determinism tests walk it.
+
+**Where ADR-0007 stands.** It puts py2mcp "on the CLI/OpenAPI line — not in the connector". Both
+lines are now the same line: one manifest, two dispatchers. That strengthens ADR-0007's
+one-fewer-artifact argument rather than contradicting it, and ADR-0007's own 2026-08-22 amendment
+records the same reading from its side.
+
+**The remaining objection is real and is now a boundary test, not a hope.** Depending on an upstream
+builder for the load-bearing checkpoint was the risk. The mitigation is that **no module under
+`rubricator/tools/` or `rubricator/schema/` may import `fastmcp`, `mcp`, `py2mcp`,
+`enlace_connector`, `fastapi`, `starlette` or any model client** — a fourth denylist added to the
+determinism boundary by ADR-0010's 2026-08-22 amendment. With that test green, replacing the builder
+is a one-file change, which is the only form in which this dependency is acceptable.
+
+**One thing this does not settle.** The upstream contribution this ADR asked for — `prompts=` /
+`resources=` kwargs on the builders — is still worth making and is still tracked. Decorating the
+returned object works and is what v1 does; it is not a reason to close the upstream issue.
+
+Refs #35, #78.
+
 ## References
 1. [FastMCP — Elicitation (2026)](https://gofastmcp.com/servers/elicitation)
 2. [MCP Python SDK — official repository (2026)](https://github.com/modelcontextprotocol/python-sdk)

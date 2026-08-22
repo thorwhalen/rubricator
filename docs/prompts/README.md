@@ -22,4 +22,10 @@ Each prompt file carries a version and a changelog entry. When a prompt changes,
 suite (ADR-0008) runs — that is the whole reason it exists.
 
 **Every prompt must state the honesty rule** from ADR-0006 in its own words: prefer a qualified
-`unknown` to a plausible guess, cite spans not documents, and never present inference as source.
+blank to a plausible guess, cite spans not documents, and never present inference as source.
+
+**And every scoring prompt must teach the two blanks apart**, because they are different findings
+and only one of them is evidence about the subject: **`not-evidenced`** when the sources are silent
+on the cell, **`indeterminate`** when they speak and do not settle it — they conflict, or they
+underdetermine the level. A prompt that says only "emit a blank" will produce whichever code the
+model reaches for first, and the completeness report cannot tell the two apart afterwards.

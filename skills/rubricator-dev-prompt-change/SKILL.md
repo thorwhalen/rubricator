@@ -24,7 +24,7 @@ cannot run yet, say so explicitly in the PR and record what you checked by hand 
 
 Not by reference — in the prompt text, phrased for that prompt's job. From ADR-0006:
 
-- **Prefer a qualified `unknown` to a plausible guess.** The model will produce a number for any
+- **Prefer a qualified blank to a plausible guess.** The model will produce a number for any
   cell you ask about. The product's entire claim is that it doesn't.
 - **Cite spans, not documents.** A citation nobody can check is not a citation.
 - **Never present the agent's own inference as source material.** Mark authorship and source
@@ -61,7 +61,8 @@ testing, because it is then measuring a different quantity than the one the fixt
      criteria, does it invent extras;
    - **stability** — same input twice, how much do scores move;
    - **refusal to guess** — on fixtures with deliberately absent evidence, does it still emit
-     `unknown` rather than a plausible number.
+     a qualified blank rather than a plausible number, and does it still pick the *right* one
+     (`not-evidenced` for silence, `indeterminate` for sources that conflict)?
 3. **Read the refusal-to-guess number first.** If it moved down, the change is a regression no
    matter what else improved. That metric is the product.
 4. **Check both runtimes.** A prompt tuned against one model's behaviour in the deployed agent
@@ -76,7 +77,8 @@ testing, because it is then measuring a different quantity than the one the fixt
   inconsistently, and that failure is invisible until someone tries to reproduce a score.
 - Does it still surface ambiguity rather than resolving it silently?
 - For scoring prompts: does it still ask for a span, and still permit "no span, therefore
-  `unknown`" as a first-class answer?
+  `not-evidenced`" as a first-class answer? And does it still distinguish that from
+  `indeterminate`, which is what a cell with conflicting sources degrades to?
 - Is any example in the prompt drawn from a **public** domain? ADR-0016 hygiene applies to
   prompt text exactly as it applies to fixtures, and prompts are where realistic examples get
   pasted in "just to make it concrete".

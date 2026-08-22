@@ -30,7 +30,7 @@ deterministic tool that validates the result.
 - **Public repository.** Nothing from the private analysis this originated in — no company,
   product or personal names, in code, fixtures, prompts, docs or commit messages. Fixtures use
   public domains, mirroring `comparanda` ADR-0016.
-- **Prefer a qualified `unknown` to a plausible guess.** ADR-0006. This is the product's whole
+- **Prefer a qualified blank to a plausible guess.** ADR-0006. This is the product's whole
   claim, and it is the behaviour most likely to erode under prompt edits — which is why ADR-0008
   tests for it explicitly.
 - **Cite spans, not documents.**
@@ -65,7 +65,7 @@ without it, prompt edits are indistinguishable from prompt churn.
 A user points it at a folder of documents and a question. It comes back with proposed alternatives
 and proposed criteria *with definitions*, flags two criteria that overlap, and asks for
 confirmation. After confirmation it fills the matrix, cites a span for most cells, marks a handful
-`unknown` because the documents genuinely do not say, and closes with a note on which three scores
+`not-evidenced` because the documents genuinely do not say, and closes with a note on which three scores
 are weakest and what evidence would most change the picture.
 
 Then `comparanda` renders it and a team argues about it productively — which is the actual goal of

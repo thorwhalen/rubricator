@@ -198,3 +198,79 @@ section above says every chunk carries `source_uri`; ADR-0010 fixes `corpus_sear
 else in the corpus surface uses. `source_uri` keeps a distinct and necessary job: it is the external
 location the document was ingested from, stored once on the document record, and it is what step 2
 of the ladder resolves through the host resolver. One key for addressing, one URI for resolving.
+
+### 2026-08-22 — we keep the rendition, we hash the original, and the check is dated
+
+- **Deciders:** Thor Whalen
+
+The Decision above versions the normalisation function and stores its version on every reference,
+and it fixes `document_id` plus offsets into the normalised full text as the address a quote
+resolves against. It leaves open what that normalised text physically **is**, and whether we keep
+it. Two decisions of 2026-08-22 close both.
+
+**We keep our own persisted normalised rendition, and we cite into it.** The rendition is stored
+content-addressed by the hash of its own bytes, and served as
+`rubricator://analysis/{id}/document/{document_id}` — so anyone who opens an analysis can check
+every quote **offline**, against the exact text the quote was matched in, with no network and no
+access to the original source. That resource is not a convenience; it is what makes "cite spans, not
+documents" survive the source going behind a paywall, moving, or being edited.
+
+**And we record the original alongside it — locator plus a content hash of the original bytes.**
+Two hashes, deliberately distinct, and conflating them is the failure this clause exists to prevent:
+
+- `original_sha256` hashes the bytes as retrieved. It is the **drift detector**, and it is the only
+  thing that makes step 5's `moved` and `stale` verdicts reachable at all — until now the ladder
+  published two rungs it had no way to compute.
+- the rendition's own hash addresses **what quotes resolve against**. It never changes for a stored
+  rendition, because a stored rendition is immutable.
+
+`excerptHash` is a third thing again — it hashes *our own excerpt*, which is why request 9 of
+ADR-0002's register renames it away from `quote_hash`.
+
+**The normaliser table is append-only, and this is a discipline, not a registry.** A version is
+never removed and never edited in place. Editing a normaliser silently invalidates every stored
+quote hash in every analysis anyone has ever written, and no error would be raised. `nfc-v1` — this
+ADR's list: NFC, zero-width strip, typographic-variant and ligature folding, PDF line-break
+hyphenation repair, whitespace collapse — lives forever. A better de-hyphenator ships as `nfc-v2`,
+and re-checking existing references under it is an explicit migration job that someone chooses,
+never a silent change. The test that enforces this pins the sha256 of each registered normaliser's
+output over a fixture string.
+
+This is the one extension axis that is **not** resolved through a declared parent, and ADR-0021 says
+why: degrading an unknown normaliser would mean claiming a quote was checked against text we cannot
+reproduce. A caller *records* which normaliser it used; it never chooses an interpretation at read
+time.
+
+**Do not conflate the two normalisations.** `normalise_for_match` — the comparison tolerance already
+implemented in the citations module — is applied at match time and may change freely. Ingest-time
+normalisation produces a **stored artifact** whose version bump is a release-note event. Neither may
+be used for the other.
+
+**The verdict record is persisted and dated.** A citation check is stored inside the analysis and
+carries `checkedAt` and `checkerVersion` as **required** fields; the view contract is required to
+display both; and a check older than the reader's tolerance renders with a defined caveat —
+"checked N days ago, against sources you may not have" — rather than as a bare tick. An undated
+verdict is not a verdict, and it becomes an **honesty** rejection under ADR-0024, not a warning.
+The age threshold itself deliberately carries **no default**: expiring a check on an age nobody can
+justify blinds a shared bundle whose recipient has no way to refresh it. `comparanda` reached the
+same conclusion independently and shipped it — its `checkStanding()` takes `now` as a parameter and
+declares no threshold, and its requiredness rule is enforced by a plain validator rather than by the
+schema shape, with `unchecked` legitimately exempt because it is the absence of a verdict rather
+than an undated one. That design stands; what request 15 of ADR-0002's register asks for is that its
+problems move from the warning family into the honesty family.
+
+**One implementation in this repository currently contradicts this ADR, and CI is enforcing the
+contradiction.** `rubricator/tools/citations.py` publishes
+`verified / normalised / partial / not-found / empty`, which the 2026-08-21 amendment above retires,
+and its `verbatim_rate` counts only the strictest rung where ADR-0008's gate counts
+`verdict ∈ {exact, normalised}`. The divergence is **pinned green by doctests** collected under
+`--doctest-modules`, so the wrong contract is currently a passing test.
+
+Reconciling the spellings is register request 10. When it was filed there were three live: this
+ADR's enum, the module's own five statuses, and a third in `comparanda`. `comparanda` has since
+moved onto the enum above, adding `unchecked` for the case that is the absence of a verdict rather
+than a verdict — which this ADR accepts, since it is a status and not a rung of the ladder. **This
+repository is now the only one still out of step.** Closing it here is a rename **plus** the missing
+rungs plus a doctest rewrite, and it must land before the schema freezes rather than after.
+
+Refs #50, #53, #62, #63.
