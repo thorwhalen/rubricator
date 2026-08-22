@@ -371,6 +371,9 @@
                       },
                       {
                         "type": "number"
+                      },
+                      {
+                        "type": "boolean"
                       }
                     ]
                   }
@@ -491,6 +494,9 @@
                     },
                     {
                       "type": "number"
+                    },
+                    {
+                      "type": "boolean"
                     }
                   ]
                 }
