@@ -33,17 +33,31 @@ classifiers = [
 
 # The tool layer is deliberately dependency-light. ADR-0003 says no tool may
 # require a model, and the corollary is that the tools need no model client --
-# so nothing here pulls one in. `jsonschema` validates against the companion
-# repo's published contract; that is the whole hard dependency set.
+# so nothing here pulls one in.
+#
+# Two hard dependencies, both pure-Python and neither pulling a transitive tree:
+# `jsonschema` validates against the companion repo's published contract, and
+# `dol` supplies the `MutableMapping[str, bytes]` implementations the store is
+# built on. `dol` is imported lazily inside `file_store`, so the in-memory store
+# and the whole tool layer still import in an environment without it -- but a
+# lazy import of an undeclared package is a dependency nobody declared, and it
+# fails at the first call rather than at install time. That is exactly how CI
+# found it.
 dependencies = [
     "jsonschema>=4.0.0",
+    "dol>=0.3",
 ]
 
 [project.optional-dependencies]
-# The connector runtime: an MCP server. FastMCP 4 is a floor, not a preference --
-# it is the first release implementing modern-protocol elicitation, which is the
-# mechanism for the ADR-0005 step-4 checkpoint the BRIEF says must not be removed.
-mcp = ["fastmcp>=4.0.0"]
+# The connector runtime: an MCP server.
+#
+# The floor was `>=4.0.0`, on the belief that FastMCP 4 was the first release
+# implementing the elicitation the ADR-0005 step-4 checkpoint needs. ADR-0009's
+# 2026-08-22 amendment records what was actually checked: `Context.elicit` and
+# `Context.sample` are both present on the installed 3.x, the whole 4.0.0 line is
+# pre-release, and the symbol the belief rested on is in neither tree. So the pin
+# was an extra no stable release could satisfy.
+mcp = ["fastmcp>=3.4", "py2mcp>=0.1.9"]
 
 # The deployed runtime, which owns model access. All of it goes through `aix`;
 # no provider SDK is a direct dependency of this package, and a test enforces it.
