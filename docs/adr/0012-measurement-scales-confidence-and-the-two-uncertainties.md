@@ -158,3 +158,75 @@ deterministic; classifying it is the caller's declaration, never a judgement ins
 the three enforcement rules on `confidence`, the fencing of `certainty`, and the permanent
 separation of the two uncertainties all stand. So does the intent the hash was serving — that
 incomparability is announced at the point of comparison rather than silently aligned away.
+
+### 2026-08-22 — the 1–5 scale becomes a default with a declared seam, not a constant
+
+- **Deciders:** Thor Whalen
+
+**What this replaces.** The Decision opens "**`score` is a 1–5 integer, declared ordinal, not
+configurable**", and *Alternatives considered* rejects "*A configurable scale*" outright. The
+owner, having been asked to be overridden on the width and having agreed, then overrode the
+non-configurability:
+
+> "only as a default. Different criteria and their contexts will lead to different types that make
+> sense. So we need to be able to either have a seam here, or at the very least an escape hatch."
+
+**The scale is now a per-criterion declaration whose default is this ADR's anchored 1–5 ordinal.**
+Everything the Decision says about that default — five levels and why, anchors at 1/3/5 written as
+evidence conditions and never as adjectives, the odd number the middle anchor needs — stands
+unchanged and remains what a criterion gets when it declares nothing.
+
+**Why the original objection does not survive.** The rejection reads, in full: "Every consumer
+would need scale-awareness, and cross-analysis comparison would break silently rather than loudly."
+The second half was the real argument, and **this ADR's own 2026-08-21 amendment already answers
+it.** Comparability keys on the criterion key plus the criterion's last *material* version, per
+ADR-0016. A scale declaration is part of what a criterion materially is; changing it is a material
+bump; a material bump already invalidates the cells scored under the old definition and already
+announces incomparability at the point of comparison. The machinery that makes a varying scale
+break **loudly** was built for a different reason and works here unmodified. What is left of the
+objection is the first half — consumers must be scale-aware — which is a cost, not a defect, and is
+priced below.
+
+**And the seam is half-built already.** The Decision itself says "A criterion that genuinely needs
+more resolution is a ratio-level criterion and must be typed as one", and "Every criterion declares
+the range its scores live in". Criteria therefore *already* vary in level of measurement — ordinal,
+ratio, nominal, boolean — and `comparanda`'s example fixtures are specified to exercise exactly
+that mix. What "not configurable" actually froze was the **width of the ordinal case**, alone,
+inside a system that was already polymorphic across levels. This amendment generalises a seam that
+exists rather than opening a new one.
+
+**Three rules keep the seam from becoming an escape from the guarantee.**
+
+1. **A declaration is required to be complete, and is never inferred.** A criterion declaring a
+   scale states its level of measurement, its range, its direction, and — for an ordinal scale —
+   its anchors. Bounds are never read off the observed values, for the reason the Decision already
+   gives: bounds that move when an alternative is added change what every stored score means.
+2. **No consumer may assume 1–5**, and this is the rule most likely to be violated silently. A
+   palette, a merge tree, a completeness report or an analysis that hardcodes five levels is a
+   *seam that does not seam* — the default leaking through the interface meant to contain it. Every
+   such consumer needs a test that **fails** against a non-default scale, not merely one that
+   passes against the default. This repository has shipped three guards that could not fail; this
+   is the fourth place one would hide.
+3. **Incomparability stays loud.** Two criteria sharing a key and declaring different scales are
+   not comparable, the tooling says so at the point of comparison, and it says so in the same
+   breath as the material-version rule above rather than through a second mechanism.
+
+**What is deferred.** The *shape* of the declaration — the protocol in Python, the type in
+TypeScript, where it is wired — is settled by the v1 seam-architecture work and is not decided here.
+This amendment decides only that the seam exists, that its default is unchanged, and what it must
+not be allowed to cost.
+
+**One stale conditional, cleared in passing.** Enforcement rule 1 reads "ADR-0006's code for this
+today is `unknown`. When `comparanda`'s missingness reason set splits …". It has split;
+ADR-0017's 2026-08-21 amendment discharges every such conditional in this repository. Read the rule
+as: no citable span ⇒ **`not-evidenced`** where sources were consulted and are silent,
+**`indeterminate`** where material was found and does not resolve to a level — never a
+low-confidence score.
+
+**What does not change.** The three enforcement rules on `confidence`, the fencing of `certainty`
+to evaluation runs, the permanent separation of evidential confidence from procedural stability,
+and the override of the 1–10 recommendation recorded in *Alternatives considered* — which the owner
+has now confirmed in person, and which the scale-length arm of the evaluation suite still exists to
+confirm or reopen against measurement rather than argument.
+
+Refs #17.
