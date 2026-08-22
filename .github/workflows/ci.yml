@@ -60,6 +60,61 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: No NUL bytes in tracked files
+        # This step guards the two below it, and it exists because the same two
+        # steps in the companion repository silently failed to guard anything.
+        #
+        # Both use `grep -rI`, where -I means "skip binary files", and grep
+        # calls a file binary the moment it contains a NUL byte. That repo's
+        # principal export carried two literal NUL characters in a template
+        # literal, so it was skipped by the absolute-path scan AND by the
+        # ADR-0016 denylist -- a hard constraint -- while both steps reported
+        # success. Nothing here has one today; this keeps it that way.
+        #
+        # Dropping -I is not the fix: the scans would then read real binaries
+        # and emit noise. The fix is that nothing goes binary silently. The
+        # allowlist is empty on purpose -- committing a binary should be a
+        # deliberate edit here, not a file that quietly stops being scanned.
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import subprocess, sys
+
+          ALLOW: set[str] = set()   # deliberately empty; see the comment above
+
+          files = subprocess.run(
+              ['git', 'ls-files', '-z'], capture_output=True, check=True
+          ).stdout.split(b'\0')
+
+          offenders = []
+          for raw in files:
+              if not raw:
+                  continue
+              name = raw.decode('utf-8', 'surrogateescape')
+              if name in ALLOW:
+                  continue
+              try:
+                  with open(raw, 'rb') as fh:
+                      if b'\0' in fh.read():
+                          offenders.append(name)
+              except (IsADirectoryError, FileNotFoundError):
+                  # A tracked symlink to a directory, e.g. the .claude/skills
+                  # bridge. Not a file, nothing to scan.
+                  pass
+
+          if offenders:
+              print('::error::NUL byte in a tracked file. `grep -I` skips it, so the '
+                    'absolute-path scan and the ADR-0016 denylist below would pass '
+                    'without ever reading it.')
+              print('::error::In source, write the \\u0000 escape instead of a literal NUL.')
+              for o in offenders:
+                  print(f'  {o}')
+              sys.exit(1)
+
+          print(f'no NUL bytes in {sum(1 for f in files if f)} tracked files; '
+                'the scans below can read everything')
+          PY
+
       - name: No absolute local paths or personal identifiers
         run: |
           set -euo pipefail
