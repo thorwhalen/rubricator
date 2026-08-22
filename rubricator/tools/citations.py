@@ -31,16 +31,53 @@ from typing import Iterable, Literal, Sequence
 
 __all__ = [
     "CitationCheck",
-    "CheckStatus",
+    "CitationVerdict",
+    "VERDICTS_FOUND",
     "normalise_for_match",
     "check_citation",
     "check_citations",
 ]
 
-CheckStatus = Literal["verified", "normalised", "partial", "not-found", "empty"]
+#: The one verdict vocabulary, ADR-0014's, matching the companion repository's
+#: `CitationVerdict` exactly.
+#:
+#: Three spellings were live at once: this module's, ADR-0014's, and comparanda's.
+#: ADR-0014 is the accepted decision, so the other two came to it. What this
+#: module used to publish -- ``verified`` / ``partial`` / ``not-found`` /
+#: ``empty`` -- was pinned green by doctests under ``--doctest-modules``, so CI
+#: was actively enforcing the wrong contract across the boundary.
+#:
+#: ``exact``         verbatim, after whitespace normalisation only.
+#: ``normalised``    found once punctuation and case are folded.
+#: ``fuzzy``         enough tokens appear in order to clear the threshold.
+#: ``moved``         found, and the source has changed since it was ingested --
+#:                   the anchor needs re-recording, but the quote is real.
+#: ``stale``         the citation no longer resolves. **Read as "this citation
+#:                   does not work any more", not strictly as "the document
+#:                   changed and the quote is gone"**: this function compares a
+#:                   quote against the text it is given and cannot always know
+#:                   why the quote is absent. The actionable fact for a reader is
+#:                   the same either way, and inventing a seventh verdict for
+#:                   "absent, cause unknown" would split a distinction nobody can
+#:                   act on differently.
+#: ``unresolvable``  nothing could be checked -- no target, or an empty quote,
+#:                   which is not a citation at all.
+#: ``unchecked``     no check has run. Never returned by this function; it is the
+#:                   value a stored reference carries before one does.
+CitationVerdict = Literal[
+    "exact", "normalised", "fuzzy", "moved", "stale", "unresolvable", "unchecked"
+]
+
+#: Verdicts under which the quoted text was actually located.
+VERDICTS_FOUND: frozenset[str] = frozenset({"exact", "normalised", "fuzzy", "moved"})
+
+#: Verdicts that count toward ADR-0008's ``quote_verbatim_rate`` release gate.
+#: Both mean the quote is *there*; they differ only in how much punctuation had
+#: to be forgiven, which is not a difference a reader acts on.
+VERDICTS_VERBATIM: frozenset[str] = frozenset({"exact", "normalised"})
 
 #: Fraction of the quote's tokens that must appear, in order, in the source for
-#: a `partial` verdict. Chosen to be forgiving enough to catch a quote whose
+#: a `fuzzy` verdict. Chosen to be forgiving enough to catch a quote whose
 #: whitespace or ellipsis was mangled, and strict enough that an unrelated
 #: sentence does not clear it. It is a threshold, not a finding -- the
 #: evaluation suite is what calibrates it against a real corpus.
@@ -107,7 +144,7 @@ class CitationCheck:
     which are different degrees of trustworthy.
     """
 
-    status: CheckStatus
+    status: CitationVerdict
     detail: str
     #: Character offsets of the match in the *normalised* source, when exact.
     span: tuple[int, int] | None = None
@@ -118,7 +155,12 @@ class CitationCheck:
     @property
     def found(self) -> bool:
         """Whether the quote was located at all, at any strictness."""
-        return self.status in ("verified", "normalised", "partial")
+        return self.status in VERDICTS_FOUND
+
+    @property
+    def verbatim(self) -> bool:
+        """Whether it counts toward ADR-0008's verbatim gate."""
+        return self.status in VERDICTS_VERBATIM
 
 
 def check_citation(
@@ -127,33 +169,41 @@ def check_citation(
     *,
     evidence_id: str | None = None,
     partial_threshold: float = DEFAULT_PARTIAL_THRESHOLD,
+    source_changed: bool | None = None,
 ) -> CitationCheck:
     """Check whether ``quote`` occurs in ``source``.
 
-    The ladder runs strictest first, and stops at the first rung that succeeds,
-    so the verdict always names the *strongest* sense in which the quote was
-    found:
+    The ladder runs strictest first and stops at the first rung that succeeds, so
+    the verdict always names the *strongest* sense in which the quote was found.
+    See :data:`CitationVerdict` for what each one means.
 
-    ``verified``    verbatim, after whitespace normalisation only.
-    ``normalised``  found once punctuation and case are folded.
-    ``partial``     enough of its tokens appear in order to clear the threshold.
-    ``not-found``   none of the above.
-    ``empty``       the quote is empty, which is not a citation.
+    ``source_changed`` says whether the source has changed since it was ingested
+    -- normally the answer to "does the original still hash to what the rendition
+    recorded". It is a **separate axis from the ladder** and is passed in rather
+    than guessed, because this function is given text and cannot know its
+    history. When it is true, a located quote is ``moved`` rather than a ladder
+    rung: the quote is real and its anchor needs re-recording, which is a
+    different instruction to a reader than "found verbatim".
 
-    An empty quote is called out rather than silently passing, because "cited a
-    span containing nothing" is exactly the failure this module exists to catch.
+    An empty quote is ``unresolvable`` rather than silently passing, because
+    "cited a span containing nothing" is exactly the failure this module exists
+    to catch.
 
     >>> check_citation("brown fox", "The quick brown fox jumps").status
-    'verified'
+    'exact'
     >>> check_citation("Brown, fox!", "The quick brown fox jumps").status
     'normalised'
     >>> check_citation("nothing like this", "The quick brown fox").status
-    'not-found'
+    'stale'
     >>> check_citation("", "anything").status
-    'empty'
+    'unresolvable'
+    >>> check_citation("brown fox", "The quick brown fox", source_changed=True).status
+    'moved'
     """
     if not quote.strip():
-        return CitationCheck("empty", "the quote is empty", evidence_id=evidence_id)
+        return CitationCheck(
+            "unresolvable", "the quote is empty, which is not a citation", evidence_id=evidence_id
+        )
 
     n_quote = normalise_for_match(quote)
     n_source = normalise_for_match(source)
@@ -161,8 +211,9 @@ def check_citation(
     index = n_source.find(n_quote)
     if index != -1:
         return CitationCheck(
-            "verified",
-            "found verbatim after whitespace normalisation",
+            "moved" if source_changed else "exact",
+            "found verbatim after whitespace normalisation"
+            + (", but the source has changed since it was ingested" if source_changed else ""),
             span=(index, index + len(n_quote)),
             overlap=1.0,
             evidence_id=evidence_id,
@@ -173,8 +224,9 @@ def check_citation(
     f_index = f_source.find(f_quote)
     if f_index != -1:
         return CitationCheck(
-            "normalised",
-            "found after folding punctuation and case",
+            "moved" if source_changed else "normalised",
+            "found after folding punctuation and case"
+            + (", but the source has changed since it was ingested" if source_changed else ""),
             span=(f_index, f_index + len(f_quote)),
             overlap=1.0,
             evidence_id=evidence_id,
@@ -183,7 +235,7 @@ def check_citation(
     overlap = _ordered_overlap(_tokens(quote), _tokens(source))
     if overlap >= partial_threshold:
         return CitationCheck(
-            "partial",
+            "moved" if source_changed else "fuzzy",
             f"{overlap:.0%} of the quote's tokens appear in order, but not contiguously; "
             "the span may have been reassembled from separate passages",
             overlap=overlap,
@@ -191,8 +243,13 @@ def check_citation(
         )
 
     return CitationCheck(
-        "not-found",
-        f"not found; best ordered-token overlap was {overlap:.0%}",
+        "stale",
+        f"the quote is not in this text; best ordered-token overlap was {overlap:.0%}"
+        + (
+            ". The source has changed since it was ingested"
+            if source_changed
+            else ". Whether the source changed since it was ingested is not known here"
+        ),
         overlap=overlap,
         evidence_id=evidence_id,
     )
@@ -209,8 +266,14 @@ class CitationReport:
         return len(self.checks)
 
     @property
-    def verified(self) -> int:
-        return sum(1 for c in self.checks if c.status == "verified")
+    def exact(self) -> int:
+        """Found verbatim, the strictest rung."""
+        return sum(1 for c in self.checks if c.status == "exact")
+
+    @property
+    def verbatim(self) -> int:
+        """Found verbatim *or* after folding punctuation and case."""
+        return sum(1 for c in self.checks if c.verbatim)
 
     @property
     def failed(self) -> tuple[CitationCheck, ...]:
@@ -219,14 +282,25 @@ class CitationReport:
 
     @property
     def verbatim_rate(self) -> float:
-        """Fraction found verbatim. The number to watch across prompt changes."""
-        return self.verified / self.total if self.total else 0.0
+        """ADR-0008's ``quote_verbatim_rate``: the share found verbatim.
+
+        Counts ``exact`` **and** ``normalised``, which is what ADR-0008 defines.
+        It counted only the strictest rung until this was checked, so the gate
+        was reading a narrower quantity than the one it is specified over --
+        every quote whose punctuation had been folded scored as a miss.
+        """
+        return self.verbatim / self.total if self.total else 0.0
+
+    @property
+    def exact_rate(self) -> float:
+        """The strictest rung alone. Reported beside the gate, never as it."""
+        return self.exact / self.total if self.total else 0.0
 
     def summary(self) -> str:
         if not self.total:
             return "no citations to check"
-        parts = [f"{self.total} citation(s)", f"{self.verified} verbatim"]
-        weaker = self.total - self.verified - len(self.failed)
+        parts = [f"{self.total} citation(s)", f"{self.verbatim} verbatim"]
+        weaker = self.total - self.verbatim - len(self.failed)
         if weaker:
             parts.append(f"{weaker} found only after normalisation")
         if self.failed:
@@ -247,8 +321,10 @@ def check_citations(
     the property this whole module is for.
 
     >>> r = check_citations([("brown fox", "the quick brown fox"), ("zebra", "no")])
-    >>> r.total, r.verified, len(r.failed)
+    >>> r.total, r.verbatim, len(r.failed)
     (2, 1, 1)
+    >>> r.summary()
+    '2 citation(s), 1 verbatim, 1 NOT FOUND'
     """
     checks: list[CitationCheck] = []
     for item in pairs:

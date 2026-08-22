@@ -18,6 +18,7 @@ from __future__ import annotations
 import ast
 import importlib
 import pkgutil
+import re
 from pathlib import Path
 
 import pytest
@@ -39,7 +40,15 @@ MODEL_MODULES = {
 #: Sources of non-determinism. A tool whose output depends on process state or
 #: the clock cannot be replayed, which makes the ADR-0008 stability metric
 #: measure our own noise instead of the agent's.
-NONDETERMINISTIC = {"random", "secrets", "uuid"}
+#:
+#: ``datetime`` and ``time`` are here even though the docstring above has claimed
+#: "no clock" since this file was written -- they were never actually denied. The
+#: gap matters now rather than in principle: a stored citation check is required
+#: to carry ``checkedAt``, so the tool that writes one needs a moment, and the
+#: obvious way to get it is the one that silently breaks replay. A tool that
+#: needs the time takes it as an argument; ``rubricator/clock.py`` is where the
+#: two implementations live, and it is outside this directory on purpose.
+NONDETERMINISTIC = {"random", "secrets", "uuid", "datetime", "time"}
 
 #: Network. If a tool must fetch, that is its declared purpose and it belongs
 #: behind an explicit adapter, not inside the tool layer.
@@ -102,23 +111,49 @@ def test_schema_layer_imports_no_model_client() -> None:
 
 
 def test_only_the_schema_facade_loads_a_schema() -> None:
-    """Nothing outside the facade may embed or load an analysis schema.
+    """Nothing outside the facade may open a schema file.
 
     This is what keeps the swap from the local sketch to the published contract a
     one-line change. Once tools grow their own copies of the shape, adopting the
     real artifact stops being a constructor argument and becomes a sweep -- which
     the coordination plan names as the assumption most likely to be quietly
     dropped under pressure.
+
+    **The rule is about opening a JSON file, not about one filename.** It used to
+    grep for the literal ``sketch.json``, which meant the exact violation it was
+    written to stop -- a tool reading the *published* artifact directly -- would
+    have passed it. A guard that cannot fail on the thing it guards against is
+    the fourth of its kind found in this codebase.
     """
-    facade = SCHEMA_DIR / "source.py"
-    for path in _python_files(Path(rubricator.__file__).parent):
-        if path == facade:
+    package_root = Path(rubricator.__file__).parent
+    allowed = {SCHEMA_DIR / "source.py"}
+    json_open = re.compile(r"""["'][^"']*\.json["']""")
+
+    for path in _python_files(package_root):
+        if path in allowed or SCHEMA_DIR in path.parents or path.parent == SCHEMA_DIR:
             continue
         text = path.read_text(encoding="utf-8")
-        assert "sketch.json" not in text, (
-            f"{path.relative_to(Path(rubricator.__file__).parent)} references the schema sketch "
-            "directly. Go through SchemaSource instead."
+        hits = json_open.findall(text)
+        assert not hits, (
+            f"{path.relative_to(package_root)} names a JSON file ({', '.join(sorted(set(hits)))}). "
+            "Only rubricator/schema/ may open one; everything else goes through SchemaSource, "
+            "which is what keeps adopting the published artifact a constructor argument rather "
+            "than a sweep."
         )
+
+
+def test_the_clock_lives_in_exactly_one_module() -> None:
+    """`datetime` is denied to the tool layer, so it must be reachable elsewhere.
+
+    Without this, the denial above could be satisfied by deleting the capability
+    rather than by relocating it -- and the first tool that needs a timestamp
+    would have nowhere legitimate to get one and would reach for the clock.
+    """
+    from rubricator.clock import fixed_clock, system_clock
+
+    assert fixed_clock("2026-01-01T00:00:00Z")() == "2026-01-01T00:00:00Z"
+    stamp = system_clock()
+    assert stamp.endswith("Z") and "T" in stamp, stamp
 
 
 def test_importing_the_tool_layer_needs_no_optional_dependency() -> None:
