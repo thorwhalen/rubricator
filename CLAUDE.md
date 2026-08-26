@@ -17,7 +17,8 @@ Never "items" or "features".
 
 ## Standing constraints
 
-- **Public repo.** No content from the private analysis this originated in — fixtures included.
+- **Public repo.** No content from **any** private engagement — fixtures included. Example domains
+  are *invented*, not anonymised (`comparanda` ADR-0033).
 - **Prefer a qualified blank to a confident guess.** ADR-0006. This is the product.
 - **Cite spans, not documents.** A citation nobody can check is not a citation.
 - **Elicit the frame before scoring.** ADR-0005. The criteria discussion is the valuable part.
