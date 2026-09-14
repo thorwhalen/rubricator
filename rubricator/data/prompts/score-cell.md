@@ -12,7 +12,7 @@ missing-codes:
   - indeterminate
   - withheld
 changelog:
-  - 1 (2026-09-14) — First version. Teaches the two terminal blanks apart, because collapsing "we looked and the sources say nothing" into "we looked and the sources do not agree" makes the completeness report unreadable and sends a reader to the wrong next action on exactly the cells that matter most.
+  - 1 (2026-09-14) — First version. Teaches the two terminal blanks apart, because collapsing "we looked and the sources say nothing" into "we looked and the sources do not agree" makes the completeness report unreadable and sends a reader to the wrong next action on exactly the cells that matter most. Revised before landing against a blind adherence check on five constructed cells: the check never confused the two terminal blanks, and the four places it had to guess — whether a contradiction blocks a level, whether unanchored levels are legal, what a note says when nothing was searched, and where the plan is emitted — are now stated rather than implied.
 ---
 
 # Score one cell
@@ -29,7 +29,9 @@ effects are removed rather than apologised for.
 
 - **The criterion**: its question, its level of measurement, and its anchors at levels 1, 3 and 5.
   The anchors are *evidence conditions* — "a source states X" — not adjectives. Score against the
-  condition, never against your taste.
+  condition, never against your taste. **Levels 2 and 4 are legal and carry no anchor**: they are
+  structurally "between", and you emit one when the evidence clears the level below and falls short
+  of the level above. Say which two anchors it sits between, in the justification.
 - **The alternative**: what is being judged.
 - **The spans**: passages already extracted as bearing on this cell, each with its source and its
   stance. You receive the spans, not the corpus. If a claim is not in a span you were handed, you
@@ -106,6 +108,25 @@ contested cell will spend a day hunting for a document that already exists and a
 another one. A reader who sees `indeterminate` on an unsearched cell will assume the question has
 been settled as unsettleable, and stop.
 
+**A contradiction does not automatically mean `indeterminate`.** Sources can disagree about
+something the criterion does not ask about. The test is whether the conflict reaches the anchor:
+
+- **The conflicting spans meet the *same* anchor condition** → **score it**, at that level, and name
+  the disagreement in the justification as a downgrade with a reason. The cell is settled; the
+  detail underneath it is not.
+- **The conflicting spans meet *different* anchor conditions**, or the conflict is about which
+  condition is met at all → **`indeterminate`**. There is no level to put it on.
+
+So two contracts that name different regions, where the criterion asks only whether a *contractual
+commitment naming a region* exists, is a score with a named conflict — both spans meet the same
+condition. Two sources where one states a commitment and the other states there is none is
+`indeterminate`: they land on different levels and nothing chooses between them.
+
+**And a cell you have not searched is never terminal.** If the subject's own sources have not been
+consulted for *this* criterion, the code is `not-assessed`, however much unrelated material happens
+to be in hand. `not-evidenced` is a claim that a search happened and came back empty; making it
+without searching is the confident guess in a different costume.
+
 Two worked cases, on an invented comparison of two vendors against a *dated support commitment*
 criterion:
 
@@ -118,9 +139,12 @@ criterion:
 > "vendor page states 2029, reseller datasheet states 2027; neither is dated later and nothing
 > reconciles them." Cite **both** spans. The conflict *is* the evidence.
 
-**Every blank carries a note saying what was searched.** A blank with no note is a shrug, and a
-shrug is not a finding. `not-evidenced` in particular is only meaningful if the note says where you
-looked — otherwise it means "I did not find it", which is a fact about you and not about the subject.
+**Every blank carries a note.** A blank with no note is a shrug, and a shrug is not a finding. For
+the codes that mean someone looked — `not-evidenced`, `indeterminate`, `withheld` — the note says
+**what was searched and what came back**. `not-evidenced` in particular is only meaningful if the
+note names where you looked; otherwise it means "I did not find it", which is a fact about you and
+not about the subject. For `not-assessed` and `deferred` nothing was searched, so the note says
+**why not** — what is outstanding, or whose instruction set the cell aside.
 
 **If the analysis declares additional codes, you may use them**, and only those. An analysis may
 extend the vocabulary for its own domain; each extension states what it means and which of the six
@@ -147,21 +171,38 @@ reason**, not a quiet shading of the number: say which sources disagree, in the 
 
 ## What to emit
 
+`plan` comes first in every case — the sentences you wrote at step 1, kept as provenance. It is
+emitted before the value fields, not after: writing the reasoning after the answer makes it a
+justification of a decision already taken.
+
 For a score:
 
+- `plan` — what you set out to test, from step 1
 - `value` — the level, from the criterion's own scale
 - `confidence` — `high`, `medium`, or `low`
-- `justification` — one line. What the evidence shows, not a restatement of the anchor
+- `justification` — one line. What the evidence shows, not a restatement of the anchor. If you
+  scored across a contradiction, name it here
 - `evidence` — at least one span, quoted exactly, with its source and whether it supports,
   contradicts, qualifies or merely contextualises the claim; and marked as primary source, secondary
   summary, your own summary, or your own inference
 
 For a blank:
 
+- `plan` — as above
 - `code` — from the table above, or from this analysis's declared extensions
-- `note` — what was searched and what was found, in one or two lines. For `indeterminate`, name the
-  conflict. For `not-evidenced`, name where you looked
-- `evidence` — the contradictory spans, when there are any. An `indeterminate` cell with its two
+- `note` — in one or two lines. For the terminal codes, what was searched and what came back; for
+  `not-assessed` and `deferred`, why nothing was
+- `evidence` — the spans you did find, when there are any. An `indeterminate` cell with its two
   conflicting quotes attached is far more useful than the same cell left empty
+
+Worked, on the invented vendor comparison above:
+
+> **score** — plan: "level 5 needs a span naming a dated commitment; level 3 needs a commitment with
+> no date." value: 5. confidence: `high`. justification: "the vendor's own page states a dated
+> window, which is the level-5 condition." evidence: "supported until 30 June 2029" — vendor support
+> page, primary source, supports.
+
+> **blank** — plan: as above. code: `not-evidenced`. note: "searched the vendor site, changelog and
+> two industry summaries; none states a support window." evidence: none.
 
 Then stop. The next cell is a separate call, with a separate plan.

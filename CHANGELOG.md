@@ -88,7 +88,14 @@ specification"* — and rewriting a dated finding to match a later decision fals
 what was actually known when. `docs/research/findings-method.md` now opens with a note saying so, so
 a reader who lands there first is not misled.
 
-The accepted ADRs that still contain `unknown` in their decision bodies (ADR-0006, ADR-0012's
-enforcement rule 1) are likewise left intact. ADR-0001 forbids editing an accepted decision, and
-ADR-0012's 2026-08-22 amendment already discharges every such conditional in this repository
-by name.
+The accepted ADRs that still contain `unknown` in their decision bodies — ADR-0006's *Decision*,
+ADR-0008's refusal-to-guess bullet, ADR-0012's enforcement rule 1 — are likewise left intact.
+ADR-0001 forbids editing an accepted decision, and ADR-0012's 2026-08-22 amendment already
+discharges every such conditional in this repository by name. Each of those ADRs carries an
+amendment a reader reaches before acting on the body.
+
+Not every `unknown` in the tree is a missingness code, and the ones that are not were never in
+scope: ADR-0022 uses it for an `independence` rung, ADR-0024 and ADR-0002 for how a *suggested*
+assertion is typed in the shipped schema, and `rubricator/tools/traversal.py` for the English word
+in an error message about traversal order. A search-and-replace would have rewritten all four,
+which is why the sweep was done per site.
