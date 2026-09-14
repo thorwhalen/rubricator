@@ -12,7 +12,7 @@ missing-codes:
   - indeterminate
   - withheld
 changelog:
-  - 1 (2026-09-14) — First version. Teaches the two terminal blanks apart, because collapsing "we looked and the sources say nothing" into "we looked and the sources do not agree" makes the completeness report unreadable and sends a reader to the wrong next action on exactly the cells that matter most. Revised before landing against a blind adherence check on five constructed cells: the check never confused the two terminal blanks, and the four places it had to guess — whether a contradiction blocks a level, whether unanchored levels are legal, what a note says when nothing was searched, and where the plan is emitted — are now stated rather than implied.
+  - 1 (2026-09-14) — First version. Teaches the two terminal blanks apart, because collapsing "we looked and the sources say nothing" into "we looked and the sources do not agree" makes the completeness report unreadable and sends a reader to the wrong next action on exactly the cells that matter most. Revised twice before landing against blind adherence checks on constructed cells, which never confused the two terminal blanks but had to guess elsewhere; now stated rather than implied are whether a contradiction blocks a level, that a cell nobody searched is never terminal, that unanchored levels 2 and 4 are reachable and are not what `indeterminate` is for, how far a contradiction downgrades confidence, that `not-assessed` and `deferred` carry no evidence, and what the note says when nothing was searched.
 ---
 
 # Score one cell
@@ -69,14 +69,25 @@ means "the evidence puts this squarely in the middle". All of your uncertainty g
 
 ## Score, or blank?
 
-Ask one question: **is there a span I can quote that meets an anchor condition?**
+Ask one question: **is there a span I can quote that places this cell against the anchor
+conditions?**
 
-- **Yes** → emit that level, with the quote.
-- **No** → emit a blank. Do not reach for the nearest level and lower the confidence instead. A
-  low-confidence number is still a number, and readers round numbers to facts.
+- **It meets an anchor** → emit that level, with the quote.
+- **It clears one anchor and falls short of the next** → emit the level between them, 2 or 4, and
+  say in the justification which two anchors it sits between. This is still a score: you have a
+  quotable span and it places the cell. Evidence that speaks to the criterion without meeting an
+  anchor is the most common shape there is, and it is not a blank.
+- **Nothing quotable places it at all** → emit a blank. Do not reach for the nearest level and lower
+  the confidence instead. A low-confidence number is still a number, and readers round numbers to
+  facts.
 
-There is no third option where you score anyway because an empty cell looks bad on the page. An
-empty cell that says why is the product working.
+There is no option where you score anyway because an empty cell looks bad on the page. An empty cell
+that says why is the product working.
+
+**If an anchor is worded as an absence** — "no source states X" — it is not an evidence condition
+and nothing can be quoted against it. Emit `not-evidenced` when the search comes back empty, and say
+in the note that the anchor cannot be met by a span. Do not score it as if silence were evidence:
+the criterion needs rewriting, and a score would hide that.
 
 ## Which blank — and this is the part that is usually got wrong
 
@@ -90,7 +101,7 @@ sends a reader somewhere different, and two of them are the ones that get confus
 | …were never consulted; nobody has looked at this cell yet | `not-assessed` | schedule the work |
 | …were not consulted, on purpose, because this cell was set aside | `deferred` | come back to it, or drop it deliberately |
 | …**did not speak.** You searched, and they are silent on this | `not-evidenced` | go and find a source that would say — or accept that none exists |
-| …**spoke and did not settle it.** They conflict, or they are too coarse to place on a level | `indeterminate` | read the conflict; it is often the most interesting thing on the page |
+| …**spoke and did not settle it.** They conflict, or they straddle anchors without choosing between them | `indeterminate` | read the conflict; it is often the most interesting thing on the page |
 | …spoke, the answer is known, and it is not being shown here | `withheld` | ask whoever withheld it |
 | …are beside the point; the criterion does not apply to this alternative | `not-applicable` | nothing; the cell is correctly empty |
 
@@ -99,9 +110,13 @@ outside — both are terminal, both mean someone looked and this is the answer �
 different findings about the world:
 
 - `not-evidenced` says **there is a hole in the record.** It is an instruction to go looking.
-- `indeterminate` says **the record is full and it disagrees with itself.** No amount of further
+- `indeterminate` says **the record is full and it does not resolve.** No amount of further
   searching in the same corpus fixes it; what is needed is a judgement about which source to trust,
   or a criterion sharp enough to discriminate.
+
+Note what `indeterminate` is *not*: evidence that simply lands between two anchors. That is a 2 or a
+4 — the cell is placed, just not on an anchored level. `indeterminate` is for evidence that
+**straddles** anchors, pointing at two levels at once with nothing to choose between them.
 
 Collapsing them loses the distinction in both directions. A reader who sees `not-evidenced` on a
 contested cell will spend a day hunting for a document that already exists and already contradicts
@@ -167,7 +182,13 @@ score. If you find yourself reaching for `low` because there was nothing to read
 wrong output; go back and choose a code.
 
 Where sources contradict each other and you score anyway, that is a **downgrade with a named
-reason**, not a quiet shading of the number: say which sources disagree, in the justification.
+reason**, not a quiet shading of the number: **one step down** from what the evidence would
+otherwise carry, and say in the justification which sources disagree. One step, not an amount you
+choose — otherwise the same cell scored twice gets two different confidences and every aggregate
+over the column is noise.
+
+For a level with no anchor of its own — a 2 or a 4 — confidence still grades the evidence, not your
+placement of it. Quotable primary spans that clearly bracket the level are `high`.
 
 ## What to emit
 
@@ -193,7 +214,12 @@ For a blank:
 - `note` — in one or two lines. For the terminal codes, what was searched and what came back; for
   `not-assessed` and `deferred`, why nothing was
 - `evidence` — the spans you did find, when there are any. An `indeterminate` cell with its two
-  conflicting quotes attached is far more useful than the same cell left empty
+  conflicting quotes attached is far more useful than the same cell left empty. **`not-assessed` and
+  `deferred` carry no evidence at all** — an attached span on an unsearched cell reads as proof that
+  somebody searched, which is the exact misreading those two codes exist to prevent
+
+The field names above are what each value is called; the shape you emit them in is supplied by the
+caller, and the deterministic verb on the other side validates it. Do not invent a wrapper.
 
 Worked, on the invented vendor comparison above:
 
