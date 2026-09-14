@@ -27,9 +27,10 @@ deterministic tool that validates the result.
 
 ## Non-negotiables
 
-- **Public repository.** Nothing from the private analysis this originated in — no company,
-  product or personal names, in code, fixtures, prompts, docs or commit messages. Fixtures use
-  public domains, mirroring `comparanda` ADR-0016.
+- **Public repository.** Nothing from **any** private engagement — no company, product or personal
+  names, in code, fixtures, prompts, docs or commit messages. Fixtures use **invented** public
+  domains, mirroring `comparanda` ADR-0033. Invented rather than anonymised: an anonymised matrix
+  keeps the shape of the original, and shape identifies.
 - **Prefer a qualified blank to a plausible guess.** ADR-0006. This is the product's whole
   claim, and it is the behaviour most likely to erode under prompt edits — which is why ADR-0008
   tests for it explicitly.
