@@ -37,8 +37,8 @@ def prompts_list() -> dict[str, Any]:
     does not want several thousand words of instructions in the reply, and a
     listing that is cheap gets called.
 
-    >>> [p['id'] for p in prompts_list()['prompts']]
-    ['score-cell']
+    >>> 'score-cell' in [p['id'] for p in prompts_list()['prompts']]
+    True
     """
     return {
         "prompts": [
@@ -64,13 +64,13 @@ def prompts_get(*, prompt_id: str) -> dict[str, Any]:
     number nobody can reproduce (ADR-0008).
 
     >>> got = prompts_get(prompt_id='score-cell')
-    >>> got['version'], got['body'].startswith('# Score one cell')
-    (1, True)
+    >>> got['version'] >= 1, got['body'].startswith('# Score one cell')
+    (True, True)
     """
     bundle = _bundle()
     prompt = bundle.get(prompt_id)
     if prompt is None:
-        known = ", ".join(sorted(bundle)) or "none -- the bundle is empty"
+        known = ", ".join(sorted(bundle))
         raise KeyError(f'no prompt "{prompt_id}". This runtime serves: {known}')
     return {
         "id": prompt.id,

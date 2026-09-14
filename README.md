@@ -24,7 +24,8 @@ it:
    guess.
 
 It is opinionated about method — see the research brief — and flexible about instruction. "Only
-fill Pain and Market; leave the rest pending" is a supported request.
+fill Pain and Market; leave the rest deferred" is a supported request, and what comes back is a
+valid document about an unfinished analysis rather than a broken one.
 
 ## Two ways to run it
 

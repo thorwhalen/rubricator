@@ -43,12 +43,12 @@ Front matter, then the body. The body is what a model is given; the header never
 
 ```
 ---
-id: score-cell            # also the key it is served under
+id: score-cell
 title: Score one cell
-version: 1                # an integer, bumped on every behavioural change
-stage: 5                  # the ADR-0005 stage, where there is one
+version: 1
+stage: 5
 updated: 2026-09-14
-missing-codes:            # the missingness codes this prompt teaches, if any
+missing-codes:
   - not-evidenced
   - indeterminate
 changelog:
@@ -56,10 +56,23 @@ changelog:
 ---
 ```
 
-The dialect is deliberately small — flat scalars and `  - ` lists, no nesting — because the
-connector runtime must install in a bare environment and a YAML parser is a dependency this package
-does not otherwise need. A prompt header that wants nested structure is a sign the structure belongs
-in the tool layer.
+| key | |
+|---|---|
+| `id` | the key it is served under. Defaults to the filename; two files claiming one id is an error |
+| `version` | an integer, bumped on every behavioural change. A prompt at version 0 fails the suite |
+| `stage` | the ADR-0005 stage, where there is one |
+| `missing-codes` | the missingness codes this prompt teaches, if any. Checked against the vocabulary manifest **and** against the prose |
+| `changelog` | one entry per version; the entry for the current version must exist |
+
+The dialect is deliberately small — flat scalars and `- ` lists, no nesting — because the connector
+runtime must install in a bare environment and a YAML parser is a dependency this package does not
+otherwise need. A prompt header that wants nested structure is a sign the structure belongs in the
+tool layer.
+
+**It has no comments.** There is no `#` handling, so a trailing `# like this` becomes part of the
+value — which is why the block above carries none and the table explains the keys instead. The
+loader is otherwise forgiving: a malformed header leaves the prompt at version 0 rather than
+raising, so a half-written prompt is still loadable and the *suite* is what refuses it.
 
 Each prompt file carries a version and a changelog entry. When a prompt changes, the evaluation
 suite (ADR-0008) runs — that is the whole reason it exists. See the

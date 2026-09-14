@@ -35,9 +35,9 @@ the subject rather than about our process. Both therefore count toward `silenceR
 
 ### The metric rename
 
-`unknown_preference_rate` → **`blank_inflation_rate`**, settled in ADR-0008's 2026-08-21 amendment.
-`docs/research/` still spells it the old way, deliberately: it is the evidence trail, not the
-specification.
+`unknown_preference_rate` → **`blank_inflation_rate`**, settled in ADR-0008's 2026-08-21 amendment,
+which names the old spelling and supersedes it. `docs/research/` still spells it the old way,
+deliberately.
 
 The new name is not a translation of the old one. The old name pointed at a reason code; the new one
 points at the behaviour — *blanks emitted where evidence was in fact available* — and its companion
@@ -82,10 +82,11 @@ for exactly this reason: a silent upgrade is a silent change to what `silenceRat
 
 ### What was deliberately not changed
 
-`docs/research/` keeps the pre-amendment spellings throughout. That is ADR-0011's own settled rule —
+`docs/research/` keeps the pre-amendment reason-code spellings. That is ADR-0011's own settled rule —
 *"`docs/research/` keeps the original spelling because it is the evidence trail, not the
-specification"* — and rewriting a dated finding to match a later decision falsifies the record of
-what was actually known when. `docs/research/findings-method.md` now opens with a note saying so, so
+specification"*, written about reason codes and applied here to the metric name on the same
+reasoning — and rewriting a dated finding to match a later decision falsifies the record of what was
+actually known when. `docs/research/findings-method.md` now opens with a note saying so, so
 a reader who lands there first is not misled.
 
 The accepted ADRs that still contain `unknown` in their decision bodies — ADR-0006's *Decision*,

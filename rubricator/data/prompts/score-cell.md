@@ -17,8 +17,11 @@ changelog:
 
 # Score one cell
 
-You are scoring **one alternative against one criterion**. Not a row, not a column, not the matrix.
-One cell, one generation, then stop.
+You are producing **one measure**: one alternative against one criterion. Not a row, not a column,
+not the matrix. One cell, one generation, then stop.
+
+A measure is what gets stored — a score and its confidence, or a `missing` with a reason. Everything
+below is about which of those two you are entitled to emit.
 
 This is deliberate. Scoring several criteria in one pass pulls them toward each other — measured
 inter-criterion correlation rises from a human r ≈ 0.32 to r ≈ 0.98 — and a criterion's position in
@@ -145,9 +148,9 @@ without searching is the confident guess in a different costume.
 Two worked cases, on an invented comparison of two vendors against a *dated support commitment*
 criterion:
 
-> You search the vendor's site, its changelog and two industry summaries. None of them mentions a
-> support window at all. → **`not-evidenced`**, note: "searched the vendor site, changelog and two
-> industry summaries; none states a support window."
+> You are handed the retrieval record for this cell — the vendor site, its changelog and two
+> industry summaries were searched — and no spans. → **`not-evidenced`**, note: "retrieval covered
+> the vendor site, changelog and two industry summaries and returned nothing on a support window."
 
 > The vendor's own page says "supported until 30 June 2029". A reseller datasheet from the same
 > quarter says "support ends 2027". Nothing dates or supersedes either. → **`indeterminate`**, note:
@@ -156,10 +159,15 @@ criterion:
 
 **Every blank carries a note.** A blank with no note is a shrug, and a shrug is not a finding. For
 the codes that mean someone looked — `not-evidenced`, `indeterminate`, `withheld` — the note says
-**what was searched and what came back**. `not-evidenced` in particular is only meaningful if the
-note names where you looked; otherwise it means "I did not find it", which is a fact about you and
-not about the subject. For `not-assessed` and `deferred` nothing was searched, so the note says
-**why not** — what is outstanding, or whose instruction set the cell aside.
+**what was searched and what came back**. For `not-assessed` and `deferred` nothing was searched, so
+the note says **why not** — what is outstanding, or whose instruction set the cell aside.
+
+**Report the search; do not narrate one.** You did not do the searching — retrieval is a separate
+stage, and you were handed its spans and its record. So the note repeats what that record says. If
+you were given no record, say *that*: "no retrieval record for this cell" is a true statement and
+"searched the vendor's site and two industry reports" is a fabrication, which is the third honesty
+rule above being broken in the one place it is least likely to be noticed — inside a blank whose
+whole purpose is to be more honest than a score.
 
 **If the analysis declares additional codes, you may use them**, and only those. An analysis may
 extend the vocabulary for its own domain; each extension states what it means and which of the six
@@ -183,9 +191,13 @@ wrong output; go back and choose a code.
 
 Where sources contradict each other and you score anyway, that is a **downgrade with a named
 reason**, not a quiet shading of the number: **one step down** from what the evidence would
-otherwise carry, and say in the justification which sources disagree. One step, not an amount you
-choose — otherwise the same cell scored twice gets two different confidences and every aggregate
-over the column is noise.
+otherwise carry, and name the reason. One step, not an amount you choose — otherwise the same cell
+scored twice gets two different confidences and every aggregate over the column is noise.
+
+The reason is a **kind**, not a sentence: which two sources disagree, and what kind of disagreement
+it is — one supersedes the other, they measure different things, they are the same claim at
+different dates. Where the analysis declares a set of contradiction reasons, use it. A free-prose
+excuse cannot be counted, and a downgrade nobody can count is a downgrade nobody can audit.
 
 For a level with no anchor of its own — a 2 or a 4 — confidence still grades the evidence, not your
 placement of it. Quotable primary spans that clearly bracket the level are `high`.
