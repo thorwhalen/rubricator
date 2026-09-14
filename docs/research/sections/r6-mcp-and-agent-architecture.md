@@ -1,5 +1,24 @@
 # MCP server design, tool granularity, prompts-as-content, and human-in-the-loop across sessions
 
+> [!IMPORTANT]
+> **Two things in the proposed tool surface below have since been settled differently**, and both
+> would be built wrong by an implementer reading this note alone.
+>
+> 1. **The missingness reason codes are the pre-amendment set.** Where this section writes
+>    `("pending"|"not-assessed"|"not-applicable"|"unknown"|"withheld")` as the `measures_mark_missing`
+>    signature, the shipped set is six — `not-applicable`, `not-assessed`, `deferred`,
+>    `not-evidenced`, `indeterminate`, `withheld` — and the verb validates against **the analysis's
+>    own vocabulary**, core plus declared extensions, rather than against any literal list. See
+>    [`CHANGELOG.md`](../../../CHANGELOG.md) and
+>    `rubricator/schema/comparanda/vocabularies.v1.json`.
+> 2. **`score-column` is named the default here. It is not.** ADR-0011 makes `score-cell` the
+>    default on direct measurement; `score-column` survives only as arm 2 of the ADR-0008 evaluation
+>    harness, awaiting validation.
+>
+> Spellings are not corrected in place — ADR-0011's amendment settles that `docs/research/` keeps
+> the original spelling because it is the evidence trail, not the specification. Everything else in
+> this section stands.
+
 **Research question(s):** What does the current MCP specification actually offer (tools, prompts,
 resources, resource templates, sampling, roots, elicitation, transports), and which of those are the
 right vehicles for `rubricator`? How granular should the tool surface be, and what is the evidence?

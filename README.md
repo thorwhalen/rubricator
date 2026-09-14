@@ -24,7 +24,8 @@ it:
    guess.
 
 It is opinionated about method — see the research brief — and flexible about instruction. "Only
-fill Pain and Market; leave the rest pending" is a supported request.
+fill Pain and Market; leave the rest deferred" is a supported request, and what comes back is a
+valid document about an unfinished analysis rather than a broken one.
 
 ## Two ways to run it
 
@@ -43,8 +44,12 @@ agent drives the same tools through its own loop.
 
 ## Status
 
-Pre-implementation. This repository contains the specification: architecture decision records and
-research briefs. Start at **[BRIEF.md](./BRIEF.md)**.
+Early. The v1 vertical slice runs — the deterministic tool layer, a store, and the same verbs over
+both a CLI and an MCP connector — and the first prompt ships with it. Most of the repository is
+still specification: architecture decision records and research briefs.
+
+Start at **[BRIEF.md](./BRIEF.md)**. [`CHANGELOG.md`](./CHANGELOG.md) is not a release log; it
+records the boundaries across which a number stops meaning the same thing.
 
 ## License
 

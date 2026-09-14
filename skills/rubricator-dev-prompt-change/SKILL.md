@@ -1,6 +1,6 @@
 ---
 name: rubricator-dev-prompt-change
-description: Use when creating or editing any prompt in rubricator's docs/prompts/ — the elicitation, scoring, review and audit prompts. Covers the mandatory honesty clause every prompt must state in its own words, the version-and-changelog requirement, the rule that a prompt change requires an evaluation run before it lands, what the evaluation suite must check, and the review checklist for a prompt diff. Trigger on any edit under docs/prompts/, on "improve the propose-criteria prompt", on adding a new prompt, or when a prompt change is about to be committed.
+description: Use when creating or editing any rubricator prompt — the content files in rubricator/data/prompts/, and the inventory in docs/prompts/README.md. Covers the mandatory honesty clause every prompt must state in its own words, the front-matter contract, the version-and-changelog requirement, the rule that a prompt change requires an evaluation run before it lands, what the evaluation suite must check, and the review checklist for a prompt diff. Trigger on any edit under rubricator/data/prompts/ or docs/prompts/, on "improve the propose-criteria prompt", on adding a new prompt, or when a prompt change is about to be committed.
 metadata:
   audience: developers
 ---
@@ -57,7 +57,7 @@ testing, because it is then measuring a different quantity than the one the fixt
    - **citation faithfulness** — does each evidence span actually contain what the justification
      claims;
    - **calibration** — do high-confidence cells still outperform low-confidence ones;
-   - **instruction adherence** — told to leave criteria pending, does it; told to use given
+   - **instruction adherence** — told to leave criteria `deferred`, does it; told to use given
      criteria, does it invent extras;
    - **stability** — same input twice, how much do scores move;
    - **refusal to guess** — on fixtures with deliberately absent evidence, does it still emit
@@ -79,13 +79,24 @@ testing, because it is then measuring a different quantity than the one the fixt
 - For scoring prompts: does it still ask for a span, and still permit "no span, therefore
   `not-evidenced`" as a first-class answer? And does it still distinguish that from
   `indeterminate`, which is what a cell with conflicting sources degrades to?
-- Is any example in the prompt drawn from a **public** domain? ADR-0016 hygiene applies to
-  prompt text exactly as it applies to fixtures, and prompts are where realistic examples get
-  pasted in "just to make it concrete".
+- Is every example in the prompt drawn from an **invented** domain? Not anonymised — invented.
+  An anonymised example keeps the criteria and the disagreements of the original, and that
+  shape identifies (comparanda ADR-0033). This applies to prompt text exactly as it applies to
+  fixtures, and prompts are where realistic examples get pasted in "just to make it concrete".
+- Does it name a missingness code the vocabulary manifest still carries? `tests/test_prompts.py`
+  checks this, and bans the retired spellings outright — but read the failure rather than
+  editing around it: a rename upstream means the prompt is teaching a value the tool layer
+  will refuse.
+- Does it ask the model to assert something it did not do? A scoring prompt receives spans and
+  a retrieval record; a note that narrates a search the model did not perform breaks the third
+  honesty rule inside the blank that exists to be more honest than a score.
 
 ## Where things are
 
-    docs/prompts/README.md                    the expected prompt set and their jobs
+    rubricator/data/prompts/                  the prompts themselves, shipped in the wheel
+    docs/prompts/README.md                    the inventory, and the front-matter contract
+    rubricator/prompts.py                     the loader; `root` is the override seam
+    tests/test_prompts.py                     what a prompt must satisfy to land
     docs/adr/0005-the-elicitation-pipeline.md  the stages
     docs/adr/0006-evidence-and-honest-uncertainty.md  the honesty rule, verbatim
     docs/adr/0008-evaluation.md               what the suite checks and why

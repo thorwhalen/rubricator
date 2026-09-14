@@ -148,11 +148,19 @@ this repository's ADR set. **The sweep is done for the live sites, 2026-08-22:**
 renamed `pending` → **`outstanding`**, since the view selects on the `terminal` flag and naming it
 after one code was the same mistake one level up; and `measures_mark_missing` no longer enumerates
 codes in its signature at all, validating instead against the analysis's own vocabulary — core six
-plus declared extensions — because comparanda's set is **open**. Left alone deliberately: the dated
-working notes under `docs/research/sections/`, and `rubricator/tools/traversal.py`, whose only match
-is the English word in `unknown traversal order`. What remains is the part that is not a rename:
-**`not-evidenced` needs a prompt that teaches the distinction and a fixture that exercises it**, or
-an explicit decline.
+plus declared extensions — because comparanda's set is **open**. Left alone deliberately:
+`rubricator/tools/traversal.py`, whose only match is the English word in `unknown traversal order`.
+
+**Closed, 2026-09-14.** The part that was never a rename is done: `rubricator/data/prompts/score-cell.md`
+teaches `not-evidenced` apart from `indeterminate`, served from the ADR-0003 registry
+(`prompts_list`, `prompts_get`) so both runtimes hand out the same file, with `tests/test_prompts.py`
+checking each prompt's declared codes against the live vocabulary manifest and banning the retired
+spellings outright — so the *next* upstream rename fails the suite rather than shipping. The dated
+working notes under `docs/research/` still carry the old spellings, per ADR-0011's rule that the
+evidence trail is not the specification; `findings-method.md` and `sections/r6` now open with a note
+saying so. The rename boundary and its consequences for any future evaluation figure are in
+[`CHANGELOG.md`](../CHANGELOG.md) — no existing number is affected, because no evaluation run has
+ever happened here.
 
 ### 3. Upstream dependencies — tracking only
 
@@ -182,7 +190,8 @@ executed by the traversal harness in epic 10, not here, because it is the same c
 
 Package layout, CI, and the boundary tests that turn prose into mechanism. Three things are broken
 today and all three are here: a declared console script pointing at a module that does not exist
-(`rubricator.cli:main`); a prompts directory that is empty and untracked while the build ships it;
+(`rubricator.cli:main`); a prompts directory that is empty and untracked while the build ships it
+(**fixed 2026-09-14** — `rubricator/data/prompts/` now holds `score-cell.md` and is served);
 and an `mcp` extra pinning `fastmcp>=4.0.0`, a release that does not exist.
 
 Two guards get stronger and one gets repaired (ADR-0010's amendment). The determinism boundary gains
