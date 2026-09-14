@@ -31,7 +31,8 @@ Never "items" or "features".
     docs/adr/README.md       the ADR index, grouped by theme
     docs/research/README.md  the research ledger — start here to find out what is known
     docs/research/           the method brief, sections/ (working notes), findings-method.md
-    docs/prompts/            prompts as versioned content, served by both runtimes
+    docs/prompts/README.md   the prompt inventory and the file contract
+    rubricator/data/prompts/ the prompts themselves, versioned content shipped in the wheel
     skills/                  dev skills — tooling for the agent building this repo
 
 ## Dev skills

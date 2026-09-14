@@ -1,5 +1,30 @@
 # Findings — comparison method and prompting
 
+> [!IMPORTANT]
+> **The missingness reason codes in the findings and summary tables are the pre-amendment
+> spellings.** This document was written against `comparanda`'s ADR-0009 as it stood on 2026-08-18.
+> Its 2026-08-21 amendment renamed two codes and split a third out of one of them. (The *proposed
+> tool surface* table further down was updated in the 2026-08-22 sweep and already reads the current
+> spellings; the research rows around it were not, deliberately.)
+>
+> | Written here | Read as |
+> |---|---|
+> | `pending` | `deferred` |
+> | `unknown` | **`not-evidenced`** where sources were consulted and are silent, **`indeterminate`** where they were consulted and do not settle the level |
+> | `unknown_preference_rate` | `blank_inflation_rate` (ADR-0008's amendment; renamed for the behaviour rather than for a reason code, so that the next code rename is not a metric rename) |
+>
+> `unknown` → `indeterminate` is **not** a pure rename: the old code covered both branches and the
+> new one covers only the second, so a count of one is not a count of the other. See
+> [`CHANGELOG.md`](../../CHANGELOG.md) for the boundary and what it means for any figure measured
+> across it.
+>
+> The spellings are **not** corrected in place, here or anywhere under `docs/research/`. ADR-0011's
+> 2026-08-21 amendment settles that: *"`docs/research/` keeps the original spelling because it is
+> the evidence trail, not the specification."* Rewriting a dated finding to match a later decision
+> falsifies the record of what was known when. Everything else in this document stands, and the
+> live spellings are in `docs/adr/` and in
+> `rubricator/schema/comparanda/vocabularies.v1.json`.
+
 **Deliverable for** [`docs/research/method.md`](./method.md). **Read with** [BRIEF.md](../../BRIEF.md)
 and [`docs/adr/`](../adr/).
 

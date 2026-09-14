@@ -46,6 +46,8 @@ TOOL_REFS: tuple[str, ...] = (
     "rubricator.tools.analysis:report_completeness",
     "rubricator.tools.citations:check_citations",
     "rubricator.tools.traversal:plan_traversal",
+    "rubricator.tools.prompts:prompts_list",
+    "rubricator.tools.prompts:prompts_get",
 )
 
 #: Verbs that need a moment, and take it as ``at``.
