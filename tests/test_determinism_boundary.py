@@ -17,8 +17,11 @@ from __future__ import annotations
 
 import ast
 import importlib
+import json
 import pkgutil
 import re
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -194,3 +197,70 @@ def test_seeded_permutation_is_stable_across_processes() -> None:
     assert sorted(once) == ["alpha", "beta", "delta", "gamma"]
     assert seeded_permutation(["a", "b", "c"], "s1") != seeded_permutation(["a", "b", "c"], "s2") \
         or len({"a", "b", "c"}) == 1, "different seeds should generally give different orders"
+
+
+def test_mcp_layer_imports_no_model_client_in_a_fresh_subprocess() -> None:
+    """ADR-0019, enforced dynamically rather than per-file.
+
+    ``test_tool_layer_imports_no_model_client`` above catches a model import
+    written directly inside a file under ``rubricator/tools/``, but not one
+    reached transitively -- through ``rubricator.compose``, ``rubricator.surface``,
+    or a future module the connector imports on the way to serving a request.
+
+    A subprocess is required because an in-process check cannot distinguish a
+    module ``rubricator.mcp`` imported from one an earlier test in the same
+    process already loaded -- pytest's own collection routinely imports things
+    that have nothing to do with the connector.
+    """
+    script = (
+        "import json\n"
+        "import sys\n"
+        "import rubricator.mcp.server\n"
+        "print(json.dumps(sorted(sys.modules)))\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    if result.returncode != 0:
+        # In CI's bare `[test]` environment none of MODEL_MODULES is installed, so
+        # an accidental `import aix` (or a provider SDK) fails loudly here rather
+        # than quietly landing in sys.modules -- a stronger signal than the
+        # membership check below, which only fires when the offending package
+        # happens to be installed too (e.g. a local `[all]` environment).
+        named = [m for m in MODEL_MODULES if m in result.stderr]
+        reason = (
+            f"pulls in {named}, forbidden by ADR-0019"
+            if named
+            else "failed for an unrelated reason -- see the traceback"
+        )
+        raise AssertionError(
+            f"`import rubricator.mcp.server` failed in a bare subprocess ({reason}). ADR-0019: "
+            "all LLM access goes through the local `aix` facade, used only by the "
+            "deployed-agent runtime -- the connector must import with no model client "
+            f"reachable, even transitively.\n{result.stderr}"
+        )
+    loaded = set(json.loads(result.stdout))
+
+    offending_models = loaded & MODEL_MODULES
+    assert not offending_models, (
+        f"importing rubricator.mcp.server pulled in {sorted(offending_models)}. ADR-0019: all "
+        "LLM access goes through the local `aix` facade, used only by the deployed-agent "
+        "runtime -- the connector has no API key and must import with no model client "
+        "reachable, even transitively. If this step needs judgement, it is not a tool: "
+        "expose it as a prompt the caller's model runs, plus a deterministic tool that "
+        "validates what came back."
+    )
+
+    offending_agent = {
+        name
+        for name in loaded
+        if name == "rubricator.agent" or name.startswith("rubricator.agent.")
+    }
+    assert not offending_agent, (
+        "importing rubricator.mcp.server pulled in rubricator.agent. ADR-0019: the connector "
+        "runtime (no API key) must never import the deployed-agent runtime (owns model "
+        "access through `aix`) -- even transitively."
+    )
