@@ -1,5 +1,9 @@
 # Rubric design, anchored scales, and making confidence mean something
 
+> [!IMPORTANT]
+> **Superseded on 3 points.** See [`findings-method.md` §7.3, §7.4, §7.9](../findings-method.md);
+> the evidence below stands, the recommendations do not.
+
 **Research question(s):** What makes a 1–5 scale produce consistent scores across raters and
 sessions (analytic vs holistic rubrics, BARS, described levels vs bare numbers)? Should criteria
 definitions carry per-level descriptors, and what does that cost? What scale granularity should the
