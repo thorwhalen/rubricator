@@ -39,8 +39,9 @@ Never "items" or "features".
 
 Real files in `skills/`, surfaced through relative symlinks in `.claude/skills/`. These are for
 the agent *building* rubricator, not for end users. (End-user skills — run an analysis, add a
-criterion, re-score a column, audit an existing analysis — ship as MCP prompts instead; see
-ADR-0003 and ADR-0007.)
+criterion, re-score a criterion, audit an existing analysis — ship as MCP prompts instead; see
+ADR-0003 and ADR-0007. The four are `run-analysis` (#77), `audit-existing` (#75), and two new
+prompts, `add-criterion` and `rescore-criterion` — see #114.)
 
 - **`rubricator-dev-tool-contract`** — read before adding or changing any tool. Owns the one
   architectural rule (tools are deterministic, the loop is not), the concrete tests that enforce

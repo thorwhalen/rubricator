@@ -78,7 +78,7 @@ the § numbers are its sections, and the summary-table row numbers are given as 
 | R35 | How granular should the tool surface be, and how many tools? | `method.md` §5; BRIEF deliverable 2 | complete | §"Proposed MCP tool surface", row 35 | strong | new **ADR-0009** |
 | R36 | Prompt bundle and MCP server — one artifact or two? | `method.md` §5 | **complete (one)** | §6, row 36 | strong | **ADR-0007 amend** |
 | R37 | How does the deployed runtime reach a model? | `method.md` §5 | complete | §6, row 37; [r7](./sections/r7-local-ecosystem.md) | strong (source read) | new **ADR-0019** |
-| R38 | Which agent-facing dev skills does the recurring work need? | `method.md` §6 | **partial** — 2 of 6 written (`rubricator-dev-prompt-change`, `rubricator-dev-tool-contract`); the four analysis-workflow skills the brief names are not written | — | — | none yet; carried as an open question below |
+| R38 | Which agent-facing dev skills does the recurring work need? | `method.md` §6 | **resolved (not as dev skills)** — the two genuine dev skills are written (`rubricator-dev-prompt-change`, `rubricator-dev-tool-contract`); the four analysis-workflow items the brief names ship as **MCP prompts** instead (CLAUDE.md, ADR-0007 amendment) — `run-analysis` #77 and `audit-existing` #75 already scheduled, `add-criterion` and `rescore-criterion` newly filed | §6 (superseded note) | n/a — settled without a new ADR; CLAUDE.md and ADR-0007's existing amendment already say so | see #114 |
 
 **Not yet asked.** `method.md` §6 is the only brief section without a section file. Every other brief
 section has one, and every section has landed in [`findings-method.md`](./findings-method.md).
@@ -210,12 +210,15 @@ Carried forward. Ordered by value; the first three are the cheap experiments tha
     confirmed in every case; the wording is not. Someone with library access should check them before
     they are treated as citable. This is the one open question the project can close without spending
     a single model call.
-17. **Which dev skills does the analysis workflow need (R38)?** `method.md` §6 asks for four
-    agent-facing skills — running an analysis end to end, adding a criterion to an existing analysis,
-    re-scoring one criterion against new evidence, auditing an existing analysis for overlap and thin
-    evidence. None is written; the two skills that exist cover changing a prompt and changing a tool
-    contract. *Settled by* doing the work, and best written after the first real end-to-end analysis
-    so they describe a workflow that exists.
+17. **Which dev skills does the analysis workflow need (R38)?** *Settled, not as dev skills.*
+    `method.md` §6 asked for four agent-facing skills — running an analysis end to end, adding a
+    criterion to an existing analysis, re-scoring one criterion against new evidence, auditing an
+    existing analysis for overlap and thin evidence. CLAUDE.md's "Dev skills" section rules that
+    end-user workflows ship as MCP prompts instead: two are already scheduled prompts (`run-analysis`
+    #77, `audit-existing` #75), and `add-criterion` / `rescore-criterion` are newly filed to cover
+    the other two. The two dev skills that do exist (`rubricator-dev-prompt-change`,
+    `rubricator-dev-tool-contract`) cover changing a prompt and changing a tool contract, which is
+    different work and stays in scope for a dev skill. See #114.
 
 ---
 
