@@ -1,5 +1,9 @@
 # Span-level citation: locators, extraction, and verifying a citation supports its claim
 
+> [!IMPORTANT]
+> **Superseded on 1 point.** See [`findings-method.md` §7.6](../findings-method.md); the evidence
+> below stands, the recommendation does not.
+
 **Research question(s):** Which locator format should a comparanda evidence reference use, and how
 should it be typed? How should a corpus be chunked and retrieved when the output must be *cited*
 rather than summarised? How do we verify that a cited span actually supports the justification it

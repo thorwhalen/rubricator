@@ -1,5 +1,9 @@
 # LLM-as-judge practice: pointwise vs pairwise, aggregation, structured output
 
+> [!IMPORTANT]
+> **Superseded on 1 point.** See [`findings-method.md` §7.2](../findings-method.md); the evidence
+> below stands, the recommendation does not.
+
 **Research question(s):** What is current (2025–2026) best practice for structured evaluation with an
 LLM — rubric-in-prompt, reference-free vs reference-based, pointwise vs pairwise? Is pairwise
 comparison more reliable for LLMs the way it is for humans, and what aggregation turns pairwise
