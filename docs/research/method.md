@@ -63,6 +63,17 @@ This is the highest-leverage question in the project — everything downstream i
 
 ## 6. Dev skills
 
+> [!IMPORTANT]
+> **Superseded.** This brief asks for the four recurring-analysis workflows as *dev skills*.
+> CLAUDE.md's "Dev skills" section rules that end-user workflows — running an analysis, adding a
+> criterion, re-scoring a criterion, auditing an existing analysis — ship as **MCP prompts**
+> instead, because dev skills are for the agent *building* rubricator, not for its end users. Two
+> of the four already exist as scheduled prompts (`run-analysis` #77, `audit-existing` #75); the
+> other two are new prompts, `add-criterion` and `rescore-criterion`, filed as part of #114. This
+> section's evidence — that the recurring work needs these four workflows named and owned somehow
+> — stands; only the artifact they land in changed. See #114 for the full resolution.
+
 Produce agent-facing skills for the recurring work: running an analysis end to end, adding a
-criterion to an existing analysis, re-scoring one column against new evidence, auditing an existing
-analysis for overlap and thin evidence. Follow the local `dev-skills-workflow` conventions.
+criterion to an existing analysis, re-scoring one criterion against new evidence, auditing an
+existing analysis for overlap and thin evidence. Follow the local `dev-skills-workflow`
+conventions.
