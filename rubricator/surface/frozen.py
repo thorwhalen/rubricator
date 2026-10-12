@@ -301,9 +301,10 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
                     {"alternativeId": S, "criterionId": S, "measure": S, "code": S, "recorded": B},
                     ("alternativeId", "criterionId", "measure", "code", "recorded"))),
                 "resourceLink": opt(S),
+                "omitted": arr(S),
                 "summary": S,
             },
-            ("analysisId", "view", "question", "stage", "counts", "summary"),
+            ("analysisId", "view", "question", "stage", "counts", "omitted", "summary"),
         ),
     ),
     ToolSpec(

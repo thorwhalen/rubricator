@@ -236,6 +236,7 @@ def test_a_score_answering_an_older_definition_keeps_the_stage_at_populate(verbs
 
 @pytest.mark.parametrize("stray", [
     b"not json",
+    b"[]",
     json.dumps({"authors": [{"id": "someone-else", "displayName": "S", "kind": "human"}],
                 "cells": []}).encode(),
 ])
@@ -282,7 +283,9 @@ def test_stored_data_the_contract_cannot_hold_is_left_out_and_named(
     runtime.store.blobs[key] = json.dumps(frame).encode()
     for each in VIEWS:  # bind validates every envelope, so no view may raise
         verbs["analysis_get"](analysis_id="a1", view=each)
-    assert path in verbs["analysis_get"](analysis_id="a1", view=view)["summary"]
+    got = verbs["analysis_get"](analysis_id="a1", view=view)
+    assert path in got["omitted"] and "do NOT hand this view back" in got["summary"]
+    assert verbs["analysis_get"](analysis_id="a1", view="summary")["omitted"] == []
 
 
 def test_a_blank_id_is_treated_as_no_id(verbs) -> None:
@@ -315,3 +318,28 @@ def test_the_resource_is_served_as_json() -> None:
     asyncio.run(server.call_tool("analysis_open", {"analysis_id": "a1", "question": "q"}))
     content = asyncio.run(server.read_resource(analysis_uri("a1"))).contents[0]
     assert content.mime_type == "application/json"
+
+
+@pytest.mark.parametrize("edit", [
+    lambda f: f["criteria"][0]["defaultMeasurement"].update(anchors=["1", "3", "5"]),
+    lambda f: f["criteria"][0]["defaultMeasurement"].update(range=[1, 5]),
+])
+def test_a_malformed_measurement_is_cut_not_crashed_on(runtime, verbs, edit) -> None:
+    _matrix(verbs)
+    key = runtime.store.frame_key("a1")
+    frame = json.loads(runtime.store.blobs[key])
+    edit(frame)
+    runtime.store.blobs[key] = json.dumps(frame).encode()
+    assert verbs["analysis_get"](analysis_id="a1", view="criteria")["criteria"][0]["id"] == "speed"
+
+
+def test_a_non_string_code_counts_as_outstanding_rather_than_crashing(runtime, verbs) -> None:
+    _matrix(verbs)
+    _write(verbs, alternativeId="k1", criterionId="speed", missing={"code": "deferred", "note": "n"})
+    key = runtime.store.contribution_key("a1", "ana")
+    contribution = json.loads(runtime.store.blobs[key])
+    contribution["cells"][0]["assertions"][0]["missing"]["code"] = 7
+    runtime.store.blobs[key] = json.dumps(contribution).encode()
+    rows = verbs["analysis_get"](analysis_id="a1", view="outstanding")["outstanding"]
+    assert {"alternativeId": "k1", "criterionId": "speed", "measure": "score", "code": "7",
+            "recorded": True} in rows

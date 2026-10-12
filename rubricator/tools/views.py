@@ -53,6 +53,10 @@ STAGES: Mapping[int, tuple[str, str]] = {
 #: without resources still gets a stable name for the document.
 _URI = "rubricator://analysis/{analysis_id}"
 
+#: The verb a view's shape round-trips to, named when a cut view must not.
+_WRITER: Mapping[str, str] = {"frame": "frame_set or alternatives_set", "criteria": "criteria_set"}
+
+
 def analysis_uri(analysis_id: str) -> str:
     """The resource name of one analysis document."""
     return _URI.format(analysis_id=analysis_id)
@@ -94,7 +98,8 @@ def outstanding_cells(document: Mapping[str, Any]) -> list[dict[str, Any]]:
                     if "value" in a:
                         settled = True
                         break
-                    code = (a.get("missing") or {}).get("code", "")
+                    missing = a.get("missing")
+                    code = str((missing if isinstance(missing, Mapping) else {}).get("code", ""))
                     facts = vocab.resolve(code, declarations).facts
                     if facts is not None and (facts.terminal or facts.structural):
                         settled = True
@@ -234,10 +239,11 @@ def _criterion(stored: Mapping[str, Any]) -> dict[str, Any]:
     for key in ("scale", "preference"):
         if key in measurement:
             out[key] = measurement[key]
-    target = (measurement.get("range") or {}).get("target")
+    rng, anchors = measurement.get("range"), measurement.get("anchors")
+    target = rng.get("target") if isinstance(rng, Mapping) else None
     if target is not None:
         out["target"] = target
-    levels = (measurement.get("anchors") or {}).get("levels") or {}
+    levels = (anchors.get("levels") if isinstance(anchors, Mapping) else None) or {}
     if isinstance(levels, Mapping) and levels:
         out["anchors"] = [{"level": str(k), "text": v} for k, v in levels.items()]
     for key in ("missingCodes", "definition", "supersededBy"):
@@ -276,7 +282,7 @@ def analysis_get(
         document = store.read(analysis_id)
     except AnalysisNotFound:
         raise
-    except (KeyError, TypeError, ValueError) as error:
+    except (AttributeError, KeyError, TypeError, ValueError) as error:
         # A malformed contribution in a shared store: say which read failed and
         # where the way back in is, rather than a bare decode error.
         raise ValueError(
@@ -325,14 +331,19 @@ def analysis_get(
         result["outstanding"] = outstanding
     elif view == "full":
         result["resourceLink"] = analysis_uri(analysis_id)
+    # Required on every view: a projection that dropped something says so in a
+    # field, not only in prose, because handing a cut view back to the writing
+    # verb would silently delete or rewrite what was dropped.
+    result["omitted"] = cut
     codes = ", ".join(f"{by_code[k]} {k}" for k in sorted(by_code))
     result["summary"] = (
         f'"{analysis_id}" at stage {stage} ({name}): {len(alternatives)} alternative(s), '
         f"{len(criteria)} criteria, {len(outstanding)} of {cells} cell(s) outstanding"
         + (f" ({codes})" if codes else "")
         + (f"; {superseded} cell(s) answer an older criteria definition" if superseded else "")
-        + (f"; {len(cut)} stored field(s) do not fit the contract and were left out: "
-           + ", ".join(cut[:5]) + ("..." if len(cut) > 5 else "") if cut else "")
+        + (f"; {len(cut)} stored field(s) do not fit the contract and were left out (see "
+           f"omitted), so do NOT hand this view back to {_WRITER[view]}: it would delete or "
+           "rewrite what was left out" if cut else "")
         + f"; next: {action}"
     )
     return result

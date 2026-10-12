@@ -87,7 +87,7 @@ def _live_document(
         return store.read(analysis_id), None
     except AnalysisNotFound:
         return None, None
-    except (KeyError, TypeError, ValueError) as error:
+    except (AttributeError, KeyError, TypeError, ValueError) as error:
         try:
             return store.frame(analysis_id), str(error)
         except AnalysisNotFound:
