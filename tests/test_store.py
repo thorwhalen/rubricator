@@ -462,3 +462,36 @@ def test_a_symlink_into_the_package_is_refused(tmp_path) -> None:
     link.symlink_to(PACKAGE_DIR, target_is_directory=True)
     with pytest.raises(ValueError, match="inside the rubricator package directory"):
         file_store(link / "data")
+
+
+def test_a_stamp_from_the_future_does_not_keep_an_analysis_alive(clock) -> None:
+    blobs: dict[str, bytes] = {}
+    store = _opened(clock, blobs=blobs)
+    blobs["analyses/a1/touched/notes.txt/29991231T000000Z"] = b""
+    assert store.last_write("a1") == "2026-08-22T12:00:00Z"
+    clock.advance(days=RETENTION_DAYS)
+    assert not store.exists("a1")
+
+
+class CountingStore(DictBackedStore):
+    """Counts full walks of the store, which is what makes listing quadratic or not."""
+
+    walks = 0
+
+    def __iter__(self) -> Iterator[str]:
+        self.walks += 1
+        return super().__iter__()
+
+
+def test_listing_and_sweeping_walk_the_store_once(clock) -> None:
+    blobs = CountingStore()
+    store = AnalysisStore(blobs, now=clock)
+    for i in range(20):
+        analysis_open(store, analysis_id=f"a{i}", question="q")
+    blobs.walks = 0
+    assert len(store.analyses()) == 20
+    assert blobs.walks == 1
+    clock.advance(days=RETENTION_DAYS)
+    blobs.walks = 0
+    assert len(store.sweep()) == 20
+    assert blobs.walks == 1 + 20, "one walk to find them, one purge each"

@@ -356,23 +356,46 @@ class AnalysisStore:
 
     # -- retention ----------------------------------------------------------
 
+    def _last_writes(self, prefix: str = "analyses/") -> dict[str, datetime | None]:
+        """Every analysis id under ``prefix`` with its last write, in **one** walk.
+
+        One pass over the keys however many analyses there are: listing or
+        sweeping by asking each analysis in turn walks the store once per
+        analysis, which is quadratic in a store that holds a month of work.
+
+        A stamp dated after ``now`` is ignored: that write has not happened yet,
+        so it is a fast clock or a stray, and counting it would keep the analysis
+        alive for as long as the error lasts. An analysis with no usable stamp is
+        undated (``None``) and kept.
+        """
+        now = _instant(self.now())
+        latest: dict[str, datetime | None] = {}
+        for key in self.blobs:
+            if not key.startswith(prefix) or key.count("/") < 2:
+                continue
+            _, analysis_id, rest = key.split("/", 2)
+            latest.setdefault(analysis_id, None)
+            if not rest.startswith("touched/"):
+                continue
+            moment = _stamp_moment(rest.rsplit("/", 1)[-1])
+            if moment is not None and moment <= now:
+                current = latest[analysis_id]
+                latest[analysis_id] = moment if current is None else max(current, moment)
+        return latest
+
     def last_write(self, analysis_id: str) -> str | None:
         """The latest write to any part of the analysis, or ``None`` if undated."""
-        prefix = f"analyses/{analysis_id}/touched/"
-        moments = [
-            m for k in self.blobs
-            if k.startswith(prefix) and (m := _stamp_moment(k.rsplit("/", 1)[-1])) is not None
-        ]
-        if not moments:
-            return None
-        return max(moments).strftime("%Y-%m-%dT%H:%M:%SZ")
+        moment = self._last_writes(f"analyses/{analysis_id}/").get(analysis_id)
+        return None if moment is None else moment.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    def _is_expired(self, last: datetime | None) -> bool:
+        if last is None:
+            return False
+        return _instant(self.now()) - last >= timedelta(days=self.retention_days)
 
     def expired(self, analysis_id: str) -> bool:
         """Whether the window has run out since the last write. Undated is never expired."""
-        last = self.last_write(analysis_id)
-        if last is None:
-            return False
-        return _instant(self.now()) - _instant(last) >= timedelta(days=self.retention_days)
+        return self._is_expired(self._last_writes(f"analyses/{analysis_id}/").get(analysis_id))
 
     def sweep(self) -> list[str]:
         """Delete every expired analysis; the ids deleted, sorted.
@@ -380,7 +403,7 @@ class AnalysisStore:
         Expired analyses are also deleted whenever one is asked for, so the sweep
         is for reclaiming space, never for correctness.
         """
-        gone = [a for a in self._ids() if self.expired(a)]
+        gone = sorted(a for a, last in self._last_writes().items() if self._is_expired(last))
         for analysis_id in gone:
             self._purge(analysis_id)
         return gone
@@ -405,14 +428,6 @@ class AnalysisStore:
 
     # -- reading ------------------------------------------------------------
 
-    def _ids(self) -> list[str]:
-        ids = {
-            k.split("/")[1]
-            for k in self.blobs
-            if k.startswith("analyses/") and k.count("/") >= 2
-        }
-        return sorted(ids)
-
     def analyses(self) -> list[str]:
         """Every live analysis id in the store, sorted.
 
@@ -421,7 +436,7 @@ class AnalysisStore:
         store can be walked. Expired analyses are not listed, and are left for
         :meth:`sweep` or the next request for them to delete.
         """
-        return [a for a in self._ids() if not self.expired(a)]
+        return sorted(a for a, last in self._last_writes().items() if not self._is_expired(last))
 
     def frame(self, analysis_id: str) -> dict[str, Any]:
         self._require(analysis_id)
