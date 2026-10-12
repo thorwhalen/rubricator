@@ -30,7 +30,7 @@ One more force. The closed comparanda v1 schema refuses unknown keys, and the wr
 | 11 | `measures_mark_missing` | measures | 5, resume | implemented | no | 4 | 11 |
 | 12 | `analysis_validate` | analysis | 5, 6 | planned (#61) | yes | — | 12 |
 | 13 | `check_citations` | citations | 5, 6 | implemented | yes | — | 13 |
-| 14 | `aggregate_assertions` | measures | 5 | planned (#97) | no | 3 | 14 |
+| 14 | `aggregate_assertions` | measures | 5 | implemented (#97) | no | 3 | 14 |
 | 15 | `stability_report` | report | 6 | planned (#98) | no | 3 | 15 |
 | 16 | `report_weaknesses` | report | 6 | planned (#64) | no | 5 | 16 |
 | 17 | `disclose_variance` | report | 6 | planned (#100) | no | 2 | 17 |
@@ -91,3 +91,22 @@ Six choices in this ADR reconcile the research with the reviewed implementation 
 - *Fold `report_completeness` into `analysis_get(view=outstanding)`.* The outstanding view returns cells; the report returns rates, degradations and stored honesty problems. One tool returning either shape by a `view` argument would need a union envelope, and the subset has no discriminated unions.
 - *Estimate tokens from bytes and skip the pin.* ADR-0009 asked for a measurement; a ratio drifts with every description edit, and nobody would notice.
 - *Docstrings as descriptions, per #49's wording.* The docstrings are developer essays, several hundred tokens each; the model needs the contract. The row is the description, and the measurement is taken over it.
+
+### 2026-10-12 — `aggregate_assertions` lands (#97)
+
+- **Deciders:** Thor Whalen
+
+Row 14 is implemented. Its `outputSchema` changed in three ways, all before any client bound to it, since the row was planned until now:
+- `min` and `max` widen from number to the comparanda scalar union, because a scale's levels are data (ADR-0021) and may be strings. They, and `span`, are `null` for a nominal measure, which has no order.
+- A `levels` multiset (`[{level, count}]`) is added. It is what ADR-0011 says a polarised cell carries instead of a point value.
+- `offScale` is added, so a value the scale cannot take is counted rather than silently dropped.
+
+**Its contract text was corrected.** It had described polarisation as "modes further apart than polarised_gap" and the level of measurement as always ordinal. Polarised is now stated as the rule that is implemented, mirrored from comparanda's `cellShape`: two or more occupied levels, separated by at least `polarised_gap` empty levels, with no single dominant mode. The level of measurement is read per measure, through comparanda's `measurementFor`.
+
+**How each level of measurement is reduced.** `median` is the lower median on an ordinal measure, and the conventional median on an interval or ratio one (averaging only numbers). An ordinal integer range with no declared levels has its steps derived from the range, so a bimodal cell there is still caught. A nominal measure gets modes and counts only.
+
+**A mean is refused naming the level of measurement, at the surface as well as in the verb.** The frozen enum alone would only have said "not one of". So the surface gains a small pre-schema refusal hook, `_PRECHECKS`. It runs before the input schema check, for the one case where the contract owes the caller a reason the schema cannot carry.
+
+Re-measured on 2026-10-12 against `claude-sonnet-5-5`:
+- the advertised definitions: 12 tools, 7,039 tokens, 16,522 bytes;
+- the whole surface: 22 tools, 10,574 tokens, 25,572 bytes. It moved because the row's description changed.
