@@ -542,10 +542,11 @@ class AnalysisStore:
         which a caller must surface beside the document, never drop.
 
         What is left out is left out whole: a contribution whose file is valid
-        JSON but introduces a colleague as an author (``MergeProblem``)
-        contributes none of its assertions. (What the merge rule does not yet
-        catch -- an assertion whose ``authorId`` names someone the file never
-        introduced, or a persona id that shadows another contributor -- is #158.) The
+        JSON but speaks for a colleague (``MergeProblem``) -- introduces them as
+        an author, signs an assertion as someone it never introduced, or gives a
+        persona another contributor's id -- contributes none of its assertions.
+        Two files that each merge alone but declare one author id are both left
+        out, since which of them owns the id cannot be told (#158). The
         frame is not skippable -- without it there is no analysis -- so a frame
         that cannot be read raises, as :meth:`read` does.
 
@@ -557,10 +558,11 @@ class AnalysisStore:
         >>> document["cells"], [s["file"] for s in skipped]
         ([], ['analyses/a1/contributions/ben.json'])
         """
-        from rubricator.merge import merge_contributions
+        from rubricator.merge import author_collisions, merge_contributions
 
         frame = self.frame(analysis_id)
         merge_contributions(frame, [])
+        roster = self._contributor_ids(analysis_id)
         skipped: list[dict[str, str]] = []
 
         def mergeable(key: str, trial: Callable[[dict[str, Any]], Any]) -> dict[str, Any] | None:
@@ -573,13 +575,22 @@ class AnalysisStore:
             return document
 
         contributions = []
-        for contributor_id in self._contributor_ids(analysis_id):
+        for contributor_id in roster:
             document = mergeable(
                 self.contribution_key(analysis_id, contributor_id),
-                lambda d, c=contributor_id: merge_contributions(frame, [(c, d)]),
+                lambda d, c=contributor_id: merge_contributions(
+                    frame, [(c, d)], contributors=roster
+                ),
             )
             if document is not None:
                 contributions.append((contributor_id, document))
+        collisions = author_collisions(contributions)
+        skipped += [
+            {"file": self.contribution_key(analysis_id, c), "because": why}
+            for c, why in collisions.items()
+        ]
+        skipped.sort(key=lambda s: s["file"])
+        contributions = [(c, d) for c, d in contributions if c not in collisions]
         prefix = f"analyses/{analysis_id}/renditions/"
         renditions = [
             r
@@ -587,7 +598,9 @@ class AnalysisStore:
             if (r := mergeable(key, lambda d: merge_contributions(frame, [], renditions=[d])))
             is not None
         ]
-        merged = merge_contributions(frame, contributions, renditions=renditions)
+        merged = merge_contributions(
+            frame, contributions, renditions=renditions, contributors=roster
+        )
         return merged, skipped
 
     # -- writing ------------------------------------------------------------
