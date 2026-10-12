@@ -23,11 +23,14 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from functools import cached_property
+from functools import cached_property, lru_cache
 from pathlib import Path
 from typing import Any, Iterable, Literal
 
-__all__ = ["SchemaSource", "SchemaProblem", "SUPPORTED_SCHEMA_VERSIONS", "SchemaOrigin"]
+__all__ = [
+    "SchemaSource", "SchemaProblem", "SUPPORTED_SCHEMA_VERSIONS", "SchemaOrigin", "VENDORED_PATH",
+    "explain",
+]
 
 #: The schema versions this build can read and emit. Declared, not inferred, so
 #: a consumer can check compatibility before handing us a document.
@@ -36,6 +39,10 @@ SUPPORTED_SCHEMA_VERSIONS: tuple[int, ...] = (1,)
 SchemaOrigin = Literal["sketch", "published"]
 
 _SKETCH_PATH = Path(__file__).parent / "sketch.json"
+
+#: The companion's published contract, vendored into the wheel. The one place a
+#: version is chosen; the composition root and the write-path check both read it.
+VENDORED_PATH = Path(__file__).parent / "comparanda" / "comparanda.v1.json"
 
 
 @dataclass(frozen=True)
@@ -109,6 +116,15 @@ class SchemaSource:
             located_at=p.name,
         )
 
+    @classmethod
+    def vendored(cls) -> "SchemaSource":
+        """The vendored published contract, parsed once per process.
+
+        Shared rather than re-read, because the tool layer checks every write
+        against it (#136) and a write should not cost a parse of the whole schema.
+        """
+        return _vendored()
+
     @property
     def is_provisional(self) -> bool:
         """True while validating against the sketch rather than the real contract."""
@@ -136,6 +152,35 @@ class SchemaSource:
         from jsonschema import Draft202012Validator
 
         return Draft202012Validator(self.schema)
+
+    def refusals(self, value: Any, *, pointer: str = "", root: str = "$") -> list[str]:
+        """Every way ``value`` breaks the schema at ``pointer``, as readable lines.
+
+        ``pointer`` is a JSON Pointer into the schema (``/properties/cells``), so
+        a fragment -- one contributor's cells, say -- is checked against exactly
+        the shape it will occupy in the document. ``root`` is how the fragment's
+        own location is spelled in the lines, so the caller can say where the
+        problem is in what *it* passed. An empty list means the value fits.
+
+        >>> src = SchemaSource.vendored()
+        >>> src.refusals([{"id": "x", "label": "X", "url": "u"}],
+        ...              pointer="/properties/alternatives", root="$.alternatives")
+        ["at $.alternatives[0]: Additional properties are not allowed ('url' was unexpected). Allowed here: description, groupIds, id, label, supersededBy, tombstoned"]
+        """
+        validator = self._fragment_validator(pointer)
+        errors = sorted(validator.iter_errors(value), key=lambda e: [str(p) for p in e.path])
+        return [explain(e, root=root) for e in errors]
+
+    def _fragment_validator(self, pointer: str) -> Any:
+        from jsonschema import Draft202012Validator
+
+        cache = self.__dict__.setdefault("_fragments", {})
+        if pointer not in cache:
+            node: Any = self.schema
+            for part in filter(None, pointer.split("/")):
+                node = node[part.replace("~1", "/").replace("~0", "~")]
+            cache[pointer] = Draft202012Validator(node)
+        return cache[pointer]
 
     def validate(self, document: Any) -> "ValidationResult":
         """Validate a document, returning every problem rather than the first.
@@ -187,6 +232,27 @@ class ValidationResult:
         if caveat:
             lines.append(f"note: {caveat}")
         return "\n".join(lines)
+
+
+def explain(error: Any, *, root: str = "$") -> str:
+    """One ``jsonschema`` error as a line a caller can act on: where, what, and the fix.
+
+    For an unknown key the fix is the list of keys that *are* allowed there --
+    the one thing a model that invented a key needs to correct itself.
+    """
+    path = root + "".join(
+        f"[{p}]" if isinstance(p, int) else f".{p}" for p in error.absolute_path
+    )
+    line = f"at {path}: {error.message}"
+    properties = error.schema.get("properties") if isinstance(error.schema, dict) else None
+    if error.validator == "additionalProperties" and properties:
+        line += f". Allowed here: {', '.join(sorted(properties))}"
+    return line
+
+
+@lru_cache(maxsize=1)
+def _vendored() -> SchemaSource:
+    return SchemaSource.published(VENDORED_PATH)
 
 
 def iter_problems(results: Iterable[ValidationResult]) -> list[SchemaProblem]:

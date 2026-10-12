@@ -38,11 +38,6 @@ from rubricator.store import RETENTION_DAYS, AnalysisStore, BytesStore, file_sto
 
 __all__ = ["Runtime", "build_runtime"]
 
-#: The vendored published contract, relative to the schema package. Named here
-#: so the composition root reads as one place where a version is chosen.
-_PUBLISHED = "comparanda/comparanda.v1.json"
-
-
 @dataclass(frozen=True)
 class Runtime:
     """Everything the verbs need, wired once."""
@@ -118,13 +113,10 @@ def _published_schema() -> SchemaSource:
     that has quietly been validating against a stand-in can be found out by
     asking rather than by noticing a bug months later.
     """
-    from pathlib import Path
+    from rubricator.schema.source import VENDORED_PATH
 
-    import rubricator.schema as schema_pkg
-
-    path = Path(schema_pkg.__file__).parent / _PUBLISHED
-    if path.exists():
-        return SchemaSource.published(path)
+    if VENDORED_PATH.exists():
+        return SchemaSource.vendored()
     return SchemaSource.sketch()
 
 
