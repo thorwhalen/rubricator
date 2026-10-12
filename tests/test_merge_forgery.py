@@ -44,6 +44,8 @@ FORGERIES = {
     "an assertion with no author": ("zed", _contribution([], None)),
     "a persona that takes another contributor's id": (
         "aaa", _contribution([_human("ben", "Evil", principalId="aaa")], "ben")),
+    "a persona whose id does not carry its principal": (
+        "zed", _contribution([_human("zed-cfo", "CFO", principalId="zed")], "zed-cfo")),
     "its own record naming another principal": (
         "zed", _contribution([_human("zed", "Zed", principalId="ben")], "zed")),
     "one author id declared twice, differently": (
@@ -80,25 +82,39 @@ def test_a_frame_author_may_be_signed_only_by_its_principal() -> None:
         merge_contributions(frame, [("zed", _contribution([], "cfo"))])
 
 
+def test_a_file_named_after_a_frame_persona_cannot_sign_as_it() -> None:
+    """Review finding F1: ``cfo.json`` signing ``cfo`` displayed as Ana's persona."""
+    frame = {**FRAME, "authors": [_human("cfo", "The CFO (Ana)", principalId="ana")]}
+    with pytest.raises(MergeProblem, match="may not speak for"):
+        merge_contributions(frame, [("cfo", _contribution([], "cfo"))])
+
+
 def test_honest_contributions_still_merge() -> None:
     """Own id without a record, own record, and a persona of one's own all sign."""
     ana = _contribution(
-        [_human("ana", "Ana"), _human("ana-cfo", "the CFO", principalId="ana")],
-        "ana", "ana-cfo",
+        [_human("ana", "Ana"), _human("ana:cfo", "the CFO", principalId="ana")],
+        "ana", "ana:cfo",
     )
     merged = merge_contributions(
         FRAME, [("ana", ana), ("ben", BEN), ("cy", _contribution([], "cy"))]
     )
     signers = [a["authorId"] for a in merged["cells"][0]["assertions"]]
-    assert signers == ["ana", "ana-cfo", "ben", "cy"]
+    assert signers == ["ana", "ana:cfo", "ben", "cy"]
+
+
+# A clash needs a contributor id with ":" in it, which only a hand-made file name
+# can give (the store refuses one on write): "ana:x" may name personas "ana:x:...",
+# and so may "ana". The prefix rule makes a clash rare, not impossible.
+CLASH = [
+    ("ana", _contribution([_human("ana:x:p", "the CFO", principalId="ana")], "ana:x:p")),
+    ("ana:x", _contribution([_human("ana:x:p", "Evil", principalId="ana:x")], "ana:x:p")),
+]
 
 
 def test_two_files_declaring_one_persona_id_are_both_named() -> None:
-    ana = _contribution([_human("p", "the CFO", principalId="ana")], "p")
-    aaa = _contribution([_human("p", "Evil", principalId="aaa")], "p")
-    with pytest.raises(MergeProblem, match='contribution "aaa"'):
-        merge_contributions(FRAME, [("aaa", aaa), ("ana", ana)])
-    assert sorted(author_collisions([("aaa", aaa), ("ana", ana), ("ben", BEN)])) == ["aaa", "ana"]
+    with pytest.raises(MergeProblem, match='contribution "ana"'):
+        merge_contributions(FRAME, CLASH)
+    assert sorted(author_collisions([*CLASH, ("ben", BEN)])) == ["ana", "ana:x"]
 
 
 # -- through the store --------------------------------------------------------
@@ -130,15 +146,12 @@ def test_read_refuses_and_read_skipping_names_the_forger(store, forger, forged) 
 
 
 def test_read_skipping_leaves_out_both_sides_of_a_persona_clash(store) -> None:
-    keys = [
-        _place(store, "aaa", _contribution([_human("p", "Evil", principalId="aaa")], "p")),
-        _place(store, "ana", _contribution([_human("p", "the CFO", principalId="ana")], "p")),
-    ]
+    keys = [_place(store, c, d) for c, d in CLASH]
     with pytest.raises(MergeProblem):
         store.read("a1")
     document, skipped = store.read_skipping("a1")
     assert [s["file"] for s in skipped] == keys
-    assert all('author "p"' in s["because"] for s in skipped)
+    assert all('author "ana:x:p"' in s["because"] for s in skipped)
     assert [a["authorId"] for c in document["cells"] for a in c["assertions"]] == ["ben"]
 
 

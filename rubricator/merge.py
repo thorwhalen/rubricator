@@ -28,8 +28,10 @@ The two places where it is more than that:
   honesty rules are downstream of and cannot catch. Three checks hold that line:
 
   1. a contribution introduces only authors it is behind -- its own id, or a
-     persona whose ``principalId`` is its own id -- and a persona never takes
-     another contributor's id;
+     persona whose ``principalId`` is its own id and whose id is prefixed with
+     it (``ana:the-sceptical-cfo``, as :func:`rubricator.contributors.persona`
+     builds it) -- so a persona never takes, and is never taken by, another
+     contributor's id;
   2. an author id names one record: a contribution may not redeclare a frame
      author, or another contribution's author, differently;
   3. every assertion's ``authorId`` is one the file may speak for: its own id,
@@ -132,9 +134,13 @@ def merge_contributions(
             else:
                 authors[author_id] = author
                 declared_by[author_id] = f'contribution "{contributor_id}"'
-        speaks_for = {contributor_id, *own} | {
+        speaks_for = {*own} | {
             a for a, record in frame_authors.items() if record.get("principalId") == contributor_id
         }
+        # Its own id, unless the frame gives that id to somebody else: a file
+        # named after a frame persona would otherwise sign as that persona.
+        if frame_authors.get(contributor_id, {}).get("principalId") in (None, contributor_id):
+            speaks_for.add(contributor_id)
 
         for cell in contribution.get("cells", []):
             key = (cell["alternativeId"], cell["criterionId"], cell["measure"])
@@ -200,9 +206,12 @@ def _check_author(
     downstream of and cannot catch, because the resulting document is perfectly
     well formed.
 
-    Their own record names no other principal, and a persona never takes the id
-    of another contributor in ``roster``: either would put a colleague behind
-    claims they did not make (#158).
+    Their own record names no other principal, and a persona's id is
+    ``<contributor>:<anything>``: either rule broken would put a colleague behind
+    claims they did not make (#158). The prefix is what keeps the two namespaces
+    apart -- a contributor id cannot contain ``:``, so no newcomer's file can be
+    named after a persona, and no persona can be named after a contributor.
+    ``roster`` is a second line for a hand-made file name that does contain one.
     """
     author_id = author.get("id")
     _check_identity(contributor_id, "an author id", [author_id])
@@ -222,7 +231,14 @@ def _check_author(
             "assertions would then display under this record. Give the persona an id of its own."
         )
     if principal == contributor_id:
-        return
+        if isinstance(author_id, str) and author_id.startswith(f"{contributor_id}:"):
+            return
+        raise MergeProblem(
+            f'contribution "{contributor_id}" introduces persona "{author_id}", whose id does not '
+            f'start with "{contributor_id}:". A persona id carries its principal, so that no '
+            "contributor can later join under it and no persona can take a contributor's name. "
+            f'Rename it "{contributor_id}:{author_id}", as contributors.persona() would.'
+        )
     raise MergeProblem(
         f'contribution "{contributor_id}" introduces author "{author_id}", who is neither that '
         f'contributor nor a persona of them (principalId is {principal!r}). A contributor may '
@@ -251,8 +267,9 @@ def _check_speaks_for(
 ) -> None:
     """An assertion's ``authorId`` is one its file may speak for (#158).
 
-    Its contributor's own id, an author the file introduced (each already checked
-    to be behind it), or a frame author whose principal is the contributor.
+    Its contributor's own id (unless the frame gives that id to another
+    principal), an author the file introduced (each already checked to be behind
+    it), or a frame author whose principal is the contributor.
     Anything else -- a colleague named without a record, a frame author behind
     someone else, no author at all -- attributes the claim to someone who did not
     make it.
@@ -274,7 +291,9 @@ def author_collisions(
     """Contributions that declare an author id another contribution also declares.
 
     Each such file is a valid merge on its own; together they make one author id
-    name two records. Once each file has passed the merge's author check, two
+    name two records. The persona prefix rule leaves this only to contributor
+    ids containing ``:``, which only a hand-made file name can give, so it is a
+    backstop. Once each file has passed the merge's author check, two
     contributors never declare one id identically (each record names its own
     contributor), so any shared id is a clash. Which side is genuine cannot be
     read from the files, and keeping the first in contributor order would hand
