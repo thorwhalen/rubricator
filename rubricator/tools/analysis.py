@@ -242,16 +242,19 @@ def criteria_set(
     if problems:
         raise ValueError("; ".join(problems))
 
+    if isinstance(editorial, str):
+        raise TypeError("editorial is a list of criterion ids, not one string.")
     revised = _revise_versions(store, analysis_id, frame, out, editorial=editorial)
-
-    frame["criteria"] = out
-    frame["scales"] = [declared[k] for k in sorted(declared)]
-    store.put_frame(analysis_id, frame)
 
     from rubricator.criteria_versions import superseded_cells
     from rubricator.merge import merge_contributions
 
+    frame["criteria"] = out
+    frame["scales"] = [declared[k] for k in sorted(declared)]
+    # Merged before the write, so anything that can raise does so with nothing
+    # stored: a retry then sees the same before-state and the same revision.
     merged = merge_contributions(frame, store.contributions(analysis_id))
+    store.put_frame(analysis_id, frame)
     return {
         "analysisId": analysis_id,
         "criteria": [c["id"] for c in out],
@@ -272,8 +275,13 @@ def measures_write(
     author: Mapping[str, Any],
     at: str,
     cells: Sequence[Mapping[str, Any]],
+    expected_criteria_version: str | None = None,
 ) -> dict[str, Any]:
     """Write one contributor's scored cells.
+
+    ``expected_criteria_version``, when given, is the criteria-set version the
+    caller read before scoring; a mismatch is refused, because the stamp would
+    otherwise claim a version the scorer never saw.
 
     Writes **only that contributor's file**. Two people scoring the same matrix
     never touch the same key, which is what makes a shared git repository a
@@ -282,7 +290,21 @@ def measures_write(
     """
     from rubricator.criteria_versions import effective_version
 
-    criteria_version = effective_version(store.frame(analysis_id).get("criteriaVersion"))
+    frame = store.frame(analysis_id)
+    criteria_version = effective_version(frame.get("criteriaVersion"))
+    if expected_criteria_version is not None and expected_criteria_version != criteria_version:
+        raise ValueError(
+            f"refused, nothing was written: these scores were made against criteria version "
+            f'"{expected_criteria_version}", and the set is now at "{criteria_version}". Re-read '
+            "the criteria and re-score, so no score is stamped with a version it never saw."
+        )
+    known = {c["id"] for c in frame.get("criteria", [])}
+    unknown = sorted({c["criterionId"] for c in cells} - known)
+    if unknown:
+        raise KeyError(
+            f"refused, nothing was written: criteria {', '.join(unknown)} are not in this "
+            "analysis. Declare them with criteria_set first."
+        )
     contribution = _existing(store, analysis_id, contributor_id, author)
     index = {
         (c["alternativeId"], c["criterionId"], c["measure"]): c
@@ -533,6 +555,11 @@ def _revise_versions(
             c["definedInVersion"] = version
         elif before.get(c["id"], {}).get("definedInVersion") is not None:
             c["definedInVersion"] = before[c["id"]]["definedInVersion"]
+        elif c["id"] not in before and before:
+            # Introduced (or re-introduced) into an existing set: any score on
+            # this id from before now -- a peer's file not yet pulled, a
+            # dropped-then-re-added column -- answered some other question.
+            c["definedInVersion"] = version
     return {
         cid: {"fields": fields, "material": cid not in editorial}
         for cid, fields in sorted(changed.items())

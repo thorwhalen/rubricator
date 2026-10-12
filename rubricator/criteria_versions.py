@@ -45,8 +45,10 @@ MEANING_FIELDS: tuple[str, ...] = (
     "label", "definition", "measurements", "defaultMeasurement", "acceptability", "missingCodes",
 )
 
-_DOTTED = re.compile(r"^[vV]?\d+(\.\d+)*$")
-_BUMPABLE = re.compile(r"^([vV]?)((?:\d+\.)*)(\d+)$")
+# ASCII digits and a full match: `$` alone admits a trailing newline and `\d`
+# admits non-ASCII digits, both of which the companion's parser refuses.
+_DOTTED = re.compile(r"[vV]?\d+(\.\d+)*", re.ASCII)
+_BUMPABLE = re.compile(r"([vV]?)((?:\d+\.)*)(\d+)", re.ASCII)
 
 
 def compare_versions(a: str, b: str) -> int | None:
@@ -57,7 +59,7 @@ def compare_versions(a: str, b: str) -> int | None:
     """
 
     def parse(v: str) -> list[str] | None:
-        if not _DOTTED.match(v):
+        if not _DOTTED.fullmatch(v):
             return None
         return [seg.lstrip("0") or "0" for seg in v.lstrip("vV").split(".")]
 
@@ -83,7 +85,7 @@ def next_version(current: str | None) -> str:
     """The version after ``current``. Raises on a version that is not dotted integers."""
     if current is None:
         return "2"
-    m = _BUMPABLE.match(current)
+    m = _BUMPABLE.fullmatch(current)
     if not m:
         raise ValueError(
             f'cannot increment the criteria-set version "{current}": it is not a dotted-integer '
@@ -99,13 +101,15 @@ def _canonical(value: Any) -> str:
 def meaning_changed(before: Mapping[str, Any], after: Mapping[str, Any]) -> list[str]:
     """The meaning fields that differ between two versions of one criterion.
 
-    A field absent on one side and empty on the other (``[]``, ``{}``) is not a
-    change: the companion parses both to the same default.
+    Only the fields the companion parses with a default (``missingCodes`` to
+    ``[]``, ``measurements`` to ``{}``) treat absent and empty as equal. For the
+    rest, adding an empty ``definition`` is a change, as it is there.
     """
+    defaults = {"missingCodes": [], "measurements": {}}
 
     def norm(c: Mapping[str, Any], f: str) -> str:
         v = c.get(f)
-        return _canonical(None if v in ([], {}) else v)
+        return _canonical(defaults.get(f) if v is None and f in defaults else v)
 
     return [f for f in MEANING_FIELDS if norm(before, f) != norm(after, f)]
 

@@ -121,3 +121,58 @@ def test_versions_order_like_the_companions() -> None:
     assert next_version("99999999999999999999") == "100000000000000000000"
     with pytest.raises(ValueError):
         next_version("draft")
+
+
+def test_adding_an_empty_definition_is_a_meaning_change(rt) -> None:
+    """Review finding 1: only missingCodes/measurements default to empty."""
+    _criteria(rt)
+    result = criteria_set(rt.store, analysis_id="a", criteria=[
+        {"id": "c", "label": "Support", "anchors": ANCHORS, "definition": {}}])
+    assert result["criteriaVersion"] == "2" and result["revised"]["c"]["fields"] == ["definition"]
+
+
+def test_nothing_is_written_when_the_merge_raises(rt) -> None:
+    """Review finding 2: merge before put_frame."""
+    _criteria(rt)
+    before = rt.store.frame("a")
+    rt.store.put_contribution("a", "ana", {"contributorId": "ana", "cells": [],
+                                           "authors": [{"id": "ben", "displayName": "B",
+                                                        "kind": "human"}]})
+    with pytest.raises(Exception):
+        _criteria(rt, label="changed")
+    assert rt.store.frame("a") == before
+
+
+def test_a_reintroduced_criterion_supersedes_stray_scores(rt) -> None:
+    """Review finding 3: drop unscored d, a stray score on d, re-add d."""
+    other = {"id": "d", "label": "D", "anchors": ANCHORS}
+    _criteria(rt, extra=[other])
+    _criteria(rt, label="v2")
+    rt.store.put_contribution("a", "peer", {"contributorId": "peer", "authors": [], "cells": [
+        {"alternativeId": "x", "criterionId": "d", "measure": "score", "assertions": [
+            {"id": "s1", "authorId": "peer", "at": AT, "value": 3, "criteriaVersion": "1"}]}]})
+    result = _criteria(rt, label="v3", extra=[{**other, "label": "D, new meaning"}])
+    assert {c["criterionId"] for c in result["supersededCells"]["cells"]} == {"d"}
+
+
+def test_scores_on_an_undeclared_criterion_are_refused(rt) -> None:
+    _criteria(rt)
+    with pytest.raises(KeyError, match="not in this analysis"):
+        _score(rt, crit="ghost")
+
+
+def test_a_stale_expected_version_is_refused(rt) -> None:
+    _criteria(rt)
+    _criteria(rt, label="v2")
+    with pytest.raises(ValueError, match='criteria version "1"'):
+        measures_write(rt.store, analysis_id="a", contributor_id="ana", author=ANA, at=AT,
+                       expected_criteria_version="1",
+                       cells=[{"alternativeId": "x", "criterionId": "c", "value": 4,
+                               "justification": "b"}])
+
+
+def test_the_version_parser_is_ascii_and_whole() -> None:
+    assert compare_versions("1\n", "2") is None
+    assert compare_versions("１", "2") is None
+    with pytest.raises(ValueError):
+        next_version("1\n")
