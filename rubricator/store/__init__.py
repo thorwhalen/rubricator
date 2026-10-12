@@ -291,6 +291,10 @@ def _why_unmergeable(error: Exception) -> str:
 
     if isinstance(error, (MergeProblem, OffContract)):
         return str(error)
+    if isinstance(error, RecursionError):
+        # Where this is raised -- the parser, or a walk after it -- depends on
+        # the Python version, so the reason does not name it.
+        return "nests too deeply to read or write back out; repair or remove the file"
     if isinstance(error, ValueError):
         return f"not readable as JSON ({error}); repair or remove the file"
     return (

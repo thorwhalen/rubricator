@@ -51,7 +51,7 @@ def test_nesting_past_the_limit_is_left_out(runtime, depth) -> None:
     runtime.store.blobs[STRAY] = b"[" * depth + b"]" * depth
     document, skipped = runtime.store.read_skipping("a1")
     assert [s["file"] for s in skipped] == [STRAY]
-    assert "levels deep" in skipped[0]["because"]
+    assert "deep" in skipped[0]["because"]  # counted, or past the parser's own limit
     json.dumps(document, indent=2)
 
 
