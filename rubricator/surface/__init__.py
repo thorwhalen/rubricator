@@ -67,6 +67,7 @@ TOOL_REFS: tuple[str, ...] = (
     "rubricator.tools.analysis:frame_set",
     "rubricator.tools.analysis:alternatives_set",
     "rubricator.tools.analysis:criteria_set",
+    "rubricator.tools.confirm:frame_confirm",
     "rubricator.tools.analysis:measures_write",
     "rubricator.tools.analysis:measures_mark_missing",
     "rubricator.tools.analysis:report_completeness",
@@ -84,14 +85,16 @@ TOOL_REFS: tuple[str, ...] = (
 #: without running anything. A verb that grows an ``at`` argument and is not
 #: added here will be called without one and fail loudly, which is the right
 #: direction: the alternative is a surface silently passing ``None``.
-NEEDS_CLOCK: frozenset[str] = frozenset({"measures_write", "measures_mark_missing"})
+NEEDS_CLOCK: frozenset[str] = frozenset({
+    "analysis_open", "frame_confirm", "measures_write", "measures_mark_missing",
+})
 
 #: Verbs that mint an ``analysis_id`` when the caller gives none (ADR-0017).
 NEEDS_ID: frozenset[str] = frozenset({"analysis_open"})
 
 #: Verbs that take the store as their first argument.
 _NEEDS_STORE: frozenset[str] = frozenset({
-    "analysis_open", "analysis_get", "frame_set", "alternatives_set", "criteria_set",
+    "analysis_open", "analysis_get", "frame_set", "alternatives_set", "frame_confirm", "criteria_set",
     "measures_write", "measures_mark_missing", "report_completeness", "aggregate_assertions",
 })
 

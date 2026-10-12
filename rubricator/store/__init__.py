@@ -16,6 +16,7 @@ port would be a method on something that is already a Mapping.
     analyses/{analysis_id}/frame.json
     analyses/{analysis_id}/contributions/{contributor_id}.json
     analyses/{analysis_id}/renditions/{rendition_id}.json
+    analyses/{analysis_id}/confirmations/{sequence}-{digest}.json
 
 **One file per contributor.** That is not a filing convention; it is what makes
 a shared git repository a viable backend without a locking protocol. Two people
@@ -28,6 +29,17 @@ The frame -- subject, alternatives, criteria, declared vocabularies -- is shared
 and is written by whoever is framing. It is the one file two people can collide
 on, which is correct: changing the criteria mid-analysis is a thing that *should*
 be coordinated rather than merged silently (ADR-0016).
+
+The step-4 confirmation records (ADR-0005) sit beside the document rather than
+in it, because comparanda v1 has no slot for them (#152), and they are **one
+file per record**, never appended to a shared file: two people answering the
+gate on two branches leave two files, and a revise can never be lost to a
+conflict resolution. A record's name is its sequence on the branch that wrote
+it plus a digest of its content, so order is write order -- never a
+caller-supplied moment, which a model could set in the future to outrank a
+later human ``revise`` -- and two branches that wrote the same sequence keep
+both. The store does not judge between them; the gate resolves such a tie
+toward caution (:func:`rubricator.tools.confirm.ordered`).
 
 ## Where it lives
 
@@ -77,6 +89,7 @@ point: an uncached merge nobody wrote down becomes a mysterious slowness later.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -261,6 +274,12 @@ class AnalysisNotFound(KeyError):
         )
 
 
+def _sequence_of(key: str) -> int:
+    """The write sequence a confirmation record's name starts with; 0 when it has none."""
+    head = key.rsplit("/", 1)[-1].split("-", 1)[0]
+    return int(head) if head.isdigit() else 0
+
+
 def _not_found(analysis_id: str, retention_days: int) -> AnalysisNotFound:
     return AnalysisNotFound(analysis_id, retention_days=retention_days)
 
@@ -347,6 +366,10 @@ class AnalysisStore:
     @staticmethod
     def rendition_key(analysis_id: str, rendition_id: str) -> str:
         return f"analyses/{analysis_id}/renditions/{rendition_id}.json"
+
+    @staticmethod
+    def confirmation_key(analysis_id: str, name: str) -> str:
+        return f"analyses/{analysis_id}/confirmations/{name}.json"
 
     @staticmethod
     def stamp_prefix(key: str) -> str:
@@ -515,6 +538,53 @@ class AnalysisStore:
         check_id(rendition["id"])
         self._require(analysis_id)
         self._write(self.rendition_key(analysis_id, rendition["id"]), rendition)
+
+    def _confirmation_keys(self, analysis_id: str) -> list[str]:
+        prefix = f"analyses/{analysis_id}/confirmations/"
+        return sorted(k for k in self.blobs if k.startswith(prefix) and k.endswith(".json"))
+
+    def confirmations(self, analysis_id: str) -> list[dict[str, Any]]:
+        """The step-4 records (ADR-0005), in write order; empty when none was given.
+
+        A record file that cannot be read comes back as
+        ``{"decision": "unreadable", "key": ...}`` rather than raising or being
+        skipped: skipping one could drop a ``revise`` and reopen the gate, and
+        raising would lock the analysis on one bad file. The gate reads an
+        unreadable record as closing everything until it is repaired.
+        """
+        self._require(analysis_id)
+        records: list[dict[str, Any]] = []
+        for key in self._confirmation_keys(analysis_id):
+            try:
+                record = self._read(key)
+            except (KeyError, UnicodeDecodeError, ValueError):
+                record = None
+            if not isinstance(record, dict):
+                record = {"decision": "unreadable", "key": key}
+            # The sequence travels with the record, so a reader can see two
+            # branches' writes that share one (the store does not judge them).
+            records.append({**record, "_sequence": _sequence_of(key)})
+        return records
+
+    def add_confirmation(self, analysis_id: str, record: dict[str, Any]) -> None:
+        """Write one record as its own file: never a shared file two branches append to."""
+        check_id(analysis_id)
+        self._require(analysis_id)
+        payload = json.dumps(record, sort_keys=True, ensure_ascii=False).encode(_ENCODING)
+        # One past the highest, never a count: a count repeats once any record
+        # is removed, and a repeated sequence lets a later write sort earlier.
+        sequence = max(
+            (_sequence_of(k) for k in self._confirmation_keys(analysis_id)), default=0
+        ) + 1
+        name = f"{sequence:06d}-{hashlib.sha256(payload).hexdigest()[:12]}"
+        self._write(self.confirmation_key(analysis_id, name), record)
+
+    def clear_confirmations(self, analysis_id: str) -> None:
+        """Remove every record: a new analysis inherits no gate from a leftover file."""
+        for key in self._confirmation_keys(analysis_id):
+            del self.blobs[key]
+            for stamp in [k for k in self.blobs if k.startswith(self.stamp_prefix(key))]:
+                del self.blobs[stamp]
 
     def exists(self, analysis_id: str) -> bool:
         """Whether a live analysis is here. An expired one is deleted and is not."""

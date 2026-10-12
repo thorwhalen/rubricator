@@ -47,7 +47,8 @@ SCORES = {
 def runtime():
     rt = build_runtime(blobs={})
     s = rt.store
-    analysis_open(s, analysis_id="a", question="Which kettle?")
+    analysis_open(s, analysis_id="a", question="Which kettle?",
+        allow_skip_confirmation=True, at="2026-08-22T12:00:00Z")
     alternatives_set(s, analysis_id="a", alternatives=[
         {"id": a, "label": a.title()} for a in ("alpha", "beta", "gamma", "delta")
     ])

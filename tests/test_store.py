@@ -47,6 +47,7 @@ from rubricator.tools.analysis import (
     measures_write,
     report_completeness,
 )
+from rubricator.tools.confirm import frame_confirm
 
 PACKAGE_DIR = Path(rubricator.__file__).resolve().parent
 TOOLS_DIR = PACKAGE_DIR / "tools"
@@ -113,6 +114,13 @@ ANA = human("ana", "Ana Ruiz")
 AT = "2026-08-22T12:00:00Z"
 
 
+def _confirm(store: AnalysisStore) -> None:
+    """Stage 4, out of band: ask, then record the user's answer (ADR-0005)."""
+    frame_confirm(store, analysis_id="a1", at=AT)
+    frame_confirm(store, analysis_id="a1", at=AT, decision="confirm", confirmed_by="ana",
+                  confirmation_text="Yes, those criteria are right.")
+
+
 def _stages() -> list[tuple[str, Callable[[AnalysisStore], Any]]]:
     """The deterministic chain, one step per ADR-0005 stage the tools reach."""
     return [
@@ -126,6 +134,7 @@ def _stages() -> list[tuple[str, Callable[[AnalysisStore], Any]]]:
             "id": "support", "label": "Vendor support",
             "anchors": {"1": "no commitment", "3": "undated commitment", "5": "dated commitment"},
         }])),
+        ("confirm", _confirm),
         ("score", lambda s: measures_write(
             s, analysis_id="a1", contributor_id="ana", author=ANA, at=AT,
             cells=[{
@@ -272,6 +281,7 @@ def test_a_contribution_dates_the_analysis_without_sharing_a_key(clock) -> None:
         "id": "support", "label": "Vendor support",
         "anchors": {"1": "none", "3": "undated", "5": "dated"},
     }])
+    _confirm(store)
     keys_before = set(blobs)
     clock.advance(days=25)
     for who, row in (("ana", "alpha"), ("ben", "beta")):

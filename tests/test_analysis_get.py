@@ -48,6 +48,14 @@ def _matrix(verbs) -> None:
          "definition": {"objective": "fast tea", "missingRules": [{"when": "no spec", "code": "not-evidenced"}]}},
         {"id": "cost", "label": "Cost", "preference": "decreasing", "anchors": ANCHORS},
     ])
+    _confirm(verbs)
+
+
+def _confirm(verbs, analysis_id="a1") -> None:
+    """ADR-0005 step 4, out of band: ask, then record the user's answer."""
+    verbs["frame_confirm"](analysis_id=analysis_id)
+    verbs["frame_confirm"](analysis_id=analysis_id, decision="confirm", confirmed_by="ana",
+                           confirmation_text="Yes, go ahead.")
 
 
 def _write(verbs, contributor="ana", **cell):
@@ -109,6 +117,8 @@ def test_the_stage_follows_the_work(verbs) -> None:
     verbs["alternatives_set"](analysis_id="a1", alternatives=[{"id": "k1", "label": "K1"}])
     assert stage() == 3
     verbs["criteria_set"](analysis_id="a1", criteria=[{"id": "speed", "label": "S", "anchors": ANCHORS}])
+    assert stage() == 4
+    _confirm(verbs)
     assert stage() == 5
     _write(verbs, alternativeId="k1", criterionId="speed", value=3, justification="ok")
     assert stage() == 6

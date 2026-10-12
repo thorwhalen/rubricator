@@ -58,7 +58,8 @@ def in_memory():
 def _run(runtime) -> dict[str, Any]:
     """The chain, exactly as the CLI runs it."""
     store, at = runtime.store, runtime.now()
-    analysis_open(store, analysis_id="demo", question="Which runtime should we adopt?")
+    analysis_open(store, analysis_id="demo", question="Which runtime should we adopt?",
+        allow_skip_confirmation=True, at="2026-08-22T12:00:00Z")
     frame_set(
         store, analysis_id="demo",
         ambiguities=['"adopt" -- for the new service only, or everywhere?'],
@@ -186,7 +187,8 @@ def test_the_cli_runs_and_says_something(capsys) -> None:
 
 def test_an_unknown_scale_raises_at_authoring_and_names_the_alternatives(runtime) -> None:
     """Authoring raises where reading degrades. The asymmetry, at the seam."""
-    analysis_open(runtime.store, analysis_id="x", question="q")
+    analysis_open(runtime.store, analysis_id="x", question="q",
+        allow_skip_confirmation=True, at="2026-08-22T12:00:00Z")
     with pytest.raises(KeyError, match="ordinal-1-5-anchored"):
         criteria_set(
             runtime.store, analysis_id="x",
@@ -206,7 +208,8 @@ def test_an_undeclared_missingness_code_raises_and_says_how_to_declare_it(runtim
 
 def test_a_criterion_missing_a_required_anchor_is_refused(runtime) -> None:
     """An unanchored level is scored against taste rather than against a document."""
-    analysis_open(runtime.store, analysis_id="y", question="q")
+    analysis_open(runtime.store, analysis_id="y", question="q",
+        allow_skip_confirmation=True, at="2026-08-22T12:00:00Z")
     with pytest.raises(ValueError, match="missing an anchor at 5"):
         criteria_set(
             runtime.store, analysis_id="y",

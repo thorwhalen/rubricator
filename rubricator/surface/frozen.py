@@ -108,6 +108,7 @@ def at_least_one(items: Mapping[str, Any]) -> dict[str, Any]:
 
 
 SCALAR = {"anyOf": [N, S, B]}
+DATE_TIME: dict[str, Any] = {"type": "string", "format": "date-time"}
 MISSING_BROADER = enum(
     "not-applicable", "not-assessed", "deferred", "not-evidenced", "indeterminate", "withheld"
 )
@@ -255,14 +256,16 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
             "by id. A new analysis is a valid, empty comparanda document: no alternatives, no "
             "criteria. Reopening never overwrites: an existing id returns created=false and "
             "what is there, so a retry cannot reset a matrix. Omit analysis_id to have one "
-            "minted. " + _RETENTION
+            "minted. Set allow_skip_confirmation only when the user explicitly said to skip "
+            "the step-4 confirmation; it can be set only at creation. " + _RETENTION
         ),
         determinism="A store read and, for a new id, one write of a fixed empty frame.",
         failure=(
             "An unknown or expired id with no question is refused, naming the retention "
             "window; with a question it starts afresh under that id. Nothing is deleted."
         ),
-        input_schema=obj({"analysis_id": S, "question": S}),
+        input_schema=obj({"analysis_id": S, "question": S, "allow_skip_confirmation": B,
+                          "at": DATE_TIME}),
         output_schema=obj(
             {"analysisId": S, "created": B, "question": S, "alternatives": I, "criteria": I,
              "stage": I, "summary": S},
@@ -434,21 +437,27 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
         ),
     ),
     ToolSpec(
-        name="frame_confirm", family="frame", stage="4", status="planned",
-        minimum_viable=True, cut_rank=None, research_row=8, issue=57,
+        name="frame_confirm", family="frame", stage="4", status="implemented",
+        minimum_viable=True, cut_rank=None, research_row=8,
         contract=(
-            "The ADR-0005 step-4 gate. Where the client supports elicitation, asks the user "
-            "to confirm the frame and criteria with a flat form (decision, notes, criteria to "
-            "drop); where it does not, returns mechanism=out-of-band with instructions to ask "
-            "in chat and call again with the user's decision. The tool never confirms on its "
-            "own behalf. A confirmation is stored as authored, timestamped provenance."
+            "The ADR-0005 step-4 gate: nothing is scored until the user confirms the frame and "
+            "criteria. Call with no decision: an earlier confirmation is returned "
+            "(mechanism=recorded) so a resumed session does not re-ask; otherwise you get "
+            "instructions to ask the user in chat. Then call again with their decision, "
+            "confirmed_by and their reply verbatim as confirmation_text. A confirm is recorded "
+            "only in answer to a question asked since the last decision; if the criteria moved "
+            "after a confirmation you get instructions to ask again. The tool never confirms "
+            "on its own behalf; the record is authored and timestamped."
         ),
-        determinism="It records a decision; it does not make one.",
+        determinism=(
+            "It records a decision; it does not make one. A call with no decision writes one "
+            "record noting that the question was asked."
+        ),
         failure="A call that carries no human decision and cannot elicit one returns confirmed=false with instructions, never an error.",
         input_schema=obj(
             {"analysis_id": S, "scope": enum("all", "frame", "alternatives", "criteria"),
              "decision": enum("confirm", "revise", "reject"), "confirmed_by": S,
-             "confirmation_text": S},
+             "confirmation_text": S, "at": DATE_TIME},
             ("analysis_id",),
         ),
         output_schema=obj(
@@ -456,7 +465,8 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
                 "analysisId": S, "confirmed": B,
                 "mechanism": enum("elicitation", "out-of-band", "recorded"),
                 "record": opt(obj(
-                    {"authorId": S, "at": S, "text": S, "criteriaVersion": S, "decision": S},
+                    {"authorId": S, "at": S, "text": S, "criteriaVersion": S, "decision": S,
+                     "scope": S, "mechanism": S},
                     ("authorId", "at", "decision"))),
                 "instructions": opt(S), "summary": S,
             },
@@ -505,13 +515,14 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
         ),
         determinism="Schema validation and the honesty rules over the merged document; the moment is supplied, never read from a clock.",
         failure=(
-            "Refused with nothing written: a cell on an unknown criterion, a reused assertion "
-            "id, a criteria-version mismatch, or an honesty violation such as a second claim on "
-            "a cell with no independence recorded."
+            "Refused with nothing written: an analysis the user has not confirmed "
+            "(frame_confirm), a cell on an unknown criterion, a reused assertion id, a "
+            "criteria-version mismatch, or an honesty violation such as a second claim on a "
+            "cell with no independence recorded."
         ),
         input_schema=obj(
             {"analysis_id": S, "contributor_id": S, "author": AUTHOR,
-             "at": {"type": "string", "format": "date-time"}, "cells": arr(CELL),
+             "at": DATE_TIME, "cells": arr(CELL),
              "expected_criteria_version": S},
             ("analysis_id", "contributor_id", "author", "cells"),
         ),
@@ -531,7 +542,7 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
         failure="An undeclared code is refused, listing what is known and how to declare a new one.",
         input_schema=obj(
             {"analysis_id": S, "contributor_id": S, "author": AUTHOR,
-             "at": {"type": "string", "format": "date-time"}, "code": S, "note": S,
+             "at": DATE_TIME, "code": S, "note": S,
              "criterion_ids": at_least_one(S), "alternative_ids": at_least_one(S),
              "independence": INDEPENDENCE},
             ("analysis_id", "contributor_id", "author", "code", "note"),
@@ -950,11 +961,11 @@ MEASURED: Mapping[str, Any] = {
     "measuredAt": "2026-10-12",
     "model": "claude-sonnet-5-5",
     "advertised": {
-        "tools": 13, "tokens": 7325, "bytes": 17308,
-        "sha256": "6a723227816afff55957c679775bde637465ddb8059d414274407c251f5d4423",
+        "tools": 14, "tokens": 7917, "bytes": 18897,
+        "sha256": "ca76e767cdb31c6f97e621701ff9afb5248f19a79d3d75ce4d7f8516286d4d41",
     },
     "wholeSurface": {
-        "tools": 22, "tokens": 10582, "bytes": 25601,
-        "sha256": "ab6d0e7cf0bcf9e7783d452c545f2c55c796a0ec3e561837689d1211f74433de",
+        "tools": 22, "tokens": 10792, "bytes": 26207,
+        "sha256": "4f0f6e6e5422fea75a253bedd2050f09e89a23820750bebcdeef7ffc204c4b48",
     },
 }

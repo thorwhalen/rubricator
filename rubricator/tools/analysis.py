@@ -112,7 +112,12 @@ def refuse_an_empty_open(store: AnalysisStore, arguments: Mapping[str, Any]) -> 
 
 
 def analysis_open(
-    store: AnalysisStore, *, analysis_id: str, question: str | None = None
+    store: AnalysisStore,
+    *,
+    analysis_id: str,
+    question: str | None = None,
+    allow_skip_confirmation: bool = False,
+    at: str | None = None,
 ) -> dict[str, Any]:
     """Start an analysis, or reopen one. Writes the frame and nothing else.
 
@@ -129,18 +134,38 @@ def analysis_open(
     no question is refused naming the retention window, because the caller
     almost certainly expected it to be there.
 
+    ``allow_skip_confirmation`` is ADR-0005's "skippable by explicit
+    instruction, never by default": set when the analysis is created, it leaves
+    a skip record (attributed to the agent, never to a human) that opens the
+    step-4 gate. It cannot be added to an existing analysis -- that is what
+    ``frame_confirm`` is for. ``at`` dates the skip and the document's
+    ``createdAt``.
+
     The ``analysis_id`` is an opaque handle (ADR-0017). The surface mints one
     when the caller gives none (:mod:`rubricator.ids`); the connector's default
     store keeps an analysis for 30 days from its last write
     (:data:`rubricator.store.RETENTION_DAYS`), and export defeats that window.
     """
+    from rubricator.tools.confirm import gate, skip_record
     from rubricator.tools.views import STAGES, stage_of
 
     document, unreadable = _live_document(store, analysis_id)
     if document is not None:
+        records = store.confirmations(analysis_id)
+        skipped = any(r.get("decision") == "skip" for r in records)
+        if allow_skip_confirmation and not (skipped and gate(records)["open"]):
+            # A retry of the create that skipped is fine. Anything else would
+            # be a skip added after the fact, or one that a later revise has
+            # already overruled -- both silently ignored if not refused.
+            raise ValueError(
+                f'refused, nothing was written: "{analysis_id}" already exists, and skipping the '
+                "confirmation can only be chosen when an analysis is created"
+                + (", and a later decision has closed the gate since" if skipped else "")
+                + ". Put the frame and criteria to the user with frame_confirm instead."
+            )
         n_alt = sum(1 for a in document.get("alternatives", []) if not a.get("tombstoned"))
         n_crit = sum(1 for c in document.get("criteria", []) if not c.get("tombstoned"))
-        stage = stage_of(document)
+        stage = stage_of(document, confirmed=gate(records)["open"])
         summary = (
             f'reopened "{analysis_id}" at stage {stage} ({STAGES[stage][0]}): {n_alt} '
             f"alternative(s), {n_crit} criteria; next: {STAGES[stage][1]}"
@@ -168,6 +193,8 @@ def analysis_open(
             f"{store.retention_days} days from their last write, so it has expired or never "
             f"existed here. To start one under this id, {_NEEDS_A_QUESTION}"
         )
+    if allow_skip_confirmation and not at:
+        raise ValueError("refused: a skipped confirmation is dated; pass at.")
     frame = {
         "id": analysis_id,
         "schemaVersion": 1,
@@ -190,7 +217,14 @@ def analysis_open(
         "reductions": [],
         "renditions": [],
     }
+    if at:
+        frame["createdAt"] = at
     store.put_frame(analysis_id, frame)
+    # A new analysis inherits no gate: a records directory left behind when a
+    # frame was removed outside the surface must not confirm this one.
+    store.clear_confirmations(analysis_id)
+    if allow_skip_confirmation:
+        store.add_confirmation(analysis_id, skip_record(at=at))
     return {
         "analysisId": analysis_id,
         "created": True,
@@ -488,8 +522,10 @@ def measures_write(
     happens on read.
     """
     from rubricator.criteria_versions import effective_version
+    from rubricator.tools.confirm import refuse_unconfirmed
 
     frame = store.frame(analysis_id)
+    refuse_unconfirmed(store, analysis_id)
     criteria_version = effective_version(frame.get("criteriaVersion"))
     if expected_criteria_version is not None and expected_criteria_version != criteria_version:
         raise ValueError(
