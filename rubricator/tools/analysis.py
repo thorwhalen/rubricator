@@ -69,17 +69,33 @@ DEFINITION_FIELDS: tuple[str, ...] = (
 DEFINITION_EXPECTED: tuple[str, ...] = DEFINITION_FIELDS
 
 
-def _live_frame(store: AnalysisStore, analysis_id: str) -> dict[str, Any] | None:
-    """The frame, or ``None`` when no live analysis has this id.
+def _live_document(store: AnalysisStore, analysis_id: str) -> dict[str, Any] | None:
+    """The merged document, or ``None`` when no live analysis has this id.
 
-    One read rather than ``exists()`` then ``frame()``: the retention window can
+    One read rather than ``exists()`` then ``read()``: the retention window can
     end between two calls, and a reopen that raced it must start afresh rather
     than fail.
     """
     try:
-        return store.frame(analysis_id)
+        return store.read(analysis_id)
     except AnalysisNotFound:
         return None
+
+
+_NEEDS_A_QUESTION = (
+    "a new analysis needs a question. Pass the question being decided, or the id of an "
+    "existing analysis to reopen it."
+)
+
+
+def refuse_an_empty_open(store: AnalysisStore, arguments: Mapping[str, Any]) -> None:
+    """Refuse an ``analysis_open`` that names neither an analysis nor a question.
+
+    Run by the surface before an id is minted, so the caller hears what is
+    missing rather than that a handle it never chose is unknown.
+    """
+    if arguments.get("analysis_id") is None and not str(arguments.get("question") or "").strip():
+        raise ValueError(f"refused: {_NEEDS_A_QUESTION}")
 
 
 def analysis_open(
@@ -92,31 +108,46 @@ def analysis_open(
     discussion is the valuable part (ADR-0005).
 
     **Reopening never overwrites.** An id the store already holds returns
-    ``created: false`` with what is there, so that a resumed session -- or a
-    model retrying a call -- cannot reset a matrix by opening it twice. A new
-    analysis needs a ``question``; a reopened one ignores the argument, because
-    the question is the one thing a frame may not quietly change.
+    ``created: false`` with what is there, and the stage the work has reached,
+    so that a resumed session -- or a model retrying a call -- cannot reset a
+    matrix by opening it twice, and knows where to pick up. A new analysis needs
+    a ``question``; a reopened one ignores the argument, because the question is
+    the one thing a frame may not quietly change. An unknown or expired id with
+    no question is refused naming the retention window, because the caller
+    almost certainly expected it to be there.
 
     The ``analysis_id`` is an opaque handle (ADR-0017). The surface mints one
     when the caller gives none (:mod:`rubricator.ids`); the connector's default
     store keeps an analysis for 30 days from its last write
     (:data:`rubricator.store.RETENTION_DAYS`), and export defeats that window.
     """
-    frame = _live_frame(store, analysis_id)
-    if frame is not None:
-        n_alt, n_crit = len(frame.get("alternatives", [])), len(frame.get("criteria", []))
+    from rubricator.tools.views import STAGES, stage_of
+
+    document = _live_document(store, analysis_id)
+    if document is not None:
+        n_alt = sum(1 for a in document.get("alternatives", []) if not a.get("tombstoned"))
+        n_crit = sum(1 for c in document.get("criteria", []) if not c.get("tombstoned"))
+        stage = stage_of(document)
         return {
             "analysisId": analysis_id,
             "created": False,
-            "question": frame["subject"]["question"],
+            "question": document["subject"]["question"],
             "alternatives": n_alt,
             "criteria": n_crit,
-            "summary": f'reopened "{analysis_id}": {n_alt} alternative(s), {n_crit} criteria',
+            "stage": stage,
+            "summary": (
+                f'reopened "{analysis_id}" at stage {stage} ({STAGES[stage][0]}): {n_alt} '
+                f"alternative(s), {n_crit} criteria; next: {STAGES[stage][1]}"
+            ),
         }
     if not (question or "").strip():
+        # A rule (a reopen needs something to reopen), so a ValueError -- but it
+        # names the window, because an id the caller expected to find is the
+        # likelier story than a new analysis with no question.
         raise ValueError(
-            "refused: a new analysis needs a question. Pass the question being decided, or "
-            "the id of an existing analysis to reopen it."
+            f'refused: no analysis "{analysis_id}" in this store. Analyses are kept for '
+            f"{store.retention_days} days from their last write, so it has expired or never "
+            f"existed here. To start one under this id, {_NEEDS_A_QUESTION}"
         )
     frame = {
         "id": analysis_id,
@@ -147,7 +178,9 @@ def analysis_open(
         "question": question,
         "alternatives": 0,
         "criteria": 0,
-        "summary": f'opened "{analysis_id}" with no alternatives and no criteria yet',
+        "stage": 1,
+        "summary": f'opened "{analysis_id}" with no alternatives and no criteria yet; next: '
+        + STAGES[1][1],
     }
 
 

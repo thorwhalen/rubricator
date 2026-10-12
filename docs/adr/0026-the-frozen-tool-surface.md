@@ -18,7 +18,7 @@ One more force. The closed comparanda v1 schema refuses unknown keys, and the wr
 | # | Tool | Family | Stage | Status | MVP | Cut | Research row |
 |---|---|---|---|---|---|---|---|
 | 1 | `analysis_open` | analysis | 1, resume | implemented | yes | — | 1 |
-| 2 | `analysis_get` | analysis | all | planned (#52) | yes | — | 2 |
+| 2 | `analysis_get` | analysis | all | implemented (#52) | yes | — | 2 |
 | 3 | `corpus_add` | corpus | 2, 5 | planned (#53) | yes | — | 3 |
 | 4 | `corpus_search` | corpus | 2, 3, 5 | planned (#54) | yes | — | 4 |
 | 5 | `frame_set` | frame | 1 | implemented | yes | — | 5 |
@@ -110,3 +110,19 @@ Row 14 is implemented. Its `outputSchema` changed in three ways, all before any 
 Re-measured on 2026-10-12 against `claude-sonnet-5-5`:
 - the advertised definitions: 12 tools, 7,039 tokens, 16,522 bytes;
 - the whole surface: 22 tools, 10,574 tokens, 25,572 bytes. It moved because the row's description changed.
+
+### 2026-10-12 — `analysis_get` lands, and `analysis_open` reports the stage (#52)
+
+- **Deciders:** Thor Whalen
+
+Row 2 is implemented, in `rubricator/tools/views.py`. Every view is a pure projection of the merged document and writes nothing. Its `outputSchema` grew before any client bound to it:
+- `stage` (required, on every view): the earliest ADR-0005 stage whose work is not on record — 1 until `frame_set` has recorded ambiguities, 2 until a live alternative exists, 3 until a live criterion does, 5 while any cell is outstanding, 6 after. Stage 4 is reported once `frame_confirm` exists to pass it (#57).
+- `frame` adds `subject` and `alternatives`; `criteria` adds `criteria` and `criteriaVersion`. Both are the frozen *input* shapes, so a model can read a view and hand it straight back to `alternatives_set` or `criteria_set`; a test holds the criteria round trip to "no revision, same version".
+- An `outstanding` row gains `measure` and `recorded`. A live cell nobody has written is `not-assessed` with `recorded: false` — comparanda's default for a new cell — so "nobody wrote anything" is told apart from "somebody marked it not-assessed", and both from `deferred`. A cell is settled when a live assertion carries a value or a terminal or structural blank; a code this build cannot resolve counts as outstanding, as in `report_completeness`. Retired rows and columns are not in the matrix.
+- `full` returns `rubricator://analysis/{id}`, never the body. The connector now serves that one resource template, the merged document read fresh, so the link resolves; the rest of the resource surface stays #66's.
+
+`analysis_open` gains `stage` on its output (required) and reads the whole document on reopen, in one read, to compute it. Its failure text changed: an unknown or expired id with no question is refused naming the retention window, because a caller passing an id expected to find it. A call with neither an id nor a question is refused by a `_PRECHECKS` entry before an id is minted, so the caller hears what is missing rather than that a handle it never chose is unknown.
+
+Re-measured on 2026-10-12 against `claude-sonnet-5-5`:
+- the advertised definitions: 13 tools, 7,325 tokens, 17,308 bytes;
+- the whole surface: 22 tools, 10,582 tokens, 25,601 bytes. It moved because `analysis_open`'s failure text changed.

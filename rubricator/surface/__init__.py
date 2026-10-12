@@ -24,12 +24,14 @@ not JSON-able -- the store, the clock, the id minter -- are supplied by
 >>> from rubricator.compose import build_runtime
 >>> from rubricator.ids import sequential_ids
 >>> verbs = bind(build_runtime(blobs={}, new_id=sequential_ids("a")))
->>> sorted(verbs)[:3]
-['aggregate_assertions', 'alternatives_set', 'analysis_open']
+>>> sorted(verbs)[:4]
+['aggregate_assertions', 'alternatives_set', 'analysis_get', 'analysis_open']
 >>> verbs['analysis_open'](question='which?')['analysisId']
 'a-1'
 >>> verbs['analysis_open'](analysis_id='a-1')['created']
 False
+>>> verbs['analysis_get'](analysis_id='a-1')['stage']
+1
 >>> verbs['frame_set'](analysis_id='a-1', ambiguities=[], colour='blue')
 Traceback (most recent call last):
     ...
@@ -62,6 +64,7 @@ __all__ = [
 #: holds the two together.
 TOOL_REFS: tuple[str, ...] = (
     "rubricator.tools.analysis:analysis_open",
+    "rubricator.tools.views:analysis_get",
     "rubricator.tools.analysis:frame_set",
     "rubricator.tools.analysis:alternatives_set",
     "rubricator.tools.analysis:criteria_set",
@@ -89,7 +92,7 @@ NEEDS_ID: frozenset[str] = frozenset({"analysis_open"})
 
 #: Verbs that take the store as their first argument.
 _NEEDS_STORE: frozenset[str] = frozenset({
-    "analysis_open", "frame_set", "alternatives_set", "criteria_set",
+    "analysis_open", "analysis_get", "frame_set", "alternatives_set", "criteria_set",
     "measures_write", "measures_mark_missing", "report_completeness", "aggregate_assertions",
 })
 
@@ -99,8 +102,12 @@ _NEEDS_STORE: frozenset[str] = frozenset({
 #: store and the raw arguments and raises ``ValueError`` or returns ``None``.
 #: ``aggregate_assertions``'s frozen enum already excludes a mean; ADR-0011 owes
 #: the caller the level of measurement that makes it illegal (#97).
+#: ``analysis_open`` runs before its id is minted, so that a call carrying
+#: neither an id nor a question is told what is missing rather than told that a
+#: freshly minted id is unknown.
 _PRECHECKS: Mapping[str, str] = {
     "aggregate_assertions": "rubricator.tools.aggregate:refuse_a_mean",
+    "analysis_open": "rubricator.tools.analysis:refuse_an_empty_open",
 }
 
 

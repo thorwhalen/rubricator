@@ -64,7 +64,34 @@ def make_server(runtime: Runtime | None = None, **kwargs: Any):
     retention_days = runtime.store.retention_days
     for name, verb in bind(runtime).items():
         server.add_tool(_tool_from_row(rows[name], verb, retention_days=retention_days))
+    server.add_template(_analysis_resource(runtime))
     return server
+
+
+def _analysis_resource(runtime: Runtime):
+    """The analysis document as a resource: what ``analysis_get view=full`` links to.
+
+    A link nobody can follow is not a link, so the one resource the frozen
+    surface already names is served here; the rest of the resource surface is
+    #66's. The body is the merged document, read fresh, never cached: it is the
+    record (ADR-0017), and a stale copy of a record is a second record.
+    """
+    import json
+
+    from fastmcp.resources import ResourceTemplate
+
+    from rubricator.tools.views import analysis_uri
+
+    def analysis_document(analysis_id: str) -> str:
+        return json.dumps(runtime.store.read(analysis_id), ensure_ascii=False, sort_keys=True)
+
+    return ResourceTemplate.from_function(
+        analysis_document,
+        uri_template=analysis_uri("{analysis_id}"),
+        name="analysis",
+        description="One analysis as a comparanda document: the frame and every contribution, merged.",
+        mime_type="application/json",
+    )
 
 
 def _tool_from_row(spec: ToolSpec, verb: Callable[..., Any], *, retention_days: int):

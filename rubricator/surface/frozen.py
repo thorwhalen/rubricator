@@ -147,6 +147,10 @@ CRITERION = obj(
     },
     ("id", "label"),
 )
+SUBJECT = obj(
+    {"question": S, "decision": S, "decider": S, "context": S, "ambiguities": arr(S)},
+    ("question",),
+)
 AUTHOR = obj(
     {
         "id": S, "displayName": S, "kind": enum("human", "agent", "imported", "derived"),
@@ -255,19 +259,19 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
         ),
         determinism="A store read and, for a new id, one write of a fixed empty frame.",
         failure=(
-            "A new id with no question is refused. An unknown id is reopened as new only "
-            "when a question is given; nothing is deleted."
+            "An unknown or expired id with no question is refused, naming the retention "
+            "window; with a question it starts afresh under that id. Nothing is deleted."
         ),
         input_schema=obj({"analysis_id": S, "question": S}),
         output_schema=obj(
             {"analysisId": S, "created": B, "question": S, "alternatives": I, "criteria": I,
-             "summary": S},
-            ("analysisId", "created", "question", "alternatives", "criteria", "summary"),
+             "stage": I, "summary": S},
+            ("analysisId", "created", "question", "alternatives", "criteria", "stage", "summary"),
         ),
     ),
     ToolSpec(
-        name="analysis_get", family="analysis", stage="all", status="planned",
-        minimum_viable=True, cut_rank=None, research_row=2, issue=52,
+        name="analysis_get", family="analysis", stage="all", status="implemented",
+        minimum_viable=True, cut_rank=None, research_row=2,
         contract=(
             "Read the durable state of an analysis as one projection: summary (counts and "
             "stage), frame (subject and alternatives), criteria (with definitions and the set "
@@ -282,19 +286,23 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
         ),
         output_schema=obj(
             {
-                "analysisId": S, "view": S, "question": S,
+                "analysisId": S, "view": S, "question": S, "stage": I,
                 "counts": obj(
                     {"alternatives": I, "criteria": I, "cells": I, "outstanding": I,
                      "byCode": arr(obj({"code": S, "count": I}, ("code", "count")))},
                     ("alternatives", "criteria", "cells", "outstanding", "byCode"),
                 ),
+                "subject": SUBJECT,
+                "alternatives": arr(ALTERNATIVE),
+                "criteria": arr(CRITERION),
+                "criteriaVersion": opt(S),
                 "outstanding": arr(obj(
-                    {"alternativeId": S, "criterionId": S, "code": S},
-                    ("alternativeId", "criterionId", "code"))),
+                    {"alternativeId": S, "criterionId": S, "measure": S, "code": S, "recorded": B},
+                    ("alternativeId", "criterionId", "measure", "code", "recorded"))),
                 "resourceLink": opt(S),
                 "summary": S,
             },
-            ("analysisId", "view", "question", "counts", "summary"),
+            ("analysisId", "view", "question", "stage", "counts", "summary"),
         ),
     ),
     ToolSpec(
@@ -940,11 +948,11 @@ MEASURED: Mapping[str, Any] = {
     "measuredAt": "2026-10-12",
     "model": "claude-sonnet-5-5",
     "advertised": {
-        "tools": 12, "tokens": 7039, "bytes": 16522,
-        "sha256": "8b961977fa149cd0ed2149a1d069ce9e0120677ae635459bec1f536c26c7b2eb",
+        "tools": 13, "tokens": 7325, "bytes": 17308,
+        "sha256": "6a723227816afff55957c679775bde637465ddb8059d414274407c251f5d4423",
     },
     "wholeSurface": {
-        "tools": 22, "tokens": 10574, "bytes": 25572,
-        "sha256": "576ed95a37f1cb530968dd73fd46d11d0dd86a960578c8bd22ca343442312969",
+        "tools": 22, "tokens": 10582, "bytes": 25601,
+        "sha256": "ab6d0e7cf0bcf9e7783d452c545f2c55c796a0ec3e561837689d1211f74433de",
     },
 }
