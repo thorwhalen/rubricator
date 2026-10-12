@@ -344,8 +344,11 @@ def criteria_set(
     ``exclusions``), emitted as given. Authoring raises on an unknown definition
     key, on a missing rule whose code neither the core vocabulary nor the
     analysis nor the criterion defines (the companion's honesty rule
-    ``missing-rule-code-defined``), and on an anchor keyed to a level the scale
-    cannot take. Fields a criterion should have and does not are *reported* in
+    ``missing-rule-code-defined``), on an anchor keyed to a level the scale
+    cannot take, and on a criterion's missing-code declaration the companion
+    refuses (#140): one that redeclares a core code, one that claims
+    ``structural: true`` while refining anything but the structural core code,
+    or an id declared twice -- mirrored over documents in :mod:`rubricator.rules`. Fields a criterion should have and does not are *reported* in
     ``definitionGaps`` -- ADR-0024: incompleteness informs, it does not reject.
 
     **Direction of preference.** ``preference`` (``increasing``, ``decreasing``,
@@ -452,6 +455,17 @@ def criteria_set(
             scale_id, {"id": scale_id, "broader": "stevens", "means": preset["means"], "params": {}}
         )
 
+    # The companion refuses a declaration that redeclares a core code or claims
+    # structural absence under another parent (#140). Only the criteria's own
+    # declarations are this verb's to refuse; the analysis-level list has no
+    # write path here, and a problem there is not this caller's to fix.
+    from rubricator.rules import schema_problems
+
+    problems.extend(
+        f"{p.path}: {p.message} Fix: {p.fix} [{p.rule_id}]"
+        for p in schema_problems({**frame, "criteria": out})
+        if p.path.startswith("criteria[")
+    )
     if problems:
         raise ValueError("; ".join(problems))
 
