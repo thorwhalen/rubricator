@@ -157,6 +157,11 @@ def criteria_set(
     cannot take. Fields a criterion should have and does not are *reported* in
     ``definitionGaps`` -- ADR-0024: incompleteness informs, it does not reject.
 
+    **Direction of preference.** ``preference`` (``increasing``, ``decreasing``,
+    ``target`` with a numeric ``target``, ``ordered``, ``none``) is required on
+    every emitted measurement. A criterion that does not state one gets the
+    preset's, and is listed in ``defaultedPreference`` so the default is seen.
+
     **Versioning (ADR-0016).** The first call sets ``criteriaVersion`` to
     ``"1"``. A later call that changes any existing criterion's meaning (see
     :data:`rubricator.criteria_versions.MEANING_FIELDS`) moves it forward, and
@@ -175,6 +180,7 @@ def criteria_set(
     problems: list[str] = []
     out: list[dict[str, Any]] = []
     gaps: dict[str, list[str]] = {}
+    defaulted: list[str] = []
 
     for c in criteria:
         scale_id = c.get("scale", DEFAULT_SCALE)
@@ -189,6 +195,10 @@ def criteria_set(
 
         measurement = dict(preset["measurement"])
         measurement["scale"] = scale_id
+        if "preference" in c:
+            problems.extend(_apply_preference(c.get("id"), measurement, c))
+        else:
+            defaulted.append(c["id"])
         anchors = c.get("anchors")
         required = list(preset["anchorsRequiredAt"])
         if required:
@@ -264,6 +274,11 @@ def criteria_set(
         # Completeness, not a refusal: which definition fields each criterion
         # still lacks. Empty when every criterion is fully defined.
         "definitionGaps": gaps,
+        # Criteria whose direction of preference came from the scale preset
+        # rather than from the caller. Misaligned direction is a documented
+        # failure of generated rubrics; a cost scored "increasing" because
+        # nobody said otherwise is exactly it, so the default is made visible.
+        "defaultedPreference": defaulted,
     }
 
 
@@ -564,6 +579,40 @@ def _revise_versions(
         cid: {"fields": fields, "material": cid not in editorial}
         for cid, fields in sorted(changed.items())
     }
+
+
+#: Directions of preference (the companion's closed enum, ADR-0018 there).
+PREFERENCES: tuple[str, ...] = ("increasing", "decreasing", "target", "ordered", "none")
+
+
+def _apply_preference(
+    criterion_id: Any, measurement: dict[str, Any], criterion: Mapping[str, Any]
+) -> list[str]:
+    """Set a stated direction of preference on ``measurement``, or say why not.
+
+    Mirrors the companion's measurement rules: ordered levels carry a range
+    (the presets always do), ``target`` needs ``range.target`` inside the range,
+    and a nominal level admits only ``none``.
+    """
+    where = f'criterion "{criterion_id}"'
+    pref = criterion["preference"]
+    if pref not in PREFERENCES:
+        return [f'{where} has preference "{pref}"; the directions are {", ".join(PREFERENCES)}.']
+    if measurement.get("level") == "nominal" and pref != "none":
+        return [f'{where} is nominal, so its only preference is "none".']
+    rng = dict(measurement.get("range") or {})
+    target = criterion.get("target")
+    if pref == "target":
+        if not isinstance(target, (int, float)) or isinstance(target, bool):
+            return [f'{where} prefers a target but declares no numeric "target".']
+        if rng and not rng["min"] <= target <= rng["max"]:
+            return [f"{where} has target {target} outside its range [{rng['min']}, {rng['max']}]."]
+        rng["target"] = target
+        measurement["range"] = rng
+    elif target is not None:
+        return [f'{where} declares a "target" but its preference is "{pref}", not "target".']
+    measurement["preference"] = pref
+    return []
 
 
 def _anchor_level_problems(
