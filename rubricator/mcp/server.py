@@ -34,6 +34,8 @@ from rubricator.surface import ToolSpec, bind, describe, frozen
 
 __all__ = ["make_server", "main"]
 
+_JSON = "application/json"
+
 _INSTRUCTIONS = """\
 Turns a pile of context into a defensible comparison: alternatives x criteria,
 with scores, confidence, justifications and citations back to spans in the
@@ -78,19 +80,26 @@ def _analysis_resource(runtime: Runtime):
     """
     import json
 
-    from fastmcp.resources import ResourceTemplate
+    from fastmcp.resources import ResourceContent, ResourceResult, ResourceTemplate
 
     from rubricator.tools.views import analysis_uri
 
-    def analysis_document(analysis_id: str) -> str:
-        return json.dumps(runtime.store.read(analysis_id), ensure_ascii=False, sort_keys=True)
+    def analysis_document(analysis_id: str) -> ResourceResult:
+        # The mime type is stated on the content, because a template's own
+        # mime_type does not reach a function's plain-string result.
+        body = json.dumps(runtime.store.read(analysis_id), ensure_ascii=False, sort_keys=True)
+        return ResourceResult([ResourceContent(body, mime_type=_JSON)])
+
+    # Concrete, not the postponed strings: the host resolves annotations in this
+    # module's globals, where the locally imported names do not exist.
+    analysis_document.__annotations__ = {"analysis_id": str, "return": ResourceResult}
 
     return ResourceTemplate.from_function(
         analysis_document,
         uri_template=analysis_uri("{analysis_id}"),
         name="analysis",
         description="One analysis as a comparanda document: the frame and every contribution, merged.",
-        mime_type="application/json",
+        mime_type=_JSON,
     )
 
 

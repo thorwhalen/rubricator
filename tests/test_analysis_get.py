@@ -214,3 +214,104 @@ def test_the_link_resolves_over_mcp_to_the_merged_document() -> None:
     link = got.structured_content["resourceLink"]
     body = asyncio.run(server.read_resource(link)).contents[0].content
     assert json.loads(body) == runtime.store.read("a1")
+
+
+# --- the adversarial review's findings, kept failing-able ----------------------
+
+
+def test_a_score_answering_an_older_definition_keeps_the_stage_at_populate(verbs) -> None:
+    _matrix(verbs)
+    for alt in ("k1", "k2"):
+        for crit in ("speed", "cost"):
+            _write(verbs, alternativeId=alt, criterionId=crit, value=3, justification="ok")
+    assert verbs["analysis_get"](analysis_id="a1")["stage"] == 6
+    got = verbs["analysis_get"](analysis_id="a1", view="criteria")["criteria"]
+    got[0]["label"] = "Boil speed, measured cold"
+    got[0]["definition"]["objective"] = "fast tea from cold"
+    verbs["criteria_set"](analysis_id="a1", criteria=got)
+    summary = verbs["analysis_get"](analysis_id="a1")
+    assert summary["stage"] == 5 and summary["counts"]["superseded"] == 2
+    assert "older criteria definition" in summary["summary"]
+
+
+@pytest.mark.parametrize("stray", [
+    b"not json",
+    json.dumps({"authors": [{"id": "someone-else", "displayName": "S", "kind": "human"}],
+                "cells": []}).encode(),
+])
+def test_a_bad_contribution_does_not_lock_the_resume_entry_point(runtime, verbs, stray) -> None:
+    _matrix(verbs)
+    runtime.store.blobs["analyses/a1/contributions/zed.json"] = stray
+    reopened = verbs["analysis_open"](analysis_id="a1")
+    assert reopened["created"] is False and "could not be read" in reopened["summary"]
+    with pytest.raises(ValueError, match="cannot be read whole.*analysis_open"):
+        verbs["analysis_get"](analysis_id="a1")
+
+
+def test_open_blanks_are_ordered_as_instants_not_strings(verbs) -> None:
+    _matrix(verbs)
+    write = lambda who, code, at: verbs["measures_write"](  # noqa: E731
+        analysis_id="a1", contributor_id=who, author={**AUTHOR, "id": who}, at=at,
+        cells=[{"alternativeId": "k1", "criterionId": "speed",
+                "missing": {"code": code, "note": "n"}, "independence": "independent"}])
+    write("ana", "deferred", "2026-08-22T10:00:00+02:00")  # 08:00Z: earlier
+    write("ben", "not-assessed", "2026-08-22T09:00:00Z")
+    rows = verbs["analysis_get"](analysis_id="a1", view="outstanding")["outstanding"]
+    assert next(r for r in rows if (r["alternativeId"], r["criterionId"]) == ("k1", "speed"))["code"] == "not-assessed"
+    write("cy", "deferred", "2026-08-22T09:00:00.5Z")  # half a second later
+    rows = verbs["analysis_get"](analysis_id="a1", view="outstanding")["outstanding"]
+    assert next(r for r in rows if (r["alternativeId"], r["criterionId"]) == ("k1", "speed"))["code"] == "deferred"
+
+
+@pytest.mark.parametrize("edit, view, path", [
+    (lambda f: f["criteria"][0]["missingCodes"].append({"id": "x", "broader": "deferred"}),
+     "criteria", "$.criteria[0].missingCodes[0]"),
+    (lambda f: f["criteria"][0]["defaultMeasurement"].update(preference="ascending"),
+     "criteria", "$.criteria[0].preference"),
+    (lambda f: f["subject"].update(ambiguities=None), "frame", "$.subject.ambiguities"),
+    (lambda f: f["alternatives"][0].update(url="u"), "frame", "$.alternatives[0].url"),
+])
+def test_stored_data_the_contract_cannot_hold_is_left_out_and_named(
+    runtime, verbs, edit, view, path
+) -> None:
+    """A data problem in a hand-edited store is not a server bug (ContractViolation)."""
+    _matrix(verbs)
+    key = runtime.store.frame_key("a1")
+    frame = json.loads(runtime.store.blobs[key])
+    edit(frame)
+    runtime.store.blobs[key] = json.dumps(frame).encode()
+    for each in VIEWS:  # bind validates every envelope, so no view may raise
+        verbs["analysis_get"](analysis_id="a1", view=each)
+    assert path in verbs["analysis_get"](analysis_id="a1", view=view)["summary"]
+
+
+def test_a_blank_id_is_treated_as_no_id(verbs) -> None:
+    with pytest.raises(ValueError, match="needs a question") as caught:
+        verbs["analysis_open"](analysis_id="  ")
+    assert "expired" not in str(caught.value)
+
+
+def test_the_criteria_round_trip_holds_for_unsorted_anchors_and_a_target(verbs) -> None:
+    _matrix(verbs)
+    crit = {"id": "temp", "label": "Temperature", "preference": "target", "target": 3,
+            "anchors": [ANCHORS[2], ANCHORS[0], ANCHORS[1]],
+            "missingCodes": [{"id": "lab-only", "broader": "not-evidenced", "means": "only in a lab"}],
+            "definition": {"objective": "o", "question": "q", "evidenceRule": "e",
+                           "missingRules": [{"when": "w", "code": "lab-only"}], "exclusions": ["x"]}}
+    verbs["criteria_set"](analysis_id="a1", criteria=[
+        *verbs["analysis_get"](analysis_id="a1", view="criteria")["criteria"], crit])
+    got = verbs["analysis_get"](analysis_id="a1", view="criteria")
+    # The store keeps anchors in level order and names the scale it defaulted.
+    assert got["criteria"][2] == {**crit, "scale": "ordinal-1-5-anchored", "anchors": ANCHORS}
+    again = verbs["criteria_set"](analysis_id="a1", criteria=got["criteria"])
+    assert again["revised"] == [] and again["criteriaVersion"] == got["criteriaVersion"]
+
+
+def test_the_resource_is_served_as_json() -> None:
+    pytest.importorskip("py2mcp")
+    from rubricator.mcp.server import make_server
+
+    server = make_server(build_runtime(blobs={}, now=fixed_clock(MOMENT)))
+    asyncio.run(server.call_tool("analysis_open", {"analysis_id": "a1", "question": "q"}))
+    content = asyncio.run(server.read_resource(analysis_uri("a1"))).contents[0]
+    assert content.mime_type == "application/json"

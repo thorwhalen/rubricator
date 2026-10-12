@@ -289,8 +289,9 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
                 "analysisId": S, "view": S, "question": S, "stage": I,
                 "counts": obj(
                     {"alternatives": I, "criteria": I, "cells": I, "outstanding": I,
+                     "superseded": I,
                      "byCode": arr(obj({"code": S, "count": I}, ("code", "count")))},
-                    ("alternatives", "criteria", "cells", "outstanding", "byCode"),
+                    ("alternatives", "criteria", "cells", "outstanding", "superseded", "byCode"),
                 ),
                 "subject": SUBJECT,
                 "alternatives": arr(ALTERNATIVE),

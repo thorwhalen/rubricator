@@ -41,7 +41,6 @@ ValueError: refused: frame_set: at $: Additional properties are not allowed ('co
 from __future__ import annotations
 
 import inspect
-import re
 import typing
 from functools import partial
 from typing import Any, Callable, Mapping, Optional
@@ -286,22 +285,6 @@ def _with_defaults(
     return call
 
 
-#: RFC 3339 `date-time`: date, "T", time, optional fraction, Z or an offset.
-_RFC3339 = re.compile(
-    r"(?P<date>\d{4}-\d{2}-\d{2})[Tt](?P<time>\d{2}:\d{2}:\d{2})(?P<frac>\.\d+)?"
-    r"(?P<zone>[Zz]|[+-]\d{2}:\d{2})\Z"
-)
-
-
-def _fromisoformat_friendly(m: "re.Match[str]") -> str:
-    """The matched moment in the one spelling every supported Python parses."""
-    # Exactly six digits: 3.10's parser accepts only 3 or 6, 3.12 accepts 1-6.
-    digits = (m.group("frac") or ".")[1:7]
-    frac = f".{digits.ljust(6, '0')}" if digits else ""
-    zone = m.group("zone")
-    return f"{m.group('date')}T{m.group('time')}{frac}{'+00:00' if zone in 'Zz' else zone}"
-
-
 def _validator(schema: Mapping[str, Any]):
     from jsonschema import Draft202012Validator, FormatChecker
 
@@ -313,13 +296,11 @@ def _validator(schema: Mapping[str, Any]):
         # moment a caller states must at least be a moment. A fixed grammar
         # first, because `fromisoformat` accepts different things on 3.10 and
         # 3.12 and the CI matrix runs both; then a parse, for the calendar.
-        from datetime import datetime
+        from rubricator.clock import instant
 
         if not isinstance(value, str):
             return True
-        if not _RFC3339.match(value):
-            raise ValueError(f"{value!r} is not an RFC 3339 date-time such as 2026-08-22T12:00:00Z")
-        datetime.fromisoformat(_RFC3339.sub(_fromisoformat_friendly, value))
+        instant(value)
         return True
 
     return Draft202012Validator(dict(schema), format_checker=checker)

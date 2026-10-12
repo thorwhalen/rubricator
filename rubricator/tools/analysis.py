@@ -69,17 +69,29 @@ DEFINITION_FIELDS: tuple[str, ...] = (
 DEFINITION_EXPECTED: tuple[str, ...] = DEFINITION_FIELDS
 
 
-def _live_document(store: AnalysisStore, analysis_id: str) -> dict[str, Any] | None:
+def _live_document(
+    store: AnalysisStore, analysis_id: str
+) -> tuple[dict[str, Any] | None, str | None]:
     """The merged document, or ``None`` when no live analysis has this id.
 
     One read rather than ``exists()`` then ``read()``: the retention window can
     end between two calls, and a reopen that raced it must start afresh rather
     than fail.
+
+    **A contribution that cannot be merged does not lock the analysis.** A
+    stray or malformed file in a shared store must not make the resume entry
+    point fail, so the frame alone is returned beside the reason the whole
+    could not be read.
     """
     try:
-        return store.read(analysis_id)
+        return store.read(analysis_id), None
     except AnalysisNotFound:
-        return None
+        return None, None
+    except (KeyError, TypeError, ValueError) as error:
+        try:
+            return store.frame(analysis_id), str(error)
+        except AnalysisNotFound:
+            return None, None
 
 
 _NEEDS_A_QUESTION = (
@@ -94,7 +106,8 @@ def refuse_an_empty_open(store: AnalysisStore, arguments: Mapping[str, Any]) -> 
     Run by the surface before an id is minted, so the caller hears what is
     missing rather than that a handle it never chose is unknown.
     """
-    if arguments.get("analysis_id") is None and not str(arguments.get("question") or "").strip():
+    no_id = not str(arguments.get("analysis_id") or "").strip()
+    if no_id and not str(arguments.get("question") or "").strip():
         raise ValueError(f"refused: {_NEEDS_A_QUESTION}")
 
 
@@ -123,22 +136,28 @@ def analysis_open(
     """
     from rubricator.tools.views import STAGES, stage_of
 
-    document = _live_document(store, analysis_id)
+    document, unreadable = _live_document(store, analysis_id)
     if document is not None:
         n_alt = sum(1 for a in document.get("alternatives", []) if not a.get("tombstoned"))
         n_crit = sum(1 for c in document.get("criteria", []) if not c.get("tombstoned"))
         stage = stage_of(document)
+        summary = (
+            f'reopened "{analysis_id}" at stage {stage} ({STAGES[stage][0]}): {n_alt} '
+            f"alternative(s), {n_crit} criteria; next: {STAGES[stage][1]}"
+        )
+        if unreadable:
+            summary += (
+                f". The contributions could not be read ({unreadable}), so the stage is "
+                "computed from the frame alone and may be behind."
+            )
         return {
             "analysisId": analysis_id,
             "created": False,
-            "question": document["subject"]["question"],
+            "question": str(document["subject"]["question"]),
             "alternatives": n_alt,
             "criteria": n_crit,
             "stage": stage,
-            "summary": (
-                f'reopened "{analysis_id}" at stage {stage} ({STAGES[stage][0]}): {n_alt} '
-                f"alternative(s), {n_crit} criteria; next: {STAGES[stage][1]}"
-            ),
+            "summary": summary,
         }
     if not (question or "").strip():
         # A rule (a reopen needs something to reopen), so a ValueError -- but it
