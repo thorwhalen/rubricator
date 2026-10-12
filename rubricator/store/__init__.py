@@ -103,6 +103,7 @@ from rubricator.clock import Clock, system_clock
 __all__ = [
     "AnalysisStore", "AnalysisNotFound", "BytesStore", "memory_store", "file_store",
     "working_store", "data_dir", "working_dir", "check_id", "RETENTION_DAYS", "DATA_DIR_ENV",
+    "MAX_NESTING", "OffContract",
 ]
 
 #: The whole persistence interface. See the module docstring.
@@ -280,11 +281,15 @@ def _sequence_of(key: str) -> int:
     return int(head) if head.isdigit() else 0
 
 
+class OffContract(ValueError):
+    """A file that merges but would make the document break the published contract."""
+
+
 def _why_unmergeable(error: Exception) -> str:
     """Why a file was left out of a read, in words its owner can act on."""
     from rubricator.merge import MergeProblem
 
-    if isinstance(error, MergeProblem):
+    if isinstance(error, (MergeProblem, OffContract)):
         return str(error)
     if isinstance(error, ValueError):
         return f"not readable as JSON ({error}); repair or remove the file"
@@ -292,6 +297,45 @@ def _why_unmergeable(error: Exception) -> str:
         "not shaped like a contribution or rendition this build can merge "
         f"({type(error).__name__}: {error}); repair or remove the file"
     )
+
+
+#: The deepest nesting a stored file may have. A comparanda document nests
+#: about eight levels; this leaves room for any value a person would write, and
+#: stays far inside what every JSON writer a reader uses can recurse through.
+MAX_NESTING = 100
+
+
+def _writable_back_out(document: Any) -> None:
+    """Raise ``ValueError`` if ``document`` could not be served as JSON again (#159).
+
+    A hand-placed file can hold ``NaN`` or ``1e400`` (which parses to infinity),
+    neither of which is JSON, or nest deep enough to parse and still overflow the
+    indented writer that ``rubricator show`` uses. Every reader would then emit
+    something that is not JSON, or fail, so the file is left out instead. Depth
+    is counted rather than probed, so the answer does not depend on how deep the
+    reader's own stack happens to be.
+    """
+    level, frontier = 0, [document]
+    while frontier:
+        level += 1
+        if level > MAX_NESTING:
+            raise ValueError(
+                f"nests more than {MAX_NESTING} levels deep, past what a reader can write back "
+                "out; repair or remove the file"
+            )
+        frontier = [
+            child
+            for node in frontier
+            if isinstance(node, (dict, list))
+            for child in (node.values() if isinstance(node, dict) else node)
+            if isinstance(child, (dict, list))
+        ]
+    try:
+        json.dumps(document, allow_nan=False)
+    except ValueError:
+        raise ValueError(
+            "holds NaN or an infinite number, which JSON cannot carry; repair or remove the file"
+        ) from None
 
 
 def _not_found(analysis_id: str, retention_days: int) -> AnalysisNotFound:
@@ -345,6 +389,11 @@ class AnalysisStore:
     blobs: BytesStore
     now: Clock = system_clock
     retention_days: int = RETENTION_DAYS
+    #: The contract a file read past a skip must also meet: a
+    #: :class:`rubricator.schema.source.SchemaSource`. ``None`` is the vendored
+    #: comparanda v1, so a tolerant read never serves a document the published
+    #: schema refuses (#159).
+    contract: Any = None
 
     def __post_init__(self) -> None:
         if (
@@ -546,7 +595,16 @@ class AnalysisStore:
         an author, signs an assertion as someone it never introduced, or gives a
         persona another contributor's id -- contributes none of its assertions.
         Two files that each merge alone but declare one author id are both left
-        out, since which of them owns the id cannot be told (#158). The
+        out, since which of them owns the id cannot be told (#158).
+
+        A file that merges must also **fit the published contract** (#159): its
+        cells and authors are checked against comparanda v1 (``contract``), so a
+        value that is a dict, an ``at`` that is a number or an author with no
+        ``displayName`` leaves the file out rather than reaching every reader.
+        So does a value JSON cannot carry back out -- ``NaN``, ``1e400``, nesting
+        too deep to serialise. Two renditions with one id are both left out, as
+        two authors with one id are. Problems of the frame are the frame's: the
+        frame is checked once, and a frame the merge cannot index raises. The
         frame is not skippable -- without it there is no analysis -- so a frame
         that cannot be read raises, as :meth:`read` does.
 
@@ -563,13 +621,33 @@ class AnalysisStore:
         frame = self.frame(analysis_id)
         contributions, skipped = self.mergeable_contributions(analysis_id, frame=frame)
         prefix = f"analyses/{analysis_id}/renditions/"
-        renditions = [
-            r
+
+        def rendition_trial(document: dict[str, Any]) -> None:
+            merge_contributions(frame, [], renditions=[document])
+            self._refuse_off_contract(
+                [(document, "/properties/renditions/items", "$")], "rendition"
+            )
+
+        kept = {
+            key: r
             for key in sorted(k for k in self.blobs if k.startswith(prefix))
-            if (r := self._mergeable(
-                key, lambda d: merge_contributions(frame, [], renditions=[d]), skipped
-            )) is not None
+            if (r := self._mergeable(key, rendition_trial, skipped)) is not None
+        }
+        by_id: dict[str, list[str]] = {}
+        for key, r in kept.items():
+            by_id.setdefault(r["id"], []).append(key)
+        clashing = {k for keys in by_id.values() if len(keys) > 1 for k in keys}
+        skipped += [
+            {
+                "file": key,
+                "because": f'rendition "{kept[key]["id"]}" is also the id of '
+                + ", ".join(k for k in by_id[kept[key]["id"]] if k != key)
+                + "; one id cannot name two renditions, and which is meant cannot be told, so "
+                "neither is merged until one is renamed.",
+            }
+            for key in sorted(clashing)
         ]
+        renditions = [r for key, r in kept.items() if key not in clashing]
         merged = merge_contributions(
             frame, contributions, renditions=renditions,
             contributors=self._contributor_ids(analysis_id),
@@ -594,12 +672,25 @@ class AnalysisStore:
         roster = self._contributor_ids(analysis_id)
         skipped: list[dict[str, str]] = []
         contributions = []
+
+
+        def trial(contributor_id: str, document: dict[str, Any]) -> None:
+            merge_contributions(frame, [(contributor_id, document)], contributors=roster)
+            # The file's own fragments, not the whole merged document: what is
+            # checked is what this file adds, so a frame problem is never blamed
+            # on a contribution, and a read costs no full-document validation.
+            self._refuse_off_contract(
+                [(a, "/properties/authors/items", f"$.authors[{i}]")
+                 for i, a in enumerate(document.get("authors", []))]
+                + [(c, "/properties/cells/items", f"$.cells[{i}]")
+                   for i, c in enumerate(document.get("cells", []))],
+                "contribution",
+            )
+
         for contributor_id in roster:
             document = self._mergeable(
                 self.contribution_key(analysis_id, contributor_id),
-                lambda d, c=contributor_id: merge_contributions(
-                    frame, [(c, d)], contributors=roster
-                ),
+                lambda d, c=contributor_id: trial(c, d),
                 skipped,
             )
             if document is not None:
@@ -621,11 +712,34 @@ class AnalysisStore:
         """The document at ``key`` if ``trial`` merges it; else ``None``, and why in ``skipped``."""
         try:
             document = self._read(key)
+            _writable_back_out(document)
             trial(document)
         except (AttributeError, KeyError, TypeError, ValueError, RecursionError) as error:
             skipped.append({"file": key, "because": _why_unmergeable(error)})
             return None
         return document
+
+    def _refuse_off_contract(
+        self, fragments: list[tuple[Any, str, str]], what: str
+    ) -> None:
+        """Raise :class:`OffContract` if any ``(value, schema pointer, root)`` breaks the contract."""
+        if self.contract is None:
+            from rubricator.schema.source import SchemaSource
+
+            contract = SchemaSource.vendored()
+        else:
+            contract = self.contract
+        lines = [
+            line
+            for value, pointer, root in fragments
+            for line in contract.refusals(value, pointer=pointer, root=root)
+        ]
+        if lines:
+            raise OffContract(
+                f"this {what} merges, but breaks the {contract.origin} comparanda schema: "
+                + "; ".join(lines)
+                + ". Repair or remove the file."
+            )
 
     # -- writing ------------------------------------------------------------
 

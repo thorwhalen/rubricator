@@ -106,19 +106,11 @@ def merge_contributions(
     merged.setdefault("authors", [])
     merged.setdefault("cells", [])
 
-    authors: dict[str, Any] = {a["id"]: a for a in merged["authors"]}
+    authors, cells = _index_frame(merged)
     # Who declared each author, so a clash names the other party: the frame, or
     # the contribution that got there first.
     declared_by: dict[str, str] = {a: "the frame" for a in authors}
     frame_authors = dict(authors)
-    # Keyed by cell identity so two contributors scoring one cell land in one
-    # cell rather than in two, which the schema rejects as a duplicate identity.
-    cells: dict[tuple[str, str, str], dict[str, Any]] = {}
-    for cell in merged["cells"]:
-        cells[(cell["alternativeId"], cell["criterionId"], cell["measure"])] = {
-            **cell,
-            "assertions": list(cell.get("assertions", [])),
-        }
 
     for contributor_id, contribution in contributions:
         own: dict[str, Any] = {}
@@ -179,6 +171,39 @@ def merge_contributions(
         dict(r) for r in renditions if r["id"] not in existing
     ]
     return merged
+
+
+def _index_frame(
+    frame: Mapping[str, Any],
+) -> tuple[dict[str, Any], dict[tuple[str, str, str], dict[str, Any]]]:
+    """The frame's authors by id and its cells by identity, or the frame's own ``MergeProblem``.
+
+    Cells are keyed by identity so two contributors scoring one cell land in one
+    cell rather than in two, which the schema rejects as a duplicate identity.
+    A frame that cannot be indexed is reported as the frame's problem, once
+    (#159): left to fail inside each contribution's trial it would be blamed on
+    every contributor in turn.
+    """
+    try:
+        authors = {a["id"]: a for a in frame["authors"]}
+        cells = {
+            (c["alternativeId"], c["criterionId"], c["measure"]): {
+                **c, "assertions": list(c.get("assertions", []))
+            }
+            for c in frame["cells"]
+        }
+    except (AttributeError, KeyError, TypeError) as error:
+        raise MergeProblem(
+            f"the frame is not shaped like one this build can merge ({type(error).__name__}: "
+            f"{error}). Every read of this analysis needs it, so repair the frame file."
+        ) from None
+    ids = [*authors, *(v for key in cells for v in key)]
+    if not all(isinstance(v, str) for v in ids):
+        raise MergeProblem(
+            f"the frame gives ids as {[v for v in ids if not isinstance(v, str)]!r}; every id is "
+            "a string. Every read of this analysis needs the frame, so repair the frame file."
+        )
+    return authors, cells
 
 
 def _check_identity(contributor_id: str, what: str, values: Iterable[Any]) -> None:

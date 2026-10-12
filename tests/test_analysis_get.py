@@ -344,13 +344,16 @@ def test_a_malformed_measurement_is_cut_not_crashed_on(runtime, verbs, edit) -> 
     assert verbs["analysis_get"](analysis_id="a1", view="criteria")["criteria"][0]["id"] == "speed"
 
 
-def test_a_non_string_code_counts_as_outstanding_rather_than_crashing(runtime, verbs) -> None:
+def test_a_non_string_code_is_left_out_and_named_rather_than_crashing(runtime, verbs) -> None:
+    """A hand-edited code of 7 breaks comparanda v1, so since #159 the file is left
+    out whole and named, and the cell it held reads as not yet assessed."""
     _matrix(verbs)
     _write(verbs, alternativeId="k1", criterionId="speed", missing={"code": "deferred", "note": "n"})
     key = runtime.store.contribution_key("a1", "ana")
     contribution = json.loads(runtime.store.blobs[key])
     contribution["cells"][0]["assertions"][0]["missing"]["code"] = 7
     runtime.store.blobs[key] = json.dumps(contribution).encode()
-    rows = verbs["analysis_get"](analysis_id="a1", view="outstanding")["outstanding"]
-    assert {"alternativeId": "k1", "criterionId": "speed", "measure": "score", "code": "7",
-            "recorded": True} in rows
+    result = verbs["analysis_get"](analysis_id="a1", view="outstanding")
+    assert [s["file"] for s in result["skipped"]] == [key]
+    assert {"alternativeId": "k1", "criterionId": "speed", "measure": "score",
+            "code": "not-assessed", "recorded": False} in result["outstanding"]
