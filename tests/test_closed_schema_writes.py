@@ -243,3 +243,45 @@ def test_an_argument_is_named_at_its_own_path_once(runtime) -> None:
     message = str(refused.value)
     assert message.count("at $.at: 5 is not of type 'string'") == 1
     assert "$.cells[0].at" not in message
+
+
+# -- from the verification pass of #155 ----------------------------------------------------------
+
+def test_a_new_value_breaking_a_stored_rule_in_the_same_place_is_still_new(runtime) -> None:
+    _store_off_contract(runtime)
+    _unchanged(
+        runtime,
+        lambda: alternatives_set(runtime.store, analysis_id="a1",
+                                 alternatives=[{"id": "z", "label": "Z", "url": "new"}]),
+        r"'url' was unexpected",
+    )
+
+
+def test_a_stored_problem_moved_by_a_reordering_is_still_the_stored_one(runtime) -> None:
+    """A preset scale sorts ahead of a hand-written one and moves its index."""
+    frame = runtime.store.frame("a1")
+    frame["scales"] = [{"id": "zz", "broader": "stevens", "means": "m", "params": {}, "legacy": 1}]
+    runtime.store.put_frame("a1", frame)
+    criteria_set(runtime.store, analysis_id="a1",
+                 criteria=[{"id": "c", "label": "C", "anchors": ANCHORS}])
+    assert [s["id"] for s in runtime.store.frame("a1")["scales"]] == ["ordinal-1-5-anchored", "zz"]
+
+
+def test_nan_never_reaches_the_store(runtime) -> None:
+    selector = {"type": "TextPositionSelector", "start": float("nan"), "end": float("inf")}
+    _unchanged(
+        runtime,
+        lambda: measures_write(runtime.store, analysis_id="a1", contributor_id="ana",
+                               author=AUTHOR, at=MOMENT,
+                               cells=[_cell(evidence=[{**EVIDENCE, "selectors": [selector]}])]),
+        r"NaN or infinite",
+    )
+
+
+def test_anchors_that_cannot_be_checked_first_are_refused(runtime) -> None:
+    _unchanged(
+        runtime,
+        lambda: criteria_set(runtime.store, analysis_id="a1", criteria=[
+            {"id": "c", "label": "C", "anchors": (row for row in ANCHORS)}]),
+        r"at \$\.criteria\[0\]\.anchors: pass a list",
+    )

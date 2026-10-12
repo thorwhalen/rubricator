@@ -167,9 +167,33 @@ class SchemaSource:
         ...              pointer="/properties/alternatives", root="$.alternatives")
         ["at $.alternatives[0]: Additional properties are not allowed ('url' was unexpected). Allowed here: description, groupIds, id, label, supersededBy, tombstoned"]
         """
+        return [line for line, _ in self.identified_refusals(value, pointer=pointer, root=root)]
+
+    def identified_refusals(
+        self, value: Any, *, pointer: str = "", root: str = "$"
+    ) -> list[tuple[str, str]]:
+        """:meth:`refusals`, each paired with an identity that survives a move.
+
+        The identity is the problem's *content* -- the rule broken, the path
+        with its indices dropped, and the offending value -- so one problem is
+        recognised as the same problem after a list around it was reordered,
+        and a new value breaking the same rule at the same place is not.
+        """
+        import json
+
         validator = self._fragment_validator(pointer)
         errors = sorted(validator.iter_errors(value), key=lambda e: [str(p) for p in e.path])
-        return [explain(e, root=root) for e in errors]
+        return [
+            (
+                explain(e, root=root),
+                json.dumps(
+                    [[p for p in e.absolute_path if not isinstance(p, int)], e.validator,
+                     e.message, e.instance],
+                    sort_keys=True, default=repr,
+                ),
+            )
+            for e in errors
+        ]
 
     def _fragment_validator(self, pointer: str) -> Any:
         from jsonschema import Draft202012Validator

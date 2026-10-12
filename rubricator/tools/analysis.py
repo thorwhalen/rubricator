@@ -1201,23 +1201,40 @@ def _put_frame(store: AnalysisStore, analysis_id: str, frame: dict[str, Any]) ->
     the check existed, or edited by hand, may already carry one; refusing every
     later write over it would lock the analysis, since each verb repairs only
     its own part and none could go first. Those stay visible where they are
-    read: ``analysis_get`` leaves them out of its views and names them.
+    read: ``analysis_get`` leaves them out of its views and names them. A
+    problem is recognised by its content, not its index, so a stored one that a
+    list reordering moved is still the stored one, and a new value breaking the
+    same rule in the same place is still new.
     """
     try:
-        before = set(_contract().refusals(_as_stored(store.frame(analysis_id))))
+        stored = _contract().identified_refusals(_as_stored(store.frame(analysis_id)))
     except (AnalysisNotFound, KeyError, ValueError):
-        before = set()
-    introduced = [p for p in _contract().refusals(_as_stored(frame)) if p not in before]
+        stored = []
+    before = {identity for _, identity in stored}
+    introduced = [
+        line for line, identity in _contract().identified_refusals(_as_stored(frame))
+        if identity not in before
+    ]
     if introduced:
         raise ValueError(_OFF_CONTRACT + "; ".join(introduced))
     store.put_frame(analysis_id, frame)
 
 
 def _as_stored(value: Any) -> Any:
-    """``value`` as the store will write it: a tuple is a JSON array once stored."""
+    """``value`` as the store will write it: a tuple is a JSON array once stored.
+
+    NaN and the infinities are refused here: Python's JSON would write them, and
+    every strict parser -- the companion's renderer among them -- refuses the file.
+    """
     import json
 
-    return json.loads(json.dumps(value))
+    try:
+        return json.loads(json.dumps(value, allow_nan=False))
+    except ValueError:
+        raise ValueError(
+            "refused, nothing was written: a number is NaN or infinite, which JSON cannot "
+            "carry and the companion's renderer refuses. Record a qualified blank instead."
+        ) from None
 
 
 def _unknown_keys(
@@ -1242,6 +1259,9 @@ def _unknown_keys(
     )
     for key in read_past:
         child = value.get(key)
+        if child is not None and not isinstance(child, (list, tuple, Mapping)):
+            found.append(f"at {path}.{key}: pass a list (or a mapping), so it can be checked "
+                         "before it is read")
         if isinstance(child, (list, tuple)):
             found += [
                 p for i, item in enumerate(child)
