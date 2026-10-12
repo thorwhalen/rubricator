@@ -54,6 +54,19 @@ SCALE_PRESETS: Mapping[str, Mapping[str, Any]] = {
 
 DEFAULT_SCALE = "ordinal-1-5-anchored"
 
+#: The fields of a criterion's structured definition, in the companion's
+#: spelling (comparanda #61). The shape is closed: any other key is refused.
+DEFINITION_FIELDS: tuple[str, ...] = (
+    "objective", "question", "evidenceRule", "missingRules", "exclusions",
+)
+
+#: The definition fields a criterion should carry to be scoreable (ADR-0016's
+#: 2026-08-21 amendment). Reported as gaps by ``criteria_set``, never refused:
+#: an under-defined criterion is unfinished, not dishonest (ADR-0024). Level,
+#: preference and the ordinal anchors are not listed because the scale preset
+#: always supplies the first two and the anchors are refused when missing.
+DEFINITION_EXPECTED: tuple[str, ...] = DEFINITION_FIELDS
+
 
 def analysis_open(store: AnalysisStore, *, analysis_id: str, question: str) -> dict[str, Any]:
     """Start an analysis. Writes the frame and nothing else.
@@ -133,11 +146,21 @@ def criteria_set(
 
     The expansion also writes a ``ScaleDeclaration`` row into the document, so a
     reader that has never heard of the scale still knows what it was.
+
+    A criterion may carry a structured ``definition`` (``objective``,
+    ``question``, ``evidenceRule``, ``missingRules: [{when, code}]``,
+    ``exclusions``), emitted as given. Authoring raises on an unknown definition
+    key, on a missing rule whose code neither the core vocabulary nor the
+    analysis nor the criterion defines (the companion's honesty rule
+    ``missing-rule-code-defined``), and on an anchor keyed to a level the scale
+    cannot take. Fields a criterion should have and does not are *reported* in
+    ``definitionGaps`` -- ADR-0024: incompleteness informs, it does not reject.
     """
     frame = store.frame(analysis_id)
     declared: dict[str, dict[str, Any]] = {d["id"]: d for d in frame.get("scales", [])}
     problems: list[str] = []
     out: list[dict[str, Any]] = []
+    gaps: dict[str, list[str]] = {}
 
     for c in criteria:
         scale_id = c.get("scale", DEFAULT_SCALE)
@@ -174,14 +197,29 @@ def criteria_set(
                     "requires": required,
                 }
 
-        out.append(
-            {
-                "id": c["id"],
-                "label": c["label"],
-                "defaultMeasurement": measurement,
-                "missingCodes": [dict(d) for d in c.get("missingCodes", [])],
-            }
-        )
+        if anchors:
+            problems.extend(_anchor_level_problems(c.get("id"), measurement, anchors))
+        criterion_codes = [dict(d) for d in c.get("missingCodes", [])]
+        definition = c.get("definition")
+        if definition is not None:
+            problems.extend(
+                _definition_problems(
+                    c.get("id"), definition, [*frame.get("missingCodes", []), *criterion_codes]
+                )
+            )
+        gap = [f for f in DEFINITION_EXPECTED if f not in (definition or {})]
+        if gap:
+            gaps[c["id"]] = gap
+
+        emitted = {
+            "id": c["id"],
+            "label": c["label"],
+            "defaultMeasurement": measurement,
+            "missingCodes": criterion_codes,
+        }
+        if definition is not None:
+            emitted["definition"] = _copy_definition(definition)
+        out.append(emitted)
         declared.setdefault(
             scale_id, {"id": scale_id, "broader": "stevens", "means": preset["means"], "params": {}}
         )
@@ -192,7 +230,13 @@ def criteria_set(
     frame["criteria"] = out
     frame["scales"] = [declared[k] for k in sorted(declared)]
     store.put_frame(analysis_id, frame)
-    return {"analysisId": analysis_id, "criteria": [c["id"] for c in out]}
+    return {
+        "analysisId": analysis_id,
+        "criteria": [c["id"] for c in out],
+        # Completeness, not a refusal: which definition fields each criterion
+        # still lacks. Empty when every criterion is fully defined.
+        "definitionGaps": gaps,
+    }
 
 
 def measures_write(
@@ -401,6 +445,75 @@ def report_completeness(store: AnalysisStore, *, analysis_id: str) -> dict[str, 
             for p in honesty_problems(merged)
         ],
     }
+
+
+def _anchor_level_problems(
+    criterion_id: Any, measurement: Mapping[str, Any], anchors: Mapping[str, Any]
+) -> list[str]:
+    """Anchors on levels the scale cannot take (the companion's #61 check).
+
+    Compared as strings, as the companion does: anchor keys are strings and
+    levels may be numbers.
+    """
+    declared = [str(lvl) for lvl in measurement.get("levels", [])]
+    keys = [*anchors, *measurement.get("anchors", {}).get("requires", [])]
+    bad = sorted({str(k) for k in keys if declared and str(k) not in declared})
+    if not bad:
+        return []
+    return [
+        f'criterion "{criterion_id}" has an anchor at level(s) {", ".join(bad)}, which the scale '
+        f"cannot take (levels: {', '.join(declared)}). An anchor on such a level is a condition "
+        "no score can ever meet."
+    ]
+
+
+def _definition_problems(
+    criterion_id: Any, definition: Any, declarations: Sequence[Mapping[str, Any]]
+) -> list[str]:
+    """Authoring checks on a structured definition: closed shape, resolvable codes."""
+    where = f'criterion "{criterion_id}" definition'
+    if not isinstance(definition, Mapping):
+        return [f"{where} must be an object with fields {', '.join(DEFINITION_FIELDS)}."]
+    problems: list[str] = []
+    extra = sorted(set(definition) - set(DEFINITION_FIELDS))
+    if extra:
+        problems.append(
+            f"{where} has unknown field(s) {', '.join(extra)}; the fields are "
+            f"{', '.join(DEFINITION_FIELDS)}. Anchors live on the scale (\"anchors\"), not here."
+        )
+    for f in ("objective", "question", "evidenceRule"):
+        if f in definition and not isinstance(definition[f], str):
+            problems.append(f"{where}.{f} must be a string.")
+    exclusions = definition.get("exclusions", [])
+    if not (isinstance(exclusions, list) and all(isinstance(e, str) for e in exclusions)):
+        problems.append(f"{where}.exclusions must be a list of strings (empty if none).")
+    rules = definition.get("missingRules", [])
+    if not isinstance(rules, list):
+        return [*problems, f"{where}.missingRules must be a list of {{when, code}}."]
+    for k, rule in enumerate(rules):
+        if not (
+            isinstance(rule, Mapping)
+            and set(rule) == {"when", "code"}
+            and all(isinstance(rule[x], str) for x in ("when", "code"))
+        ):
+            problems.append(f"{where}.missingRules[{k}] must be exactly {{when: str, code: str}}.")
+            continue
+        if vocabulary().resolve(rule["code"], declarations).source == "undeclared":
+            problems.append(
+                f'{where}.missingRules[{k}] tells raters to record "{rule["code"]}", which is '
+                "neither a core code nor declared on the analysis or this criterion. Name a core "
+                "code, or declare it in missingCodes with a broader parent and what it means."
+            )
+    return problems
+
+
+def _copy_definition(definition: Mapping[str, Any]) -> dict[str, Any]:
+    out = {k: definition[k] for k in DEFINITION_FIELDS if k in definition}
+    if "missingRules" in out:
+        out["missingRules"] = [dict(r) for r in out["missingRules"]]
+    if "exclusions" in out:
+        out["exclusions"] = list(out["exclusions"])
+    return out
 
 
 def _fresh_id(cell: Mapping[str, Any], key: tuple[str, str, str]) -> str:
