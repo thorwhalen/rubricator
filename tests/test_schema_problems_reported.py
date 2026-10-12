@@ -68,3 +68,12 @@ def test_a_criterion_declaration_stored_before_the_check_is_reported(runtime) ->
     report = bind(runtime)["report_completeness"](analysis_id="a1")
     assert [(p["path"], p["ruleId"]) for p in report["schemaProblems"]] == [
         ("criteria[0].missingCodes[0]", "no-redeclaring-core")]
+
+
+def test_the_summary_counts_declarations_not_rule_breaks(runtime) -> None:
+    """Review F1 of #168: one declaration breaking two rules is one declaration."""
+    _hand_edit(runtime, lambda f: f.__setitem__("missingCodes", [
+        {"id": "not-evidenced", "broader": "withheld", "means": "mine", "structural": True}]))
+    report = bind(runtime)["report_completeness"](analysis_id="a1")
+    assert len(report["schemaProblems"]) == 2
+    assert "; 1 declaration(s) the companion would refuse" in report["summary"]

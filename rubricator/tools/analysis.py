@@ -831,8 +831,9 @@ def report_completeness(store: AnalysisStore, *, analysis_id: str) -> dict[str, 
             f"{present} valued, {settled} settled blank(s), {outstanding} outstanding of "
             f"{applicable} applicable cell(s); silenceRate {rate(informative):.2f}"
             + (f"; {len(degradations)} code(s) this build could not interpret" if degradations else "")
-            + (f"; {len(declarations)} declaration(s) the companion would refuse (see "
-               "schemaProblems)" if declarations else "")
+            + (f"; {len({p.path for p in declarations})} declaration(s) the companion would "
+               "refuse (see schemaProblems), which the counts above honour as written"
+               if declarations else "")
             + skipped_note(skipped)
         ),
     }
