@@ -168,3 +168,58 @@ def test_nobody_can_squat_a_contributor_s_id_before_they_join(runtime, verbs) ->
     document, skipped = runtime.store.read_skipping("a1")
     assert [a["id"] for a in document["authors"]] == ["ana", "ben"]
     assert document["authors"][0].get("principalId") is None
+
+
+# -- review findings of #164 ---------------------------------------------------
+
+
+@pytest.mark.parametrize("damaged", [{"label": "no id"}, "a string", {"id": ["k2"]}],
+                         ids=["no id", "a string", "a list id"])
+def test_alternatives_set_still_repairs_a_damaged_stored_list(runtime, verbs, damaged) -> None:
+    """F1: the verb that replaces the rows must not crash on the rows it replaces."""
+    key = runtime.store.frame_key("a1")
+    frame = json.loads(runtime.store.blobs[key])
+    frame["alternatives"].append(damaged)
+    runtime.store.blobs[key] = json.dumps(frame).encode()
+    verbs["alternatives_set"](analysis_id="a1", alternatives=ROWS)
+    assert runtime.store.frame("a1")["alternatives"] == ROWS
+
+
+@pytest.mark.parametrize("axis, verb, kept", [
+    ("alternativeId", "alternatives_set", {"alternatives": ROWS[:1]}),
+    ("criterionId", "criteria_set", {"criteria": CRITERIA[:1]}),
+])
+def test_a_reference_that_is_not_a_string_still_guards_the_drop(
+    runtime, verbs, axis, verb, kept
+) -> None:
+    """F2: ``["noise"]`` names nothing yet, and names a dropped column once repaired."""
+    cell = {"alternativeId": "k2", "criterionId": "noise", "measure": "score", "assertions": []}
+    cell[axis] = [cell[axis]]
+    runtime.store.blobs[STRAY] = json.dumps({"authors": [], "cells": [cell]}).encode()
+    with pytest.raises(ValueError, match=f"cannot be read to tell"):
+        verbs[verb](analysis_id="a1", **kept)
+
+
+@pytest.mark.parametrize("own", [b"[]", b"null", json.dumps({"authors": [{"kind": "human"}],
+                                                            "cells": []}).encode()],
+                         ids=["a list", "null", "an author with no id"])
+def test_the_writer_s_own_oddly_shaped_file_refuses_cleanly(runtime, verbs, own) -> None:
+    """F3: a clear refusal, and the file left as it was."""
+    runtime.store.blobs[OWN] = own
+    with pytest.raises(ValueError, match="own file, is left out of every read"):
+        _write(verbs)
+    assert runtime.store.blobs[OWN] == own
+
+
+def test_adding_a_row_is_not_refused_over_an_undeclared_reference(runtime, verbs) -> None:
+    """F6: only a real drop is guarded, as criteria_set already did for columns."""
+    runtime.store.blobs[STRAY] = json.dumps({"authors": [], "cells": [
+        {"alternativeId": "zz", "criterionId": "noise", "measure": "score",
+         "assertions": []}]}).encode()
+    verbs["alternatives_set"](analysis_id="a1", alternatives=[*ROWS, {"id": "k3", "label": "3"}])
+    assert [a["id"] for a in runtime.store.frame("a1")["alternatives"]] == ["k1", "k2", "k3"]
+
+
+def test_an_empty_own_file_is_an_empty_contribution(runtime, verbs) -> None:
+    runtime.store.blobs[OWN] = b"{}"
+    assert _write(verbs)["written"] == 1
