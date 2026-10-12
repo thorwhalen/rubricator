@@ -34,6 +34,8 @@ from rubricator.surface import ToolSpec, bind, describe, frozen
 
 __all__ = ["make_server", "main"]
 
+_JSON = "application/json"
+
 _INSTRUCTIONS = """\
 Turns a pile of context into a defensible comparison: alternatives x criteria,
 with scores, confidence, justifications and citations back to spans in the
@@ -64,7 +66,41 @@ def make_server(runtime: Runtime | None = None, **kwargs: Any):
     retention_days = runtime.store.retention_days
     for name, verb in bind(runtime).items():
         server.add_tool(_tool_from_row(rows[name], verb, retention_days=retention_days))
+    server.add_template(_analysis_resource(runtime))
     return server
+
+
+def _analysis_resource(runtime: Runtime):
+    """The analysis document as a resource: what ``analysis_get view=full`` links to.
+
+    A link nobody can follow is not a link, so the one resource the frozen
+    surface already names is served here; the rest of the resource surface is
+    #66's. The body is the merged document, read fresh, never cached: it is the
+    record (ADR-0017), and a stale copy of a record is a second record.
+    """
+    import json
+
+    from fastmcp.resources import ResourceContent, ResourceResult, ResourceTemplate
+
+    from rubricator.tools.views import analysis_uri
+
+    def analysis_document(analysis_id: str) -> ResourceResult:
+        # The mime type is stated on the content, because a template's own
+        # mime_type does not reach a function's plain-string result.
+        body = json.dumps(runtime.store.read(analysis_id), ensure_ascii=False, sort_keys=True)
+        return ResourceResult([ResourceContent(body, mime_type=_JSON)])
+
+    # Concrete, not the postponed strings: the host resolves annotations in this
+    # module's globals, where the locally imported names do not exist.
+    analysis_document.__annotations__ = {"analysis_id": str, "return": ResourceResult}
+
+    return ResourceTemplate.from_function(
+        analysis_document,
+        uri_template=analysis_uri("{analysis_id}"),
+        name="analysis",
+        description="One analysis as a comparanda document: the frame and every contribution, merged.",
+        mime_type=_JSON,
+    )
 
 
 def _tool_from_row(spec: ToolSpec, verb: Callable[..., Any], *, retention_days: int):
