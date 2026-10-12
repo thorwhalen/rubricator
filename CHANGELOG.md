@@ -7,6 +7,14 @@ the same label are measuring different things, and the failure mode is silent.
 
 ---
 
+## 2026-10-12 — "Schema v1" now means the frozen, closed contract
+
+Re-vendors `comparanda.v1.json` and `vocabularies.v1.json` from the companion repository's immutable `schema-v1` tag ([thorwhalen/comparanda#57](https://github.com/thorwhalen/comparanda/issues/57), settled here in [#134](https://github.com/thorwhalen/rubricator/issues/134)). Each file is now pinned by sha256 in `rubricator/schema/pins.py`, and a test fails if the bytes move.
+
+**Two contracts carried the name v1, and this is the boundary between them.** Before it, the vendored schema was the pre-freeze artifact: open objects, so an unknown key passed. After it, every object is closed (`additionalProperties: false`), `schemaVersion` is `const: 1`, `suggestions[].proposed` is typed as an assertion, and an `aliases` pair must be given whole. A document that validated as "v1" before this date may be refused as "v1" after it. The vocabulary manifest's bytes did not change.
+
+---
+
 ## 2026-09-14 — Missingness reason codes, and the metric named after one
 
 Absorbs the companion repository's 2026-08-21 amendment to its ADR-0009

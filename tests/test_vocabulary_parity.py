@@ -21,12 +21,33 @@ from pathlib import Path
 
 import pytest
 
+from rubricator.schema.pins import PINS, SCHEMA_TAG, pin_problems
 from rubricator.schema.vocabulary import VOCABULARY_VERSION, vocabulary
 
 #: Where a developer checkout of the companion repository sits relative to this
 #: one. Absent on CI and on anyone else's machine, which is why the test that
 #: uses it skips rather than fails -- and why it is not the only test here.
 _SIBLING = Path(__file__).resolve().parents[2] / "comparanda" / "schema"
+
+
+def test_every_vendored_artifact_matches_its_content_hash_pin() -> None:
+    """The vendored files are the tagged artifacts, byte for byte.
+
+    Runs everywhere, unlike the sibling comparison below, because it needs only
+    this repository: the pin records what the tag held when it was copied.
+    """
+    assert pin_problems() == []
+    assert all(f"/{SCHEMA_TAG}/" in pin.source for pin in PINS.values())
+
+
+def test_a_moved_byte_or_an_unpinned_file_is_reported(tmp_path: Path) -> None:
+    """The check is not vacuous: it notices both directions of disagreement."""
+    for name in PINS:
+        (tmp_path / name).write_bytes(b"{}")
+    (tmp_path / "stray.v2.json").write_bytes(b"{}")
+    problems = pin_problems(directory=tmp_path)
+    assert len(problems) == len(PINS) + 1
+    assert any("stray.v2.json is vendored but has no pin" in p for p in problems)
 
 
 def test_the_vendored_manifest_is_readable_and_complete() -> None:
@@ -122,6 +143,8 @@ def test_the_vendored_copy_matches_the_companion_repository() -> None:
         vendored = Path(__file__).resolve().parents[1] / "rubricator" / "schema" / "comparanda" / name
         upstream = _SIBLING / name
         assert json.loads(vendored.read_text()) == json.loads(upstream.read_text()), (
-            f"{name} is stale. Re-copy it from the companion repository's schema/ directory; "
-            "it is a build artifact there and must not be hand-edited here."
+            f"{name} differs from the sibling checkout. Either the sibling has moved past "
+            f"the {SCHEMA_TAG} tag (re-vendor from the tag and update its pin in "
+            "rubricator/schema/pins.py only if a new version was published), or this copy "
+            "was hand-edited, which it must never be."
         )
