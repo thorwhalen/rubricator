@@ -154,6 +154,7 @@ def sign(
     evidence: list[dict[str, Any]] | None = None,
     independence: str | None = None,
     perturbation: Mapping[str, Any] | None = None,
+    criteria_version: str | None = None,
 ) -> dict[str, Any]:
     """Build one assertion, signed by ``author``.
 
@@ -178,6 +179,9 @@ def sign(
     and an unknown spelling raises here, at authoring, listing the known ones.
     ``perturbed`` requires ``perturbation`` (``{kind, seed?, detail?}``): a
     perturbation nobody recorded is indistinguishable from noise.
+
+    ``criteria_version`` is the criteria-set version the assertion was scored
+    against (ADR-0016); the tool layer stamps it from the frame, never the model.
 
     >>> sign({'id': 'bot'}, at='t', assertion_id='s1', value=3, independence='in-session')
     Traceback (most recent call last):
@@ -213,6 +217,8 @@ def sign(
         assertion["independence"] = independence
     if perturbation is not None:
         assertion["perturbation"] = dict(perturbation)
+    if criteria_version is not None:
+        assertion["criteriaVersion"] = criteria_version
     return assertion
 
 
