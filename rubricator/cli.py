@@ -48,9 +48,16 @@ def demo(root: str | None = None) -> int:
 
     Deliberately small and deliberately complete: one contributor signing under a
     persona, one scored cell with a rationale, one honest blank that moves
-    ``silenceRate``, and a completeness report. Every seam is on its default.
+    ``silenceRate``, and a completeness report. Every seam is on its default,
+    except two: with no ``root`` nothing is kept, so a demo never lands in the
+    user's working store; and the moment the assertions record is fixed, so the
+    output is reproducible. The store still dates its writes by the wall clock
+    (``retention_clock``), so a demo written to a directory is not already past
+    its retention window when ``show`` reads it.
     """
-    runtime = build_runtime(root=root, now=fixed_clock(_DEMO_MOMENT))
+    runtime = build_runtime(
+        root=root, blobs=None if root else {}, now=fixed_clock(_DEMO_MOMENT)
+    )
     store = runtime.store
     at = runtime.now()
     analysis_id = "demo"
@@ -150,16 +157,13 @@ def demo(root: str | None = None) -> int:
 
 
 def _show(store, analysis_id: str) -> int:
-    from rubricator.merge import merge_contributions
-
-    merged = merge_contributions(
-        store.frame(analysis_id),
-        store.contributions(analysis_id),
-        renditions=store.renditions(analysis_id),
-    )
+    merged = store.read(analysis_id)
     json.dump(merged, sys.stdout, indent=2, sort_keys=True, ensure_ascii=False)
     sys.stdout.write("\n")
     return 0
+
+
+_ROOT_HELP = "directory the analyses are in (default: the user-data working store)"
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -172,16 +176,29 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     p_show = sub.add_parser("show", help="print one merged analysis as JSON")
     p_show.add_argument("analysis_id")
-    p_show.add_argument("--root", required=True)
+    p_show.add_argument("--root", default=None, help=_ROOT_HELP)
 
     p_report = sub.add_parser("report", help="completeness counts for one analysis")
     p_report.add_argument("analysis_id")
-    p_report.add_argument("--root", required=True)
+    p_report.add_argument("--root", default=None, help=_ROOT_HELP)
 
     args = parser.parse_args(argv)
 
     if args.command == "demo":
         return demo(args.root)
+    try:
+        return _read_command(args)
+    except (KeyError, ValueError) as refusal:
+        # A refusal is a message for the person at the terminal, not a traceback:
+        # the same text the connector returns as a tool error (ADR-0026).
+        # A bare KeyError's str() is the repr of its message; its argument is the text.
+        plain = type(refusal) is KeyError and refusal.args
+        message = str(refusal.args[0]) if plain else str(refusal)
+        sys.stderr.write(f"rubricator: {message}\n")
+        return 1
+
+
+def _read_command(args: argparse.Namespace) -> int:
     runtime = build_runtime(root=args.root)
     if args.command == "show":
         return _show(runtime.store, args.analysis_id)

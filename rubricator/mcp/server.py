@@ -61,12 +61,13 @@ def make_server(runtime: Runtime | None = None, **kwargs: Any):
     runtime = runtime or build_runtime(**kwargs)
     server = mk_mcp_server([], name="rubricator", instructions=_INSTRUCTIONS)
     rows = frozen()
+    retention_days = runtime.store.retention_days
     for name, verb in bind(runtime).items():
-        server.add_tool(_tool_from_row(rows[name], verb))
+        server.add_tool(_tool_from_row(rows[name], verb, retention_days=retention_days))
     return server
 
 
-def _tool_from_row(spec: ToolSpec, verb: Callable[..., Any]):
+def _tool_from_row(spec: ToolSpec, verb: Callable[..., Any], *, retention_days: int):
     """One MCP tool: the row's contract over the bound verb.
 
     The wrapper's parameters carry no annotations and default to ``None``, so
@@ -91,7 +92,9 @@ def _tool_from_row(spec: ToolSpec, verb: Callable[..., Any]):
         )
 
     call.__name__ = spec.name
-    call.__doc__ = describe(spec)
+    # The window the model reads is the window this store keeps (ADR-0017).
+    description = describe(spec, retention_days=retention_days)
+    call.__doc__ = description
     # Concrete, not the postponed string: the host resolves annotations in the
     # function's module globals, where a locally imported name does not exist.
     call.__annotations__ = {"return": ToolResult}
@@ -105,7 +108,7 @@ def _tool_from_row(spec: ToolSpec, verb: Callable[..., Any]):
         ]
     )
     tool = Tool.from_function(
-        call, name=spec.name, description=describe(spec), output_schema=dict(spec.output_schema)
+        call, name=spec.name, description=description, output_schema=dict(spec.output_schema)
     )
     tool.parameters = dict(spec.input_schema)
     return tool
@@ -116,6 +119,10 @@ def main() -> None:  # pragma: no cover - process entry point
     import argparse
 
     parser = argparse.ArgumentParser(prog="rubricator-mcp")
-    parser.add_argument("--root", default=None, help="directory to store analyses in")
+    parser.add_argument(
+        "--root", default=None,
+        help="directory to store analyses in (default: the user-data working store, "
+        "moved by RUBRICATOR_DATA_DIR)",
+    )
     args = parser.parse_args()
     make_server(root=args.root).run()
