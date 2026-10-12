@@ -82,8 +82,11 @@ class TraversalPlan:
 
     ``provenance`` is not decoration. An analysis whose assertions were perturbed
     is only interpretable if a reader can tell *what* was varied and reproduce
-    it, and the companion schema has a ``perturbation`` field expecting exactly
-    this. A perturbation nobody recorded is indistinguishable from noise.
+    it. The companion schema's ``perturbation`` field is the closed
+    ``{kind, seed, detail}``, so this record is *summarised* into it (the seed as
+    ``seed``, the rest as ``detail``), never dropped in whole: the closed shape
+    refuses the extra keys. A perturbation nobody recorded is indistinguishable
+    from noise.
     """
 
     order: TraversalOrder

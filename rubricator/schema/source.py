@@ -3,9 +3,9 @@
 `rubricator` depends on `comparanda` for the analysis schema and validates at the
 boundary (ADR-0002). The dependency never runs the other way.
 
-**Why this facade exists at all.** The companion repo's schema is still being
-frozen, and the BRIEF anticipates exactly this: build against the domain model
-and a hand-written sketch until the real one lands. The danger is that the sketch
+**Why this facade exists at all.** The companion repo's schema was frozen as v1
+only after most of this package was built, and the BRIEF anticipated exactly
+this: build against the domain model and a hand-written sketch until the real one lands. The danger is that the sketch
 *works*, so nothing forces the swap, and eighteen tools quietly grow their own
 embedded copies of the shape. Then adopting the published artifact stops being a
 one-line change and becomes a sweep.
@@ -78,11 +78,13 @@ class SchemaSource:
     def sketch(cls) -> "SchemaSource":
         """The hand-written stand-in that ships with this package.
 
-        Provisional by construction. It exists so the tool layer can be built and
-        tested before the companion repo freezes v1, and it is deliberately
-        *narrower* than the real schema will be: it asserts only what this
-        package actually relies on, so that a document valid here has a good
-        chance of being valid there, and never the reverse.
+        Provisional by construction. It existed so the tool layer could be built
+        and tested before the companion repo froze v1, and now serves only as the
+        fallback when the vendored contract is missing. **It is not narrower than
+        the frozen schema**: the sketch's objects are open where v1's are closed,
+        and it still declares ``definition.anchors`` and ``definition.missingRule``,
+        which v1 refuses. A document valid here can be refused there -- which is
+        why the caveat below is never suppressed.
         """
         return cls(
             schema=json.loads(_SKETCH_PATH.read_text(encoding="utf-8")),

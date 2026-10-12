@@ -1,0 +1,3 @@
+# Vendored contract files are pinned by sha256 of their bytes (rubricator/schema/pins.py).
+# Never normalise line endings, or a Windows checkout fails the pin.
+rubricator/schema/comparanda/** -text
