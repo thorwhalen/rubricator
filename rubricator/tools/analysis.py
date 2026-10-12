@@ -135,6 +135,7 @@ def criteria_set(
     *,
     analysis_id: str,
     criteria: Sequence[Mapping[str, Any]],
+    editorial: Sequence[str] = (),
 ) -> dict[str, Any]:
     """Declare the criteria, expanding each one's named scale.
 
@@ -155,6 +156,19 @@ def criteria_set(
     ``missing-rule-code-defined``), and on an anchor keyed to a level the scale
     cannot take. Fields a criterion should have and does not are *reported* in
     ``definitionGaps`` -- ADR-0024: incompleteness informs, it does not reject.
+
+    **Versioning (ADR-0016).** The first call sets ``criteriaVersion`` to
+    ``"1"``. A later call that changes any existing criterion's meaning (see
+    :data:`rubricator.criteria_versions.MEANING_FIELDS`) moves it forward, and
+    each changed criterion's ``definedInVersion`` moves with it, so scores given
+    under the old meaning are reported as superseded. ``editorial`` names the
+    changed criteria whose edit moves no boundary -- the set version still
+    moves, so the edit is on record, but nothing is superseded. Material is the
+    default because the author is the only one who can say otherwise, and the
+    cautious mistake is re-scoring a cell, not trusting a stale one. Every
+    assertion written afterwards records the version it was scored against.
+    Dropping a criterion that any cell refers to is refused: removing it and
+    adding it back with a new meaning would otherwise slip past the version.
     """
     frame = store.frame(analysis_id)
     declared: dict[str, dict[str, Any]] = {d["id"]: d for d in frame.get("scales", [])}
@@ -228,12 +242,25 @@ def criteria_set(
     if problems:
         raise ValueError("; ".join(problems))
 
+    if isinstance(editorial, str):
+        raise TypeError("editorial is a list of criterion ids, not one string.")
+    revised = _revise_versions(store, analysis_id, frame, out, editorial=editorial)
+
+    from rubricator.criteria_versions import superseded_cells
+    from rubricator.merge import merge_contributions
+
     frame["criteria"] = out
     frame["scales"] = [declared[k] for k in sorted(declared)]
+    # Merged before the write, so anything that can raise does so with nothing
+    # stored: a retry then sees the same before-state and the same revision.
+    merged = merge_contributions(frame, store.contributions(analysis_id))
     store.put_frame(analysis_id, frame)
     return {
         "analysisId": analysis_id,
         "criteria": [c["id"] for c in out],
+        "criteriaVersion": frame["criteriaVersion"],
+        "revised": revised,
+        "supersededCells": superseded_cells(merged),
         # Completeness, not a refusal: which definition fields each criterion
         # still lacks. Empty when every criterion is fully defined.
         "definitionGaps": gaps,
@@ -248,14 +275,36 @@ def measures_write(
     author: Mapping[str, Any],
     at: str,
     cells: Sequence[Mapping[str, Any]],
+    expected_criteria_version: str | None = None,
 ) -> dict[str, Any]:
     """Write one contributor's scored cells.
+
+    ``expected_criteria_version``, when given, is the criteria-set version the
+    caller read before scoring; a mismatch is refused, because the stamp would
+    otherwise claim a version the scorer never saw.
 
     Writes **only that contributor's file**. Two people scoring the same matrix
     never touch the same key, which is what makes a shared git repository a
     viable backend with no locking protocol, and the merge into one document
     happens on read.
     """
+    from rubricator.criteria_versions import effective_version
+
+    frame = store.frame(analysis_id)
+    criteria_version = effective_version(frame.get("criteriaVersion"))
+    if expected_criteria_version is not None and expected_criteria_version != criteria_version:
+        raise ValueError(
+            f"refused, nothing was written: these scores were made against criteria version "
+            f'"{expected_criteria_version}", and the set is now at "{criteria_version}". Re-read '
+            "the criteria and re-score, so no score is stamped with a version it never saw."
+        )
+    known = {c["id"] for c in frame.get("criteria", [])}
+    unknown = sorted({c["criterionId"] for c in cells} - known)
+    if unknown:
+        raise KeyError(
+            f"refused, nothing was written: criteria {', '.join(unknown)} are not in this "
+            "analysis. Declare them with criteria_set first."
+        )
     contribution = _existing(store, analysis_id, contributor_id, author)
     index = {
         (c["alternativeId"], c["criterionId"], c["measure"]): c
@@ -287,6 +336,7 @@ def measures_write(
                 evidence=list(cell.get("evidence", [])),
                 independence=cell.get("independence"),
                 perturbation=cell.get("perturbation"),
+                criteria_version=criteria_version,
             )
         )
 
@@ -378,6 +428,7 @@ def report_completeness(store: AnalysisStore, *, analysis_id: str) -> dict[str, 
     the document: they are facts about this build, and storing one would make one
     reader's gap look like a property of the data.
     """
+    from rubricator.criteria_versions import superseded_cells
     from rubricator.merge import merge_contributions
     from rubricator.rules import honesty_problems
 
@@ -438,6 +489,10 @@ def report_completeness(store: AnalysisStore, *, analysis_id: str) -> dict[str, 
             {"axis": d.axis, "id": d.id, "at": d.at, "because": d.because, "broader": d.broader}
             for d in degradations
         ],
+        # Cells whose live scores answer an older definition of their criterion
+        # (ADR-0016). Reported beside the rates rather than folded into them, so
+        # the rates keep the companion's meaning.
+        "supersededCells": superseded_cells(merged),
         # Not completeness: the honesty problems the write-time hook could not
         # refuse (they sit on assertions already stored). Reported here so they
         # are seen; #61's analysis_validate is where they reject.
@@ -445,6 +500,69 @@ def report_completeness(store: AnalysisStore, *, analysis_id: str) -> dict[str, 
             {"path": p.path, "message": p.message, "fix": p.fix, "ruleId": p.rule_id}
             for p in honesty_problems(merged)
         ],
+    }
+
+
+def _revise_versions(
+    store: AnalysisStore,
+    analysis_id: str,
+    frame: dict[str, Any],
+    out: list[dict[str, Any]],
+    *,
+    editorial: Sequence[str],
+) -> dict[str, dict[str, Any]]:
+    """Set ``criteriaVersion`` and each ``definedInVersion`` on ``frame``/``out``.
+
+    Raises, writing nothing, on a referenced criterion being dropped and on an
+    ``editorial`` id that names no changed criterion. Returns what changed.
+    """
+    from rubricator.criteria_versions import meaning_changed, next_version
+
+    before = {c["id"]: c for c in frame.get("criteria", [])}
+    after_ids = {c["id"] for c in out}
+    referenced = {
+        cell["criterionId"]
+        for _, contribution in store.contributions(analysis_id)
+        for cell in contribution.get("cells", [])
+    }
+    dropped = sorted((set(before) - after_ids) & referenced)
+    if dropped:
+        raise ValueError(
+            f"criteria {', '.join(dropped)} would be dropped, but cells refer to them. Keep them "
+            "in the set (change their meaning, and the scores are reported as superseded), or "
+            "leave them be; a criterion with history is never deleted."
+        )
+    changed = {
+        c["id"]: fields
+        for c in out
+        if c["id"] in before and (fields := meaning_changed(before[c["id"]], c))
+    }
+    stray = sorted(set(editorial) - set(changed))
+    if stray:
+        raise ValueError(
+            f"editorial names {', '.join(stray)}, which did not change meaning in this call. "
+            "editorial lists only the changed criteria whose edit moves no boundary."
+        )
+
+    version = frame.get("criteriaVersion")
+    if changed:
+        version = next_version(version)
+    elif version is None:
+        version = "1"
+    frame["criteriaVersion"] = version
+    for c in out:
+        if c["id"] in changed and c["id"] not in editorial:
+            c["definedInVersion"] = version
+        elif before.get(c["id"], {}).get("definedInVersion") is not None:
+            c["definedInVersion"] = before[c["id"]]["definedInVersion"]
+        elif c["id"] not in before and before:
+            # Introduced (or re-introduced) into an existing set: any score on
+            # this id from before now -- a peer's file not yet pulled, a
+            # dropped-then-re-added column -- answered some other question.
+            c["definedInVersion"] = version
+    return {
+        cid: {"fields": fields, "material": cid not in editorial}
+        for cid, fields in sorted(changed.items())
     }
 
 
