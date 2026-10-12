@@ -301,17 +301,16 @@ def alternatives_set(
             f"refused, nothing was written: alternative ids {', '.join(dupes)} appear more than "
             "once. Two rows with one id would be one row with two labels."
         )
-    referenced = {
-        cell["alternativeId"]
-        for _, contribution in store.contributions(analysis_id)
-        for cell in contribution.get("cells", [])
-    }
+    referenced, unread = _references(store, analysis_id, "alternativeId")
     dropped = sorted(referenced - set(ids))
     if dropped:
         raise ValueError(
             f"refused, nothing was written: alternatives {', '.join(dropped)} would be dropped, "
             "but cells refer to them. Keep them in the set, or tombstone them."
         )
+    _refuse_a_blind_drop(
+        "alternatives", {a["id"] for a in frame.get("alternatives", [])} - set(ids), unread
+    )
     frame["alternatives"] = [dict(a) for a in alternatives]
     _put_frame(store, analysis_id, frame)
     return {
@@ -479,7 +478,13 @@ def criteria_set(
     frame["scales"] = [declared[k] for k in sorted(declared)]
     # Merged before the write, so anything that can raise does so with nothing
     # stored: a retry then sees the same before-state and the same revision.
-    merged = merge_contributions(frame, store.contributions(analysis_id))
+    # Merged from the files that merge (#156): the superseded-cells report is a
+    # report, not a guard, so a colleague's broken file leaves its cells out of
+    # it -- named in ``skipped`` -- rather than refusing this write.
+    contributions, skipped = store.mergeable_contributions(analysis_id, frame=frame)
+    merged = merge_contributions(
+        frame, contributions, contributors=store.contributors(analysis_id)
+    )
     _put_frame(store, analysis_id, frame)
     superseded = superseded_cells(merged)
     summary = f'{len(out)} criteria at version "{frame["criteriaVersion"]}"'
@@ -489,6 +494,11 @@ def criteria_set(
         summary += f"; {superseded['count']} cell(s) now answer an older definition"
     if gaps:
         summary += f"; {len(gaps)} under-defined"
+    if skipped:
+        summary += (
+            f"; {len(skipped)} stored file(s) could not be merged, so their cells are not in "
+            "supersededCells (see skipped)"
+        )
     return {
         "analysisId": analysis_id,
         "criteria": [c["id"] for c in out],
@@ -508,6 +518,7 @@ def criteria_set(
         # failure of generated rubrics; a cost scored "increasing" because
         # nobody said otherwise is exactly it, so the default is made visible.
         "defaultedPreference": defaulted,
+        "skipped": skipped,
         "summary": summary,
     }
 
@@ -613,7 +624,7 @@ def measures_write(
         raise ValueError(_OFF_CONTRACT + "; ".join(dict.fromkeys(off_contract)))
 
     contribution["cells"] = [index[k] for k in sorted(index)]
-    _refuse_dishonest(store, analysis_id, contributor_id, contribution, added=added)
+    skipped = _refuse_dishonest(store, analysis_id, contributor_id, contribution, added=added)
     store.put_contribution(analysis_id, contributor_id, contribution)
     valued = sum(1 for c in cells if c.get("value") is not None)
     return {
@@ -621,8 +632,9 @@ def measures_write(
         "contributorId": contributor_id,
         "written": len(cells),
         "criteriaVersion": criteria_version,
+        "skipped": skipped,
         "summary": f"{len(cells)} assertion(s) written for {contributor_id}: "
-        f"{valued} valued, {len(cells) - valued} qualified blank(s)",
+        f"{valued} valued, {len(cells) - valued} qualified blank(s)" + _skipped_clause(skipped),
     }
 
 
@@ -704,7 +716,8 @@ def measures_mark_missing(
         **result,
         "code": code,
         "marked": len(cells),
-        "summary": f'{len(cells)} cell(s) marked "{code}" for {contributor_id}',
+        "summary": f'{len(cells)} cell(s) marked "{code}" for {contributor_id}'
+        + _skipped_clause(result["skipped"]),
     }
 
 
@@ -816,11 +829,7 @@ def _revise_versions(
 
     before = {c["id"]: c for c in frame.get("criteria", [])}
     after_ids = {c["id"] for c in out}
-    referenced = {
-        cell["criterionId"]
-        for _, contribution in store.contributions(analysis_id)
-        for cell in contribution.get("cells", [])
-    }
+    referenced, unread = _references(store, analysis_id, "criterionId")
     dropped = sorted((set(before) - after_ids) & referenced)
     if dropped:
         raise ValueError(
@@ -828,6 +837,7 @@ def _revise_versions(
             "in the set (change their meaning, and the scores are reported as superseded), or "
             "leave them be; a criterion with history is never deleted."
         )
+    _refuse_a_blind_drop("criteria", set(before) - after_ids, unread)
     changed = {
         c["id"]: fields
         for c in out
@@ -1135,7 +1145,7 @@ def _refuse_dishonest(
     contribution: Mapping[str, Any],
     *,
     added: Sequence[tuple[tuple[str, str, str], str]],
-) -> None:
+) -> list[dict[str, str]]:
     """The write-time honesty hook (ADR-0024): refuse before the bytes land.
 
     Checks the document as it **would be merged** with this contribution in
@@ -1150,14 +1160,34 @@ def _refuse_dishonest(
     analysis over one cell. `comparanda` counts by difference for the same
     reason. Those problems stay visible: :func:`report_completeness` returns
     them as ``honestyProblems`` over the merged document.
+
+    **Checked against the document readers see** (#156): a colleague's file
+    that cannot be merged is left out, as every read leaves it out, and returned
+    so the result can name it. Its claims count once it is repaired, and any
+    problem they then raise is reported as a stored one. This contributor's own
+    file is different: if it is left out, this write would land where no reader
+    merges it, so that refuses, naming why. Returns the files left out.
     """
-    from rubricator.merge import merge_contributions
+    from rubricator.merge import MergeProblem, merge_contributions
     from rubricator.rules import honesty_problems
 
-    others = [(cid, c) for cid, c in store.contributions(analysis_id) if cid != contributor_id]
-    merged = merge_contributions(
-        store.frame(analysis_id), sorted([*others, (contributor_id, contribution)])
-    )
+    contributions, skipped = store.mergeable_contributions(analysis_id)
+    own_file = store.contribution_key(analysis_id, contributor_id)
+    for s in skipped:
+        if s["file"] == own_file:
+            raise ValueError(
+                f"refused, nothing was written: {own_file} is left out of every read, so this "
+                f"write would land where nobody merges it. Why: {s['because']}"
+            )
+    others = [(cid, c) for cid, c in contributions if cid != contributor_id]
+    try:
+        merged = merge_contributions(
+            store.frame(analysis_id),
+            sorted([*others, (contributor_id, contribution)]),
+            contributors=sorted({*store.contributors(analysis_id), contributor_id}),
+        )
+    except MergeProblem as problem:
+        raise ValueError(f"refused, nothing was written: {problem}") from problem
     # Matched by cell *and* id: a caller's ids need only be unique per cell, so
     # an id alone would pull in another cell's stored problem.
     own = {f"cells[{'/'.join(key)}].assertions[{contributor_id}:{a}]" for key, a in added}
@@ -1171,6 +1201,59 @@ def _refuse_dishonest(
             "refused, nothing was written: "
             + "; ".join(f"{p.path}: {p.message} Fix: {p.fix}" for p in problems)
         )
+    return skipped
+
+
+def _skipped_clause(skipped: Sequence[Mapping[str, str]]) -> str:
+    """The clause a write's summary carries when its honesty check left files out (#156)."""
+    if not skipped:
+        return ""
+    return (
+        f"; {len(skipped)} other stored file(s) could not be merged and were left out of the "
+        "honesty check (see skipped)"
+    )
+
+
+def _references(
+    store: AnalysisStore, analysis_id: str, key: str
+) -> tuple[set[str], list[str]]:
+    """Every id the stored cells refer to under ``key``, and the files that could not be read.
+
+    Read from **every** file that parses, mergeable or not (#156): a row or a
+    column with history is never deleted, and a file a reader skips -- a forged
+    author, say -- still holds that history for when it is repaired. A file that
+    does not parse cannot be consulted at all; the caller decides whether that
+    matters (:func:`_refuse_a_blind_drop`).
+    """
+    referenced: set[str] = set()
+    unread: list[str] = []
+    for contributor_id in store.contributors(analysis_id):
+        file = store.contribution_key(analysis_id, contributor_id)
+        try:
+            referenced |= {
+                ref for cell in store._read(file).get("cells", [])
+                if isinstance(ref := cell[key], str)
+            }
+        except (AttributeError, KeyError, TypeError, ValueError, RecursionError):
+            unread.append(file)
+    return referenced, unread
+
+
+def _refuse_a_blind_drop(axis: str, dropping: set[str], unread: Sequence[str]) -> None:
+    """Refuse dropping ``axis`` ids while a file that might refer to them cannot be read.
+
+    Skipping the file would let the drop through on a guess, and deleting a row
+    or column with history is the one thing these verbs never do. A write that
+    drops nothing is unaffected, so a colleague's broken file blocks only the
+    writes it could be a reason to block (#156).
+    """
+    if not (dropping and unread):
+        return
+    raise ValueError(
+        f"refused, nothing was written: this drops {axis} {', '.join(sorted(dropping))}, and "
+        f"{', '.join(unread)} cannot be read to tell whether its cells refer to them. Its owner "
+        f"repairs or removes it; or keep the {axis} in the set, or tombstone them."
+    )
 
 
 #: Assertion fields filled from an argument rather than from the cell, named at
@@ -1300,10 +1383,18 @@ def _existing(
     contributor_id: str,
     author: Mapping[str, Any],
 ) -> dict[str, Any]:
+    file = store.contribution_key(analysis_id, contributor_id)
     try:
-        contribution = store._read(store.contribution_key(analysis_id, contributor_id))
+        contribution = store._read(file)
     except KeyError:
         contribution = {"contributorId": contributor_id, "authors": [], "cells": []}
+    except (ValueError, RecursionError) as error:
+        # Refused rather than started afresh: a fresh file would overwrite
+        # whatever this contributor had, and that is theirs to repair.
+        raise ValueError(
+            f"refused, nothing was written: {file}, this contributor's own file, is not "
+            f"readable as JSON ({error}); this write would replace it. Repair or remove it first."
+        ) from None
     authors = {a["id"]: a for a in contribution["authors"]}
     authors.setdefault(author["id"], dict(author))
     contribution["authors"] = [authors[k] for k in sorted(authors)]

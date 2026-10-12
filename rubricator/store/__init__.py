@@ -96,7 +96,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Callable, Iterator, MutableMapping
+from typing import Any, Callable, Iterator, Mapping, MutableMapping
 
 from rubricator.clock import Clock, system_clock
 
@@ -558,29 +558,49 @@ class AnalysisStore:
         >>> document["cells"], [s["file"] for s in skipped]
         ([], ['analyses/a1/contributions/ben.json'])
         """
-        from rubricator.merge import author_collisions, merge_contributions
+        from rubricator.merge import merge_contributions
 
         frame = self.frame(analysis_id)
+        contributions, skipped = self.mergeable_contributions(analysis_id, frame=frame)
+        prefix = f"analyses/{analysis_id}/renditions/"
+        renditions = [
+            r
+            for key in sorted(k for k in self.blobs if k.startswith(prefix))
+            if (r := self._mergeable(
+                key, lambda d: merge_contributions(frame, [], renditions=[d]), skipped
+            )) is not None
+        ]
+        merged = merge_contributions(
+            frame, contributions, renditions=renditions,
+            contributors=self._contributor_ids(analysis_id),
+        )
+        return merged, skipped
+
+    def mergeable_contributions(
+        self, analysis_id: str, *, frame: Mapping[str, Any] | None = None
+    ) -> tuple[list[tuple[str, dict[str, Any]]], list[dict[str, str]]]:
+        """Every contribution that merges, in contributor-id order, and what was left out.
+
+        The contribution half of :meth:`read_skipping`, for a caller that merges
+        them itself -- a write path that puts its own new file in beside them
+        (#156). ``frame`` is what each file is tried against; it defaults to the
+        stored frame, and a write that is about to replace the frame passes the
+        new one.
+        """
+        from rubricator.merge import author_collisions, merge_contributions
+
+        frame = self.frame(analysis_id) if frame is None else frame
         merge_contributions(frame, [])
         roster = self._contributor_ids(analysis_id)
         skipped: list[dict[str, str]] = []
-
-        def mergeable(key: str, trial: Callable[[dict[str, Any]], Any]) -> dict[str, Any] | None:
-            try:
-                document = self._read(key)
-                trial(document)
-            except (AttributeError, KeyError, TypeError, ValueError, RecursionError) as error:
-                skipped.append({"file": key, "because": _why_unmergeable(error)})
-                return None
-            return document
-
         contributions = []
         for contributor_id in roster:
-            document = mergeable(
+            document = self._mergeable(
                 self.contribution_key(analysis_id, contributor_id),
                 lambda d, c=contributor_id: merge_contributions(
                     frame, [(c, d)], contributors=roster
                 ),
+                skipped,
             )
             if document is not None:
                 contributions.append((contributor_id, document))
@@ -590,18 +610,22 @@ class AnalysisStore:
             for c, why in collisions.items()
         ]
         skipped.sort(key=lambda s: s["file"])
-        contributions = [(c, d) for c, d in contributions if c not in collisions]
-        prefix = f"analyses/{analysis_id}/renditions/"
-        renditions = [
-            r
-            for key in sorted(k for k in self.blobs if k.startswith(prefix))
-            if (r := mergeable(key, lambda d: merge_contributions(frame, [], renditions=[d])))
-            is not None
-        ]
-        merged = merge_contributions(
-            frame, contributions, renditions=renditions, contributors=roster
-        )
-        return merged, skipped
+        return [(c, d) for c, d in contributions if c not in collisions], skipped
+
+    def _mergeable(
+        self,
+        key: str,
+        trial: Callable[[dict[str, Any]], Any],
+        skipped: list[dict[str, str]],
+    ) -> dict[str, Any] | None:
+        """The document at ``key`` if ``trial`` merges it; else ``None``, and why in ``skipped``."""
+        try:
+            document = self._read(key)
+            trial(document)
+        except (AttributeError, KeyError, TypeError, ValueError, RecursionError) as error:
+            skipped.append({"file": key, "because": _why_unmergeable(error)})
+            return None
+        return document
 
     # -- writing ------------------------------------------------------------
 
