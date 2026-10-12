@@ -197,3 +197,19 @@ The MCP server installs fast and light; the evaluation suite's weight stays out 
 11. [RAGAS: Automated Evaluation of Retrieval Augmented Generation — Es et al. (2023)](https://arxiv.org/abs/2309.15217)
 12. [HHEM-2.1-Open hallucination evaluation model — Vectara (2024)](https://huggingface.co/vectara/hallucination_evaluation_model)
 13. [MiniCheck: Efficient Fact-Checking of LLMs on Grounding Documents — Tang, Laban & Durrett (2024)](https://arxiv.org/abs/2404.10774)
+
+### 2026-10-12 — the harness skeleton: what a report is keyed by
+
+- **Deciders:** Thor Whalen
+
+The amendment above specifies what the suite measures and that the harness must exist; #86 builds its skeleton, `rubricator.evaluation`, and three of its shape decisions bind every check that plugs into it (#88–#94).
+
+**A report is identified by every version input that could have changed a number.** The record carries the harness version, the package version, the Python version, the SHA-256 of the frozen tool definitions (ADR-0026), the vendored schema's tag and per-file pins, every served prompt's version *and* the hash of its body (a prompt edited without a version bump is still a different prompt), the subject's name, configuration (the traversal arm, for #96) and model id — `null` when no model is involved, never guessed — the seed, each fixture's content hash, each metric's version and tier, and the bootstrap settings. The report's `runKey` is the SHA-256 of that record as canonical JSON; the run's time is recorded beside it and is not part of it. Reports are stored as `{runKey}/{time}.json` in `~/.local/share/rubricator/evaluations/`, so replicates of identical inputs accumulate under one prefix rather than overwrite one another.
+
+**One number per analysis, by interface.** A `Metric` returns one value per analysis — or `None` where it does not apply, which is counted and never averaged in as a zero — and the interval is a seeded percentile bootstrap over those values. Bootstrapping by analysis rather than by cell is therefore not a convention a check can forget: a per-cell quantity is reduced to its per-analysis value inside the metric, where the reduction is visible.
+
+**A failure on one fixture is recorded, not fatal.** A subject or metric that raises is recorded against the fixture and counted in the metric's `errors`; a metric with no usable value reports `n = 0` and no mean.
+
+`rubricator.stats` vendors Kendall's tau-b and the bootstrap in pure Python; `scipy` moved from the `eval` extra (now removed) to the `test` extra, where a test cross-checks the coefficient against it, and a test asserts no module in the package imports it.
+
+Refs #86.

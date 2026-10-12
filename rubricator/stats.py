@@ -1,0 +1,97 @@
+"""Vendored rank and resampling statistics: pure Python, so the package never needs ``scipy``.
+
+ADR-0008's 2026-08-21 amendment: ``scipy`` is a **test-only** extra. The
+coefficients here are small enough to vendor and are cross-checked against
+``scipy`` in the test suite, never imported from it at runtime, so the MCP server
+installs fast and light and the evaluation suite's weight stays out of it.
+
+Everything is deterministic given its inputs -- the bootstrap takes a seed, never
+a global random state -- because a report keyed by seed (#86) is only worth its
+key if the same seed reproduces the same interval.
+"""
+
+from __future__ import annotations
+
+import math
+import random
+from typing import Sequence
+
+__all__ = ["kendall_tau_b", "bootstrap_interval"]
+
+
+def kendall_tau_b(x: Sequence[float], y: Sequence[float]) -> float:
+    """Kendall's tau-b between two paired sequences, ties corrected.
+
+    The O(n^2) pair count: this project's sequences are criteria or analyses,
+    tens long, never millions. ``nan`` when either side is constant, which is
+    what ``scipy.stats.kendalltau`` returns and what a correlation of a constant
+    honestly is.
+
+    >>> kendall_tau_b([1, 2, 3, 4], [1, 2, 3, 4])
+    1.0
+    >>> kendall_tau_b([1, 2, 3, 4], [4, 3, 2, 1])
+    -1.0
+    >>> round(kendall_tau_b([1, 2, 2, 3], [1, 3, 2, 3]), 6)
+    0.8
+    """
+    if len(x) != len(y):
+        raise ValueError(f"kendall_tau_b needs paired sequences; got lengths {len(x)} and {len(y)}")
+    n = len(x)
+    concordant = discordant = ties_x = ties_y = 0
+    for i in range(n):
+        for j in range(i + 1, n):
+            dx, dy = x[i] - x[j], y[i] - y[j]
+            if dx == 0 and dy == 0:
+                continue
+            if dx == 0:
+                ties_x += 1
+            elif dy == 0:
+                ties_y += 1
+            elif (dx > 0) == (dy > 0):
+                concordant += 1
+            else:
+                discordant += 1
+    denominator = math.sqrt((concordant + discordant + ties_x) * (concordant + discordant + ties_y))
+    return (concordant - discordant) / denominator if denominator else math.nan
+
+
+def bootstrap_interval(
+    values: Sequence[float],
+    *,
+    seed: int,
+    resamples: int = 2000,
+    level: float = 0.95,
+) -> tuple[float, float]:
+    """A percentile bootstrap interval for the mean of ``values``.
+
+    **One value per analysis.** The unit resampled is whatever ``values`` holds,
+    and the evaluation runner only ever hands this one number per analysis: cells
+    within an analysis share a subject, a corpus and a traversal, so resampling
+    cells treats correlated measurements as independent and returns an interval
+    far narrower than the evidence supports (ADR-0008).
+
+    >>> bootstrap_interval([1.0, 1.0, 1.0], seed=0)
+    (1.0, 1.0)
+    >>> lo, hi = bootstrap_interval([0.0, 1.0, 0.5, 0.25], seed=7)
+    >>> 0.0 <= lo <= hi <= 1.0
+    True
+    """
+    if not values:
+        raise ValueError("bootstrap_interval needs at least one value")
+    if not 0 < level < 1:
+        raise ValueError(f"level must be strictly between 0 and 1; got {level!r}")
+    if resamples < 1:
+        raise ValueError(f"resamples must be at least 1; got {resamples!r}")
+    rng = random.Random(seed)
+    n = len(values)
+    means = sorted(sum(rng.choices(values, k=n)) / n for _ in range(resamples))
+    tail = (1 - level) / 2
+    return _quantile(means, tail), _quantile(means, 1 - tail)
+
+
+def _quantile(ordered: Sequence[float], q: float) -> float:
+    """Linear-interpolated quantile of an already sorted sequence."""
+    position = q * (len(ordered) - 1)
+    low = math.floor(position)
+    high = min(low + 1, len(ordered) - 1)
+    return ordered[low] + (ordered[high] - ordered[low]) * (position - low)
