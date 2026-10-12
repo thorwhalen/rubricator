@@ -47,7 +47,7 @@ class Pin:
     sha256: str
 
 
-#: One pin per vendored file, keyed by its file name under ``comparanda/``.
+#: One pin per vendored file, keyed by its path relative to ``comparanda/``.
 PINS: Mapping[str, Pin] = {
     "comparanda.v1.json": Pin(
         source=f"{_RAW}/comparanda.v1.json",
@@ -82,7 +82,8 @@ def pin_problems(
                 f"{name} hashes to {actual}, not its pin {pin.sha256}. Re-copy it from "
                 f"{pin.source}, or update the pin if the source moved on purpose."
             )
-    for path in sorted(directory.glob("*.json")):
-        if path.name not in pins:
-            problems.append(f"{path.name} is vendored but has no pin")
+    for path in sorted(directory.rglob("*.json")):
+        name = path.relative_to(directory).as_posix()
+        if name not in pins:
+            problems.append(f"{name} is vendored but has no pin")
     return problems

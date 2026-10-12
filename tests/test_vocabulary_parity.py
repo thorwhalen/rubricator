@@ -44,10 +44,11 @@ def test_a_moved_byte_or_an_unpinned_file_is_reported(tmp_path: Path) -> None:
     """The check is not vacuous: it notices both directions of disagreement."""
     for name in PINS:
         (tmp_path / name).write_bytes(b"{}")
-    (tmp_path / "stray.v2.json").write_bytes(b"{}")
+    (tmp_path / "v2").mkdir()
+    (tmp_path / "v2" / "stray.json").write_bytes(b"{}")
     problems = pin_problems(directory=tmp_path)
     assert len(problems) == len(PINS) + 1
-    assert any("stray.v2.json is vendored but has no pin" in p for p in problems)
+    assert any("v2/stray.json is vendored but has no pin" in p for p in problems)
 
 
 def test_the_vendored_manifest_is_readable_and_complete() -> None:
