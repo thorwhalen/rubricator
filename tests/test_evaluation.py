@@ -150,7 +150,7 @@ def test_a_failing_subject_or_metric_is_recorded_not_fatal(fixtures) -> None:
 
     report = _report(
         fixtures,
-        subject=Subject("flaky", flaky, model_id="m-1"),
+        subject=Subject("flaky", flaky, version="1", model_id="m-1"),
         suite=[*SUITE, Metric("picky", version=1, tier="ci", measure=picky)],
     )
     assert {(e["fixture"], e["stage"]) for e in report["errors"]} == {
@@ -185,12 +185,14 @@ def test_an_empty_or_ambiguous_suite_is_refused(fixtures) -> None:
 
 
 def test_the_report_records_every_version_input(fixtures) -> None:
-    versions = _report(fixtures, subject=Subject("arm", lambda f, s: f.expected, model_id="m-1"),
-                       seed=7)["versions"]
+    subject = Subject("arm", lambda f, s: f.expected, version="1", model_id="m-1")
+    versions = _report(fixtures, subject=subject, seed=7)["versions"]
     assert set(versions) == {
-        "harness", "package", "python", "toolSurface", "schema", "prompts", "subject", "model",
-        "seed", "fixtures", "suite", "bootstrap",
+        "harness", "package", "dependencies", "python", "toolSurface", "schema", "prompts",
+        "subject", "model", "seed", "fixtures", "suite", "bootstrap",
     }
+    assert len(versions["package"]["sourceSha256"]) == 64
+    assert set(versions["dependencies"]) == {"jsonschema", "dol"}
     assert versions["model"] == "m-1" and versions["seed"] == 7
     assert versions["prompts"]["score-cell"]["version"] == prompts()["score-cell"].version
     assert set(versions["fixtures"]) == {"ferries", "kettles"}
@@ -210,7 +212,17 @@ def test_every_version_input_moves_the_run_key_and_the_clock_does_not(fixtures) 
         "subject config": _report(
             fixtures, subject=replace(expected_subject(), config={"arm": "column-wise"})
         ),
-        "prompt body": _report(fixtures, prompts=edited_prompts),
+        "prompt body": _report(
+            fixtures, subject=replace(expected_subject(), prompts=edited_prompts)
+        ),
+        "subject version": _report(fixtures, subject=replace(expected_subject(), version="2")),
+        "subject code": _report(
+            fixtures, subject=replace(expected_subject(), run=lambda f, s: f.expected)
+        ),
+        "metric code": _report(
+            fixtures, suite=[replace(SUITE[0], measure=lambda f, p: 0.0), SUITE[1]]
+        ),
+        "minimum n": _report(fixtures, min_analyses=3),
         "fixture": _report(fixtures[:1]),
         "metric version": _report(fixtures, suite=[replace(SUITE[0], version=2), SUITE[1]]),
         "bootstrap": _report(fixtures, resamples=201),
@@ -218,7 +230,7 @@ def test_every_version_input_moves_the_run_key_and_the_clock_does_not(fixtures) 
     for what, report in changed.items():
         assert report["runKey"] != key, f"changing the {what} did not change the run key"
     tampered = json.loads(json.dumps(base["versions"]))
-    for field in ("harness", "package", "toolSurface", "schema", "python"):
+    for field in ("harness", "package", "dependencies", "toolSurface", "schema", "python"):
         before = tampered[field]
         tampered[field] = "something else"
         assert run_key(tampered) != key, field
@@ -269,3 +281,61 @@ def test_the_bootstrap_is_seeded_and_refuses_nonsense() -> None:
             bootstrap_interval(values, seed=1, **kwargs)
     with pytest.raises(ValueError, match="at least one"):
         bootstrap_interval([], seed=1)
+
+
+# --- found by the adversarial review of #147 --------------------------------
+
+
+def test_fixture_order_changes_neither_the_key_nor_the_numbers(fixtures) -> None:
+    assert _report(fixtures) == _report(list(reversed(fixtures)))
+
+
+def test_a_mutating_metric_cannot_corrupt_the_fixture_or_the_next_metric(fixtures) -> None:
+    def vandal(fixture, produced):
+        produced["alternatives"].clear()
+        fixture.expected["alternatives"].clear()
+        return 0.0
+
+    report = _report(fixtures, suite=[Metric("vandal", 1, "ci", vandal), SUITE[0]])
+    assert report["perAnalysis"]["ferries"]["alternatives"] == 3.0
+    assert len(fixtures[0].expected["alternatives"]) == 3
+
+
+def test_replicates_in_the_same_second_do_not_overwrite(fixtures) -> None:
+    store: dict[str, bytes] = {}
+    first = _report(fixtures)
+    second = json.loads(json.dumps(first))
+    second["perAnalysis"]["ferries"]["alternatives"] = 4.0  # a nonzero-temperature replicate
+    keys = {save_report(first, store), save_report(second, store)}
+    assert len(keys) == 2 == len(store)
+
+
+@pytest.mark.parametrize("config", [{1: "x"}, {"arm": ("a", "b")}, {"arm": {"a"}},
+                                    {"t": float("nan")}])
+def test_a_config_that_would_serialise_ambiguously_is_refused(fixtures, config) -> None:
+    with pytest.raises(TypeError, match="subject.config"):
+        _report(fixtures, subject=replace(expected_subject(), config=config))
+
+
+def test_one_analysis_gets_a_mean_and_no_interval(fixtures) -> None:
+    summary = _report(fixtures[:1])["metrics"]["alternatives"]
+    assert summary["n"] == 1 and summary["mean"] == 3.0 and summary["interval"] is None
+
+
+def test_duplicate_fixture_ids_are_refused(fixtures) -> None:
+    with pytest.raises(ValueError, match="unique"):
+        _report([*fixtures, fixtures[0]])
+
+
+@pytest.mark.parametrize("name", ["fixture.json", "expected.json"])
+def test_a_fixture_file_that_is_not_an_object_is_refused(name) -> None:
+    files = _fixture_bytes()
+    files[f"kettles/{name}"] = b"[1]"
+    with pytest.raises(ValueError, match="must be a JSON object"):
+        load_fixtures(files)
+
+
+def test_kendall_tau_b_is_nan_on_nan_like_scipy() -> None:
+    import math
+
+    assert math.isnan(kendall_tau_b([1.0, float("nan"), 3.0], [1, 2, 3]))

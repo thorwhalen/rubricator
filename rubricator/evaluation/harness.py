@@ -10,6 +10,13 @@ the bootstrap settings -- and is stored under the hash of exactly that record.
 Two reports with the same key were produced by the same inputs; two with
 different keys say, field by field, which input differs.
 
+What "the package" means is its **source**, not its version string: the version
+in ``pyproject.toml`` does not move between commits, so the record carries the
+SHA-256 of every file shipped in the package, and the versions of the
+dependencies a check could lean on. A subject and a metric each carry a declared
+``version`` *and* a fingerprint of their code where it can be read, because a
+declared version is the one input a person forgets to bump.
+
 ## The three things a run is made of
 
 - **Fixtures** (:func:`load_fixtures`): source documents plus an expected
@@ -36,7 +43,9 @@ model brings its own access (ADR-0019), and the harness only records its id.
 
 from __future__ import annotations
 
+import copy
 import hashlib
+import inspect
 import json
 import math
 import platform
@@ -47,12 +56,22 @@ from rubricator.clock import Clock, system_clock
 from rubricator.stats import bootstrap_interval
 
 __all__ = [
-    "HARNESS_VERSION", "Fixture", "Metric", "Subject", "expected_subject", "load_fixtures",
+    "HARNESS_VERSION", "MIN_ANALYSES_FOR_INTERVAL", "Fixture", "Metric", "Subject", "expected_subject", "load_fixtures",
     "version_inputs", "run_key", "run_suite", "report_store", "save_report",
 ]
 
 #: Bumped when the runner changes how a number is computed or reported.
 HARNESS_VERSION = 1
+
+#: The fewest analyses an interval is reported over. Below it the report gives
+#: the mean and no interval: one analysis resampled is a zero-width interval,
+#: which reads as certainty and is the opposite (ADR-0006). A keyword on
+#: :func:`run_suite`, recorded in the run key.
+MIN_ANALYSES_FOR_INTERVAL = 2
+
+#: The dependencies whose version could move a number -- the validator a schema
+#: check runs through, the store a fixture is read from.
+_RECORDED_DEPENDENCIES = ("jsonschema", "dol")
 
 #: ADR-0008's three tiers: every commit, nightly on fixtures, release on the full corpus.
 Tier = Literal["ci", "nightly", "release"]
@@ -86,7 +105,11 @@ class Metric:
     ``None`` when the check does not apply to this fixture (a citation check on a
     fixture with no citations). Bump ``version`` whenever the definition
     changes: it is part of the run key, and a silently redefined metric is a
-    trend line that lies.
+    trend line that lies. The source of ``measure`` is fingerprinted into the key
+    as well, where Python can read it, for the time the bump is forgotten.
+
+    Each call gets its own copy of the fixture and of the produced analysis, so a
+    metric that mutates what it is given cannot change what the next one sees.
     """
 
     name: str
@@ -100,16 +123,22 @@ class Metric:
 class Subject:
     """What produces an analysis from a fixture.
 
-    ``model_id`` is ``None`` when no model is involved -- recorded as such, never
-    guessed. ``config`` holds whatever else could change the output (the
-    traversal arm, a temperature where the runtime has one) and enters the run key
-    whole.
+    ``version`` is declared, like a metric's, and the source of ``run`` is
+    fingerprinted beside it. ``model_id`` is ``None`` when no model is involved --
+    recorded as such, never guessed. ``config`` holds whatever else could change
+    the output (the traversal arm, a temperature where the runtime has one) and
+    enters the run key whole, so it must be plain JSON: string keys, lists rather
+    than tuples, no sets -- anything else would either fail to serialise or
+    serialise ambiguously. ``prompts`` is the prompt set the subject is served,
+    when it is not the shipped one.
     """
 
     name: str
     run: Callable[[Fixture, int], Mapping[str, Any]]
+    version: str
     model_id: str | None = None
     config: Mapping[str, Any] = field(default_factory=dict)
+    prompts: Mapping[str, Any] | None = None
 
 
 def expected_subject() -> Subject:
@@ -118,7 +147,11 @@ def expected_subject() -> Subject:
     The baseline every metric should score perfectly on, which makes it the
     harness's self-test as well as the CI tier's subject.
     """
-    return Subject(name="expected", run=lambda fixture, seed: fixture.expected)
+    return Subject(name="expected", run=_replay, version="1")
+
+
+def _replay(fixture: Fixture, seed: int) -> Mapping[str, Any]:
+    return fixture.expected
 
 
 # ---------------------------------------------------------------------------
@@ -163,6 +196,13 @@ def _fixture(fixture_id: str, files: Mapping[str, bytes]) -> Fixture:
             f"{_EXPECTED} nor under {_SOURCES}."
         )
     meta = json.loads(files[_FIXTURE])
+    expected = json.loads(files[_EXPECTED])
+    for name, value in ((_FIXTURE, meta), (_EXPECTED, expected)):
+        if not isinstance(value, dict):
+            raise ValueError(
+                f"refused: {fixture_id}/{name} holds a {type(value).__name__}; it must be a "
+                "JSON object."
+            )
     if meta.get("id") != fixture_id:
         raise ValueError(
             f"refused: {fixture_id}/{_FIXTURE} says id {meta.get('id')!r}; the directory says "
@@ -176,7 +216,7 @@ def _fixture(fixture_id: str, files: Mapping[str, bytes]) -> Fixture:
     return Fixture(
         id=fixture_id,
         family=meta["family"],
-        expected=json.loads(files[_EXPECTED]),
+        expected=expected,
         sources={k[len(_SOURCES):]: v for k, v in files.items() if k.startswith(_SOURCES)},
         meta=meta,
         digest=digest.hexdigest(),
@@ -196,21 +236,22 @@ def version_inputs(
     suite: Sequence[Metric],
     resamples: int,
     level: float,
-    prompts: Mapping[str, Any] | None = None,
+    min_analyses: int,
 ) -> dict[str, Any]:
-    """Every input that could change a number in the report, as one JSON record.
-
-    ``prompts`` defaults to the shipped prompts; pass the set a subject was
-    actually served when it was not the shipped one.
-    """
+    """Every input that could change a number in the report, as one JSON record."""
     from rubricator.prompts import prompts as shipped_prompts
     from rubricator.schema.pins import PINS, SCHEMA_TAG
     from rubricator.surface.frozen import definitions_digest
 
-    served = shipped_prompts() if prompts is None else prompts
+    served = shipped_prompts() if subject.prompts is None else subject.prompts
     return {
         "harness": HARNESS_VERSION,
-        "package": {"name": "rubricator", "version": _package_version()},
+        "package": {
+            "name": "rubricator",
+            "version": _distribution_version("rubricator"),
+            "sourceSha256": _package_digest(),
+        },
+        "dependencies": {name: _distribution_version(name) for name in _RECORDED_DEPENDENCIES},
         "python": platform.python_version(),
         "toolSurface": {"definitionsSha256": definitions_digest()},
         "schema": {"tag": SCHEMA_TAG, "sha256": {k: p.sha256 for k, p in sorted(PINS.items())}},
@@ -218,12 +259,23 @@ def version_inputs(
             pid: {"version": p.version, "sha256": hashlib.sha256(p.body.encode()).hexdigest()}
             for pid, p in sorted(served.items())
         },
-        "subject": {"name": subject.name, "config": dict(subject.config)},
+        "subject": {
+            "name": subject.name,
+            "version": subject.version,
+            "sourceSha256": _source_digest(subject.run),
+            "config": _plain_json(subject.config, "subject.config"),
+        },
         "model": subject.model_id,
         "seed": seed,
         "fixtures": {f.id: f.digest for f in fixtures},
-        "suite": {m.name: {"version": m.version, "tier": m.tier} for m in suite},
-        "bootstrap": {"unit": "analysis", "resamples": resamples, "level": level},
+        "suite": {
+            m.name: {"version": m.version, "tier": m.tier, "sourceSha256": _source_digest(m.measure)}
+            for m in suite
+        },
+        "bootstrap": {
+            "unit": "analysis", "resamples": resamples, "level": level,
+            "minAnalyses": min_analyses,
+        },
     }
 
 
@@ -233,13 +285,66 @@ def run_key(versions: Mapping[str, Any]) -> str:
     return hashlib.sha256(canonical.encode()).hexdigest()
 
 
-def _package_version() -> str:
+def _distribution_version(name: str) -> str | None:
     from importlib.metadata import PackageNotFoundError, version
 
     try:
-        return version("rubricator")
+        return version(name)
     except PackageNotFoundError:  # pragma: no cover - running from an uninstalled tree
-        return "unknown"
+        return None
+
+
+def _package_digest() -> str:
+    """SHA-256 over every file shipped in the package, by relative path and bytes.
+
+    The version string does not move between commits; this does, with any change
+    to code, prompts or vendored schema. Caches excluded, because they are a
+    by-product of running, not an input to it.
+    """
+    from importlib.resources import files
+    from pathlib import Path
+
+    root = Path(str(files("rubricator")))
+    digest = hashlib.sha256()
+    for path in sorted(root.rglob("*")):
+        if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc":
+            digest.update(path.relative_to(root).as_posix().encode() + b"\0")
+            digest.update(hashlib.sha256(path.read_bytes()).digest())
+    return digest.hexdigest()
+
+
+def _source_digest(fn: Callable[..., Any]) -> str | None:
+    """SHA-256 of a function's source, or ``None`` where Python cannot read it.
+
+    A fingerprint, not a proof: it sees the function's own text and not what it
+    closes over or calls. It catches the common case -- an edited metric whose
+    version nobody bumped -- and the declared version carries the rest.
+    """
+    try:
+        return hashlib.sha256(inspect.getsource(fn).encode()).hexdigest()
+    except (OSError, TypeError):
+        return None
+
+
+def _plain_json(value: Any, where: str) -> Any:
+    """``value`` if it is plain JSON that serialises one way only; ``TypeError`` otherwise."""
+    if value is None or isinstance(value, (str, bool, int)):
+        return value
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            raise TypeError(f"{where} is {value!r}; a run key needs finite numbers")
+        return value
+    if isinstance(value, list):
+        return [_plain_json(v, f"{where}[{i}]") for i, v in enumerate(value)]
+    if isinstance(value, Mapping):
+        bad = [k for k in value if not isinstance(k, str)]
+        if bad:
+            raise TypeError(f"{where} has non-string keys {bad!r}; JSON keys are strings")
+        return {k: _plain_json(v, f"{where}.{k}") for k, v in value.items()}
+    raise TypeError(
+        f"{where} is a {type(value).__name__}; a run key holds plain JSON only (use a list for a "
+        "tuple or a set, so it cannot collide with one)"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -255,8 +360,8 @@ def run_suite(
     seed: int = 0,
     resamples: int = 2000,
     level: float = 0.95,
+    min_analyses: int = MIN_ANALYSES_FOR_INTERVAL,
     now: Clock = system_clock,
-    prompts: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run ``suite`` over ``fixtures`` and return the report.
 
@@ -265,27 +370,35 @@ def run_suite(
     crash on fixture 17 should not hide what fixtures 1-16 measured. A metric
     whose every value errored or did not apply reports ``n = 0`` and no mean --
     never a zero that looks like a score.
+
+    Fixtures run in id order whatever order they arrive in, because the bootstrap
+    draws by position and the run key records the set, not the order.
     """
-    fixtures = list(fixtures)
+    fixtures = sorted(fixtures, key=lambda f: f.id)
+    ids = [f.id for f in fixtures]
+    repeated = sorted({i for i in ids if ids.count(i) > 1})
+    if repeated:
+        raise ValueError(f"refused: fixture ids must be unique; repeated: {repeated}")
     subject = subject or expected_subject()
     _check_suite(suite)
     versions = version_inputs(
         subject=subject, seed=seed, fixtures=fixtures, suite=suite,
-        resamples=resamples, level=level, prompts=prompts,
+        resamples=resamples, level=level, min_analyses=min_analyses,
     )
     per_analysis: dict[str, dict[str, Any]] = {}
     errors: list[dict[str, str]] = []
     for fixture in fixtures:
         row: dict[str, Any] = {}
         try:
-            produced = subject.run(fixture, seed)
+            produced = subject.run(copy.deepcopy(fixture), seed)
         except Exception as exc:  # noqa: BLE001 - recorded, not swallowed
             errors.append({"fixture": fixture.id, "stage": "subject", "error": _describe(exc)})
             per_analysis[fixture.id] = {m.name: {"error": "subject failed"} for m in suite}
             continue
         for metric in suite:
             try:
-                row[metric.name] = _value(metric, metric.measure(fixture, produced))
+                value = metric.measure(copy.deepcopy(fixture), copy.deepcopy(produced))
+                row[metric.name] = _value(metric, value)
             except Exception as exc:  # noqa: BLE001 - recorded, not swallowed
                 errors.append({"fixture": fixture.id, "stage": metric.name, "error": _describe(exc)})
                 row[metric.name] = {"error": _describe(exc)}
@@ -295,7 +408,10 @@ def run_suite(
         "at": now(),
         "versions": versions,
         "metrics": {
-            m.name: _summarise(m, per_analysis, seed=seed, resamples=resamples, level=level)
+            m.name: _summarise(
+                m, per_analysis, seed=seed, resamples=resamples, level=level,
+                min_analyses=min_analyses,
+            )
             for m in suite
         },
         "perAnalysis": per_analysis,
@@ -325,7 +441,7 @@ def _value(metric: Metric, value: Any) -> float | None:
 
 def _summarise(
     metric: Metric, per_analysis: Mapping[str, Mapping[str, Any]], *, seed: int, resamples: int,
-    level: float,
+    level: float, min_analyses: int,
 ) -> dict[str, Any]:
     cells = [row.get(metric.name) for row in per_analysis.values()]
     values = [v for v in cells if isinstance(v, float)]
@@ -341,6 +457,7 @@ def _summarise(
     }
     if values:
         summary["mean"] = sum(values) / len(values)
+    if len(values) >= min_analyses:
         summary["interval"] = list(
             bootstrap_interval(values, seed=seed, resamples=resamples, level=level)
         )
@@ -372,13 +489,16 @@ def save_report(
 ) -> str:
     """Write ``report`` under its run key and time; the key written.
 
-    ``{runKey}/{at}.json``: every report produced by the same inputs sits under
-    one prefix, and none overwrites another -- a model run at nonzero temperature
-    is a replicate worth keeping, not a duplicate to discard.
+    ``{runKey}/{at}-{content hash}.json``: every report produced by the same
+    inputs sits under one prefix, and none overwrites another -- a model run at
+    nonzero temperature is a replicate worth keeping, not a duplicate to discard.
+    The content hash is what separates two replicates finished in the same
+    second; two reports that collide on it are the same bytes.
     """
     store = report_store() if store is None else store
-    stamp = str(report["at"]).replace(":", "")
-    key = f"{report['runKey']}/{stamp}.json"
     payload = json.dumps(report, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+    stamp = str(report["at"]).replace(":", "")
+    content = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+    key = f"{report['runKey']}/{stamp}-{content}.json"
     store[key] = payload.encode("utf-8")
     return key

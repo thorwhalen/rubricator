@@ -33,9 +33,13 @@ def kendall_tau_b(x: Sequence[float], y: Sequence[float]) -> float:
     -1.0
     >>> round(kendall_tau_b([1, 2, 2, 3], [1, 3, 2, 3]), 6)
     0.8
+    >>> kendall_tau_b([1, float("nan"), 3], [1, 2, 3])
+    nan
     """
     if len(x) != len(y):
         raise ValueError(f"kendall_tau_b needs paired sequences; got lengths {len(x)} and {len(y)}")
+    if any(v != v for v in (*x, *y)):  # NaN compares unequal to itself
+        return math.nan
     n = len(x)
     concordant = discordant = ties_x = ties_y = 0
     for i in range(n):
