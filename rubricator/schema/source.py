@@ -196,14 +196,15 @@ class SchemaSource:
         ]
 
     def _fragment_validator(self, pointer: str) -> Any:
-        from jsonschema import Draft202012Validator
-
+        # Evolved from the whole-schema validator rather than built on the bare
+        # node, so a ``$ref`` inside the fragment (``#/$defs/author``) still
+        # resolves against the document it was written in.
         cache = self.__dict__.setdefault("_fragments", {})
         if pointer not in cache:
             node: Any = self.schema
             for part in filter(None, pointer.split("/")):
                 node = node[part.replace("~1", "/").replace("~0", "~")]
-            cache[pointer] = Draft202012Validator(node)
+            cache[pointer] = self._validator.evolve(schema=node)
         return cache[pointer]
 
     def validate(self, document: Any) -> "ValidationResult":
