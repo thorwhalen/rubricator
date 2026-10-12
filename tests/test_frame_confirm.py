@@ -172,7 +172,13 @@ def test_a_criteria_revision_keeps_the_gate_open_and_says_the_set_moved() -> Non
         {"id": "speed", "label": "Speed from cold", "anchors": ANCHORS}])
     assert _score(verbs)["criteriaVersion"] == "2"
     got = verbs["frame_confirm"](analysis_id="a1")
-    assert got["confirmed"] is True and 'from version "1" to "2"' in got["summary"]
+    assert got["confirmed"] is True and 'now at "2"' in got["summary"]
+    assert got["instructions"] == OUT_OF_BAND_INSTRUCTIONS
+    # Following that advice records a fresh confirm of the new version.
+    again = verbs["frame_confirm"](analysis_id="a1", decision="confirm", confirmed_by="ana",
+                                   confirmation_text="Yes, version 2 too.")
+    assert again["record"]["criteriaVersion"] == "2"
+    assert "nothing to ask" in verbs["frame_confirm"](analysis_id="a1")["summary"]
 
 
 # --- the explicit skip --------------------------------------------------------
@@ -231,3 +237,72 @@ def test_over_mcp_a_client_without_elicitation_gets_the_out_of_band_path() -> No
     asyncio.run(server.call_tool("analysis_open", {"analysis_id": "a1", "question": "q"}))
     got = asyncio.run(server.call_tool("frame_confirm", {"analysis_id": "a1"})).structured_content
     assert (got["confirmed"], got["mechanism"]) == (False, "out-of-band")
+
+
+# --- the review's findings, kept failing-able ----------------------------------
+
+
+def test_two_branches_answering_the_gate_leave_two_files_and_a_revise_survives() -> None:
+    """ADR-0017: no two contributors write the same key, so git cannot drop a revise."""
+    base: dict[str, bytes] = {}
+    _, verbs = _verbs(base)
+    _framed(verbs)
+    _ask_and_answer(verbs)
+    ana, ben = dict(base), dict(base)
+    _ask_and_answer(_verbs(ana)[1], decision="revise")
+    _ask_and_answer(_verbs(ben)[1], decision="reject")
+    new_ana = {k for k in ana if k.endswith(".json") and "/confirmations/" in k} - set(base)
+    new_ben = {k for k in ben if k.endswith(".json") and "/confirmations/" in k} - set(base)
+    assert len(new_ana) == len(new_ben) == 1 and new_ana.isdisjoint(new_ben)
+    merged = {**ana, **ben}  # what a clean git merge leaves: both files
+    _, after = _verbs(merged)
+    with pytest.raises(ValueError, match="not confirmed"):
+        _score(after)
+
+
+def test_a_future_dated_confirm_cannot_outrank_a_later_revise() -> None:
+    """Order is write order, never a caller-supplied moment."""
+    _, verbs = _verbs()
+    _framed(verbs)
+    verbs["frame_confirm"](analysis_id="a1")
+    verbs["frame_confirm"](analysis_id="a1", decision="confirm", confirmed_by="ana",
+                           confirmation_text="yes", at="2099-01-01T00:00:00Z")
+    _ask_and_answer(verbs, decision="revise")
+    with pytest.raises(ValueError, match="not confirmed"):
+        _score(verbs)
+
+
+@pytest.mark.parametrize("raw", [
+    b"not json", b"[]", b'{"decision": "confirm", "scope": "all"}',
+    b'{"decision": "confirm", "scope": "all", "authorId": " ", "text": "x", "at": "t"}',
+    b'{"decision": "skip", "scope": "all", "at": "t"}',
+])
+def test_a_malformed_record_closes_the_gate_and_locks_nothing_else(raw) -> None:
+    runtime, verbs = _verbs()
+    _framed(verbs)
+    runtime.store.blobs["analyses/a1/confirmations/000099-zz.json"] = raw
+    with pytest.raises(ValueError, match="cannot be read as a decision"):
+        _score(verbs)
+    assert verbs["analysis_open"](analysis_id="a1")["stage"] == 4
+    assert verbs["analysis_get"](analysis_id="a1")["stage"] == 4
+    got = verbs["frame_confirm"](analysis_id="a1")
+    assert got["confirmed"] is False and got["record"] is None
+
+
+def test_a_new_analysis_inherits_no_leftover_confirmation() -> None:
+    runtime, verbs = _verbs()
+    _framed(verbs)
+    _ask_and_answer(verbs)
+    for key in [k for k in runtime.store.blobs if "/confirmations/" not in k]:
+        del runtime.store.blobs[key]  # the frame removed outside the surface
+    _framed(verbs)
+    with pytest.raises(ValueError, match="not confirmed"):
+        _score(verbs)
+
+
+def test_a_skip_overruled_by_a_later_revise_cannot_be_reasserted_on_reopen() -> None:
+    _, verbs = _verbs()
+    _framed(verbs, allow_skip_confirmation=True)
+    _ask_and_answer(verbs, decision="revise")
+    with pytest.raises(ValueError, match="closed the gate since"):
+        verbs["analysis_open"](analysis_id="a1", allow_skip_confirmation=True)

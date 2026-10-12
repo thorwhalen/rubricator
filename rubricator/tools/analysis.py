@@ -152,11 +152,16 @@ def analysis_open(
     document, unreadable = _live_document(store, analysis_id)
     if document is not None:
         records = store.confirmations(analysis_id)
-        if allow_skip_confirmation and not any(r.get("decision") == "skip" for r in records):
+        skipped = any(r.get("decision") == "skip" for r in records)
+        if allow_skip_confirmation and not (skipped and gate(records)["open"]):
+            # A retry of the create that skipped is fine. Anything else would
+            # be a skip added after the fact, or one that a later revise has
+            # already overruled -- both silently ignored if not refused.
             raise ValueError(
                 f'refused, nothing was written: "{analysis_id}" already exists, and skipping the '
-                "confirmation can only be chosen when an analysis is created. Put the frame and "
-                "criteria to the user with frame_confirm instead."
+                "confirmation can only be chosen when an analysis is created"
+                + (", and a later decision has closed the gate since" if skipped else "")
+                + ". Put the frame and criteria to the user with frame_confirm instead."
             )
         n_alt = sum(1 for a in document.get("alternatives", []) if not a.get("tombstoned"))
         n_crit = sum(1 for c in document.get("criteria", []) if not c.get("tombstoned"))
@@ -215,8 +220,11 @@ def analysis_open(
     if at:
         frame["createdAt"] = at
     store.put_frame(analysis_id, frame)
+    # A new analysis inherits no gate: a records directory left behind when a
+    # frame was removed outside the surface must not confirm this one.
+    store.clear_confirmations(analysis_id)
     if allow_skip_confirmation:
-        store.put_confirmations(analysis_id, [skip_record(at=at)])
+        store.add_confirmation(analysis_id, skip_record(at=at))
     return {
         "analysisId": analysis_id,
         "created": True,

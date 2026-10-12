@@ -62,8 +62,30 @@ OUT_OF_BAND_INSTRUCTIONS = (
 )
 
 
+def _kind(record: Mapping[str, Any]) -> str:
+    """What a stored record is: ``request``, ``open``, ``close`` or ``invalid``.
+
+    Read strictly, because the store is a shared repository a person can edit:
+    a ``confirm`` opens only with an author and words, a skip only with the
+    mechanism ``analysis_open`` writes, and anything else -- an unreadable file,
+    an unknown decision, a missing field -- closes every part until it is
+    repaired. A malformed record must never be what opens the gate.
+    """
+    def said(key: str) -> bool:
+        return isinstance(record.get(key), str) and bool(record[key].strip())
+
+    decision, scope = record.get("decision"), record.get("scope")
+    if decision == _REQUESTED and scope in SCOPES:
+        return "request"
+    if decision == _SKIP and scope == "all" and record.get("mechanism") == "skip-at-open" and said("at"):
+        return "open"
+    if decision in DECISIONS and scope in SCOPES and said("authorId") and said("text") and said("at"):
+        return "open" if DECISIONS[decision] else "close"
+    return "invalid"
+
+
 def _covers(record: Mapping[str, Any], part: str) -> bool:
-    return record.get("scope") in ("all", part)
+    return _kind(record) == "invalid" or record.get("scope") in ("all", part)
 
 
 def gate(records: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
@@ -71,23 +93,25 @@ def gate(records: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
 
     ``open`` is true when every part's latest decision opens the gate. A
     request (an out-of-band question asked and not yet answered) decides
-    nothing.
+    nothing; an invalid record decides every part, closed.
     """
     deciding: dict[str, Mapping[str, Any] | None] = {}
     for part in PARTS:
-        decided = [
-            r for r in records if r.get("decision") != _REQUESTED and _covers(r, part)
-        ]
+        decided = [r for r in records if _kind(r) != "request" and _covers(r, part)]
         deciding[part] = decided[-1] if decided else None
-    closed = [
-        part for part, r in deciding.items()
-        if r is None or not (r.get("decision") == _SKIP or DECISIONS.get(r.get("decision"), False))
-    ]
-    return {"open": not closed, "closed": closed, "deciding": deciding}
+    closed = [part for part, r in deciding.items() if r is None or _kind(r) != "open"]
+    invalid = [r for r in records if _kind(r) == "invalid"]
+    return {"open": not closed, "closed": closed, "deciding": deciding, "invalid": invalid}
 
 
 def _closed_message(state: Mapping[str, Any]) -> str:
     parts = ", ".join(state["closed"])
+    if state["invalid"]:
+        return (
+            f"{len(state['invalid'])} stored confirmation record(s) cannot be read as a decision "
+            f"({', '.join(sorted(str(r.get('key', r.get('decision'))) for r in state['invalid']))}), "
+            "so the gate is closed until whoever edited them repairs or removes them. "
+        )
     return (
         f"the user has not confirmed the {parts} (ADR-0005 step 4), and no measure is written "
         "before they do. Call frame_confirm to put the frame and criteria to them; open the "
@@ -138,12 +162,14 @@ def record_decision(
         "criteriaVersion": effective_version(frame.get("criteriaVersion")),
         "mechanism": mechanism,
     }
-    store.put_confirmations(analysis_id, [*store.confirmations(analysis_id), record])
+    store.add_confirmation(analysis_id, record)
     return record
 
 
 def _shown(record: Mapping[str, Any] | None) -> dict[str, Any] | None:
-    if record is None:
+    # Only a record that is a decision is shown; an invalid one is named in the
+    # summary instead, because its fields are whatever someone typed.
+    if record is None or _kind(record) not in ("open", "close"):
         return None
     keys = ("authorId", "at", "text", "criteriaVersion", "decision", "scope", "mechanism")
     return {k: record[k] for k in keys if k in record}
@@ -187,23 +213,35 @@ def frame_confirm(
             "record": _shown(record), "instructions": instructions, "summary": summary,
         }
 
+    def ask() -> None:
+        """Note that the question is being put to the user, once per pending question."""
+        last = records[-1] if records else None
+        if not (last and _kind(last) == "request" and last.get("scope") == scope):
+            store.add_confirmation(analysis_id, {
+                "decision": _REQUESTED, "scope": scope, "at": at, "mechanism": "out-of-band",
+            })
+
     if decision is None:
         if state["open"]:
             deciding = state["deciding"]["criteria"]
-            moved = deciding.get("criteriaVersion") not in (None, current)
+            version = deciding.get("criteriaVersion")
+            if version in (None, current):
+                return result(
+                    True, "recorded", deciding, None,
+                    f"already confirmed by {deciding.get('authorId', 'agent')} at {deciding['at']}; "
+                    "nothing to ask",
+                )
+            # The set has moved since: scoring stays open (ADR-0005's gate opens
+            # both ways), but the question is put again so a fresh confirm of
+            # the new version can be recorded.
+            ask()
             return result(
-                True, "recorded", deciding, None,
-                f"already confirmed by {deciding['authorId']} at {deciding['at']}"
-                + (f'; the criteria have moved from version "{deciding["criteriaVersion"]}" to '
-                   f'"{current}" since -- ask again if the change matters to the user'
-                   if moved else "; nothing to ask"),
+                True, "recorded", deciding, OUT_OF_BAND_INSTRUCTIONS,
+                f'confirmed by {deciding.get("authorId", "agent")} at version "{version}"; the criteria are '
+                f'now at "{current}", so put them to the user again and record their answer.',
             )
-        asked = records and records[-1].get("decision") == _REQUESTED and records[-1].get("scope") == scope
-        if not asked:
-            store.put_confirmations(analysis_id, [
-                *records, {"decision": _REQUESTED, "scope": scope, "at": at, "mechanism": "out-of-band"},
-            ])
-        last = next((r for r in reversed(records) if r.get("decision") != _REQUESTED), None)
+        ask()
+        last = next((r for r in reversed(records) if _kind(r) != "request"), None)
         return result(
             False, "out-of-band", last, OUT_OF_BAND_INSTRUCTIONS,
             f"not confirmed: {_closed_message(state)} Ask the user now.",
@@ -223,11 +261,11 @@ def frame_confirm(
     # the only thing a model could fabricate with it is more caution.
     last_request = max(
         (i for i, r in enumerate(records)
-         if r.get("decision") == _REQUESTED and r.get("scope") in ("all", scope)),
+         if _kind(r) == "request" and r.get("scope") in ("all", scope)),
         default=-1,
     )
     unasked = last_request < 0 or any(
-        r.get("decision") != _REQUESTED for r in records[last_request + 1:]
+        _kind(r) != "request" for r in records[last_request + 1:]
     )
     if DECISIONS[decision] and unasked:
         return result(

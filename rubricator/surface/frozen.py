@@ -445,10 +445,14 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
             "(mechanism=recorded) so a resumed session does not re-ask; otherwise you get "
             "instructions to ask the user in chat. Then call again with their decision, "
             "confirmed_by and their reply verbatim as confirmation_text. A confirm is recorded "
-            "only in answer to a question asked since the last decision. The tool never "
-            "confirms on its own behalf; the record is authored and timestamped."
+            "only in answer to a question asked since the last decision; if the criteria moved "
+            "after a confirmation you get instructions to ask again. The tool never confirms "
+            "on its own behalf; the record is authored and timestamped."
         ),
-        determinism="It records a decision; it does not make one.",
+        determinism=(
+            "It records a decision; it does not make one. A call with no decision writes one "
+            "record noting that the question was asked."
+        ),
         failure="A call that carries no human decision and cannot elicit one returns confirmed=false with instructions, never an error.",
         input_schema=obj(
             {"analysis_id": S, "scope": enum("all", "frame", "alternatives", "criteria"),
@@ -957,11 +961,11 @@ MEASURED: Mapping[str, Any] = {
     "measuredAt": "2026-10-12",
     "model": "claude-sonnet-5-5",
     "advertised": {
-        "tools": 14, "tokens": 7875, "bytes": 18741,
-        "sha256": "7ff1b529bea5a557460aa1cf3d05471ff3d7b4d78819bb02b8ac6c94ad09c4ca",
+        "tools": 14, "tokens": 7917, "bytes": 18897,
+        "sha256": "ca76e767cdb31c6f97e621701ff9afb5248f19a79d3d75ce4d7f8516286d4d41",
     },
     "wholeSurface": {
-        "tools": 22, "tokens": 10750, "bytes": 26051,
-        "sha256": "5a118ed0bbfda216b6fbd1600d41ec5c0c6cf71ea73f557c9f53b97b06c8c00f",
+        "tools": 22, "tokens": 10792, "bytes": 26207,
+        "sha256": "4f0f6e6e5422fea75a253bedd2050f09e89a23820750bebcdeef7ffc204c4b48",
     },
 }

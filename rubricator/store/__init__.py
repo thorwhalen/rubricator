@@ -16,6 +16,7 @@ port would be a method on something that is already a Mapping.
     analyses/{analysis_id}/frame.json
     analyses/{analysis_id}/contributions/{contributor_id}.json
     analyses/{analysis_id}/renditions/{rendition_id}.json
+    analyses/{analysis_id}/confirmations/{sequence}-{digest}.json
 
 **One file per contributor.** That is not a filing convention; it is what makes
 a shared git repository a viable backend without a locking protocol. Two people
@@ -28,6 +29,16 @@ The frame -- subject, alternatives, criteria, declared vocabularies -- is shared
 and is written by whoever is framing. It is the one file two people can collide
 on, which is correct: changing the criteria mid-analysis is a thing that *should*
 be coordinated rather than merged silently (ADR-0016).
+
+The step-4 confirmation records (ADR-0005) sit beside the document rather than
+in it, because comparanda v1 has no slot for them (#152), and they are **one
+file per record**, never appended to a shared file: two people answering the
+gate on two branches leave two files, and a revise can never be lost to a
+conflict resolution. A record's name is its sequence on the branch that wrote
+it plus a digest of its content, so order is write order -- never a
+caller-supplied moment, which a model could set in the future to outrank a
+later human ``revise`` -- and two branches that wrote the same sequence keep
+both, in a fixed order.
 
 ## Where it lives
 
@@ -77,6 +88,7 @@ point: an uncached merge nobody wrote down becomes a mysterious slowness later.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -349,8 +361,8 @@ class AnalysisStore:
         return f"analyses/{analysis_id}/renditions/{rendition_id}.json"
 
     @staticmethod
-    def confirmations_key(analysis_id: str) -> str:
-        return f"analyses/{analysis_id}/confirmations.json"
+    def confirmation_key(analysis_id: str, name: str) -> str:
+        return f"analyses/{analysis_id}/confirmations/{name}.json"
 
     @staticmethod
     def stamp_prefix(key: str) -> str:
@@ -520,23 +532,46 @@ class AnalysisStore:
         self._require(analysis_id)
         self._write(self.rendition_key(analysis_id, rendition["id"]), rendition)
 
-    def confirmations(self, analysis_id: str) -> list[dict[str, Any]]:
-        """The step-4 records (ADR-0005), oldest first; empty when none was given.
+    def _confirmation_keys(self, analysis_id: str) -> list[str]:
+        prefix = f"analyses/{analysis_id}/confirmations/"
+        return sorted(k for k in self.blobs if k.startswith(prefix) and k.endswith(".json"))
 
-        Beside the document rather than in it: the closed comparanda v1 schema
-        has no slot for a confirmation, and writing one into the document would
-        make the stored analysis invalid (#152).
+    def confirmations(self, analysis_id: str) -> list[dict[str, Any]]:
+        """The step-4 records (ADR-0005), in write order; empty when none was given.
+
+        A record file that cannot be read comes back as
+        ``{"decision": "unreadable", "key": ...}`` rather than raising or being
+        skipped: skipping one could drop a ``revise`` and reopen the gate, and
+        raising would lock the analysis on one bad file. The gate reads an
+        unreadable record as closing everything until it is repaired.
         """
         self._require(analysis_id)
-        key = self.confirmations_key(analysis_id)
-        if key not in self.blobs:
-            return []
-        return list(self._read(key).get("records", []))
+        records: list[dict[str, Any]] = []
+        for key in self._confirmation_keys(analysis_id):
+            try:
+                record = self._read(key)
+            except (KeyError, UnicodeDecodeError, ValueError):
+                record = None
+            records.append(
+                record if isinstance(record, dict) else {"decision": "unreadable", "key": key}
+            )
+        return records
 
-    def put_confirmations(self, analysis_id: str, records: list[dict[str, Any]]) -> None:
+    def add_confirmation(self, analysis_id: str, record: dict[str, Any]) -> None:
+        """Write one record as its own file: never a shared file two branches append to."""
         check_id(analysis_id)
         self._require(analysis_id)
-        self._write(self.confirmations_key(analysis_id), {"records": list(records)})
+        payload = json.dumps(record, sort_keys=True, ensure_ascii=False).encode(_ENCODING)
+        sequence = len(self._confirmation_keys(analysis_id)) + 1
+        name = f"{sequence:06d}-{hashlib.sha256(payload).hexdigest()[:12]}"
+        self._write(self.confirmation_key(analysis_id, name), record)
+
+    def clear_confirmations(self, analysis_id: str) -> None:
+        """Remove every record: a new analysis inherits no gate from a leftover file."""
+        for key in self._confirmation_keys(analysis_id):
+            del self.blobs[key]
+            for stamp in [k for k in self.blobs if k.startswith(self.stamp_prefix(key))]:
+                del self.blobs[stamp]
 
     def exists(self, analysis_id: str) -> bool:
         """Whether a live analysis is here. An expired one is deleted and is not."""
