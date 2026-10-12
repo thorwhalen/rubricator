@@ -227,16 +227,18 @@ def measures_write(
             sign(
                 author,
                 at=at,
-                assertion_id=cell.get("assertionId") or f"{key[0]}-{key[1]}-{key[2]}",
+                assertion_id=cell.get("assertionId") or _fresh_id(target, key),
                 value=cell.get("value"),
                 missing=cell.get("missing"),
                 justification=cell.get("justification"),
                 evidence=list(cell.get("evidence", [])),
                 independence=cell.get("independence"),
+                perturbation=cell.get("perturbation"),
             )
         )
 
     contribution["cells"] = [index[k] for k in sorted(index)]
+    _refuse_dishonest(store, analysis_id, contributor_id, contribution)
     store.put_contribution(analysis_id, contributor_id, contribution)
     return {"analysisId": analysis_id, "contributorId": contributor_id, "written": len(cells)}
 
@@ -378,6 +380,60 @@ def report_completeness(store: AnalysisStore, *, analysis_id: str) -> dict[str, 
             for d in degradations
         ],
     }
+
+
+def _fresh_id(cell: Mapping[str, Any], key: tuple[str, str, str]) -> str:
+    """A default assertion id not yet used in this cell.
+
+    The first assertion gets ``alt-crit-measure``; a second one -- a re-score, a
+    replication draw -- gets a ``-2`` suffix and so on, so two claims about one
+    cell never share an identity.
+    """
+    base = "-".join(key)
+    taken = {a["id"] for a in cell["assertions"]}
+    if base not in taken:
+        return base
+    n = 2
+    while f"{base}-{n}" in taken:
+        n += 1
+    return f"{base}-{n}"
+
+
+def _refuse_dishonest(
+    store: AnalysisStore,
+    analysis_id: str,
+    contributor_id: str,
+    contribution: Mapping[str, Any],
+) -> None:
+    """The write-time honesty hook (ADR-0024): refuse before the bytes land.
+
+    Checks the document as it **would be merged** with this contribution in
+    place, because the rules are cross-contributor: two people each scoring a
+    cell once is fine on its own and dishonest together if neither recorded
+    independence. A problem caused only by other contributors' assertions does
+    not block this write -- this caller cannot fix those, and refusing would
+    let one silent contributor freeze everyone else's work. It is still
+    reported by :func:`rubricator.rules.honesty_problems` over the merged
+    document, which names whose assertion needs the field.
+    """
+    from rubricator.merge import merge_contributions
+    from rubricator.rules import honesty_problems
+
+    others = [(cid, c) for cid, c in store.contributions(analysis_id) if cid != contributor_id]
+    merged = merge_contributions(
+        store.frame(analysis_id), sorted([*others, (contributor_id, contribution)])
+    )
+    own = {
+        f"assertions[{contributor_id}:{a['id']}]"
+        for cell in contribution["cells"]
+        for a in cell["assertions"]
+    }
+    problems = [p for p in honesty_problems(merged) if any(o in p.path for o in own)]
+    if problems:
+        raise ValueError(
+            "refused, nothing was written: "
+            + "; ".join(f"{p.path}: {p.message} Fix: {p.fix}" for p in problems)
+        )
 
 
 def _existing(

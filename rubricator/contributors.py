@@ -153,6 +153,7 @@ def sign(
     justification: str | None = None,
     evidence: list[dict[str, Any]] | None = None,
     independence: str | None = None,
+    perturbation: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build one assertion, signed by ``author``.
 
@@ -168,7 +169,20 @@ def sign(
     to the most independent rung is how five draws of one model come to be stored
     as five raters, and once that is written down nothing in the document says
     otherwise. Absent means unknown, and everything downstream treats unknown as
-    not-independent.
+    not-independent. Absent is only admissible while the assertion is alone in
+    its cell: beside another live assertion the honesty rule
+    ``independence-recorded`` refuses it (:mod:`rubricator.rules`).
+
+    The rung is spelled in the companion's closed ladder, weakest first --
+    ``shared-context < resampled < perturbed < independent``, plus ``consensus`` --
+    and an unknown spelling raises here, at authoring, listing the known ones.
+    ``perturbed`` requires ``perturbation`` (``{kind, seed?, detail?}``): a
+    perturbation nobody recorded is indistinguishable from noise.
+
+    >>> sign({'id': 'bot'}, at='t', assertion_id='s1', value=3, independence='in-session')
+    Traceback (most recent call last):
+    ...
+    ValueError: unknown independence rung "in-session". Known: shared-context, resampled, perturbed, independent, consensus. ADR-0018's older spelling maps in-session to shared-context.
     """
     if (value is None) == (missing is None):
         raise ValueError(
@@ -181,6 +195,7 @@ def sign(
                 'conflict, "not-assessed" when nobody has looked yet.'
             )
         )
+    _check_rung(independence, perturbation)
     assertion: dict[str, Any] = {
         "id": assertion_id,
         "authorId": author["id"],
@@ -196,7 +211,34 @@ def sign(
         assertion["justification"] = justification
     if independence is not None:
         assertion["independence"] = independence
+    if perturbation is not None:
+        assertion["perturbation"] = dict(perturbation)
     return assertion
+
+
+def _check_rung(independence: str | None, perturbation: Mapping[str, Any] | None) -> None:
+    """Authoring-time checks on the independence rung. Raises; never defaults."""
+    from rubricator.schema.vocabulary import vocabulary
+
+    if independence is None:
+        if perturbation is not None:
+            raise ValueError(
+                'a perturbation record was given without independence; a perturbed draw says '
+                'so with independence="perturbed".'
+            )
+        return
+    ladder = vocabulary().closed_enums["independence"]
+    if independence not in ladder:
+        raise ValueError(
+            f'unknown independence rung "{independence}". Known: {", ".join(ladder)}. '
+            "ADR-0018's older spelling maps in-session to shared-context."
+        )
+    if independence == "perturbed" and not (perturbation and perturbation.get("kind")):
+        raise ValueError(
+            'independence="perturbed" needs a perturbation record with at least a "kind" '
+            '(e.g. {"kind": "traversal-order", "seed": 7}), so a reader can tell what was '
+            "varied and reproduce it."
+        )
 
 
 def _author(
