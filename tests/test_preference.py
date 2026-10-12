@@ -56,6 +56,7 @@ def test_a_target_sets_range_target(rt) -> None:
     ({"preference": "target"}, "no numeric"),
     ({"preference": "target", "target": 9}, "outside its range"),
     ({"preference": "increasing", "target": 3}, "not \"target\""),
+    ({"target": 3}, "no preference"),
 ])
 def test_an_ill_formed_direction_is_refused(rt, kw, match) -> None:
     with pytest.raises(ValueError, match=match):

@@ -197,6 +197,11 @@ def criteria_set(
         measurement["scale"] = scale_id
         if "preference" in c:
             problems.extend(_apply_preference(c.get("id"), measurement, c))
+        elif "target" in c:
+            problems.append(
+                f'criterion "{c.get("id")}" declares a "target" but no preference; a target '
+                'is read only with preference "target".'
+            )
         else:
             defaulted.append(c["id"])
         anchors = c.get("anchors")
@@ -605,7 +610,9 @@ def _apply_preference(
     if pref == "target":
         if not isinstance(target, (int, float)) or isinstance(target, bool):
             return [f'{where} prefers a target but declares no numeric "target".']
-        if rng and not rng["min"] <= target <= rng["max"]:
+        if not rng:
+            return [f"{where} prefers a target, but its scale declares no range to hold it."]
+        if not rng["min"] <= target <= rng["max"]:
             return [f"{where} has target {target} outside its range [{rng['min']}, {rng['max']}]."]
         rng["target"] = target
         measurement["range"] = rng
