@@ -26,6 +26,7 @@ told the path and the keys that are allowed there, and nothing is written.
 
 from __future__ import annotations
 
+import re
 from typing import Any, Mapping, Sequence
 
 from rubricator.contributors import sign
@@ -569,7 +570,7 @@ def measures_write(
 
     added: list[tuple[tuple[str, str, str], str]] = []
     off_contract = _contract().refusals(
-        dict(author), pointer="/properties/authors/items", root="$.author"
+        _as_stored(dict(author)), pointer="/properties/authors/items", root="$.author"
     )
     for i, cell in enumerate(cells):
         key = (cell["alternativeId"], cell["criterionId"], cell.get("measure", "score"))
@@ -596,13 +597,16 @@ def measures_write(
             perturbation=cell.get("perturbation"),
             criteria_version=criteria_version,
         )
-        off_contract += _contract().refusals(
-            assertion, pointer="/properties/cells/items/properties/assertions/items",
-            root=f"$.cells[{i}]",
-        )
+        off_contract += [
+            _ARGUMENT_FIELD.sub(lambda m: _ARGUMENT_PATHS[m.group(1)], line)
+            for line in _contract().refusals(
+                _as_stored(assertion), pointer="/properties/cells/items/properties/assertions/items",
+                root=f"$.cells[{i}]",
+            )
+        ]
         target["assertions"].append(assertion)
     if off_contract:
-        raise ValueError(_OFF_CONTRACT + "; ".join(off_contract))
+        raise ValueError(_OFF_CONTRACT + "; ".join(dict.fromkeys(off_contract)))
 
     contribution["cells"] = [index[k] for k in sorted(index)]
     _refuse_dishonest(store, analysis_id, contributor_id, contribution, added=added)
@@ -1166,6 +1170,11 @@ def _refuse_dishonest(
         )
 
 
+#: Assertion fields filled from an argument rather than from the cell, named at
+#: that argument -- once, not once per cell.
+_ARGUMENT_PATHS = {"at": "at $.at", "authorId": "at $.author.id"}
+_ARGUMENT_FIELD = re.compile(r"^at \$\.cells\[\d+\]\.(at|authorId)(?=:)")
+
 _OFF_CONTRACT = (
     "refused, nothing was written: the stored analysis would be one the companion's closed "
     "schema (comparanda v1) refuses: "
@@ -1179,7 +1188,7 @@ def _contract():
 
 
 def _put_frame(store: AnalysisStore, analysis_id: str, frame: dict[str, Any]) -> None:
-    """Store the frame, **only if** it is a document comparanda v1 accepts (#136).
+    """Store the frame, **unless this write makes it one comparanda v1 refuses** (#136).
 
     v1 closes every object, so a key a caller added -- a ``url`` on an
     alternative, ``notes`` on a missing-code declaration -- would otherwise be
@@ -1187,11 +1196,58 @@ def _put_frame(store: AnalysisStore, analysis_id: str, frame: dict[str, Any]) ->
     refuses. The whole frame is checked rather than the fragment a verb touched,
     because a frame is itself a valid v1 document and one check covers every
     verb that writes one, including the next.
+
+    **Only problems this write introduces are refused.** A frame stored before
+    the check existed, or edited by hand, may already carry one; refusing every
+    later write over it would lock the analysis, since each verb repairs only
+    its own part and none could go first. Those stay visible where they are
+    read: ``analysis_get`` leaves them out of its views and names them.
     """
-    off_contract = _contract().refusals(frame)
-    if off_contract:
-        raise ValueError(_OFF_CONTRACT + "; ".join(off_contract))
+    try:
+        before = set(_contract().refusals(_as_stored(store.frame(analysis_id))))
+    except (AnalysisNotFound, KeyError, ValueError):
+        before = set()
+    introduced = [p for p in _contract().refusals(_as_stored(frame)) if p not in before]
+    if introduced:
+        raise ValueError(_OFF_CONTRACT + "; ".join(introduced))
     store.put_frame(analysis_id, frame)
+
+
+def _as_stored(value: Any) -> Any:
+    """``value`` as the store will write it: a tuple is a JSON array once stored."""
+    import json
+
+    return json.loads(json.dumps(value))
+
+
+def _unknown_keys(
+    value: Any, shape: Mapping[str, Any], path: str, *, read_past: Sequence[str] = ()
+) -> list[str]:
+    """Keys in ``value`` that ``shape`` has no property for, with their path.
+
+    ``read_past`` names the nested lists of objects the verb also reads field by
+    field (a criterion's anchor rows), and so would drop a key from without a
+    word. Everything else nested is copied whole, where the stored-document
+    check sees it, or has its own refusal (a criterion's definition).
+    """
+    if not isinstance(value, Mapping):
+        return []
+    allowed = shape["properties"]
+    extra = sorted(set(value) - set(allowed))
+    found = (
+        [f"at {path}: {', '.join(repr(k) for k in extra)} "
+         f"{'is' if len(extra) == 1 else 'are'} not recorded anywhere. "
+         f"Allowed here: {', '.join(sorted(allowed))}"]
+        if extra else []
+    )
+    for key in read_past:
+        child = value.get(key)
+        if isinstance(child, (list, tuple)):
+            found += [
+                p for i, item in enumerate(child)
+                for p in _unknown_keys(item, allowed[key]["items"], f"{path}.{key}[{i}]")
+            ]
+    return found
 
 
 def _refuse_unknown_keys(items: Sequence[Any], shape: str, *, root: str) -> None:
@@ -1206,13 +1262,10 @@ def _refuse_unknown_keys(items: Sequence[Any], shape: str, *, root: str) -> None
     """
     from rubricator.surface.frozen import CELL, CRITERION
 
-    allowed = {"CELL": CELL, "CRITERION": CRITERION}[shape]["properties"]
+    row, read_past = {"CELL": (CELL, ()), "CRITERION": (CRITERION, ("anchors",))}[shape]
     problems = [
-        f"at {root}[{i}]: {', '.join(repr(k) for k in sorted(set(item) - set(allowed)))} "
-        f"{'is' if len(set(item) - set(allowed)) == 1 else 'are'} not recorded anywhere. "
-        f"Allowed here: {', '.join(sorted(allowed))}"
-        for i, item in enumerate(items)
-        if isinstance(item, Mapping) and set(item) - set(allowed)
+        p for i, item in enumerate(items)
+        for p in _unknown_keys(item, row, f"{root}[{i}]", read_past=read_past)
     ]
     if problems:
         raise ValueError("refused, nothing was written: " + "; ".join(problems))

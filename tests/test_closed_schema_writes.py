@@ -187,3 +187,59 @@ def test_a_write_v1_accepts_still_lands(runtime) -> None:
                             author=AUTHOR, at=MOMENT, cells=[_cell()])
     assert result["written"] == 1
     assert runtime.schema.validate(runtime.store.read("a1")).ok
+
+
+# -- from the adversarial review of #155 ---------------------------------------------------------
+
+def _store_off_contract(runtime) -> None:
+    """A frame as a build before #136 could have stored it: two problems, in two verbs' parts."""
+    frame = runtime.store.frame("a1")
+    frame["alternatives"][0]["url"] = "u"
+    frame["criteria"][0]["missingCodes"] = [{**DECLARATION, "notes": "n"}]
+    runtime.store.put_frame("a1", frame)
+
+
+def test_a_problem_already_stored_does_not_lock_later_writes(runtime) -> None:
+    """Each verb repairs only its own part, so refusing over the other's would deadlock."""
+    _store_off_contract(runtime)
+    frame_set(runtime.store, analysis_id="a1", ambiguities=["scope?"])
+    alternatives_set(runtime.store, analysis_id="a1", alternatives=[{"id": "x", "label": "X"}])
+    criteria_set(runtime.store, analysis_id="a1",
+                 criteria=[{"id": "c", "label": "C", "anchors": ANCHORS}])
+    assert runtime.schema.validate(runtime.store.frame("a1")).ok
+
+
+def test_a_problem_already_stored_does_not_excuse_a_new_one(runtime) -> None:
+    _store_off_contract(runtime)
+    _unchanged(
+        runtime,
+        lambda: alternatives_set(runtime.store, analysis_id="a1", alternatives=[
+            {"id": "x", "label": "X", "url": "u"}, {"id": "y", "label": "Y", "colour": "c"}]),
+        r"'colour' was unexpected",
+    )
+
+
+def test_an_anchor_row_key_the_verb_would_drop_is_refused(runtime) -> None:
+    _unchanged(
+        runtime,
+        lambda: criteria_set(runtime.store, analysis_id="a1", criteria=[
+            {"id": "c", "label": "C",
+             "anchors": [{**ANCHORS[0], "note": "keep me"}, *ANCHORS[1:]]}]),
+        r"at \$\.criteria\[0\]\.anchors\[0\]: 'note' is not recorded anywhere\. "
+        r"Allowed here: level, text",
+    )
+
+
+def test_a_tuple_is_an_array_once_stored(runtime) -> None:
+    alternatives_set(runtime.store, analysis_id="a1",
+                     alternatives=[{"id": "x", "label": "X", "groupIds": ("g",)}])
+    assert runtime.store.frame("a1")["alternatives"][0]["groupIds"] == ["g"]
+
+
+def test_an_argument_is_named_at_its_own_path_once(runtime) -> None:
+    with pytest.raises(ValueError) as refused:
+        measures_write(runtime.store, analysis_id="a1", contributor_id="ana", author=AUTHOR,
+                       at=5, cells=[_cell(), _cell(criterionId="c", assertionId="s2")])
+    message = str(refused.value)
+    assert message.count("at $.at: 5 is not of type 'string'") == 1
+    assert "$.cells[0].at" not in message
