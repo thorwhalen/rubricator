@@ -134,6 +134,7 @@ def test_the_counts_include_the_readable_contributions(verbs, runtime) -> None:
 
 
 def test_the_resource_names_what_it_left_out_in_its_metadata(runtime) -> None:
+    pytest.importorskip("py2mcp")
     from rubricator.mcp.server import make_server
 
     runtime.store.blobs[STRAY] = b"{half-written"
