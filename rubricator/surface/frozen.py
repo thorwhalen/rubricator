@@ -234,7 +234,8 @@ PROMPT_HEAD = {
     "id": S, "title": S, "version": I, "stage": opt(I), "updated": opt(S), "missingCodes": arr(S),
 }
 WRITE_RESULT = {
-    "analysisId": S, "contributorId": S, "written": I, "criteriaVersion": S, "summary": S,
+    "analysisId": S, "contributorId": S, "written": I, "criteriaVersion": S,
+    "skipped": arr(SKIPPED), "summary": S,
 }
 
 def _retention(days: int) -> str:
@@ -435,10 +436,11 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
                 "supersededCells": SUPERSEDED,
                 "definitionGaps": arr(obj({"criterionId": S, "fields": arr(S)}, ("criterionId", "fields"))),
                 "defaultedPreference": arr(S),
+                "skipped": arr(SKIPPED),
                 "summary": S,
             },
             ("analysisId", "criteria", "criteriaVersion", "revised", "supersededCells",
-             "definitionGaps", "defaultedPreference", "summary"),
+             "definitionGaps", "defaultedPreference", "skipped", "summary"),
         ),
     ),
     ToolSpec(

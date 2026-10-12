@@ -139,16 +139,17 @@ def test_adding_an_empty_definition_is_a_meaning_change(rt) -> None:
     assert result["criteriaVersion"] == "2" and result["revised"][0]["fields"] == ["definition"]
 
 
-def test_nothing_is_written_when_the_merge_raises(rt) -> None:
-    """Review finding 2: merge before put_frame."""
+def test_an_unmergeable_file_is_left_out_of_the_report_not_a_refusal(rt) -> None:
+    """Review finding 2 was "merge before put_frame", when a forged file made the
+    merge raise. Since #156 that file is left out of supersededCells and named, as
+    every read leaves it out, so a colleague's broken file no longer refuses this."""
     _criteria(rt)
-    before = rt.store.frame("a")
     rt.store.put_contribution("a", "ana", {"contributorId": "ana", "cells": [],
                                            "authors": [{"id": "ben", "displayName": "B",
                                                         "kind": "human"}]})
-    with pytest.raises(Exception):
-        _criteria(rt, label="changed")
-    assert rt.store.frame("a") == before
+    result = _criteria(rt, label="changed")
+    assert [s["file"] for s in result["skipped"]] == ["analyses/a/contributions/ana.json"]
+    assert rt.store.frame("a")["criteriaVersion"] == result["criteriaVersion"]
 
 
 def test_a_reintroduced_criterion_supersedes_stray_scores(rt) -> None:
