@@ -625,3 +625,25 @@ def test_a_minted_id_never_starts_with_an_option_dash() -> None:
     ids = {random_id() for _ in range(200)}
     assert len(ids) == 200
     assert all(not i.startswith("-") and check_id(i) for i in ids)
+
+
+def test_a_bulk_blank_skips_tombstoned_cells_but_refuses_one_named(verbs) -> None:
+    _write(verbs, value=3, justification="j")
+    verbs["alternatives_set"](analysis_id="a1", alternatives=[
+        {"id": "x", "label": "X", "tombstoned": True}, {"id": "y", "label": "Y"}])
+    out = verbs["measures_mark_missing"](
+        analysis_id="a1", contributor_id="ben", author={**AUTHOR, "id": "ben"},
+        code="not-evidenced", note="n")
+    assert out["marked"] == 1
+    with pytest.raises(ValueError, match="tombstoned"):
+        verbs["measures_mark_missing"](
+            analysis_id="a1", contributor_id="cy", author={**AUTHOR, "id": "cy"},
+            code="not-evidenced", note="n", alternative_ids=["x"], independence="independent")
+
+
+@pytest.mark.parametrize("moment", ["2026-08-22T12:00:00.12Z", "2026-08-22T12:00:00.1234Z"])
+def test_short_fractions_are_padded_for_every_supported_python(verbs, moment) -> None:
+    _write(verbs, value=3, justification="j")
+    verbs["measures_write"](analysis_id="a1", contributor_id="ana", author=AUTHOR, at=moment,
+                            cells=[{"alternativeId": "x", "criterionId": "c", "value": 4,
+                                    "independence": "resampled"}])

@@ -268,7 +268,9 @@ _RFC3339 = re.compile(
 
 def _fromisoformat_friendly(m: "re.Match[str]") -> str:
     """The matched moment in the one spelling every supported Python parses."""
-    frac = (m.group("frac") or "")[:7]  # microseconds at most; 3.10 rejects more
+    # Exactly six digits: 3.10's parser accepts only 3 or 6, 3.12 accepts 1-6.
+    digits = (m.group("frac") or ".")[1:7]
+    frac = f".{digits.ljust(6, '0')}" if digits else ""
     zone = m.group("zone")
     return f"{m.group('date')}T{m.group('time')}{frac}{'+00:00' if zone in 'Zz' else zone}"
 

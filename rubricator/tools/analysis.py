@@ -529,7 +529,12 @@ def measures_mark_missing(
     assertion (``independence-recorded``); a blank beside a score is two claims.
     """
     frame = store.frame(analysis_id)
-    criteria = list(criterion_ids) or [c["id"] for c in frame["criteria"]]
+    # The default selection is every *live* row and column: a tombstoned one
+    # takes no new assertions, and "mark the rest" must not fail because a row
+    # was retired. One named explicitly is still refused, by measures_write.
+    criteria = list(criterion_ids) or [
+        c["id"] for c in frame["criteria"] if not c.get("tombstoned")
+    ]
     for crit in criteria:
         declarations = declarations_for(frame, crit)
         if vocabulary().resolve(code, declarations).source == "undeclared":
@@ -542,7 +547,9 @@ def measures_mark_missing(
                 "the blank."
             )
 
-    alternatives = list(alternative_ids) or [a["id"] for a in frame["alternatives"]]
+    alternatives = list(alternative_ids) or [
+        a["id"] for a in frame["alternatives"] if not a.get("tombstoned")
+    ]
     cells = [
         {
             "alternativeId": alt,
