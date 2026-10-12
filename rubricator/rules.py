@@ -45,9 +45,16 @@ __all__ = [
     "missing_rule_code_defined",
     "supersession_resolves",
     "live_assertions",
+    "SCHEMA_RULES",
+    "schema_problems",
+    "structural_refines_not_applicable",
+    "no_redeclaring_core",
+    "unique_declarations",
 ]
 
-Family = Literal["honesty"]
+#: ``honesty``: the document lies. ``schema``: it is malformed -- it declares
+#: something it may not, or twice -- which `comparanda` also refuses, as an error.
+Family = Literal["honesty", "schema"]
 
 
 @dataclass(frozen=True)
@@ -62,7 +69,7 @@ class Problem:
 
     @property
     def severity(self) -> str:
-        """Derived from the family, never chosen by a rule: honesty rejects."""
+        """Derived from the family, never chosen by a rule: both families here reject."""
         return "error"
 
     def __str__(self) -> str:  # pragma: no cover - display only
@@ -210,6 +217,131 @@ def missing_rule_code_defined(document: Mapping[str, Any]) -> Iterable[Problem]:
                 ),
                 rule_id="missing-rule-code-defined",
             )
+
+
+def _declaration_lists(
+    document: Mapping[str, Any],
+) -> Iterable[tuple[Sequence[tuple[int, Mapping[str, Any]]], str, Mapping[str, Any], str]]:
+    """Every declaration list -- its vocabulary, the core it extends, its path -- as the companion walks them.
+
+    One walk over (list, core, field) rather than one per rule and vocabulary,
+    because the companion's own comment on its loop holds here too: three copies
+    is how the fourth vocabulary gets forgotten. Criterion overlays are included
+    -- missing them would let a criterion redeclare a core code, which is the one
+    thing ``no-redeclaring-core`` stops.
+    """
+    from rubricator.schema.vocabulary import vocabulary
+
+    def declarations(value: Any) -> list[tuple[int, Mapping[str, Any]]]:
+        # Over documents from disk: a list that is not a list, an entry that is
+        # not an object or an id that is not a string is a shape problem, the
+        # schema's to report. Skipped here, so a rule never raises on one.
+        if not isinstance(value, (list, tuple)):
+            return []
+        return [
+            (i, d) for i, d in enumerate(value)
+            if isinstance(d, Mapping) and isinstance(d.get("id"), str)
+        ]
+
+    core = vocabulary()
+    yield declarations(document.get("missingCodes")), "missingCode", core.missing_codes, "missingCodes"
+    yield declarations(document.get("reductions")), "reduction", core.reductions, "reductions"
+    criteria = document.get("criteria")
+    for i, criterion in enumerate(criteria if isinstance(criteria, (list, tuple)) else []):
+        if isinstance(criterion, Mapping):
+            yield (declarations(criterion.get("missingCodes")), "missingCode", core.missing_codes,
+                   f"criteria[{i}].missingCodes")
+
+
+def structural_refines_not_applicable(document: Mapping[str, Any]) -> Iterable[Problem]:
+    """A declaration with ``structural: true`` refines the one structural core code.
+
+    Mirrors `comparanda`'s ``structural-refines-not-applicable`` (its ADR-0009,
+    clause 3). Structural absence leaves every denominator and every dominance
+    comparison, so a code that claims it while refining, say, ``withheld`` would
+    silently remove cells somebody deliberately declined to show. The core code
+    is found by its facts, not by its spelling.
+    """
+    from rubricator.schema.vocabulary import vocabulary
+
+    structural = sorted(c for c, f in vocabulary().missing_codes.items() if f.structural)
+    for decls, kind, _core, field in _declaration_lists(document):
+        if kind != "missingCode":
+            continue
+        for i, d in decls:
+            if d.get("structural") is True and d.get("broader") not in structural:
+                yield Problem(
+                    path=f"{field}[{i}]",
+                    message=(
+                        f'"{d.get("id")}" declares structural: true but refines '
+                        f'"{d.get("broader")}". Structural absence leaves every denominator and '
+                        f'every comparison, which only "{" or ".join(structural)}" means.'
+                    ),
+                    fix=f'set broader to "{structural[0]}", or drop structural: true.',
+                    rule_id="structural-refines-not-applicable",
+                    family="schema",
+                )
+
+
+def no_redeclaring_core(document: Mapping[str, Any]) -> Iterable[Problem]:
+    """No declaration reuses a core id (`comparanda`'s ``no-redeclaring-core``, ADR-0009).
+
+    A core code redeclared with other flags or another parent would mean one
+    thing to this build -- which resolves the core first -- and another to any
+    reader that took the declaration, so the same blank would count differently.
+    """
+    for decls, _kind, core, field in _declaration_lists(document):
+        for i, d in decls:
+            if d.get("id") in core:
+                yield Problem(
+                    path=f"{field}[{i}]",
+                    message=f'"{d.get("id")}" is a core member and cannot be redeclared.',
+                    fix="use the core member as it is, or give the extension a different id.",
+                    rule_id="no-redeclaring-core",
+                    family="schema",
+                )
+
+
+def unique_declarations(document: Mapping[str, Any]) -> Iterable[Problem]:
+    """No id is declared twice in one list (`comparanda`'s ``unique-declarations``).
+
+    The later one would win silently, and which one a reader took would depend
+    on the reader.
+    """
+    for decls, _kind, _core, field in _declaration_lists(document):
+        seen: set[Any] = set()
+        for i, d in decls:
+            if d.get("id") in seen:
+                yield Problem(
+                    path=f"{field}[{i}]",
+                    message=f'"{d.get("id")}" is declared more than once; the later one would win silently.',
+                    fix="remove the duplicate, or give it a different id.",
+                    rule_id="unique-declarations",
+                    family="schema",
+                )
+            seen.add(d.get("id"))
+
+
+#: The structural rules over declarations, in the companion's order.
+SCHEMA_RULES: Sequence[Rule] = (
+    structural_refines_not_applicable,
+    no_redeclaring_core,
+    unique_declarations,
+)
+
+
+def schema_problems(
+    document: Mapping[str, Any], *, rules: Sequence[Rule] = SCHEMA_RULES
+) -> list[Problem]:
+    """Every declaration problem in an analysis, across every rule, in one pass.
+
+    >>> doc = {'criteria': [{'id': 'c', 'missingCodes': [
+    ...     {'id': 'not-evidenced', 'broader': 'withheld', 'means': 'mine'},
+    ...     {'id': 'gone', 'broader': 'withheld', 'means': 'left out', 'structural': True}]}]}
+    >>> [(p.path, p.rule_id) for p in schema_problems(doc)]
+    [('criteria[0].missingCodes[1]', 'structural-refines-not-applicable'), ('criteria[0].missingCodes[0]', 'no-redeclaring-core')]
+    """
+    return [p for rule in rules for p in rule(document)]
 
 
 #: The honesty rules, in the order their problems are reported.
