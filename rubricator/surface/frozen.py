@@ -580,7 +580,7 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
         ),
     ),
     ToolSpec(
-        name="aggregate_assertions", family="measures", stage="5", status="planned",
+        name="aggregate_assertions", family="measures", stage="5", status="implemented",
         minimum_viable=False, cut_rank=3, research_row=14, issue=97,
         contract=(
             "Reduce the assertions of each cell to one value by an order statistic -- lower "
@@ -600,8 +600,10 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
                 "analysisId": S, "reduction": S,
                 "cells": arr(obj(
                     {"alternativeId": S, "criterionId": S, "measure": S, "n": I,
-                     "reduced": opt(SCALAR), "min": opt(N), "max": opt(N), "span": opt(N),
-                     "modes": arr(SCALAR), "polarised": B, "contested": B},
+                     "reduced": opt(SCALAR), "min": opt(SCALAR), "max": opt(SCALAR),
+                     "span": opt(N), "modes": arr(SCALAR),
+                     "levels": arr(obj({"level": SCALAR, "count": I}, ("level", "count"))),
+                     "polarised": B, "contested": B},
                     ("alternativeId", "criterionId", "measure", "n", "reduced", "polarised",
                      "contested"))),
                 "summary": S,
@@ -937,8 +939,8 @@ MEASURED: Mapping[str, Any] = {
     "measuredAt": "2026-10-12",
     "model": "claude-sonnet-5-5",
     "advertised": {
-        "tools": 11, "tokens": 6692, "bytes": 15611,
-        "sha256": "ae9a948c8685a95913c6914570102ed3d2e14cd0d3a0ee4ca786123da1b9f752",
+        "tools": 12, "tokens": 7007, "bytes": 16411,
+        "sha256": "c0b207a7e9e1992e32939bdc85e76c71294a81e56d2558cc395189b15f4bcd96",
     },
     "wholeSurface": {
         "tools": 22, "tokens": 10542, "bytes": 25461,

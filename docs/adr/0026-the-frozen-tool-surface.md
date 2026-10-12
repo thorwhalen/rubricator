@@ -30,7 +30,7 @@ One more force. The closed comparanda v1 schema refuses unknown keys, and the wr
 | 11 | `measures_mark_missing` | measures | 5, resume | implemented | no | 4 | 11 |
 | 12 | `analysis_validate` | analysis | 5, 6 | planned (#61) | yes | — | 12 |
 | 13 | `check_citations` | citations | 5, 6 | implemented | yes | — | 13 |
-| 14 | `aggregate_assertions` | measures | 5 | planned (#97) | no | 3 | 14 |
+| 14 | `aggregate_assertions` | measures | 5 | implemented (#97) | no | 3 | 14 |
 | 15 | `stability_report` | report | 6 | planned (#98) | no | 3 | 15 |
 | 16 | `report_weaknesses` | report | 6 | planned (#64) | no | 5 | 16 |
 | 17 | `disclose_variance` | report | 6 | planned (#100) | no | 2 | 17 |
@@ -91,3 +91,11 @@ Six choices in this ADR reconcile the research with the reviewed implementation 
 - *Fold `report_completeness` into `analysis_get(view=outstanding)`.* The outstanding view returns cells; the report returns rates, degradations and stored honesty problems. One tool returning either shape by a `view` argument would need a union envelope, and the subset has no discriminated unions.
 - *Estimate tokens from bytes and skip the pin.* ADR-0009 asked for a measurement; a ratio drifts with every description edit, and nobody would notice.
 - *Docstrings as descriptions, per #49's wording.* The docstrings are developer essays, several hundred tokens each; the model needs the contract. The row is the description, and the measurement is taken over it.
+
+### 2026-10-12 — `aggregate_assertions` lands (#97)
+
+- **Deciders:** Thor Whalen
+
+Row 14 is implemented. Its `outputSchema` changed in two ways, both before any client bound to it, since the row was planned until now. First, `min` and `max` widen from number to the comparanda scalar union, because a scale's levels are data (ADR-0021) and may be strings. Second, a `levels` multiset (`[{level, count}]`) is added, which is what ADR-0011 says a polarised cell carries instead of a point value. `reduction` stays the four-value enum, so a `mean` is refused by the schema at the surface. The verb refuses a mean too, naming the level of measurement, for a Python caller that bypasses the surface. `median` is the lower median on an ordinal criterion and the conventional median on an interval or ratio one; a nominal criterion gets no order statistic and is reduced to `null`, with its modes. "Polarised" mirrors comparanda's `cellShape` rule exactly.
+
+Re-measured on 2026-10-12 against `claude-sonnet-5-5`: the advertised definitions are now 12 tools, 7,007 tokens, 16,411 bytes. The whole surface is unchanged at 10,542 tokens, because only the status changed and the description did not.

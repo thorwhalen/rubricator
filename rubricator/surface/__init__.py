@@ -25,7 +25,7 @@ not JSON-able -- the store, the clock, the id minter -- are supplied by
 >>> from rubricator.ids import sequential_ids
 >>> verbs = bind(build_runtime(blobs={}, new_id=sequential_ids("a")))
 >>> sorted(verbs)[:3]
-['alternatives_set', 'analysis_open', 'check_citations']
+['aggregate_assertions', 'alternatives_set', 'analysis_open']
 >>> verbs['analysis_open'](question='which?')['analysisId']
 'a-1'
 >>> verbs['analysis_open'](analysis_id='a-1')['created']
@@ -68,6 +68,7 @@ TOOL_REFS: tuple[str, ...] = (
     "rubricator.tools.analysis:measures_write",
     "rubricator.tools.analysis:measures_mark_missing",
     "rubricator.tools.analysis:report_completeness",
+    "rubricator.tools.aggregate:aggregate_assertions",
     "rubricator.tools.citations:check_citations",
     "rubricator.tools.traversal:plan_traversal",
     "rubricator.tools.prompts:prompts_list",
@@ -89,7 +90,7 @@ NEEDS_ID: frozenset[str] = frozenset({"analysis_open"})
 #: Verbs that take the store as their first argument.
 _NEEDS_STORE: frozenset[str] = frozenset({
     "analysis_open", "frame_set", "alternatives_set", "criteria_set",
-    "measures_write", "measures_mark_missing", "report_completeness",
+    "measures_write", "measures_mark_missing", "report_completeness", "aggregate_assertions",
 })
 
 
