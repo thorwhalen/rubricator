@@ -16,10 +16,17 @@ everyone else, at import time, with an error that does not mention the reason.
 
 The moment is always an argument (``at``), never a clock -- see
 :mod:`rubricator.clock`.
+
+**Nothing is stored that the closed contract refuses (#136).** comparanda v1
+closes every object, so every frame and every assertion is checked against the
+vendored schema before its bytes land, and a key a verb reads past -- on a
+criterion or a cell -- is refused rather than dropped. Either way the caller is
+told the path and the keys that are allowed there, and nothing is written.
 """
 
 from __future__ import annotations
 
+import re
 from typing import Any, Mapping, Sequence
 
 from rubricator.contributors import sign
@@ -219,7 +226,7 @@ def analysis_open(
     }
     if at:
         frame["createdAt"] = at
-    store.put_frame(analysis_id, frame)
+    _put_frame(store, analysis_id, frame)
     # A new analysis inherits no gate: a records directory left behind when a
     # frame was removed outside the surface must not confirm this one.
     store.clear_confirmations(analysis_id)
@@ -271,7 +278,7 @@ def frame_set(
         else:
             subject.pop(key, None)
     subject["ambiguities"] = list(ambiguities)
-    store.put_frame(analysis_id, frame)
+    _put_frame(store, analysis_id, frame)
     n = len(subject["ambiguities"])
     return {
         "analysisId": analysis_id,
@@ -315,7 +322,7 @@ def alternatives_set(
             "but cells refer to them. Keep them in the set, or tombstone them."
         )
     frame["alternatives"] = [dict(a) for a in alternatives]
-    store.put_frame(analysis_id, frame)
+    _put_frame(store, analysis_id, frame)
     return {
         "analysisId": analysis_id,
         "alternatives": ids,
@@ -375,6 +382,7 @@ def criteria_set(
     gaps: dict[str, list[str]] = {}
     defaulted: list[str] = []
 
+    _refuse_unknown_keys(criteria, "CRITERION", root="$.criteria")
     for c in criteria:
         scale_id = c.get("scale", DEFAULT_SCALE)
         preset = SCALE_PRESETS.get(scale_id)
@@ -468,7 +476,7 @@ def criteria_set(
     # Merged before the write, so anything that can raise does so with nothing
     # stored: a retry then sees the same before-state and the same revision.
     merged = merge_contributions(frame, store.contributions(analysis_id))
-    store.put_frame(analysis_id, frame)
+    _put_frame(store, analysis_id, frame)
     superseded = superseded_cells(merged)
     summary = f'{len(out)} criteria at version "{frame["criteriaVersion"]}"'
     if revised:
@@ -545,6 +553,7 @@ def measures_write(
                 f"refused, nothing was written: {axis} {', '.join(unknown)} are not in this "
                 f"analysis. Declare them with {verb} first."
             )
+    _refuse_unknown_keys(cells, "CELL", root="$.cells")
     measures = {m["name"] for m in frame.get("measures", [])} or {"score"}
     problems = [
         p
@@ -560,7 +569,10 @@ def measures_write(
     }
 
     added: list[tuple[tuple[str, str, str], str]] = []
-    for cell in cells:
+    off_contract = _contract().refusals(
+        _as_stored(dict(author)), pointer="/properties/authors/items", root="$.author"
+    )
+    for i, cell in enumerate(cells):
         key = (cell["alternativeId"], cell["criterionId"], cell.get("measure", "score"))
         target = index.setdefault(
             key,
@@ -573,20 +585,28 @@ def measures_write(
                 f"cell {'/'.join(key)}. Omit assertionId to get a fresh one, or choose another."
             )
         added.append((key, assertion_id))
-        target["assertions"].append(
-            sign(
-                author,
-                at=at,
-                assertion_id=assertion_id,
-                value=cell.get("value"),
-                missing=cell.get("missing"),
-                justification=cell.get("justification"),
-                evidence=list(cell.get("evidence", [])),
-                independence=cell.get("independence"),
-                perturbation=cell.get("perturbation"),
-                criteria_version=criteria_version,
-            )
+        assertion = sign(
+            author,
+            at=at,
+            assertion_id=assertion_id,
+            value=cell.get("value"),
+            missing=cell.get("missing"),
+            justification=cell.get("justification"),
+            evidence=list(cell.get("evidence", [])),
+            independence=cell.get("independence"),
+            perturbation=cell.get("perturbation"),
+            criteria_version=criteria_version,
         )
+        off_contract += [
+            _ARGUMENT_FIELD.sub(lambda m: _ARGUMENT_PATHS[m.group(1)], line)
+            for line in _contract().refusals(
+                _as_stored(assertion), pointer="/properties/cells/items/properties/assertions/items",
+                root=f"$.cells[{i}]",
+            )
+        ]
+        target["assertions"].append(assertion)
+    if off_contract:
+        raise ValueError(_OFF_CONTRACT + "; ".join(dict.fromkeys(off_contract)))
 
     contribution["cells"] = [index[k] for k in sorted(index)]
     _refuse_dishonest(store, analysis_id, contributor_id, contribution, added=added)
@@ -1148,6 +1168,127 @@ def _refuse_dishonest(
             "refused, nothing was written: "
             + "; ".join(f"{p.path}: {p.message} Fix: {p.fix}" for p in problems)
         )
+
+
+#: Assertion fields filled from an argument rather than from the cell, named at
+#: that argument -- once, not once per cell.
+_ARGUMENT_PATHS = {"at": "at $.at", "authorId": "at $.author.id"}
+_ARGUMENT_FIELD = re.compile(r"^at \$\.cells\[\d+\]\.(at|authorId)(?=:)")
+
+_OFF_CONTRACT = (
+    "refused, nothing was written: the stored analysis would be one the companion's closed "
+    "schema (comparanda v1) refuses: "
+)
+
+
+def _contract():
+    from rubricator.schema.source import SchemaSource
+
+    return SchemaSource.vendored()
+
+
+def _put_frame(store: AnalysisStore, analysis_id: str, frame: dict[str, Any]) -> None:
+    """Store the frame, **unless this write makes it one comparanda v1 refuses** (#136).
+
+    v1 closes every object, so a key a caller added -- a ``url`` on an
+    alternative, ``notes`` on a missing-code declaration -- would otherwise be
+    copied in verbatim and the analysis stored in a shape its own renderer
+    refuses. The whole frame is checked rather than the fragment a verb touched,
+    because a frame is itself a valid v1 document and one check covers every
+    verb that writes one, including the next.
+
+    **Only problems this write introduces are refused.** A frame stored before
+    the check existed, or edited by hand, may already carry one; refusing every
+    later write over it would lock the analysis, since each verb repairs only
+    its own part and none could go first. Those stay visible where they are
+    read: ``analysis_get`` leaves them out of its views and names them. A
+    problem is recognised by its content, not its index, so a stored one that a
+    list reordering moved is still the stored one, and a new value breaking the
+    same rule in the same place is still new.
+    """
+    try:
+        stored = _contract().identified_refusals(_as_stored(store.frame(analysis_id)))
+    except (AnalysisNotFound, KeyError, ValueError):
+        stored = []
+    before = {identity for _, identity in stored}
+    introduced = [
+        line for line, identity in _contract().identified_refusals(_as_stored(frame))
+        if identity not in before
+    ]
+    if introduced:
+        raise ValueError(_OFF_CONTRACT + "; ".join(introduced))
+    store.put_frame(analysis_id, frame)
+
+
+def _as_stored(value: Any) -> Any:
+    """``value`` as the store will write it: a tuple is a JSON array once stored.
+
+    NaN and the infinities are refused here: Python's JSON would write them, and
+    every strict parser -- the companion's renderer among them -- refuses the file.
+    """
+    import json
+
+    try:
+        return json.loads(json.dumps(value, allow_nan=False))
+    except ValueError:
+        raise ValueError(
+            "refused, nothing was written: a number is NaN or infinite, which JSON cannot "
+            "carry and the companion's renderer refuses. Record a qualified blank instead."
+        ) from None
+
+
+def _unknown_keys(
+    value: Any, shape: Mapping[str, Any], path: str, *, read_past: Sequence[str] = ()
+) -> list[str]:
+    """Keys in ``value`` that ``shape`` has no property for, with their path.
+
+    ``read_past`` names the nested lists of objects the verb also reads field by
+    field (a criterion's anchor rows), and so would drop a key from without a
+    word. Everything else nested is copied whole, where the stored-document
+    check sees it, or has its own refusal (a criterion's definition).
+    """
+    if not isinstance(value, Mapping):
+        return []
+    allowed = shape["properties"]
+    extra = sorted(set(value) - set(allowed))
+    found = (
+        [f"at {path}: {', '.join(repr(k) for k in extra)} "
+         f"{'is' if len(extra) == 1 else 'are'} not recorded anywhere. "
+         f"Allowed here: {', '.join(sorted(allowed))}"]
+        if extra else []
+    )
+    for key in read_past:
+        child = value.get(key)
+        if child is not None and not isinstance(child, (list, tuple, Mapping)):
+            found.append(f"at {path}.{key}: pass a list (or a mapping), so it can be checked "
+                         "before it is read")
+        if isinstance(child, (list, tuple)):
+            found += [
+                p for i, item in enumerate(child)
+                for p in _unknown_keys(item, allowed[key]["items"], f"{path}.{key}[{i}]")
+            ]
+    return found
+
+
+def _refuse_unknown_keys(items: Sequence[Any], shape: str, *, root: str) -> None:
+    """Refuse a key the verb would otherwise drop without a word (#136).
+
+    A criterion and a cell are read field by field, so an extra key is not
+    copied into the document -- it is lost, and the caller believes it was
+    kept. The allowed keys are the frozen surface's (ADR-0026), so a Python
+    caller and an MCP caller are refused for the same keys. Keys only: a value's
+    shape is the stored-document check's job, and the verbs accept a few
+    convenience spellings (anchors as a mapping) the wire does not.
+    """
+    from rubricator.surface.frozen import CELL, CRITERION
+
+    row, read_past = {"CELL": (CELL, ()), "CRITERION": (CRITERION, ("anchors",))}[shape]
+    problems = [
+        p for i, item in enumerate(items)
+        for p in _unknown_keys(item, row, f"{root}[{i}]", read_past=read_past)
+    ]
+    if problems:
+        raise ValueError("refused, nothing was written: " + "; ".join(problems))
 
 
 def _existing(

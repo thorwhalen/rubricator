@@ -315,11 +315,9 @@ def _path(error: Any) -> str:
 
 def _refuse_invalid(name: str, validator: Any, arguments: Mapping[str, Any]) -> None:
     """Raise the first problem with its path and what is allowed there."""
+    from rubricator.schema.source import explain
+
     error = next(iter(sorted(validator.iter_errors(arguments), key=lambda e: list(e.path))), None)
     if error is None:
         return
-    message = f"refused: {name}: at {_path(error)}: {error.message}"
-    properties = error.schema.get("properties") if isinstance(error.schema, Mapping) else None
-    if error.validator == "additionalProperties" and properties:
-        message += f". Allowed here: {', '.join(sorted(properties))}"
-    raise ValueError(message)
+    raise ValueError(f"refused: {name}: {explain(error)}")

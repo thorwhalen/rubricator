@@ -606,7 +606,11 @@ class AnalysisStore:
         # Sorted keys and a trailing newline, because these files are diffed by
         # people and merged by git: a re-serialisation that reorders keys shows
         # up as a whole-file change and buries the one line that moved.
-        payload = json.dumps(document, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+        # allow_nan=False: NaN and Infinity are not JSON, and a file holding them
+        # is refused by every strict parser that reads the store after us.
+        payload = json.dumps(
+            document, indent=2, sort_keys=True, ensure_ascii=False, allow_nan=False
+        ) + "\n"
         self.blobs[key] = payload.encode(_ENCODING)
         prefix = self.stamp_prefix(key)
         stamp = prefix + _stamp_name(self.now())
