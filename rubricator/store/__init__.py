@@ -38,7 +38,8 @@ conflict resolution. A record's name is its sequence on the branch that wrote
 it plus a digest of its content, so order is write order -- never a
 caller-supplied moment, which a model could set in the future to outrank a
 later human ``revise`` -- and two branches that wrote the same sequence keep
-both, in a fixed order.
+both. The store does not judge between them; the gate resolves such a tie
+toward caution (:func:`rubricator.tools.confirm.ordered`).
 
 ## Where it lives
 
@@ -271,6 +272,12 @@ class AnalysisNotFound(KeyError):
             "analysis_open, or list the analyses this store holds. If you expected it to be "
             "here, the store may be rooted somewhere else than the one that wrote it."
         )
+
+
+def _sequence_of(key: str) -> int:
+    """The write sequence a confirmation record's name starts with; 0 when it has none."""
+    head = key.rsplit("/", 1)[-1].split("-", 1)[0]
+    return int(head) if head.isdigit() else 0
 
 
 def _not_found(analysis_id: str, retention_days: int) -> AnalysisNotFound:
@@ -552,9 +559,11 @@ class AnalysisStore:
                 record = self._read(key)
             except (KeyError, UnicodeDecodeError, ValueError):
                 record = None
-            records.append(
-                record if isinstance(record, dict) else {"decision": "unreadable", "key": key}
-            )
+            if not isinstance(record, dict):
+                record = {"decision": "unreadable", "key": key}
+            # The sequence travels with the record, so a reader can see two
+            # branches' writes that share one (the store does not judge them).
+            records.append({**record, "_sequence": _sequence_of(key)})
         return records
 
     def add_confirmation(self, analysis_id: str, record: dict[str, Any]) -> None:
@@ -562,7 +571,11 @@ class AnalysisStore:
         check_id(analysis_id)
         self._require(analysis_id)
         payload = json.dumps(record, sort_keys=True, ensure_ascii=False).encode(_ENCODING)
-        sequence = len(self._confirmation_keys(analysis_id)) + 1
+        # One past the highest, never a count: a count repeats once any record
+        # is removed, and a repeated sequence lets a later write sort earlier.
+        sequence = max(
+            (_sequence_of(k) for k in self._confirmation_keys(analysis_id)), default=0
+        ) + 1
         name = f"{sequence:06d}-{hashlib.sha256(payload).hexdigest()[:12]}"
         self._write(self.confirmation_key(analysis_id, name), record)
 

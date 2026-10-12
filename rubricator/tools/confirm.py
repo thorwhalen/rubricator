@@ -33,7 +33,7 @@ from typing import Any, Mapping, Sequence
 from rubricator.store import AnalysisStore
 
 __all__ = [
-    "frame_confirm", "record_decision", "gate", "refuse_unconfirmed", "skip_record",
+    "frame_confirm", "record_decision", "gate", "ordered", "refuse_unconfirmed", "skip_record",
     "PARTS", "SCOPES", "DECISIONS", "OUT_OF_BAND_INSTRUCTIONS",
 ]
 
@@ -75,6 +75,8 @@ def _kind(record: Mapping[str, Any]) -> str:
         return isinstance(record.get(key), str) and bool(record[key].strip())
 
     decision, scope = record.get("decision"), record.get("scope")
+    if not isinstance(decision, str) or not isinstance(scope, str):
+        return "invalid"
     if decision == _REQUESTED and scope in SCOPES:
         return "request"
     if decision == _SKIP and scope == "all" and record.get("mechanism") == "skip-at-open" and said("at"):
@@ -82,6 +84,20 @@ def _kind(record: Mapping[str, Any]) -> str:
     if decision in DECISIONS and scope in SCOPES and said("authorId") and said("text") and said("at"):
         return "open" if DECISIONS[decision] else "close"
     return "invalid"
+
+
+def ordered(records: Sequence[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
+    """Records in write order, a tie resolved toward caution.
+
+    Two branches can write the same sequence (each counted from what it had).
+    Between those, a record that closes the gate -- or cannot be read -- sorts
+    last, so a merged ``confirm`` and ``revise`` leave it closed rather than
+    letting a content digest, which a caller can steer, decide.
+    """
+    def caution(r: Mapping[str, Any]) -> int:
+        return 0 if _kind(r) in ("request", "open") else 1
+
+    return sorted(records, key=lambda r: (r.get("_sequence", 0), caution(r)))
 
 
 def _covers(record: Mapping[str, Any], part: str) -> bool:
@@ -95,6 +111,7 @@ def gate(records: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     request (an out-of-band question asked and not yet answered) decides
     nothing; an invalid record decides every part, closed.
     """
+    records = ordered(records)
     deciding: dict[str, Mapping[str, Any] | None] = {}
     for part in PARTS:
         decided = [r for r in records if _kind(r) != "request" and _covers(r, part)]
@@ -203,7 +220,7 @@ def frame_confirm(
         raise ValueError(f'unknown decision "{decision}"; the decisions are {", ".join(DECISIONS)}.')
     frame = store.frame(analysis_id)
     current = effective_version(frame.get("criteriaVersion"))
-    records = store.confirmations(analysis_id)
+    records = ordered(store.confirmations(analysis_id))
     state = gate(records)
 
     def result(confirmed: bool, mechanism: str, record: Any, instructions: str | None,

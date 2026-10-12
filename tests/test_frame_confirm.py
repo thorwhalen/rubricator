@@ -306,3 +306,40 @@ def test_a_skip_overruled_by_a_later_revise_cannot_be_reasserted_on_reopen() -> 
     _ask_and_answer(verbs, decision="revise")
     with pytest.raises(ValueError, match="closed the gate since"):
         verbs["analysis_open"](analysis_id="a1", allow_skip_confirmation=True)
+
+
+def test_removing_a_record_never_lets_a_later_revise_sort_earlier() -> None:
+    runtime, verbs = _verbs()
+    _framed(verbs)
+    _ask_and_answer(verbs)
+    first = min(k for k in runtime.store.blobs if k.endswith(".json") and "/confirmations/" in k)
+    del runtime.store.blobs[first]  # "repair or remove", as the gate's message says
+    _ask_and_answer(verbs, decision="revise")
+    with pytest.raises(ValueError, match="not confirmed"):
+        _score(verbs)
+
+
+@pytest.mark.parametrize("text", [f"take {i}" for i in range(8)])
+def test_a_confirm_and_a_revise_at_one_sequence_merge_to_closed(text) -> None:
+    """Two branches from one question: the tie is resolved toward caution, not by digest."""
+    base: dict[str, bytes] = {}
+    _, verbs = _verbs(base)
+    _framed(verbs)
+    verbs["frame_confirm"](analysis_id="a1")
+    ana, ben = dict(base), dict(base)
+    _verbs(ana)[1]["frame_confirm"](analysis_id="a1", decision="confirm", confirmed_by="ana",
+                                    confirmation_text=text)
+    _verbs(ben)[1]["frame_confirm"](analysis_id="a1", decision="revise", confirmed_by="ben",
+                                    confirmation_text=text)
+    with pytest.raises(ValueError, match="not confirmed"):
+        _score(_verbs({**ana, **ben})[1])
+
+
+def test_a_record_with_a_non_string_decision_is_invalid_not_a_crash() -> None:
+    runtime, verbs = _verbs()
+    _framed(verbs)
+    runtime.store.blobs["analyses/a1/confirmations/000099-zz.json"] = json.dumps(
+        {"decision": ["confirm"], "scope": "all", "authorId": "a", "text": "t", "at": MOMENT}).encode()
+    assert verbs["analysis_open"](analysis_id="a1")["stage"] == 4
+    with pytest.raises(ValueError, match="cannot be read as a decision"):
+        _score(verbs)
