@@ -96,6 +96,17 @@ Six choices in this ADR reconcile the research with the reviewed implementation 
 
 - **Deciders:** Thor Whalen
 
-Row 14 is implemented. Its `outputSchema` changed in two ways, both before any client bound to it, since the row was planned until now. First, `min` and `max` widen from number to the comparanda scalar union, because a scale's levels are data (ADR-0021) and may be strings. Second, a `levels` multiset (`[{level, count}]`) is added, which is what ADR-0011 says a polarised cell carries instead of a point value. `reduction` stays the four-value enum, so a `mean` is refused by the schema at the surface. The verb refuses a mean too, naming the level of measurement, for a Python caller that bypasses the surface. `median` is the lower median on an ordinal criterion and the conventional median on an interval or ratio one; a nominal criterion gets no order statistic and is reduced to `null`, with its modes. "Polarised" mirrors comparanda's `cellShape` rule exactly.
+Row 14 is implemented. Its `outputSchema` changed in three ways, all before any client bound to it, since the row was planned until now:
+- `min` and `max` widen from number to the comparanda scalar union, because a scale's levels are data (ADR-0021) and may be strings. They, and `span`, are `null` for a nominal measure, which has no order.
+- A `levels` multiset (`[{level, count}]`) is added. It is what ADR-0011 says a polarised cell carries instead of a point value.
+- `offScale` is added, so a value the scale cannot take is counted rather than silently dropped.
 
-Re-measured on 2026-10-12 against `claude-sonnet-5-5`: the advertised definitions are now 12 tools, 7,007 tokens, 16,411 bytes. The whole surface is unchanged at 10,542 tokens, because only the status changed and the description did not.
+**Its contract text was corrected.** It had described polarisation as "modes further apart than polarised_gap" and the level of measurement as always ordinal. Polarised is now stated as the rule that is implemented, mirrored from comparanda's `cellShape`: two or more occupied levels, separated by at least `polarised_gap` empty levels, with no single dominant mode. The level of measurement is read per measure, through comparanda's `measurementFor`.
+
+**How each level of measurement is reduced.** `median` is the lower median on an ordinal measure, and the conventional median on an interval or ratio one (averaging only numbers). An ordinal integer range with no declared levels has its steps derived from the range, so a bimodal cell there is still caught. A nominal measure gets modes and counts only.
+
+**A mean is refused naming the level of measurement, at the surface as well as in the verb.** The frozen enum alone would only have said "not one of". So the surface gains a small pre-schema refusal hook, `_PRECHECKS`. It runs before the input schema check, for the one case where the contract owes the caller a reason the schema cannot carry.
+
+Re-measured on 2026-10-12 against `claude-sonnet-5-5`:
+- the advertised definitions: 12 tools, 7,039 tokens, 16,522 bytes;
+- the whole surface: 22 tools, 10,574 tokens, 25,572 bytes. It moved because the row's description changed.

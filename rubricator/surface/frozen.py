@@ -584,9 +584,10 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
         minimum_viable=False, cut_rank=3, research_row=14, issue=97,
         contract=(
             "Reduce the assertions of each cell to one value by an order statistic -- lower "
-            "median by default. A polarised cell (modes further apart than polarised_gap) "
-            "yields no value unless allow_contested_reduction is set, and is flagged. A mean is "
-            "refused: the level of measurement is ordinal."
+            "median by default. A polarised cell (two or more occupied levels separated by at "
+            "least polarised_gap empty levels, with no single dominant mode) yields no value "
+            "unless allow_contested_reduction is set, and is flagged contested. A mean is "
+            "refused, naming the level of measurement; a nominal criterion gets modes only."
         ),
         determinism="Order statistics over stored values.",
         failure="reduction=mean is refused naming the level of measurement; a polarised cell reduces to null, flagged.",
@@ -603,7 +604,7 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
                      "reduced": opt(SCALAR), "min": opt(SCALAR), "max": opt(SCALAR),
                      "span": opt(N), "modes": arr(SCALAR),
                      "levels": arr(obj({"level": SCALAR, "count": I}, ("level", "count"))),
-                     "polarised": B, "contested": B},
+                     "offScale": I, "polarised": B, "contested": B},
                     ("alternativeId", "criterionId", "measure", "n", "reduced", "polarised",
                      "contested"))),
                 "summary": S,
@@ -939,11 +940,11 @@ MEASURED: Mapping[str, Any] = {
     "measuredAt": "2026-10-12",
     "model": "claude-sonnet-5-5",
     "advertised": {
-        "tools": 12, "tokens": 7007, "bytes": 16411,
-        "sha256": "c0b207a7e9e1992e32939bdc85e76c71294a81e56d2558cc395189b15f4bcd96",
+        "tools": 12, "tokens": 7039, "bytes": 16522,
+        "sha256": "8b961977fa149cd0ed2149a1d069ce9e0120677ae635459bec1f536c26c7b2eb",
     },
     "wholeSurface": {
-        "tools": 22, "tokens": 10542, "bytes": 25461,
-        "sha256": "e5b2eb65b08a5d29b5e28e9045390f2ed44bdebd188a209b761c98795c713d3d",
+        "tools": 22, "tokens": 10574, "bytes": 25572,
+        "sha256": "576ed95a37f1cb530968dd73fd46d11d0dd86a960578c8bd22ca343442312969",
     },
 }

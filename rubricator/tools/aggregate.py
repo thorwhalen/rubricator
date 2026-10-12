@@ -33,17 +33,24 @@ later reason a reduction is contested adds a condition, not a field.
 
 ## Levels of measurement
 
-The reduction reads the criterion's declared measurement (``defaultMeasurement``):
+The reduction reads the measurement declared for the cell's measure -- the
+criterion's ``measurements[measure]``, else its ``defaultMeasurement``, which is
+comparanda's ``measurementFor``:
 
 - **ordinal**: ``median`` is the lower median -- the average of two central
   levels is a mean of levels. ``lower-median``, ``min``, ``max`` as named.
 - **interval / ratio**: ``median`` is the conventional median, which may average
   the two central values; there it is legal.
-- **nominal**: no order exists, so no order statistic does either. ``reduced`` is
-  ``null`` and the modes carry the answer.
+- **nominal**: no order exists, so nothing that needs one does either: ``reduced``,
+  ``min``, ``max`` and ``span`` are ``null``, nothing is polarised, and the modes
+  and the level counts carry the answer. Declared levels of a nominal scale are
+  display order only.
 
-A criterion with no declared ``levels`` (a numeric range) has no ordinal steps to
-measure a gap in, so it is never polarised; its ``span`` is the numeric distance.
+An ordinal criterion that declares an integer ``range`` but no ``levels`` has its
+steps derived from the range, so a bimodal cell there is still caught. Any other
+criterion with no levels has no steps to measure a gap in and is never polarised;
+its ``span`` is the numeric distance. Values a scale cannot take are not counted
+in ``n``; they are counted in ``offScale``, so a dropped value is visible.
 
 Determinism: order statistics over stored values. One store read, no write.
 """
@@ -66,8 +73,25 @@ DEFAULT_REDUCTION = "lower-median"
 #: comparanda's default ``gap`` for ``cellShape``.
 DEFAULT_POLARISED_GAP = 1
 
-#: Names a caller may reach for that are means, refused with the reason.
-_MEANS = frozenset({"mean", "average", "trimmed-mean", "winsorized-mean", "weighted-mean"})
+def _is_a_mean(reduction: Any) -> bool:
+    """``mean``, ``Mean``, ``trimmed-mean``, ``geometric-mean``, ``average`` ..."""
+    name = str(reduction).lower()
+    return "mean" in name or "average" in name
+
+
+def refuse_a_mean(store: AnalysisStore, arguments: Mapping[str, Any]) -> None:
+    """Refuse a mean before anything else looks at the call, naming the level of measurement.
+
+    Run by the surface ahead of the schema check (whose enum would only say "not
+    one of"), and by the verb itself for a Python caller.
+    """
+    reduction = arguments.get("reduction")
+    if reduction is not None and _is_a_mean(reduction):
+        try:
+            criteria = store.read(arguments["analysis_id"])["criteria"]
+        except (KeyError, TypeError):
+            criteria = []
+        raise ValueError(_mean_refusal(str(reduction), criteria))
 
 
 def aggregate_assertions(
@@ -84,8 +108,7 @@ def aggregate_assertions(
     value on its scale -- only blanks -- reduces to ``null`` with ``n = 0``.
     Tombstoned rows and columns are left out: they are withdrawn, not scored.
     """
-    if reduction in _MEANS:
-        raise ValueError(_mean_refusal(reduction, store.read(analysis_id)))
+    refuse_a_mean(store, {"analysis_id": analysis_id, "reduction": reduction})
     if reduction not in REDUCTIONS:
         raise ValueError(
             f'refused: reduction "{reduction}" is not one of {", ".join(REDUCTIONS)}. Nothing was '
@@ -109,7 +132,7 @@ def aggregate_assertions(
             continue
         rows.append(
             _reduce_cell(
-                cell, criterion.get("defaultMeasurement", {}),
+                cell, _measurement_for(criterion, cell.get("measure", "score")),
                 reduction=reduction, allow_contested=allow_contested_reduction, gap=polarised_gap,
             )
         )
@@ -121,6 +144,28 @@ def aggregate_assertions(
     }
 
 
+def _measurement_for(criterion: Mapping[str, Any], measure: str) -> Mapping[str, Any]:
+    """comparanda's ``measurementFor``: the measure's own declaration, else the default."""
+    own = (criterion.get("measurements") or {}).get(measure)
+    return own or criterion.get("defaultMeasurement") or {}
+
+
+def _steps(measurement: Mapping[str, Any]) -> Sequence[Any] | None:
+    """The declared levels, or an ordinal integer range's steps, or ``None``."""
+    levels = measurement.get("levels")
+    if levels is not None:
+        return levels
+    rng = measurement.get("range") or {}
+    lo, hi = rng.get("min"), rng.get("max")
+    if (
+        measurement.get("level", "ordinal") == "ordinal"
+        and all(isinstance(v, int) and not isinstance(v, bool) for v in (lo, hi))
+        and lo <= hi
+    ):
+        return list(range(lo, hi + 1))
+    return None
+
+
 def _reduce_cell(
     cell: Mapping[str, Any], measurement: Mapping[str, Any], *, reduction: str,
     allow_contested: bool, gap: int,
@@ -128,11 +173,12 @@ def _reduce_cell(
     values = [
         a["value"] for a in live_assertions(cell) if a.get("value") is not None
     ]
-    shape = cell_shape(values, measurement.get("levels"), gap=gap)
+    level = measurement.get("level", "ordinal")
+    shape = cell_shape(values, _steps(measurement), gap=gap, ordered=level != "nominal")
     contested = shape["polarised"]
     reduced = None
     if shape["ordered"] and (not contested or allow_contested):
-        reduced = _order_statistic(shape["ordered"], reduction, measurement.get("level"))
+        reduced = _order_statistic(shape["ordered"], reduction, level)
     return {
         "alternativeId": cell["alternativeId"],
         "criterionId": cell["criterionId"],
@@ -144,13 +190,18 @@ def _reduce_cell(
         "span": shape["span"],
         "modes": shape["modes"],
         "levels": shape["levels"],
+        "offScale": shape["offScale"],
         "polarised": shape["polarised"],
         "contested": contested,
     }
 
 
 def cell_shape(
-    values: Sequence[Any], levels: Sequence[Any] | None, *, gap: int = DEFAULT_POLARISED_GAP
+    values: Sequence[Any],
+    levels: Sequence[Any] | None,
+    *,
+    gap: int = DEFAULT_POLARISED_GAP,
+    ordered: bool = True,
 ) -> dict[str, Any]:
     """The multiset, extremes, modes and polarisation of one cell's values.
 
@@ -158,6 +209,8 @@ def cell_shape(
     counted per level in level order, values off the levels are ignored, and
     ``span`` is in ordinal steps. Without them the distinct numeric values are
     the levels, ``span`` is the numeric distance, and nothing is polarised.
+    ``ordered=False`` is a nominal scale: counts and modes only, nothing that
+    needs an order.
 
     >>> s = cell_shape([2, 4, 2, 4], [1, 2, 3, 4, 5])
     >>> s["modes"], s["polarised"], s["span"]
@@ -167,10 +220,10 @@ def cell_shape(
     >>> cell_shape([3, 4], [1, 2, 3, 4, 5])["polarised"]  # adjacent: no empty level between
     False
     """
-    if levels:
+    if levels is not None:
         counts = [sum(1 for v in values if _same(v, level)) for level in levels]
         occupied = [i for i, c in enumerate(counts) if c]
-        ordered = [levels[i] for i in occupied for _ in range(counts[i])]
+        values_in_order = [levels[i] for i in occupied for _ in range(counts[i])]
         widest = max((b - a - 1 for a, b in zip(occupied, occupied[1:])), default=0)
         multiset = [{"level": lvl, "count": c} for lvl, c in zip(levels, counts)]
         span = occupied[-1] - occupied[0] if occupied else 0
@@ -181,22 +234,25 @@ def cell_shape(
         distinct = sorted(set(numbers))
         counts = [numbers.count(v) for v in distinct]
         occupied = list(range(len(distinct)))
-        ordered = numbers
+        values_in_order = numbers
         widest = None
         multiset = [{"level": v, "count": c} for v, c in zip(distinct, counts)]
         span = distinct[-1] - distinct[0] if distinct else 0
-    n = len(ordered)
+    in_order = ordered
+    ordered_values = values_in_order
+    n = len(ordered_values)
     top = max(counts, default=0)
     modes = [m["level"] for m in multiset if n and m["count"] == top]
     return {
         "n": n,
-        "ordered": ordered,
+        "offScale": len(values) - n,
+        "ordered": ordered_values if in_order else [],
         "levels": multiset,
-        "min": ordered[0] if ordered else None,
-        "max": ordered[-1] if ordered else None,
-        "span": span,
+        "min": ordered_values[0] if ordered_values and in_order else None,
+        "max": ordered_values[-1] if ordered_values and in_order else None,
+        "span": span if in_order else None,
         "modes": modes,
-        "polarised": widest is not None and len(occupied) >= 2 and widest >= gap
+        "polarised": in_order and widest is not None and len(occupied) >= 2 and widest >= gap
         and len(modes) != 1,
     }
 
@@ -211,9 +267,12 @@ def _order_statistic(ordered: Sequence[Any], reduction: str, level: str | None) 
     if reduction == "max":
         return ordered[-1]
     lower = ordered[(k - 1) // 2]
-    if reduction == "median" and level in ("interval", "ratio"):
-        upper = ordered[k // 2]
-        return lower if lower == upper else (lower + upper) / 2
+    upper = ordered[k // 2]
+    if (
+        reduction == "median" and level in ("interval", "ratio") and lower != upper
+        and all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in (lower, upper))
+    ):
+        return (lower + upper) / 2
     return lower
 
 
@@ -224,9 +283,9 @@ def _same(a: Any, b: Any) -> bool:
     return a == b
 
 
-def _mean_refusal(reduction: str, document: Mapping[str, Any]) -> str:
+def _mean_refusal(reduction: str, criteria: Sequence[Mapping[str, Any]]) -> str:
     levels = sorted({
-        c.get("defaultMeasurement", {}).get("level", "ordinal") for c in document["criteria"]
+        (c.get("defaultMeasurement") or {}).get("level", "ordinal") for c in criteria
     }) or ["ordinal"]
     return (
         f'refused: reduction "{reduction}" is a mean, and the criteria here are measured at the '
@@ -247,4 +306,7 @@ def _summary(rows: Sequence[Mapping[str, Any]], reduction: str, allow: bool) -> 
         )
     if empty:
         text += f"; {empty} with no value on the scale"
+    off = sum(r["offScale"] for r in rows)
+    if off:
+        text += f"; {off} value(s) off their scale, not counted"
     return text

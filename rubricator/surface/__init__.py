@@ -94,6 +94,16 @@ _NEEDS_STORE: frozenset[str] = frozenset({
 })
 
 
+#: Refusals that must run *before* the schema check, because the schema can only
+#: say "not one of" where the contract owes the caller a reason. Each takes the
+#: store and the raw arguments and raises ``ValueError`` or returns ``None``.
+#: ``aggregate_assertions``'s frozen enum already excludes a mean; ADR-0011 owes
+#: the caller the level of measurement that makes it illegal (#97).
+_PRECHECKS: Mapping[str, str] = {
+    "aggregate_assertions": "rubricator.tools.aggregate:refuse_a_mean",
+}
+
+
 class ContractViolation(RuntimeError):
     """A verb returned something its frozen ``outputSchema`` does not admit.
 
@@ -154,7 +164,12 @@ def bind(runtime: Runtime, *, validate: bool = True) -> Mapping[str, Callable[..
             defaulted["analysis_id"] = runtime.new_id
         if defaulted:
             bound = _with_defaults(bound, defaulted)
-        verbs[name] = _as_function(bound, fn, bound_names, set(defaulted), spec, validate)
+        precheck = None
+        if name in _PRECHECKS:
+            precheck = partial(_resolve(_PRECHECKS[name])[1], runtime.store)
+        verbs[name] = _as_function(
+            bound, fn, bound_names, set(defaulted), spec, validate, precheck=precheck
+        )
     return verbs
 
 
@@ -169,6 +184,8 @@ def _as_function(
     defaulted: set[str],
     spec: ToolSpec,
     validate: bool,
+    *,
+    precheck: Callable[[Mapping[str, Any]], None] | None = None,
 ) -> Callable[..., Any]:
     """A real function over ``bound``, advertising a corrected signature.
 
@@ -220,6 +237,8 @@ def _as_function(
         for key in optional:
             if key in kwargs and kwargs[key] is None:
                 kwargs.pop(key)
+        if precheck is not None:
+            precheck(kwargs)
         if input_check is not None:
             _refuse_invalid(spec.name, input_check, kwargs)
         result = bound(**kwargs)

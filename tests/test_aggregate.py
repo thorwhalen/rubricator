@@ -15,7 +15,14 @@ import pytest
 from rubricator.compose import build_runtime
 from rubricator.contributors import human
 from rubricator.surface import bind
-from rubricator.tools.aggregate import _order_statistic, aggregate_assertions, cell_shape
+from rubricator.tools.aggregate import (
+    _measurement_for,
+    _order_statistic,
+    _reduce_cell,
+    _steps,
+    aggregate_assertions,
+    cell_shape,
+)
 from rubricator.tools.analysis import (
     alternatives_set,
     analysis_open,
@@ -111,9 +118,10 @@ def test_a_mean_is_refused_naming_the_level_of_measurement(runtime, mean) -> Non
         aggregate_assertions(runtime.store, analysis_id="a", reduction=mean)
 
 
-def test_the_surface_refuses_a_mean_before_the_verb_runs(runtime) -> None:
-    with pytest.raises(ValueError, match="reduction"):
-        bind(runtime)["aggregate_assertions"](analysis_id="a", reduction="mean")
+@pytest.mark.parametrize("mean", ["mean", "Mean", "geometric-mean", "average"])
+def test_the_surface_refuses_a_mean_naming_the_level_of_measurement(runtime, mean) -> None:
+    with pytest.raises(ValueError, match="measured at the ordinal level"):
+        bind(runtime)["aggregate_assertions"](analysis_id="a", reduction=mean)
 
 
 def test_a_wider_gap_unpolarises_a_one_level_split(runtime) -> None:
@@ -170,3 +178,51 @@ def test_a_numeric_range_is_never_polarised_and_spans_its_distance() -> None:
 ])
 def test_median_by_level_of_measurement(level, expected) -> None:
     assert _order_statistic([2, 4], "median", level) == expected
+
+
+# --- found by the adversarial review of #149 --------------------------------
+
+
+def _cell(values):
+    return {"alternativeId": "x", "criterionId": "c", "measure": "score",
+            "assertions": [{"id": f"s{i}", "value": v} for i, v in enumerate(values)]}
+
+
+def test_a_nominal_cell_has_modes_and_counts_but_no_order() -> None:
+    nominal = {"level": "nominal", "levels": ["red", "green", "blue"]}
+    row = _reduce_cell(_cell(["red", "blue"]), nominal, reduction="lower-median",
+                       allow_contested=False, gap=1)
+    assert (row["reduced"], row["min"], row["max"], row["span"]) == (None, None, None, None)
+    assert not row["polarised"] and not row["contested"]
+    assert row["modes"] == ["red", "blue"] and row["n"] == 2
+
+
+def test_each_measure_reads_its_own_measurement() -> None:
+    criterion = {
+        "defaultMeasurement": {"level": "ordinal", "levels": [1, 2, 3, 4, 5]},
+        "measurements": {"confidence": {"level": "ratio", "range": {"min": 0, "max": 5}}},
+    }
+    measurement = _measurement_for(criterion, "confidence")
+    row = _reduce_cell(_cell([1, 5]), measurement, reduction="median", allow_contested=False,
+                       gap=1)
+    assert row["reduced"] == 3.0 and not row["polarised"]
+    assert _measurement_for({"defaultMeasurement": None}, "score") == {}
+
+
+def test_an_ordinal_range_without_levels_still_catches_a_bimodal_cell() -> None:
+    measurement = {"level": "ordinal", "range": {"min": 0, "max": 10}}
+    assert _steps(measurement) == list(range(11))
+    row = _reduce_cell(_cell([0, 0, 10, 10]), measurement, reduction="lower-median",
+                       allow_contested=False, gap=1)
+    assert row["polarised"] and row["reduced"] is None
+
+
+@pytest.mark.parametrize("pair, expected", [(["a", "b"], "a"), ([False, True], False)])
+def test_an_interval_median_never_averages_what_is_not_a_number(pair, expected) -> None:
+    assert _order_statistic(pair, "median", "interval") == expected
+
+
+def test_values_off_the_scale_are_counted_not_silently_dropped() -> None:
+    shape = cell_shape([2, 7, 7], [1, 2, 3, 4, 5])
+    assert shape["n"] == 1 and shape["offScale"] == 2
+    assert cell_shape([2, 3], [])["n"] == 0, "declared empty levels admit nothing"
