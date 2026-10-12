@@ -27,6 +27,7 @@ from rubricator.clock import fixed_clock
 from rubricator.compose import build_runtime
 from rubricator.contributors import human, persona
 from rubricator.tools.analysis import (
+    alternatives_set,
     analysis_open,
     criteria_set,
     frame_set,
@@ -58,11 +59,12 @@ def demo(root: str | None = None) -> int:
     frame_set(
         store,
         analysis_id=analysis_id,
-        alternatives=[
-            {"id": "alpha", "label": "Alpha"},
-            {"id": "beta", "label": "Beta"},
-        ],
         ambiguities=['"adopt" — for the new service only, or everywhere?'],
+    )
+    alternatives_set(
+        store,
+        analysis_id=analysis_id,
+        alternatives=[{"id": "alpha", "label": "Alpha"}, {"id": "beta", "label": "Beta"}],
     )
     criteria_set(
         store,

@@ -9,6 +9,8 @@ seam             v1 default (no new dependency)                  replacement to 
                                                                  a team shares one repo
 ``now``          :func:`rubricator.clock.system_clock`           a fixed clock, for a
                                                                  reproducible fixture
+``new_id``       :func:`rubricator.ids.random_id`                sequential ids, for a
+                                                                 diffable fixture
 ``schema``       the vendored published contract                 a newer published version
 ===============  ==============================================  =========================
 
@@ -30,6 +32,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from rubricator.clock import Clock, system_clock
+from rubricator.ids import IdMinter, random_id
 from rubricator.schema.source import SchemaSource
 from rubricator.store import AnalysisStore, BytesStore, file_store, memory_store
 
@@ -47,6 +50,7 @@ class Runtime:
     store: AnalysisStore
     now: Clock
     schema: SchemaSource
+    new_id: IdMinter = random_id
 
     def caveat(self) -> str | None:
         """Whatever the user should be told about this configuration.
@@ -63,6 +67,7 @@ def build_runtime(
     root: str | None = None,
     blobs: BytesStore | None = None,
     now: Clock = system_clock,
+    new_id: IdMinter = random_id,
     schema: SchemaSource | None = None,
 ) -> Runtime:
     """Wire a runtime.
@@ -72,9 +77,14 @@ def build_runtime(
     GitHub-backed store, an in-memory store or anything else a ``dol`` decorator
     produces gets in without a call site changing.
 
-    >>> rt = build_runtime(blobs={}, now=lambda: '2026-08-22T12:00:00Z')
-    >>> rt.now()
-    '2026-08-22T12:00:00Z'
+    ``new_id`` mints an ``analysis_id`` when a caller opens an analysis without
+    one (ADR-0017's opaque handle); a test passes
+    :func:`rubricator.ids.sequential_ids` so the handles in a fixture are stable.
+
+    >>> from rubricator.ids import sequential_ids
+    >>> rt = build_runtime(blobs={}, now=lambda: '2026-08-22T12:00:00Z', new_id=sequential_ids())
+    >>> rt.now(), rt.new_id()
+    ('2026-08-22T12:00:00Z', 'analysis-1')
     >>> rt.schema.origin
     'published'
     >>> rt.caveat() is None
@@ -84,7 +94,7 @@ def build_runtime(
         blobs = file_store(root) if root else memory_store()
     if schema is None:
         schema = _published_schema()
-    return Runtime(store=AnalysisStore(blobs=blobs), now=now, schema=schema)
+    return Runtime(store=AnalysisStore(blobs=blobs), now=now, schema=schema, new_id=new_id)
 
 
 def _published_schema() -> SchemaSource:

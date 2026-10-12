@@ -44,10 +44,22 @@ import json
 from dataclasses import dataclass
 from typing import Any, Iterator, MutableMapping
 
-__all__ = ["AnalysisStore", "BytesStore", "memory_store", "file_store"]
+__all__ = ["AnalysisStore", "BytesStore", "memory_store", "file_store", "RETENTION_DAYS"]
 
 #: The whole persistence interface. See the module docstring.
 BytesStore = MutableMapping[str, bytes]
+
+#: The retention window, in days from **last write**, that ADR-0017 makes a
+#: stated contract: it is quoted verbatim in ``analysis_open``'s description,
+#: where the model reads it, and a test keeps the two in step. Export defeats it
+#: -- the window governs only this working store, never a file the user owns.
+#:
+#: Stated here before it is enforced. No store in this package expires anything
+#: yet; the sweep that does is #51's work, and it reads this constant rather than
+#: a number of its own. Until then the contract errs in the safe direction: a
+#: caller told that a handle may be discarded after 30 idle days loses nothing
+#: when it is in fact kept.
+RETENTION_DAYS = 30
 
 _ENCODING = "utf-8"
 

@@ -32,6 +32,7 @@ Never "items" or "features".
     docs/research/README.md  the research ledger — start here to find out what is known
     docs/research/           the method brief, sections/ (working notes), findings-method.md
     docs/prompts/README.md   the prompt inventory and the file contract
+    rubricator/surface/frozen.py  the frozen tool surface (ADR-0026): every tool's row, implemented or not
     rubricator/data/prompts/ the prompts themselves, versioned content shipped in the wheel
     skills/                  dev skills — tooling for the agent building this repo
 
@@ -45,7 +46,8 @@ prompts, `add-criterion` and `rescore-criterion` — see #114.)
 
 - **`rubricator-dev-tool-contract`** — read before adding or changing any tool. Owns the one
   architectural rule (tools are deterministic, the loop is not), the concrete tests that enforce
-  it, and the tool-vs-prompt-vs-resource decision.
+  it, the tool-vs-prompt-vs-resource decision, and the frozen-surface procedure: a tool is a row
+  in `rubricator/surface/frozen.py` first, and its schemas never leave the ADR-0013 subset.
 - **`rubricator-dev-prompt-change`** — read before editing any prompt. Owns the honesty clause
   every prompt must restate, the version-and-changelog requirement, and the rule that a prompt
   change does not land without an evaluation run.

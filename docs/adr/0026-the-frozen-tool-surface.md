@@ -1,0 +1,89 @@
+# ADR-0026: The frozen tool surface — names, signatures, envelope, errors, and the cut order
+
+- **Status:** accepted
+- **Date:** 2026-10-12
+- **Deciders:** Thor Whalen
+
+## Context
+Phases 2–5 all bind to the tool surface, and ADR-0013 warned that retrofitting its JSON Schema subset across a settled surface is pure rework. The research proposed nineteen tools (`docs/research/findings-method.md` § "Proposed MCP tool surface"); ADR-0009 adopted that count as a judgement call and asked for the definitions to be *measured* with the provider's token counter rather than estimated. Issue #49 asked for the surface to be written down and pinned before more of it was built.
+
+By the time it was, ten verbs existed and had been through five reviewed changes against comparanda schema v1. Three of them are not among the research's nineteen (`report_completeness`, `prompts_list`, `prompts_get`); seven of the nineteen's names are implemented, with signatures that drifted from the proposal where the comparanda contract forced them to. None declared an `outputSchema`. The connector derived every `inputSchema` from a Python signature, and a signature cannot say what ADR-0013 requires: `Mapping[str, Any]` derives to an *open* object, and the subset closes every object. Two tuple-shaped inputs used `prefixItems` and `minItems: 2`, which the subset forbids. So the implemented surface violated the subset at every object-valued argument, silently, and an MCP client in strict mode would have refused to call it.
+
+One more force. The closed comparanda v1 schema refuses unknown keys, and the write tools copied caller dicts verbatim (#136): an extra key offered by a model — which is what a model does — landed in the store as a document the contract rejects. A surface that advertises closed shapes and validates against them closes that at the boundary.
+
+## Decision
+
+**The surface is twenty tools plus two transitional verbs, listed in `rubricator/surface/frozen.py`, and that module is the single source of truth.** Every row carries the name, the family, the ADR-0005 stage, the status (`implemented`, `planned`, `transitional`), whether it is in the minimum viable set, its cut rank, a one-paragraph contract, a one-line determinism justification, a one-line failure mode, the `inputSchema`, the `outputSchema`, and — for anything not yet implemented — the issue that tracks it. The research's nineteen all have rows, mapped by `research_row`; `report_completeness` is the twentieth; `prompts_list` and `prompts_get` are transitional, retired when native MCP prompts land (#80). The rows:
+
+| # | Tool | Family | Stage | Status | MVP | Cut | Research row |
+|---|---|---|---|---|---|---|---|
+| 1 | `analysis_open` | analysis | 1, resume | implemented | yes | — | 1 |
+| 2 | `analysis_get` | analysis | all | planned (#52) | yes | — | 2 |
+| 3 | `corpus_add` | corpus | 2, 5 | planned (#53) | yes | — | 3 |
+| 4 | `corpus_search` | corpus | 2, 3, 5 | planned (#54) | yes | — | 4 |
+| 5 | `frame_set` | frame | 1 | implemented | yes | — | 5 |
+| 6 | `alternatives_set` | alternatives | 2 | implemented (checks: #55) | yes | — | 6 |
+| 7 | `criteria_set` | criteria | 3 | implemented | yes | — | 7 |
+| 8 | `frame_confirm` | frame | 4 | planned (#57) | yes | — | 8 |
+| 9 | `plan_traversal` | plan | 5 | implemented | yes | — | 9 |
+| 10 | `measures_write` | measures | 5 | implemented | yes | — | 10 |
+| 11 | `measures_mark_missing` | measures | 5, resume | implemented | no | 4 | 11 |
+| 12 | `analysis_validate` | analysis | 5, 6 | planned (#61) | yes | — | 12 |
+| 13 | `check_citations` | citations | 5, 6 | implemented | yes | — | 13 |
+| 14 | `aggregate_assertions` | measures | 5 | planned (#97) | no | 3 | 14 |
+| 15 | `stability_report` | report | 6 | planned (#98) | no | 3 | 15 |
+| 16 | `report_weaknesses` | report | 6 | planned (#64) | no | 5 | 16 |
+| 17 | `disclose_variance` | report | 6 | planned (#100) | no | 2 | 17 |
+| 18 | `compute_coupling_matrix` | criteria | 3 | planned (#65) | no | 1 | 18 |
+| 19 | `fit_bradley_terry` | measures | 5 | planned (#65) | no | 1 | 19 |
+| 20 | `report_completeness` | report | 5, 6, resume | implemented | yes | — | — |
+| 21 | `prompts_list` | prompts | all | transitional (#80) | yes | — | — |
+| 22 | `prompts_get` | prompts | all | transitional (#80) | yes | — | — |
+
+**Cut order.** 1 is cut first. Rank 1: the two deferred tools. Rank 2: `disclose_variance`, only if k > 1 is always used — it is most needed at k = 1, the connector's normal case. Rank 3: `aggregate_assertions` and `stability_report` together, if there are never repeats. Rank 4: `measures_mark_missing`, only at the price of partial-fill instructions, a visible product regression. Rank 5, cut last: `report_weaknesses`, without which "self-critique is part of the deliverable" (ADR-0006) degrades to unaided opinion. Everything with no rank is the minimum viable set and is not cut. The research listed `check_citations` outside its minimum set while calling it "not cuttable — it is the product"; the second statement is the decision, so it is in the minimum set here. Fifteen tools are minimum viable: the research's eleven, plus `check_citations`, `report_completeness` and the two transitional verbs.
+
+**Naming.** `snake_case`, no server prefix. Everything that acts on a stored analysis is noun-first — family, then verb: `analysis_*`, `corpus_*`, `frame_*`, `alternatives_*`, `criteria_*`, `measures_*`, `report_*`, `prompts_*`. Pure functions over caller-supplied data keep the research's names, which the ADRs already cite verbatim — ADR-0011's `plan_traversal`, ADR-0014's `check_citations`, and the five analytic tools of rows 14–19. Renaming those to satisfy a convention would cost every citation for no gain in selection accuracy.
+
+**What is frozen and what may grow.** Names and `inputSchema`s are frozen: changing either is an amendment to this ADR with its reason recorded, and a test holds every implemented verb's Python signature — parameter names, which are required — to its row. `outputSchema`s may grow additively: a new optional field is a row edit, because an output field constrains what the *server* returns, never what a model may say, and grammar compilation is keyed on the input side. A planned tool's row is its specification; when it lands, the signature test starts holding it.
+
+**The envelope.** Every tool declares an `outputSchema` and every result is `structuredContent` conforming to it, with a required `summary` string that the connector also emits as the human-readable `content` — one field, two renderings, so a client that reads only text and a client that reads only structure see the same fact. The surface validates every result against its row before returning it and raises `ContractViolation` otherwise, because MCP says a server MUST conform to its declared `outputSchema` and a silent mismatch is the one failure a client cannot detect.
+
+**The error convention.** Arguments are validated against the frozen `inputSchema` *before the verb runs*, in every surface — the CLI exactly as the connector — and a failure raises `ValueError` naming the JSON path, what was found, and which keys are allowed there. A verb refuses with `ValueError` (a rule), `KeyError` (an unknown id or code) or `TypeError` (a shape), and the message carries the fact needed to fix it, stating "nothing was written" when that is so. Over MCP every such exception is a tool result with `isError: true` whose text is the message. An unknown tool or a malformed request is a protocol-level error, raised by the host, never by a verb. Nothing a verb does produces a JSON-RPC error, and nothing the host does produces a tool error; the two layers do not share failures.
+
+**The ADR-0013 subset is enforced by a checker, not a reviewer.** `rubricator/surface/subset.py` is the seven-point checklist as a function, on an allowlist: the seven types, `properties`, `required`, `additionalProperties`, `items`, `enum`, `const`, `anyOf`, `allOf`, internal `$ref` and `$defs`, `default`, `format`, `title`, `description`, `minItems`. Anything else — `minimum`, `maxLength`, `pattern`, `oneOf`, `prefixItems`, `maxItems`, `patternProperties`, `propertyNames` — is a violation at the path where it occurs, and `additionalProperties` must be *exactly* `false` on every object, not merely absent. The conformance test runs it over all forty-four schemas, and runs it first over one deliberate violation of each kind, per ADR-0020's rule that a guard is shown failing before it is believed.
+
+**Three consequences the subset forced on the implemented signatures, and one it did not.** Anchors are a list of `{level, text}` rows rather than an object keyed by level, because a dynamic-key object cannot be closed; the verb accepts both shapes and stores comparanda's mapping. `check_citations` takes `{quote, source, evidenceId?}` objects rather than tuples. `criteria_set` reports revisions and definition gaps as lists rather than id-keyed objects. And `measures_write`'s `value` is the comparanda union of number, string and boolean rather than an `enum` of 1–5: the score scale is *data* (ADR-0021) and is not known at schema-authoring time, so rule 1 of the checklist applies where it can — to the score-cell emission schema the prompt ships, whose scale is known — and the range check against the criterion's declared scale is the validator's (#61), which is where ADR-0013 put range checks anyway.
+
+**`analysis_id` is minted, opaque, and never overwritten.** A new seam at the composition root, `new_id`, supplies one when the caller gives none — the same shape as the clock, for the same reason: `secrets` is denied to the tool layer, so a verb that minted an id would not be a tool. Reopening an existing id returns `created: false` with what is there and writes nothing, so a retry cannot reset a matrix. The retention window of ADR-0017 is a stated constant, `RETENTION_DAYS = 30` from last write, quoted in `analysis_open`'s description where the model reads it; a test keeps the two in step. It is stated before it is enforced — no store expires anything yet (#51) — which errs in the safe direction.
+
+**`frame_set` writes the frame; `alternatives_set` writes the rows.** The implemented `frame_set` had taken the alternatives, conflating ADR-0005's stages 1 and 2. They are now the research's two tools: a frame can be settled before anything is enumerated, and `alternatives_set` refuses to drop a row that cells refer to, as `criteria_set` already did for columns. Its near-duplicate and unsourced flags are #55's work and will grow its output additively.
+
+**What the model reads is the row, not the docstring.** The connector replaces the builder's derived description, `inputSchema` and `outputSchema` with the row's, and sets the serializer that makes `summary` the text content. The description is rendered from the row's contract, stage, determinism and failure fields, because a docstring written for the developer maintaining a verb and a description written for the model choosing one have different readers — and only the second has a measured cost. The Python docstring stays the developer's.
+
+**The token cost is measured, and re-measured whenever the definitions change.** `scripts/measure_tool_tokens.py` sends the exact definitions a client sends — name, description, `inputSchema` — to the provider's token counter and prints the block recorded as `MEASURED`. Measured on 2026-10-12 against `claude-sonnet-5-5`:
+
+| Definitions | Tools | Tokens | Bytes |
+|---|---|---|---|
+| advertised today | 11 | 6,408 | 15,046 |
+| the whole frozen surface | 22 | 10,258 | 24,896 |
+
+A test pins the live byte size of both lists to the recorded ones, so a changed description or schema fails until the measurement is redone. The whole surface sits *at* the 10k-token line the research names as the point where deferred tool loading starts to pay, not comfortably under it. That is a finding, not a problem to solve here: it says that when the planned rows land, either the descriptions are trimmed under the same measurement or the connector adopts the host's deferred loading, and the measurement is what decides which.
+
+**Deliberately absent, carried over and tested.** No `propose_criteria`, `score_cell`, `review` or `detect_overlap` tool — judgement, so prompts (ADR-0003). No embedding-backed search (ADR-0010), under any name: `corpus_embed`, `semantic_search`. No aggregate or total tool — `aggregate_total`, `compute_total` — because comparanda computes none by default and a tool returning one would make it the path of least resistance. No `analysis_list` tool: it is a resource; the host lists, the model does not browse. No `conformal_interval` in v1; when it lands it reads a stored calibration table. And no `temperature` or model-seed parameter on any tool: neither exists in the connector, and a parameter that silently no-ops in one of two first-class runtimes is a bug in the specification. The `seed` on `plan_traversal` and `fit_bradley_terry` is an input to a pure function — seed the traversal, not the model. A test asserts none of the absent names is ever a row or a registry entry and none of the forbidden parameters appears in any `inputSchema`.
+
+**The measurement script is the one direct use of a provider SDK in the repository.** ADR-0019 routes all LLM access through the `aix` facade; counting tokens is not inference, the facade has no counter, and the script ships no part of the package. The exception is stated in the script and filed against the facade's gap list (#34).
+
+## Consequences
+The surface is reviewable as a file rather than by reading nine modules: what exists, what is planned, what is cut first, what the model reads, and what it costs. An extra key from a model is refused at the boundary with its path, in the CLI and the connector alike, which closes the first bullet of #136 for every implemented write path; the second bullet — `score-cell` asking for fields the closed assertion has no slot for — stays open there, because it is a prompt change. The connector now advertises closed schemas a strict-mode client will accept, and declares an `outputSchema` on every tool, which it did not before.
+
+The cost is a second description of every verb — the row beside the docstring — and a byte pin that makes every wording change a measurement. Both are the point: the row is what the model reads and the pin is what keeps "measured" true. A planned row is a specification that may prove wrong when its tool is built; changing it then is an amendment here, which is cheaper than the alternative of a surface nobody wrote down. The naming rule has a stated exception, and exceptions are what conventions die of; the test lists the seven names so that an eighth has to be added deliberately.
+
+Two choices in this ADR reverse earlier shapes and are the owner's to ratify: the `frame_set` / `alternatives_set` split, and `report_completeness` as a twentieth tool rather than a view of `analysis_get`. Both are reversible by amendment. The second checkout of this repository that the editable install resolves to is not this ADR's business but was found by its measurement script, and is reported with it.
+
+## Alternatives considered
+- *Freeze the research's nineteen verbatim and rework the implementation to match.* The implemented signatures were forced by the comparanda v1 contract (`contributor_id`, `author`, `at`, closed cell shapes); the research's were sketches. Freezing the sketch would have frozen the thing that had not been tested.
+- *Derive `inputSchema` from typed Python signatures (TypedDict with `extra="forbid"`).* Puts pydantic in the tool layer, which must import bare, and still cannot express the subset's exclusions. A row is data; a type is not.
+- *Validate inputs only in the connector.* Then the CLI and any later surface accept what the connector refuses, which is two surfaces again. The surface binder validates, so every dispatcher inherits it.
+- *Fold `report_completeness` into `analysis_get(view=outstanding)`.* The outstanding view returns cells; the report returns rates, degradations and stored honesty problems. One tool returning either shape by a `view` argument would need a union envelope, and the subset has no discriminated unions.
+- *Estimate tokens from bytes and skip the pin.* ADR-0009 asked for a measurement; a ratio drifts with every description edit, and nobody would notice.
+- *Docstrings as descriptions, per #49's wording.* The docstrings are developer essays, several hundred tokens each; the model needs the contract. The row is the description, and the measurement is taken over it.

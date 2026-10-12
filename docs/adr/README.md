@@ -4,7 +4,7 @@
 chronological and records how the project argued its way to where it is — which ADR superseded which,
 what was confirmed under pressure, what is still an amendment away from its original text. That order
 is the wrong one for a newcomer who wants to know what this repository *does*. So the sections below
-group the same twenty-six ADRs by what they govern, and the table at the end restores the numeric
+group the same twenty-seven ADRs by what they govern, and the table at the end restores the numeric
 sequence for anyone reading the history.
 
 Every ADR is Nygard-format, numbered, and immutable once accepted (ADR-0001). A reversal arrives as a
@@ -44,6 +44,7 @@ a reason).
 | [0013](0013-structured-output-and-schema-subset.md) | Structured output, and the JSON Schema subset the tool surface may use | accepted | Every judgement arrives through grammar-constrained sampling, with the reasoning field declared *before* the value fields. A seven-point checklist constrains tool signatures to the subset providers actually enforce; range checks move into the deterministic validator. |
 | [0021](0021-extension-vocabularies-are-data.md) | Extension vocabularies are data — one resolver, `broader` degradation, reported | accepted | Settles the shape ADR-0012's amendment deferred. A closed core enum, an open string at the point of use, a declaration in the document, one resolver — and a `Degradation` record so a reader learns what its build could not interpret. **Reading never raises; authoring does.** No `MeasurementScale` protocol, and an absent `scale` is never stamped with the default. |
 | [0024](0024-boundary-validation-two-rule-families.md) | Two rule families — honesty rejects, completeness informs | accepted | The family determines the severity, so a rule cannot choose it. Every problem carries a **required** `fix` and a stable `rule_id`. `strict=False` drops completeness only: **honesty rules can never be suppressed**, by any flag, ruleset, configuration or deployment. |
+| [0026](0026-the-frozen-tool-surface.md) | The frozen tool surface — names, signatures, envelope, errors, and the cut order | accepted | Twenty tools plus two transitional verbs, as rows in `rubricator/surface/frozen.py`: names and `inputSchema`s frozen, `outputSchema`s growing additively, every schema held to the ADR-0013 subset by a checker, every call validated both ways in every surface, a `summary` in every envelope, and the token cost **measured** (6,408 advertised; 10,258 for the whole surface) and pinned. Carries the deliberately-absent list and the cut order. |
 
 ## The method — eliciting the frame, and keeping it alive across sessions
 
@@ -114,6 +115,7 @@ a reason).
 | [0023](0023-the-store-two-targets-and-a-one-way-projection.md) | One bytes mapping, two targets, and a projection that is write-only by type | accepted |
 | [0024](0024-boundary-validation-two-rule-families.md) | Two rule families — honesty rejects, completeness informs | accepted |
 | [0025](0025-the-rubricator-application.md) | The `rubricator` application — Preact, one data port, text-only encoding | accepted |
+| [0026](0026-the-frozen-tool-surface.md) | The frozen tool surface — names, signatures, envelope, errors, and the cut order | accepted |
 
 Numbers 0009–0019 were allocated in a single sequence when round-1 research landed, which is why they
 are all dated together and why several of them cite ADR-0006 as a parent rather than superseding it.
@@ -124,7 +126,9 @@ Numbers 0020–0025 were allocated together on 2026-08-22, when the v1 seam arch
 open decisions at once. Two of those decisions needed no new number and landed as amendments to
 ADR-0012 and ADR-0018 — a scale that becomes a default with a declared seam, and a stability seam —
 because they narrow rather than invert. Seven further amendments landed the same day, on ADR-0002,
-0007, 0009, 0010, 0014, 0017 and 0019. **0026 is the next free number.**
+0007, 0009, 0010, 0014, 0017 and 0019.
+
+Number 0026 landed on 2026-10-12 and froze the tool surface (#49). **0027 is the next free number.**
 
 `PENDING-ACTIONS.md` has been applied and removed. Where any research document disagrees with an
 ADR, the ADR wins.

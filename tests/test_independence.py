@@ -15,6 +15,7 @@ from rubricator.contributors import agent, human, sign
 from rubricator.merge import merge_contributions
 from rubricator.rules import honesty_problems
 from rubricator.tools.analysis import (
+    alternatives_set,
     analysis_open,
     criteria_set,
     frame_set,
@@ -32,7 +33,8 @@ def store():
     rt = build_runtime(blobs={})
     s = rt.store
     analysis_open(s, analysis_id="a", question="which?")
-    frame_set(s, analysis_id="a", alternatives=[{"id": "x", "label": "X"}], ambiguities=[])
+    frame_set(s, analysis_id="a", ambiguities=[])
+    alternatives_set(s, analysis_id="a", alternatives=[{"id": "x", "label": "X"}])
     criteria_set(s, analysis_id="a", criteria=[{"id": "c", "label": "C", "anchors": ANCHORS}])
     return s
 
@@ -129,8 +131,8 @@ def _two_cell_store():
     rt = build_runtime(blobs={})
     s = rt.store
     analysis_open(s, analysis_id="a", question="which?")
-    frame_set(s, analysis_id="a", alternatives=[{"id": "x", "label": "X"}, {"id": "y", "label": "Y"}],
-              ambiguities=[])
+    frame_set(s, analysis_id="a", ambiguities=[])
+    alternatives_set(s, analysis_id="a", alternatives=[{"id": "x", "label": "X"}, {"id": "y", "label": "Y"}])
     criteria_set(s, analysis_id="a", criteria=[{"id": "c", "label": "C", "anchors": ANCHORS}])
     return s
 

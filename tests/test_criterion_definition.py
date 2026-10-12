@@ -13,7 +13,12 @@ import pytest
 from rubricator.compose import build_runtime
 from rubricator.merge import merge_contributions
 from rubricator.rules import honesty_problems
-from rubricator.tools.analysis import DEFINITION_FIELDS, analysis_open, criteria_set
+from rubricator.tools.analysis import (
+    DEFINITION_FIELDS,
+    alternatives_set,
+    analysis_open,
+    criteria_set,
+)
 
 ANCHORS = {"1": "no commitment", "3": "undated commitment", "5": "dated commitment"}
 FULL = {
@@ -39,7 +44,7 @@ def _set(rt, **criterion):
 
 def test_a_full_definition_is_emitted_and_validates(runtime) -> None:
     result = _set(runtime, definition=FULL)
-    assert result["definitionGaps"] == {}
+    assert result["definitionGaps"] == []
     doc = merge_contributions(runtime.store.frame("a"), [])
     assert doc["criteria"][0]["definition"] == FULL
     assert runtime.schema.validate(doc).ok
@@ -49,9 +54,9 @@ def test_a_full_definition_is_emitted_and_validates(runtime) -> None:
 def test_missing_fields_are_reported_not_refused(runtime) -> None:
     """ADR-0024: an under-defined criterion is unfinished, not dishonest."""
     result = _set(runtime, definition={"question": "How firm?"})
-    assert result["definitionGaps"] == {
-        "c": [f for f in DEFINITION_FIELDS if f != "question"]}
-    assert set(_set(runtime)["definitionGaps"]["c"]) == set(DEFINITION_FIELDS)
+    assert result["definitionGaps"] == [
+        {"criterionId": "c", "fields": [f for f in DEFINITION_FIELDS if f != "question"]}]
+    assert set(_set(runtime)["definitionGaps"][0]["fields"]) == set(DEFINITION_FIELDS)
 
 
 def test_a_missing_rule_naming_an_undefined_code_is_refused(runtime) -> None:
@@ -114,7 +119,7 @@ def test_a_non_object_definition_gets_the_helpful_error(runtime, bad) -> None:
 def test_a_blank_string_is_a_gap_and_an_empty_list_is_an_answer(runtime) -> None:
     result = _set(runtime, definition={**FULL, "objective": "  ", "question": "",
                                        "exclusions": []})
-    assert result["definitionGaps"] == {"c": ["objective", "question"]}
+    assert result["definitionGaps"] == [{"criterionId": "c", "fields": ["objective", "question"]}]
 
 
 def test_a_criterion_scoped_code_can_be_recorded_and_counted(runtime) -> None:
@@ -124,8 +129,8 @@ def test_a_criterion_scoped_code_can_be_recorded_and_counted(runtime) -> None:
 
     decl = [{"id": "paywalled", "broader": "not-evidenced", "means": "behind a paywall",
              "informative": True}]
-    frame_set(runtime.store, analysis_id="a", alternatives=[{"id": "x", "label": "X"}],
-              ambiguities=[])
+    frame_set(runtime.store, analysis_id="a", ambiguities=[])
+    alternatives_set(runtime.store, analysis_id="a", alternatives=[{"id": "x", "label": "X"}])
     _set(runtime, missingCodes=decl,
          definition={**FULL, "missingRules": [{"when": "paywalled", "code": "paywalled"}]})
     ana = human("ana", "Ana")

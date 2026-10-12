@@ -74,4 +74,4 @@ def test_changing_direction_is_a_material_revision(rt) -> None:
     _set(rt)
     result = _set(rt, preference="decreasing")
     assert result["criteriaVersion"] == "2"
-    assert result["revised"]["c"] == {"fields": ["defaultMeasurement"], "material": True}
+    assert result["revised"] == [{"criterionId": "c", "fields": ["defaultMeasurement"], "material": True}]

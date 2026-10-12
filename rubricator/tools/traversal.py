@@ -32,9 +32,10 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
-from typing import Literal, Sequence
+from typing import Any, Literal, Sequence
 
-__all__ = ["TraversalOrder", "TraversalPlan", "plan_traversal", "seeded_permutation"]
+__all__ = [
+    "build_traversal","TraversalOrder", "TraversalPlan", "plan_traversal", "seeded_permutation"]
 
 TraversalOrder = Literal["cell-wise", "column-wise", "row-wise", "single-pass"]
 
@@ -110,8 +111,23 @@ class TraversalPlan:
         """How many generations this plan costs. The whole trade-off, in one number."""
         return len(self.steps)
 
+    def as_dict(self) -> dict[str, Any]:
+        """The closed JSON shape the surface returns."""
+        return {
+            "order": self.order,
+            "seed": self.seed,
+            "steps": [list(step) for step in self.steps],
+            "modelCalls": self.model_calls,
+            "isolation": self.isolation,
+            "provenance": dict(self.provenance),
+            "summary": (
+                f"{self.model_calls} {self.order} step(s) from seed {self.seed!r}; "
+                f"the model follows this order and never chooses it"
+            ),
+        }
 
-def plan_traversal(
+
+def build_traversal(
     alternatives: Sequence[str],
     criteria: Sequence[str],
     *,
@@ -119,7 +135,7 @@ def plan_traversal(
     seed: str = "rubricator",
     shuffle: bool = True,
 ) -> TraversalPlan:
-    """Produce the plan for scoring a matrix.
+    """Produce the plan for scoring a matrix, as a :class:`TraversalPlan`.
 
     ``cell-wise`` is the default because it removes cross-cell anchoring *by
     construction* rather than by asking the model not to anchor. It costs
@@ -131,12 +147,12 @@ def plan_traversal(
     the *same* order bias, so repeats agree with each other for a reason that has
     nothing to do with the evidence.
 
-    >>> plan = plan_traversal(["a1", "a2"], ["c1", "c2"], seed="x")
+    >>> plan = build_traversal(["a1", "a2"], ["c1", "c2"], seed="x")
     >>> len(plan), plan.order
     (4, 'cell-wise')
-    >>> plan_traversal(["a1", "a2"], ["c1", "c2"], seed="x").steps == plan.steps
+    >>> build_traversal(["a1", "a2"], ["c1", "c2"], seed="x").steps == plan.steps
     True
-    >>> plan_traversal(["a1", "a2"], ["c1"], order="column-wise").model_calls
+    >>> build_traversal(["a1", "a2"], ["c1"], order="column-wise").model_calls
     1
     """
     if not alternatives:
@@ -203,3 +219,31 @@ def describe_tradeoff(alternatives: int, criteria: int) -> str:
             "single-pass: 1 generation, everything contaminates everything",
         ]
     )
+
+
+def plan_traversal(
+    alternatives: Sequence[str],
+    criteria: Sequence[str],
+    *,
+    order: TraversalOrder = "cell-wise",
+    seed: str = "rubricator",
+    shuffle: bool = True,
+) -> dict[str, Any]:
+    """The order in which to score the cells of a matrix, from a seed.
+
+    Stage 5 of ADR-0005, and the connector's strongest mitigation against
+    order effects (ADR-0011): the model receives the order and never chooses it,
+    and the seed enters provenance so the run replays exactly. A pure function
+    of ``(seed, alternatives, criteria)`` -- the same inputs give the same plan
+    in any process. Refuses an empty axis, because a plan over nothing is not a
+    plan.
+
+    The surface verb; :func:`build_traversal` returns the same plan as an object.
+
+    >>> plan = plan_traversal(["a1", "a2"], ["c1"], seed="x")
+    >>> plan["modelCalls"], plan["order"], sorted(map(tuple, plan["steps"]))
+    (2, 'cell-wise', [('a1', 'c1'), ('a2', 'c1')])
+    """
+    return build_traversal(
+        alternatives, criteria, order=order, seed=seed, shuffle=shuffle
+    ).as_dict()

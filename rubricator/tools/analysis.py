@@ -30,6 +30,7 @@ from rubricator.store import AnalysisStore
 __all__ = [
     "analysis_open",
     "frame_set",
+    "alternatives_set",
     "criteria_set",
     "measures_write",
     "measures_mark_missing",
@@ -68,13 +69,42 @@ DEFINITION_FIELDS: tuple[str, ...] = (
 DEFINITION_EXPECTED: tuple[str, ...] = DEFINITION_FIELDS
 
 
-def analysis_open(store: AnalysisStore, *, analysis_id: str, question: str) -> dict[str, Any]:
-    """Start an analysis. Writes the frame and nothing else.
+def analysis_open(
+    store: AnalysisStore, *, analysis_id: str, question: str | None = None
+) -> dict[str, Any]:
+    """Start an analysis, or reopen one. Writes the frame and nothing else.
 
     An analysis exists before it has any alternatives or criteria, because the
     thing being decided is the first thing that is known and the criteria
     discussion is the valuable part (ADR-0005).
+
+    **Reopening never overwrites.** An id the store already holds returns
+    ``created: false`` with what is there, so that a resumed session -- or a
+    model retrying a call -- cannot reset a matrix by opening it twice. A new
+    analysis needs a ``question``; a reopened one ignores the argument, because
+    the question is the one thing a frame may not quietly change.
+
+    The ``analysis_id`` is an opaque handle (ADR-0017). The surface mints one
+    when the caller gives none (:mod:`rubricator.ids`); the connector's default
+    store keeps an analysis for 30 days from its last write
+    (:data:`rubricator.store.RETENTION_DAYS`), and export defeats that window.
     """
+    if store.exists(analysis_id):
+        frame = store.frame(analysis_id)
+        n_alt, n_crit = len(frame.get("alternatives", [])), len(frame.get("criteria", []))
+        return {
+            "analysisId": analysis_id,
+            "created": False,
+            "question": frame["subject"]["question"],
+            "alternatives": n_alt,
+            "criteria": n_crit,
+            "summary": f'reopened "{analysis_id}": {n_alt} alternative(s), {n_crit} criteria',
+        }
+    if not (question or "").strip():
+        raise ValueError(
+            f'refused: no analysis "{analysis_id}" exists, and a new one needs a question. '
+            "Pass the question being decided, or the id of an existing analysis."
+        )
     frame = {
         "id": analysis_id,
         "schemaVersion": 1,
@@ -98,35 +128,92 @@ def analysis_open(store: AnalysisStore, *, analysis_id: str, question: str) -> d
         "renditions": [],
     }
     store.put_frame(analysis_id, frame)
-    return {"analysisId": analysis_id, "created": True}
+    return {
+        "analysisId": analysis_id,
+        "created": True,
+        "question": question,
+        "alternatives": 0,
+        "criteria": 0,
+        "summary": f'opened "{analysis_id}" with no alternatives and no criteria yet',
+    }
 
 
 def frame_set(
     store: AnalysisStore,
     *,
     analysis_id: str,
-    alternatives: Sequence[Mapping[str, Any]],
-    ambiguities: Sequence[str] = (),
+    ambiguities: Sequence[str],
     decision: str | None = None,
+    decider: str | None = None,
+    context: str | None = None,
 ) -> dict[str, Any]:
-    """Record what is being compared, and what is still ambiguous about it.
+    """Record the frame: the decision, who decides, and what is still ambiguous.
+
+    Stage 1 of ADR-0005. The rows are **not** written here: they are stage 2's
+    output and :func:`alternatives_set` writes them, so that a frame can be
+    settled and confirmed before anyone has enumerated anything.
 
     ``ambiguities`` is required to be *considered*, not required to be non-empty:
-    the ADR-0005 rule is that surface ambiguity is surfaced rather than resolved
+    the ADR-0005 rule is that ambiguity is surfaced rather than resolved
     silently, and a caller that has genuinely found none says so by passing an
     empty list. What is not available is not passing the argument at all and
     having the question of whether anyone looked go unrecorded.
     """
     frame = store.frame(analysis_id)
+    subject = frame["subject"]
+    for key, value in (("decision", decision), ("decider", decider), ("context", context)):
+        if value:
+            subject[key] = value
+    subject["ambiguities"] = list(ambiguities)
+    store.put_frame(analysis_id, frame)
+    n = len(subject["ambiguities"])
+    return {
+        "analysisId": analysis_id,
+        "decision": subject.get("decision"),
+        "decider": subject.get("decider"),
+        "ambiguities": subject["ambiguities"],
+        "summary": f"frame recorded; {n} ambiguit{'y' if n == 1 else 'ies'} left open for the user",
+    }
+
+
+def alternatives_set(
+    store: AnalysisStore, *, analysis_id: str, alternatives: Sequence[Mapping[str, Any]]
+) -> dict[str, Any]:
+    """Declare the alternatives -- the rows -- replacing the current set.
+
+    Stage 2 of ADR-0005. Dropping an alternative that any cell refers to is
+    refused, for the same reason :func:`criteria_set` refuses to drop a scored
+    criterion: a row with history is never deleted, it is tombstoned, and that
+    is a separate, visible act.
+
+    Near-duplicate and unsourced alternatives are *flagged*, never merged, by
+    the checks tracked in #55; this verb writes.
+    """
+    frame = store.frame(analysis_id)
+    ids = [a["id"] for a in alternatives]
+    if len(set(ids)) != len(ids):
+        dupes = sorted({i for i in ids if ids.count(i) > 1})
+        raise ValueError(
+            f"refused, nothing was written: alternative ids {', '.join(dupes)} appear more than "
+            "once. Two rows with one id would be one row with two labels."
+        )
+    referenced = {
+        cell["alternativeId"]
+        for _, contribution in store.contributions(analysis_id)
+        for cell in contribution.get("cells", [])
+    }
+    dropped = sorted(referenced - set(ids))
+    if dropped:
+        raise ValueError(
+            f"refused, nothing was written: alternatives {', '.join(dropped)} would be dropped, "
+            "but cells refer to them. Keep them in the set, or tombstone them."
+        )
     frame["alternatives"] = [dict(a) for a in alternatives]
-    if decision:
-        frame["subject"]["decision"] = decision
-    frame["subject"]["ambiguities"] = list(ambiguities)
     store.put_frame(analysis_id, frame)
     return {
         "analysisId": analysis_id,
-        "alternatives": len(frame["alternatives"]),
-        "ambiguities": list(ambiguities),
+        "alternatives": ids,
+        "summary": f"{len(ids)} alternative(s) declared",
     }
 
 
@@ -204,7 +291,7 @@ def criteria_set(
             )
         else:
             defaulted.append(c["id"])
-        anchors = c.get("anchors")
+        anchors = _anchor_levels(c.get("anchors"))
         required = list(preset["anchorsRequiredAt"])
         if required:
             if not anchors:
@@ -270,20 +357,34 @@ def criteria_set(
     # stored: a retry then sees the same before-state and the same revision.
     merged = merge_contributions(frame, store.contributions(analysis_id))
     store.put_frame(analysis_id, frame)
+    superseded = superseded_cells(merged)
+    summary = f'{len(out)} criteria at version "{frame["criteriaVersion"]}"'
+    if revised:
+        summary += f"; {len(revised)} revised"
+    if superseded["count"]:
+        summary += f"; {superseded['count']} cell(s) now answer an older definition"
+    if gaps:
+        summary += f"; {len(gaps)} under-defined"
     return {
         "analysisId": analysis_id,
         "criteria": [c["id"] for c in out],
         "criteriaVersion": frame["criteriaVersion"],
-        "revised": revised,
-        "supersededCells": superseded_cells(merged),
+        # Lists rather than id-keyed objects, because the frozen surface closes
+        # every object (ADR-0013 rule 3) and an id-keyed object cannot be closed.
+        "revised": [
+            {"criterionId": cid, "fields": r["fields"], "material": r["material"]}
+            for cid, r in revised.items()
+        ],
+        "supersededCells": superseded,
         # Completeness, not a refusal: which definition fields each criterion
         # still lacks. Empty when every criterion is fully defined.
-        "definitionGaps": gaps,
+        "definitionGaps": [{"criterionId": cid, "fields": f} for cid, f in gaps.items()],
         # Criteria whose direction of preference came from the scale preset
         # rather than from the caller. Misaligned direction is a documented
         # failure of generated rubrics; a cost scored "increasing" because
         # nobody said otherwise is exactly it, so the default is made visible.
         "defaultedPreference": defaulted,
+        "summary": summary,
     }
 
 
@@ -363,7 +464,15 @@ def measures_write(
     contribution["cells"] = [index[k] for k in sorted(index)]
     _refuse_dishonest(store, analysis_id, contributor_id, contribution, added=added)
     store.put_contribution(analysis_id, contributor_id, contribution)
-    return {"analysisId": analysis_id, "contributorId": contributor_id, "written": len(cells)}
+    valued = sum(1 for c in cells if c.get("value") is not None)
+    return {
+        "analysisId": analysis_id,
+        "contributorId": contributor_id,
+        "written": len(cells),
+        "criteriaVersion": criteria_version,
+        "summary": f"{len(cells)} assertion(s) written for {contributor_id}: "
+        f"{valued} valued, {len(cells) - valued} qualified blank(s)",
+    }
 
 
 def measures_mark_missing(
@@ -433,7 +542,12 @@ def measures_mark_missing(
         at=at,
         cells=cells,
     )
-    return {**result, "code": code, "marked": len(cells)}
+    return {
+        **result,
+        "code": code,
+        "marked": len(cells),
+        "summary": f'{len(cells)} cell(s) marked "{code}" for {contributor_id}',
+    }
 
 
 def report_completeness(store: AnalysisStore, *, analysis_id: str) -> dict[str, Any]:
@@ -520,6 +634,11 @@ def report_completeness(store: AnalysisStore, *, analysis_id: str) -> dict[str, 
             {"path": p.path, "message": p.message, "fix": p.fix, "ruleId": p.rule_id}
             for p in honesty_problems(merged)
         ],
+        "summary": (
+            f"{present} valued, {settled} settled blank(s), {outstanding} outstanding of "
+            f"{applicable} applicable cell(s); silenceRate {rate(informative):.2f}"
+            + (f"; {len(degradations)} code(s) this build could not interpret" if degradations else "")
+        ),
     }
 
 
@@ -709,6 +828,34 @@ def declarations_for(document: Mapping[str, Any], criterion_id: str) -> list[Map
     """
     criterion = next((c for c in document.get("criteria", []) if c.get("id") == criterion_id), {})
     return [*criterion.get("missingCodes", []), *document.get("missingCodes", [])]
+
+
+def _anchor_levels(anchors: Any) -> dict[str, str] | None:
+    """Anchors as the stored ``{level: text}`` mapping, from either input shape.
+
+    The frozen surface takes anchors as a **list** of ``{level, text}`` rows,
+    because an object keyed by level cannot be closed and ADR-0013 closes every
+    object a tool accepts. Python callers may still pass the mapping. Both land
+    here as one shape, so nothing downstream knows there were two.
+
+    >>> _anchor_levels([{"level": "1", "text": "a"}, {"level": 3, "text": "b"}])
+    {'1': 'a', '3': 'b'}
+    >>> _anchor_levels({"1": "a"})
+    {'1': 'a'}
+    >>> _anchor_levels(None) is None
+    True
+    """
+    if anchors is None:
+        return None
+    if isinstance(anchors, Mapping):
+        return {str(k): v for k, v in anchors.items()}
+    rows = list(anchors)
+    levels = [str(r["level"]) for r in rows]
+    if len(set(levels)) != len(levels):
+        raise ValueError(
+            "anchors name the same level twice; one evidence condition per level."
+        )
+    return {str(r["level"]): r["text"] for r in rows}
 
 
 def _copy_definition(definition: Mapping[str, Any]) -> dict[str, Any]:

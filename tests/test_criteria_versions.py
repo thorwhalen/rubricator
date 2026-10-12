@@ -13,7 +13,13 @@ from rubricator.compose import build_runtime
 from rubricator.contributors import human
 from rubricator.criteria_versions import compare_versions, next_version, superseded_cells
 from rubricator.merge import merge_contributions
-from rubricator.tools.analysis import analysis_open, criteria_set, frame_set, measures_write
+from rubricator.tools.analysis import (
+    alternatives_set,
+    analysis_open,
+    criteria_set,
+    frame_set,
+    measures_write,
+)
 
 AT = "2026-10-12T00:00:00Z"
 ANCHORS = {"1": "none", "3": "some", "5": "all"}
@@ -24,7 +30,8 @@ ANA = human("ana", "Ana")
 def rt():
     rt = build_runtime(blobs={})
     analysis_open(rt.store, analysis_id="a", question="which?")
-    frame_set(rt.store, analysis_id="a", alternatives=[{"id": "x", "label": "X"}], ambiguities=[])
+    frame_set(rt.store, analysis_id="a", ambiguities=[])
+    alternatives_set(rt.store, analysis_id="a", alternatives=[{"id": "x", "label": "X"}])
     return rt
 
 
@@ -45,7 +52,7 @@ def _doc(rt):
 
 def test_the_first_set_is_version_1_and_assertions_record_it(rt) -> None:
     result = _criteria(rt)
-    assert result["criteriaVersion"] == "1" and result["revised"] == {}
+    assert result["criteriaVersion"] == "1" and result["revised"] == []
     _score(rt)
     doc = _doc(rt)
     assert doc["criteriaVersion"] == "1"
@@ -59,7 +66,7 @@ def test_a_material_change_supersedes_earlier_scores(rt) -> None:
     _score(rt)
     result = _criteria(rt, label="Vendor support, dated")
     assert result["criteriaVersion"] == "2"
-    assert result["revised"] == {"c": {"fields": ["label"], "material": True}}
+    assert result["revised"] == [{"criterionId": "c", "fields": ["label"], "material": True}]
     assert result["supersededCells"]["count"] == 1
     doc = _doc(rt)
     assert doc["criteria"][0]["definedInVersion"] == "2"
@@ -74,7 +81,7 @@ def test_an_editorial_change_moves_the_set_but_supersedes_nothing(rt) -> None:
     _score(rt)
     result = _criteria(rt, label="Support.", editorial=["c"])
     assert result["criteriaVersion"] == "2"
-    assert result["revised"]["c"]["material"] is False
+    assert result["revised"][0]["material"] is False
     assert result["supersededCells"]["count"] == 0
     assert "definedInVersion" not in _doc(rt)["criteria"][0]
 
@@ -128,7 +135,7 @@ def test_adding_an_empty_definition_is_a_meaning_change(rt) -> None:
     _criteria(rt)
     result = criteria_set(rt.store, analysis_id="a", criteria=[
         {"id": "c", "label": "Support", "anchors": ANCHORS, "definition": {}}])
-    assert result["criteriaVersion"] == "2" and result["revised"]["c"]["fields"] == ["definition"]
+    assert result["criteriaVersion"] == "2" and result["revised"][0]["fields"] == ["definition"]
 
 
 def test_nothing_is_written_when_the_merge_raises(rt) -> None:
