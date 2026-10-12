@@ -185,7 +185,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     runtime = build_runtime(root=args.root)
     if args.command == "show":
         return _show(runtime.store, args.analysis_id)
-    report = report_completeness(runtime.store, analysis_id=args.analysis_id)
+    # Through the surface, not the raw verb: the CLI validates against the
+    # frozen row exactly as the connector does (ADR-0026). `demo` above calls
+    # the verbs directly on purpose -- it is the Python-level chain.
+    from rubricator.surface import bind
+
+    report = bind(runtime)["report_completeness"](analysis_id=args.analysis_id)
     json.dump(report, sys.stdout, indent=2, sort_keys=True)
     sys.stdout.write("\n")
     return 0

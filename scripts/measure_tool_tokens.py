@@ -4,7 +4,7 @@ ADR-0009 and ADR-0026 require the cost of the tool definitions to be
 **measured** with the provider's token counter, not estimated from bytes. This
 script sends the exact definitions a client sends -- name, description, input
 schema -- to that counter and prints the ``MEASURED`` block for
-``rubricator/surface/frozen.py``. A test pins the byte size of the live
+``rubricator/surface/frozen.py``. A test pins the digest of the live
 definitions to the recorded one, so when the definitions change this script
 has to be run again and its output pasted in.
 
@@ -26,7 +26,13 @@ import os
 import sys
 from datetime import date
 
-from rubricator.surface.frozen import FROZEN_TOOLS, advertised, definitions, definitions_bytes
+from rubricator.surface.frozen import (
+    FROZEN_TOOLS,
+    advertised,
+    definitions,
+    definitions_bytes,
+    definitions_digest,
+)
 
 #: The model the count is taken against. A token count is model-specific, and
 #: the recorded block names it so the number can be reproduced.
@@ -60,11 +66,13 @@ def main() -> int:
             "tools": len(live),
             "tokens": _count(definitions(live)) - baseline,
             "bytes": definitions_bytes(live),
+            "sha256": definitions_digest(live),
         },
         "wholeSurface": {
             "tools": len(whole),
             "tokens": _count(definitions(whole)) - baseline,
             "bytes": definitions_bytes(whole),
+            "sha256": definitions_digest(whole),
         },
     }
     print("MEASURED: Mapping[str, Any] = " + json.dumps(block, indent=4))

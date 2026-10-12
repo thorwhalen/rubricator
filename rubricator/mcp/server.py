@@ -1,21 +1,22 @@
 """The connector: the same verbs, over MCP, advertising the frozen contract.
 
-Built with ``py2mcp`` from the one registry in :mod:`rubricator.surface`, so the
-CLI and the connector cannot expose different sets. That is not tidiness: an
-in-house post-mortem in this ecosystem found twelve handlers across eight
-capability families out of step between two surfaces that claimed to "stay
-aligned by construction", and the verdict was that by construction was not a
-mechanism -- no test, no shared registry, no codegen. This is the shared
-registry.
+Built on ``py2mcp``'s server from the one registry in :mod:`rubricator.surface`,
+so the CLI and the connector cannot expose different sets. That is not
+tidiness: an in-house post-mortem in this ecosystem found twelve handlers
+across eight capability families out of step between two surfaces that claimed
+to "stay aligned by construction", and the verdict was that by construction
+was not a mechanism -- no test, no shared registry, no codegen. This is the
+shared registry.
 
-**What the model reads is the frozen row, not a derived guess.** The builder
-derives an ``inputSchema`` from each verb's Python signature, and a signature
-cannot say what ADR-0013 requires -- a ``Mapping[str, Any]`` derives to an open
-object, and the subset closes every object. So after the builder has done its
-work, every tool's ``inputSchema``, ``outputSchema`` and description are
-replaced with the row from :mod:`rubricator.surface.frozen`, and the human-
-readable content of every result is the row's ``summary`` field. The bound verb
-underneath has already validated the call against the same row.
+**What the model reads is the frozen row, not a derived guess.** A builder
+derives an ``inputSchema`` from a Python signature, and a signature cannot say
+what ADR-0013 requires -- a ``Mapping[str, Any]`` derives to an open object,
+and the subset closes every object. So each tool is registered from its row in
+:mod:`rubricator.surface.frozen`: the row's description, ``inputSchema`` and
+``outputSchema``, over a wrapper whose parameters are untyped so that the host
+coerces nothing before the bound verb validates the raw arguments against the
+same row. Every result is the verb's dict as ``structuredContent`` with its
+required ``summary`` as the text content.
 
 **No model access anywhere in this path.** The connector's intelligence is the
 caller's model, reading prompts and calling these verbs; the verbs themselves
@@ -25,10 +26,11 @@ whole reason the tool layer is denied a model client by a test.
 
 from __future__ import annotations
 
-from typing import Any
+import inspect
+from typing import Any, Callable
 
 from rubricator.compose import Runtime, build_runtime
-from rubricator.surface import bind, describe, frozen
+from rubricator.surface import ToolSpec, bind, describe, frozen
 
 __all__ = ["make_server", "main"]
 
@@ -46,47 +48,67 @@ anything about the subject.
 """
 
 
-def _summary(result: Any) -> str:
-    """The human-readable content of a result: its ``summary`` field, verbatim."""
-    return result["summary"]
-
-
 def make_server(runtime: Runtime | None = None, **kwargs: Any):
     """Build the MCP server over the bound verbs, advertising the frozen rows.
 
     ``runtime`` is the seam: pass one built against a GitHub-backed store and the
     connector serves a shared team repository instead of a local directory, with
-    no handler changing.
+    no handler changing. Safe to call inside a running event loop: nothing here
+    awaits.
     """
     from py2mcp import mk_mcp_server
 
     runtime = runtime or build_runtime(**kwargs)
-    server = mk_mcp_server(
-        list(bind(runtime).values()),
-        name="rubricator",
-        instructions=_INSTRUCTIONS,
-    )
-    _advertise_frozen(server)
+    server = mk_mcp_server([], name="rubricator", instructions=_INSTRUCTIONS)
+    rows = frozen()
+    for name, verb in bind(runtime).items():
+        server.add_tool(_tool_from_row(rows[name], verb))
     return server
 
 
-def _advertise_frozen(server: Any) -> None:
-    """Replace every derived tool definition with its frozen row.
+def _tool_from_row(spec: ToolSpec, verb: Callable[..., Any]):
+    """One MCP tool: the row's contract over the bound verb.
 
-    Three fields, all from :mod:`rubricator.surface.frozen`: the description the
-    model reads, the ``inputSchema`` it is held to, and the ``outputSchema`` the
-    server is held to -- plus the serializer that makes ``summary`` the text
-    content beside the structured result.
+    The wrapper's parameters carry no annotations and default to ``None``, so
+    the host's own argument model accepts exactly the row's parameter names and
+    coerces nothing -- a ``"0.5"`` reaches the row validator as a string and is
+    refused there with its path, rather than being quietly read as a number.
+    ``parameters`` is then replaced with the row's schema, which is what the
+    client sees and what a strict-mode model is held to.
     """
-    import asyncio
+    from fastmcp.tools import Tool
+    from fastmcp.tools import ToolResult
+    from mcp.types import TextContent
 
-    rows = frozen()
-    for tool in asyncio.run(server._list_tools()):
-        spec = rows[tool.name]
-        tool.description = describe(spec)
-        tool.parameters = dict(spec.input_schema)
-        tool.output_schema = dict(spec.output_schema)
-        tool.serializer = _summary
+    names = list(spec.input_schema["properties"])
+    required = set(spec.input_schema["required"])
+
+    def call(**arguments: Any) -> ToolResult:
+        result = verb(**{k: v for k, v in arguments.items() if v is not None or k in required})
+        return ToolResult(
+            content=[TextContent(type="text", text=result["summary"])],
+            structured_content=result,
+        )
+
+    call.__name__ = spec.name
+    call.__doc__ = describe(spec)
+    # Concrete, not the postponed string: the host resolves annotations in the
+    # function's module globals, where a locally imported name does not exist.
+    call.__annotations__ = {"return": ToolResult}
+    call.__signature__ = inspect.Signature(  # type: ignore[attr-defined]
+        [
+            inspect.Parameter(
+                n, inspect.Parameter.KEYWORD_ONLY,
+                default=inspect.Parameter.empty if n in required else None,
+            )
+            for n in names
+        ]
+    )
+    tool = Tool.from_function(
+        call, name=spec.name, description=describe(spec), output_schema=dict(spec.output_schema)
+    )
+    tool.parameters = dict(spec.input_schema)
+    return tool
 
 
 def main() -> None:  # pragma: no cover - process entry point

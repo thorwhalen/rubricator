@@ -30,7 +30,7 @@ from rubricator.store import RETENTION_DAYS
 
 __all__ = [
     "ToolSpec", "FROZEN_TOOLS", "frozen", "advertised", "describe", "definitions",
-    "definitions_bytes", "DELIBERATELY_ABSENT", "FORBIDDEN_PARAMETERS", "ERROR_CONVENTION",
+    "definitions_bytes", "definitions_digest", "definitions_json", "DELIBERATELY_ABSENT", "FORBIDDEN_PARAMETERS", "ERROR_CONVENTION",
     "MEASURED", "RETENTION_DAYS",
 ]
 
@@ -93,6 +93,20 @@ def enum(*values: str) -> dict[str, Any]:
     return {"type": "string", "enum": list(values)}
 
 
+def const(value: str) -> dict[str, Any]:
+    return {"type": "string", "const": value}
+
+
+def at_least_one(items: Mapping[str, Any]) -> dict[str, Any]:
+    """An array that, when given, names something: ``[]`` is refused.
+
+    Used where an omitted argument means "all" -- so that a model saying "none"
+    cannot be read as "every one", which is the one misreading that writes
+    the whole matrix.
+    """
+    return {"type": "array", "items": dict(items), "minItems": 1}
+
+
 SCALAR = {"anyOf": [N, S, B]}
 MISSING_BROADER = enum(
     "not-applicable", "not-assessed", "deferred", "not-evidenced", "indeterminate", "withheld"
@@ -105,7 +119,14 @@ VERDICT = enum("exact", "normalised", "fuzzy", "moved", "stale", "unresolvable",
 TRAVERSAL_ORDER = enum("cell-wise", "column-wise", "row-wise", "single-pass")
 RULESET = enum("draft", "default", "strict-publication", "conformance")
 
-ALTERNATIVE = obj({"id": S, "label": S, "description": S, "groupIds": arr(S)}, ("id", "label"))
+#: Rows and columns may be retired but never deleted once scored: ``tombstoned``
+#: and ``supersededBy`` are the comparanda fields for that, and they are on the
+#: input shape because a refusal that says "tombstone it" must be followable.
+ALTERNATIVE = obj(
+    {"id": S, "label": S, "description": S, "groupIds": arr(S),
+     "tombstoned": B, "supersededBy": arr(S)},
+    ("id", "label"),
+)
 MISSING_DECLARATION = obj(
     {"id": S, "broader": MISSING_BROADER, "means": S,
      "structural": B, "terminal": B, "informative": B},
@@ -122,6 +143,7 @@ CRITERION = obj(
         "anchors": arr(obj({"level": S, "text": S}, ("level", "text"))),
         "missingCodes": arr(MISSING_DECLARATION),
         "definition": DEFINITION,
+        "tombstoned": B, "supersededBy": arr(S),
     },
     ("id", "label"),
 )
@@ -137,14 +159,20 @@ AUTHOR = obj(
     },
     ("id", "displayName", "kind"),
 )
+#: The six comparanda selectors, each discriminated by a ``const`` type exactly
+#: as the companion schema discriminates them, so a selector the surface
+#: accepts is a selector the stored document validates with.
 SELECTOR = {"anyOf": [
-    obj({"type": S, "exact": S, "prefix": S, "suffix": S}, ("type", "exact")),
-    obj({"type": S, "start": N, "end": N}, ("type", "start", "end")),
-    obj({"type": S, "page": N}, ("type", "page")),
-    obj({"type": S, "startLine": N, "endLine": N, "contentHash": S},
+    obj({"type": const("TextQuoteSelector"), "exact": S, "prefix": S, "suffix": S},
+        ("type", "exact")),
+    obj({"type": const("TextPositionSelector"), "start": N, "end": N}, ("type", "start", "end")),
+    obj({"type": const("PageSelector"), "page": N}, ("type", "page")),
+    obj({"type": const("LineRangeSelector"), "startLine": N, "endLine": N, "contentHash": S},
         ("type", "startLine", "endLine")),
-    obj({"type": S, "startSeconds": N, "endSeconds": N}, ("type", "startSeconds", "endSeconds")),
-    obj({"type": S, "syntax": S, "value": S}, ("type", "syntax", "value")),
+    obj({"type": const("TimeRangeSelector"), "startSeconds": N, "endSeconds": N},
+        ("type", "startSeconds", "endSeconds")),
+    obj({"type": const("PathSelector"), "syntax": enum("css", "xpath"), "value": S},
+        ("type", "syntax", "value")),
 ]}
 CHECK = obj(
     {"status": VERDICT, "checkedAt": S, "checkerVersion": S, "resolvedBy": S,
@@ -484,7 +512,8 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
         input_schema=obj(
             {"analysis_id": S, "contributor_id": S, "author": AUTHOR,
              "at": {"type": "string", "format": "date-time"}, "code": S, "note": S,
-             "criterion_ids": arr(S), "alternative_ids": arr(S), "independence": INDEPENDENCE},
+             "criterion_ids": at_least_one(S), "alternative_ids": at_least_one(S),
+             "independence": INDEPENDENCE},
             ("analysis_id", "contributor_id", "author", "code", "note"),
         ),
         output_schema=obj(
@@ -810,11 +839,30 @@ def definitions(specs: tuple[ToolSpec, ...] = FROZEN_TOOLS) -> list[dict[str, An
     ]
 
 
-def definitions_bytes(specs: tuple[ToolSpec, ...] = FROZEN_TOOLS) -> int:
-    """Size of :func:`definitions` as compact JSON; the pin for :data:`MEASURED`."""
+def definitions_json(specs: tuple[ToolSpec, ...] = FROZEN_TOOLS) -> bytes:
+    """:func:`definitions` as canonical compact JSON: sorted keys, no whitespace, UTF-8."""
     import json
 
-    return len(json.dumps(definitions(specs), separators=(",", ":"), sort_keys=True).encode())
+    return json.dumps(
+        definitions(specs), separators=(",", ":"), sort_keys=True, ensure_ascii=True
+    ).encode("ascii")
+
+
+def definitions_bytes(specs: tuple[ToolSpec, ...] = FROZEN_TOOLS) -> int:
+    """Size of :func:`definitions_json`; recorded beside the count for a reader."""
+    return len(definitions_json(specs))
+
+
+def definitions_digest(specs: tuple[ToolSpec, ...] = FROZEN_TOOLS) -> str:
+    """SHA-256 of :func:`definitions_json`; the pin for :data:`MEASURED`.
+
+    A digest rather than a length: a same-length edit -- ``string`` to
+    ``number``, one word for another -- changes what the model reads and what
+    it costs, and a length pin let both through.
+    """
+    import hashlib
+
+    return hashlib.sha256(definitions_json(specs)).hexdigest()
 
 
 #: What the surface deliberately does not have, and why. A test asserts none of
@@ -861,12 +909,19 @@ ERROR_CONVENTION: Mapping[str, str] = {
 
 #: The measured token cost of the advertised definitions. Measured, not
 #: estimated: scripts/measure_tool_tokens.py sends the exact tool list a client
-#: sends to the provider's token counter and records what came back. ``bytes``
-#: is the size of that list as compact JSON, and a test pins the live bytes to
-#: it, so a change to the definitions fails until the measurement is redone.
+#: sends to the provider's token counter and records what came back. ``sha256``
+#: is the digest of that list as canonical JSON, and a test pins the live
+#: digest to it, so any change to the definitions fails until the measurement
+#: is redone. ``bytes`` is recorded for the reader, not as the pin.
 MEASURED: Mapping[str, Any] = {
     "measuredAt": "2026-10-12",
     "model": "claude-sonnet-5-5",
-    "advertised": {"tools": 11, "tokens": 6408, "bytes": 15046},
-    "wholeSurface": {"tools": 22, "tokens": 10258, "bytes": 24896},
+    "advertised": {
+        "tools": 11, "tokens": 6604, "bytes": 15436,
+        "sha256": "c0ff82eeec1397ec113234e2214f827559f153561d83907e5d9a652fb88666c3",
+    },
+    "wholeSurface": {
+        "tools": 22, "tokens": 10454, "bytes": 25286,
+        "sha256": "88e47ae05e059fa8eb04f4e35a1c49a3883c3ae27313be6e87f3a2412d83fdb6",
+    },
 }

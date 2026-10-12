@@ -259,9 +259,22 @@ def _with_defaults(
 
 
 def _validator(schema: Mapping[str, Any]):
-    from jsonschema import Draft202012Validator
+    from jsonschema import Draft202012Validator, FormatChecker
 
-    return Draft202012Validator(dict(schema))
+    checker = FormatChecker(formats=())
+
+    @checker.checks("date-time", raises=ValueError)
+    def _is_rfc3339(value: Any) -> bool:
+        # Checked here, in the surface, so the tool layer stays clock-free: a
+        # moment a caller states must at least be a moment.
+        from datetime import datetime
+
+        if not isinstance(value, str):
+            return True
+        datetime.fromisoformat(value.replace("Z", "+00:00"))
+        return True
+
+    return Draft202012Validator(dict(schema), format_checker=checker)
 
 
 def _path(error: Any) -> str:

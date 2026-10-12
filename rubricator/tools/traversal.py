@@ -159,6 +159,13 @@ def build_traversal(
         raise ValueError("no alternatives to score")
     if not criteria:
         raise ValueError("no criteria to score against")
+    for axis, ids in (("alternatives", list(alternatives)), ("criteria", list(criteria))):
+        dupes = sorted({i for i in ids if ids.count(i) > 1})
+        if dupes:
+            raise ValueError(
+                f"refused: {axis} lists {', '.join(dupes)} more than once; a plan would score "
+                "the same cell twice and call it two cells."
+            )
 
     alts = list(seeded_permutation(alternatives, f"{seed}\x01alt") if shuffle else alternatives)
     crits = list(seeded_permutation(criteria, f"{seed}\x01crit") if shuffle else criteria)

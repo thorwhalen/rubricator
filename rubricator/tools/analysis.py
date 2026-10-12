@@ -161,9 +161,16 @@ def frame_set(
     """
     frame = store.frame(analysis_id)
     subject = frame["subject"]
+    # None leaves a field as it was; an empty string clears it. Both are
+    # needed: a model re-stating the frame must not erase what it did not
+    # mention, and a user must be able to withdraw a decider.
     for key, value in (("decision", decision), ("decider", decider), ("context", context)):
-        if value:
+        if value is None:
+            continue
+        if value.strip():
             subject[key] = value
+        else:
+            subject.pop(key, None)
     subject["ambiguities"] = list(ambiguities)
     store.put_frame(analysis_id, frame)
     n = len(subject["ambiguities"])
@@ -336,6 +343,12 @@ def criteria_set(
         }
         if isinstance(definition, Mapping):
             emitted["definition"] = _copy_definition(definition)
+        # Retired, never deleted (ADR-0016): the two comparanda fields for a
+        # column that stays in the set because cells refer to it.
+        if c.get("tombstoned"):
+            emitted["tombstoned"] = True
+        if c.get("supersededBy"):
+            emitted["supersededBy"] = list(c["supersededBy"])
         out.append(emitted)
         declared.setdefault(
             scale_id, {"id": scale_id, "broader": "stevens", "means": preset["means"], "params": {}}
@@ -419,13 +432,20 @@ def measures_write(
             f'"{expected_criteria_version}", and the set is now at "{criteria_version}". Re-read '
             "the criteria and re-score, so no score is stamped with a version it never saw."
         )
-    known = {c["id"] for c in frame.get("criteria", [])}
-    unknown = sorted({c["criterionId"] for c in cells} - known)
+    known = {c["id"]: c for c in frame.get("criteria", [])}
+    unknown = sorted({c["criterionId"] for c in cells} - set(known))
     if unknown:
         raise KeyError(
             f"refused, nothing was written: criteria {', '.join(unknown)} are not in this "
             "analysis. Declare them with criteria_set first."
         )
+    off_scale = [
+        problem
+        for cell in cells
+        if (problem := _off_scale(cell, known[cell["criterionId"]]))
+    ]
+    if off_scale:
+        raise ValueError("refused, nothing was written: " + "; ".join(off_scale))
     contribution = _existing(store, analysis_id, contributor_id, author)
     index = {
         (c["alternativeId"], c["criterionId"], c["measure"]): c
@@ -828,6 +848,39 @@ def declarations_for(document: Mapping[str, Any], criterion_id: str) -> list[Map
     """
     criterion = next((c for c in document.get("criteria", []) if c.get("id") == criterion_id), {})
     return [*criterion.get("missingCodes", []), *document.get("missingCodes", [])]
+
+
+def _off_scale(cell: Mapping[str, Any], criterion: Mapping[str, Any]) -> str | None:
+    """Why ``cell``'s value is one its criterion's scale cannot take, or ``None``.
+
+    The frozen surface cannot bound ``value`` in the schema -- the scale is data
+    (ADR-0021) and is not known when the schema is written -- so ADR-0013's
+    range check lives here, against the measurement the criterion declares: the
+    ``levels`` where it lists them, the ``range`` otherwise. A blank has no
+    value and is never off scale.
+
+    >>> crit = {"id": "c", "defaultMeasurement": {"levels": [1, 2, 3], "range": {"min": 1, "max": 3}}}
+    >>> _off_scale({"alternativeId": "x", "criterionId": "c", "value": 2}, crit) is None
+    True
+    >>> _off_scale({"alternativeId": "x", "criterionId": "c", "value": 2.5}, crit)
+    'cell x/c: value 2.5 is not one of the levels its scale declares (1, 2, 3)'
+    """
+    if "value" not in cell or cell["value"] is None:
+        return None
+    value = cell["value"]
+    measurement = criterion.get("defaultMeasurement", {})
+    where = f"cell {cell['alternativeId']}/{cell['criterionId']}"
+    levels = measurement.get("levels")
+    if levels:
+        if not any(value == lvl and type(value) is not bool for lvl in levels) and value not in levels:
+            shown = ", ".join(str(lvl) for lvl in levels)
+            return f"{where}: value {value!r} is not one of the levels its scale declares ({shown})"
+        return None
+    rng = measurement.get("range")
+    if rng and isinstance(value, (int, float)) and not isinstance(value, bool):
+        if value < rng["min"] or value > rng["max"]:
+            return f"{where}: value {value!r} is outside the scale's range {rng['min']}..{rng['max']}"
+    return None
 
 
 def _anchor_levels(anchors: Any) -> dict[str, str] | None:

@@ -38,7 +38,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-__all__ = ["subset_violations", "ALLOWED_KEYWORDS", "TYPES"]
+__all__ = ["subset_violations", "ALLOWED_KEYWORDS", "TYPES", "FORMATS"]
 
 #: The seven JSON types.
 TYPES: frozenset[str] = frozenset(
@@ -71,6 +71,9 @@ _NAMED_REASONS: Mapping[str, str] = {
 }
 
 _SCALARS = (str, int, float, bool, type(None))
+
+#: The string formats the providers document as supported in constrained mode.
+FORMATS: frozenset[str] = frozenset({"date-time", "date", "time", "duration", "email", "uri", "uuid", "ipv4", "ipv6"})
 
 
 def subset_violations(schema: Mapping[str, Any]) -> list[str]:
@@ -115,18 +118,34 @@ def _walk(
                 _walk(target, root, f"{path}->{ref}", (*ref_stack, ref), out)
 
     declared = node.get("type")
-    if declared is not None and declared not in TYPES:
+    if declared is not None and (not isinstance(declared, str) or declared not in TYPES):
         out.append(f"{path}: type {declared!r} is not one of the seven JSON types (use anyOf)")
 
-    if declared == "object" or "properties" in node:
-        if node.get("additionalProperties") is not False:
+    is_object = declared == "object" or any(
+        k in node for k in ("properties", "required", "additionalProperties")
+    )
+    if is_object:
+        extra = node.get("additionalProperties")
+        if extra is not False:
             out.append(f"{path}: an object must declare additionalProperties: false")
+            if isinstance(extra, Mapping):
+                _walk(extra, root, f"{path}.additionalProperties", ref_stack, out)
         properties = node.get("properties", {})
+        if not isinstance(properties, Mapping):
+            out.append(f"{path}: properties must be an object")
+            properties = {}
         for name, child in properties.items():
             _walk(child, root, f"{path}.{name}", ref_stack, out)
         for name in node.get("required", ()):
             if name not in properties:
                 out.append(f"{path}: required names {name!r}, which is not a property")
+
+    if "const" in node and not isinstance(node["const"], _SCALARS):
+        out.append(f"{path}: const must be a scalar")
+
+    fmt = node.get("format")
+    if fmt is not None and fmt not in FORMATS:
+        out.append(f"{path}: format {fmt!r} is not one the providers support; validate it in the validator")
 
     if "items" in node:
         if isinstance(node["items"], Mapping):
@@ -135,8 +154,8 @@ def _walk(
             out.append(f"{path}: items must be one schema, not a list (no tuple shapes)")
 
     min_items = node.get("minItems")
-    if min_items is not None and min_items not in (0, 1):
-        out.append(f"{path}: minItems must be 0 or 1, not {min_items}")
+    if min_items is not None and (isinstance(min_items, bool) or min_items not in (0, 1)):
+        out.append(f"{path}: minItems must be 0 or 1, not {min_items!r}")
 
     enum = node.get("enum")
     if enum is not None:
@@ -155,7 +174,8 @@ def _walk(
 
 def _resolve(root: Mapping[str, Any], ref: str) -> Any:
     node: Any = root
-    for part in ref[2:].split("/"):
+    for raw in ref[2:].split("/"):
+        part = raw.replace("~1", "/").replace("~0", "~")  # JSON-pointer escapes
         if not isinstance(node, Mapping) or part not in node:
             return None
         node = node[part]

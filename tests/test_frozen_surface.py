@@ -333,12 +333,17 @@ def test_the_token_measurement_is_current() -> None:
     fails until ``scripts/measure_tool_tokens.py`` has been run again and its
     output pasted into ``MEASURED``.
     """
-    live, whole = definitions_bytes(advertised()), definitions_bytes(FROZEN_TOOLS)
+    from rubricator.surface.frozen import definitions_digest
+
     hint = "run scripts/measure_tool_tokens.py and record its output in frozen.MEASURED"
     assert MEASURED["advertised"]["tools"] == len(advertised()), hint
     assert MEASURED["wholeSurface"]["tools"] == len(FROZEN_TOOLS), hint
-    assert MEASURED["advertised"]["bytes"] == live, f"advertised definitions changed; {hint}"
-    assert MEASURED["wholeSurface"]["bytes"] == whole, f"frozen definitions changed; {hint}"
+    assert MEASURED["advertised"]["sha256"] == definitions_digest(advertised()), (
+        f"advertised definitions changed; {hint}")
+    assert MEASURED["wholeSurface"]["sha256"] == definitions_digest(FROZEN_TOOLS), (
+        f"frozen definitions changed; {hint}")
+    assert MEASURED["advertised"]["bytes"] == definitions_bytes(advertised())
+    assert MEASURED["wholeSurface"]["bytes"] == definitions_bytes(FROZEN_TOOLS)
     assert MEASURED["advertised"]["tokens"] > 0 and MEASURED["measuredAt"] != "unmeasured", hint
 
 
@@ -346,3 +351,152 @@ def test_the_adr_records_the_measurement() -> None:
     text = ADR.read_text(encoding="utf-8")
     assert f"{MEASURED['advertised']['tokens']:,}" in text
     assert f"{MEASURED['wholeSurface']['tokens']:,}" in text
+
+
+# --- the review's findings, kept failing-able ---------------------------------
+
+
+def _write(verbs, cell_extra=None, **cell):
+    verbs["analysis_open"](analysis_id="a1", question="which?")
+    verbs["frame_set"](analysis_id="a1", ambiguities=[])
+    verbs["alternatives_set"](analysis_id="a1", alternatives=[{"id": "x", "label": "X"}])
+    verbs["criteria_set"](analysis_id="a1", criteria=[{"id": "c", "label": "C", "anchors": ANCHORS}])
+    return verbs["measures_write"](
+        analysis_id="a1", contributor_id="ana", author=AUTHOR,
+        cells=[{"alternativeId": "x", "criterionId": "c", **cell}],
+    )
+
+
+def test_every_write_leaves_a_document_the_published_schema_accepts() -> None:
+    """ADR-0017: the stored record is itself a schema-valid comparanda analysis."""
+    from rubricator.merge import merge_contributions
+
+    runtime = build_runtime(blobs={}, now=fixed_clock(MOMENT))
+    verbs = bind(runtime)
+    _write(verbs, value=5, justification="dated", evidence=[{
+        "id": "e1", "target": "rendition:r", "sourceType": "primary", "stance": "supports",
+        "selectors": [{"type": "TextQuoteSelector", "exact": "until 2029"},
+                      {"type": "PathSelector", "syntax": "css", "value": "p.note"}],
+        "check": {"status": "exact", "checkedAt": MOMENT, "checkerVersion": "rubricator/0.0.1"},
+    }])
+    verbs["measures_mark_missing"](
+        analysis_id="a1", contributor_id="ben", author={**AUTHOR, "id": "ben"},
+        code="not-evidenced", note="silent", independence="independent",
+    )
+    verbs["alternatives_set"](analysis_id="a1", alternatives=[
+        {"id": "x", "label": "X", "tombstoned": True, "supersededBy": ["y"]}, {"id": "y", "label": "Y"}])
+    verbs["criteria_set"](analysis_id="a1", criteria=[
+        {"id": "c", "label": "C", "anchors": ANCHORS, "tombstoned": True}])
+    store = runtime.store
+    merged = merge_contributions(store.frame("a1"), store.contributions("a1"))
+    assert merged["alternatives"][0]["tombstoned"] is True
+    assert merged["criteria"][0]["tombstoned"] is True
+    result = runtime.schema.validate(merged)
+    assert result.ok, result.report()
+
+
+def test_a_selector_comparanda_would_refuse_is_refused_at_the_boundary(verbs) -> None:
+    with pytest.raises(ValueError, match=r"refused: measures_write: at \$\.cells\[0\]\.evidence\[0\]\.selectors\[0\]"):
+        _write(verbs, value=5, justification="j", evidence=[{
+            "id": "e1", "target": "t", "sourceType": "primary",
+            "selectors": [{"type": "Bogus", "exact": "x"}]}])
+
+
+def test_a_value_the_scale_cannot_take_is_refused(verbs) -> None:
+    """#49: scores are bounded -- by the validator, since the scale is data."""
+    with pytest.raises(ValueError, match="not one of the levels its scale declares"):
+        _write(verbs, value=9.5, justification="j")
+    with pytest.raises(ValueError, match="not one of the levels"):
+        _write(verbs, value="5", justification="j")
+
+
+def test_a_scored_row_can_be_retired_but_not_dropped(verbs) -> None:
+    _write(verbs, value=3, justification="j")
+    with pytest.raises(ValueError, match="tombstone"):
+        verbs["alternatives_set"](analysis_id="a1", alternatives=[])
+    out = verbs["alternatives_set"](analysis_id="a1", alternatives=[
+        {"id": "x", "label": "X", "tombstoned": True}])
+    assert out["alternatives"] == ["x"]
+
+
+def test_a_frame_field_can_be_cleared_and_is_kept_when_unmentioned(verbs) -> None:
+    verbs["analysis_open"](analysis_id="a1", question="q")
+    verbs["frame_set"](analysis_id="a1", ambiguities=[], decision="adopt", decider="the CTO")
+    kept = verbs["frame_set"](analysis_id="a1", ambiguities=[], decision="adopt one")
+    assert kept["decider"] == "the CTO"
+    cleared = verbs["frame_set"](analysis_id="a1", ambiguities=[], decider="")
+    assert cleared["decider"] is None and cleared["decision"] == "adopt one"
+
+
+def test_an_empty_selection_cannot_mean_every_cell(verbs) -> None:
+    _write(verbs, value=3, justification="j")
+    with pytest.raises(ValueError, match=r"at \$\.criterion_ids"):
+        verbs["measures_mark_missing"](
+            analysis_id="a1", contributor_id="ana", author=AUTHOR, code="deferred", note="n",
+            criterion_ids=[])
+
+
+def test_a_stated_moment_must_be_a_moment(verbs) -> None:
+    _write(verbs, value=3, justification="j")
+    with pytest.raises(ValueError, match=r"at \$\.at"):
+        verbs["measures_write"](analysis_id="a1", contributor_id="ana", author=AUTHOR, at="next tuesday",
+                                cells=[{"alternativeId": "x", "criterionId": "c", "value": 4}])
+
+
+def test_an_id_that_could_leave_its_directory_is_refused(verbs) -> None:
+    for bad in ("../escape", "", "a/b", "x" * 65):
+        with pytest.raises(ValueError, match="not a usable id"):
+            verbs["analysis_open"](analysis_id=bad, question="q")
+
+
+def test_a_plan_over_duplicate_ids_is_refused(verbs) -> None:
+    with pytest.raises(ValueError, match="more than once"):
+        verbs["plan_traversal"](alternatives=["x", "x"], criteria=["c"])
+
+
+def test_forbidden_parameters_are_absent_at_every_depth() -> None:
+    def names(node):
+        if isinstance(node, dict):
+            for k, v in node.get("properties", {}).items():
+                yield k
+                yield from names(v)
+            for k in ("items", "additionalProperties"):
+                if isinstance(node.get(k), dict):
+                    yield from names(node[k])
+            for alt in node.get("anyOf", []) + node.get("allOf", []):
+                yield from names(alt)
+    for spec in FROZEN_TOOLS:
+        assert not set(names(spec.input_schema)) & FORBIDDEN_PARAMETERS, spec.name
+
+
+@pytest.mark.parametrize(
+    "violation, schema",
+    [
+        ("additionalProperties", {"required": ["a"], "additionalProperties": {"type": "integer", "minimum": 3}}),
+        ("minimum", {"required": ["a"], "additionalProperties": {"type": "integer", "minimum": 3}}),
+        ("const", {"const": {"a": 1}}),
+        ("format", {"type": "string", "format": "regex"}),
+        ("minItems", {"type": "array", "items": {"type": "string"}, "minItems": True}),
+        ("seven JSON types", {"type": ["string", "null"]}),
+        ("properties must be", {"type": "object", "additionalProperties": False, "properties": []}),
+    ],
+)
+def test_the_checker_catches_what_the_review_slipped_past_it(violation, schema) -> None:
+    found = subset_violations(schema)
+    assert any(violation in line for line in found), (violation, found)
+
+
+def test_the_checker_decodes_json_pointer_escapes() -> None:
+    schema = {"$defs": {"a/b": {"type": "string"}}, "$ref": "#/$defs/a~1b"}
+    assert subset_violations(schema) == []
+
+
+def test_the_digest_pin_catches_a_same_length_edit() -> None:
+    from rubricator.surface.frozen import ToolSpec, definitions_digest
+
+    spec = frozen()["frame_set"]
+    edited = ToolSpec(**{**spec.__dict__, "input_schema": {
+        **spec.input_schema,
+        "properties": {**spec.input_schema["properties"], "context": {"type": "number"}}}})
+    rows = tuple(edited if s.name == "frame_set" else s for s in advertised())
+    assert definitions_digest(rows) != MEASURED["advertised"]["sha256"]

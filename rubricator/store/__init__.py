@@ -41,10 +41,11 @@ point: an uncached merge nobody wrote down becomes a mysterious slowness later.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from typing import Any, Iterator, MutableMapping
 
-__all__ = ["AnalysisStore", "BytesStore", "memory_store", "file_store", "RETENTION_DAYS"]
+__all__ = ["AnalysisStore", "BytesStore", "memory_store", "file_store", "check_id", "RETENTION_DAYS"]
 
 #: The whole persistence interface. See the module docstring.
 BytesStore = MutableMapping[str, bytes]
@@ -62,6 +63,29 @@ BytesStore = MutableMapping[str, bytes]
 RETENTION_DAYS = 30
 
 _ENCODING = "utf-8"
+
+#: What an id that becomes part of a key may look like. Keys are paths on the
+#: filesystem target (ADR-0023), so an id is confined to what cannot leave its
+#: directory: no separators, no dots, no empty string.
+_ID = re.compile(r"[A-Za-z0-9_-]{1,64}\Z")
+
+
+def check_id(value: str) -> str:
+    """``value`` if it may be part of a store key; ``ValueError`` otherwise.
+
+    >>> check_id("demo-1")
+    'demo-1'
+    >>> check_id("../escape")
+    Traceback (most recent call last):
+        ...
+    ValueError: refused: "../escape" is not a usable id. An id is 1 to 64 letters, digits, "-" or "_", because it becomes part of a path.
+    """
+    if not isinstance(value, str) or not _ID.match(value):
+        raise ValueError(
+            f'refused: "{value}" is not a usable id. An id is 1 to 64 letters, digits, "-" or '
+            '"_", because it becomes part of a path.'
+        )
+    return value
 
 
 def memory_store() -> BytesStore:
@@ -116,15 +140,15 @@ class AnalysisStore:
 
     @staticmethod
     def frame_key(analysis_id: str) -> str:
-        return f"analyses/{analysis_id}/frame.json"
+        return f"analyses/{check_id(analysis_id)}/frame.json"
 
     @staticmethod
     def contribution_key(analysis_id: str, contributor_id: str) -> str:
-        return f"analyses/{analysis_id}/contributions/{contributor_id}.json"
+        return f"analyses/{check_id(analysis_id)}/contributions/{check_id(contributor_id)}.json"
 
     @staticmethod
     def rendition_key(analysis_id: str, rendition_id: str) -> str:
-        return f"analyses/{analysis_id}/renditions/{rendition_id}.json"
+        return f"analyses/{check_id(analysis_id)}/renditions/{check_id(rendition_id)}.json"
 
     # -- reading ------------------------------------------------------------
 
