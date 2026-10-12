@@ -221,7 +221,7 @@ def missing_rule_code_defined(document: Mapping[str, Any]) -> Iterable[Problem]:
 
 def _declaration_lists(
     document: Mapping[str, Any],
-) -> Iterable[tuple[Sequence[Mapping[str, Any]], str, Mapping[str, Any], str]]:
+) -> Iterable[tuple[Sequence[tuple[int, Mapping[str, Any]]], str, Mapping[str, Any], str]]:
     """Every declaration list -- its vocabulary, the core it extends, its path -- as the companion walks them.
 
     One walk over (list, core, field) rather than one per rule and vocabulary,
@@ -232,12 +232,24 @@ def _declaration_lists(
     """
     from rubricator.schema.vocabulary import vocabulary
 
+    def declarations(value: Any) -> list[tuple[int, Mapping[str, Any]]]:
+        # Over documents from disk: a list that is not a list, an entry that is
+        # not an object or an id that is not a string is a shape problem, the
+        # schema's to report. Skipped here, so a rule never raises on one.
+        if not isinstance(value, (list, tuple)):
+            return []
+        return [
+            (i, d) for i, d in enumerate(value)
+            if isinstance(d, Mapping) and isinstance(d.get("id"), str)
+        ]
+
     core = vocabulary()
-    yield document.get("missingCodes") or [], "missingCode", core.missing_codes, "missingCodes"
-    yield document.get("reductions") or [], "reduction", core.reductions, "reductions"
-    for i, criterion in enumerate(document.get("criteria") or []):
+    yield declarations(document.get("missingCodes")), "missingCode", core.missing_codes, "missingCodes"
+    yield declarations(document.get("reductions")), "reduction", core.reductions, "reductions"
+    criteria = document.get("criteria")
+    for i, criterion in enumerate(criteria if isinstance(criteria, (list, tuple)) else []):
         if isinstance(criterion, Mapping):
-            yield (criterion.get("missingCodes") or [], "missingCode", core.missing_codes,
+            yield (declarations(criterion.get("missingCodes")), "missingCode", core.missing_codes,
                    f"criteria[{i}].missingCodes")
 
 
@@ -256,7 +268,7 @@ def structural_refines_not_applicable(document: Mapping[str, Any]) -> Iterable[P
     for decls, kind, _core, field in _declaration_lists(document):
         if kind != "missingCode":
             continue
-        for i, d in enumerate(decls):
+        for i, d in decls:
             if d.get("structural") is True and d.get("broader") not in structural:
                 yield Problem(
                     path=f"{field}[{i}]",
@@ -279,7 +291,7 @@ def no_redeclaring_core(document: Mapping[str, Any]) -> Iterable[Problem]:
     reader that took the declaration, so the same blank would count differently.
     """
     for decls, _kind, core, field in _declaration_lists(document):
-        for i, d in enumerate(decls):
+        for i, d in decls:
             if d.get("id") in core:
                 yield Problem(
                     path=f"{field}[{i}]",
@@ -298,7 +310,7 @@ def unique_declarations(document: Mapping[str, Any]) -> Iterable[Problem]:
     """
     for decls, _kind, _core, field in _declaration_lists(document):
         seen: set[Any] = set()
-        for i, d in enumerate(decls):
+        for i, d in decls:
             if d.get("id") in seen:
                 yield Problem(
                     path=f"{field}[{i}]",

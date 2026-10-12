@@ -463,8 +463,7 @@ def criteria_set(
 
     problems.extend(
         f"{p.path}: {p.message} Fix: {p.fix} [{p.rule_id}]"
-        for p in schema_problems({**frame, "criteria": out})
-        if p.path.startswith("criteria[")
+        for p in schema_problems({"criteria": out})
     )
     if problems:
         raise ValueError("; ".join(problems))

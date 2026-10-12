@@ -92,3 +92,26 @@ def test_a_well_formed_document_has_no_schema_problems() -> None:
 def test_schema_rules_are_not_honesty_rules() -> None:
     """Malformed, not dishonest: the families stay apart, as the companion keeps them."""
     assert not set(SCHEMA_RULES) & set(HONESTY_RULES)
+
+
+@pytest.mark.parametrize("stored", [
+    {"missingCodes": [None]}, {"reductions": "mean"}, {"missingCodes": [{"id": ["x"]}]},
+])
+def test_a_malformed_analysis_level_list_does_not_crash_criteria_set(runtime, stored) -> None:
+    frame = runtime.store.frame("a1")
+    frame.update(stored)
+    runtime.store.put_frame("a1", frame)
+    bind(runtime)["criteria_set"](analysis_id="a1", criteria=_criteria(GOOD))
+
+
+@pytest.mark.parametrize("document", [
+    {"criteria": [{"missingCodes": {"a": 1}}]}, {"criteria": [1]}, {"missingCodes": 5},
+    {"criteria": {"c": {}}}, {"missingCodes": [{"id": {"x": 1}}, {"id": ["x"]}, "x", None]},
+])
+def test_the_rules_never_raise_on_a_document_from_disk(document) -> None:
+    assert schema_problems(document) == []
+
+
+def test_a_skipped_entry_keeps_the_others_at_their_own_index() -> None:
+    problems = schema_problems({"missingCodes": [None, REDECLARED]})
+    assert [p.path for p in problems] == ["missingCodes[1]"]
