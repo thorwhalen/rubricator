@@ -179,6 +179,22 @@ The Decision's ladder `in-session < fresh-session < distinct-model < distinct-hu
 
 **What is enforced, and where.** `sign()` refuses a spelling outside the ladder at authoring, and refuses `perturbed` without a `perturbation` record. `rubricator.rules.independence_recorded` mirrors `comparanda`'s honesty rule `independence-recorded`: a cell with two or more live assertions records the rung on each, a single assertion is exempt, absences count. `unique_ids` and `supersession_resolves` mirror the companion's `unique-ids`, `supersession-resolves` and `supersession-acyclic`, which close the escape of switching an assertion off with a dangling `supersededBy`. `measures_write` runs them on the would-be merged document and refuses only for **the assertions that call adds**. A problem on an assertion already stored does not block, because nothing can amend a stored assertion in place, and refusing would lock its author out of the whole analysis. `report_completeness` returns those as `honestyProblems`, and #61's validator is where they reject. The `procedure` record and populating the rung from the runtime remain [#99](https://github.com/thorwhalen/rubricator/issues/99).
 
+### 2026-10-12 — direction of preference is required, and a replication pass is a round
+
+- **Status:** accepted
+- **Date:** 2026-10-12
+
+[#32](https://github.com/thorwhalen/rubricator/issues/32) asked the companion to confirm the direction-of-preference field. thorwhalen/comparanda#160 (an amendment to its ADR-0023) answered it, and confirmed the round shape this ADR's replication passes need.
+
+**Direction of preference is required on every measurement, not only ordinal ones.** It is `defaultMeasurement.preference` (or per measure under `measurements.<measure>.preference`), one of `increasing | decreasing | target | ordered | none`. Ordered levels also carry `range: {min, max, target?}`, `target` requires `range.target`, and a nominal level admits only `none`. Dominance, and with it the dominance-survival headline above, admits only `increasing` and `decreasing`. A `target` criterion is excluded (reason `target-preference`, per `comparanda`'s ADR-0018 and ADR-0019 clause 7), as are `ordered` and `none`, and a report names the criteria it excluded. The #32 comment listed `target` as admitted; the shipped dominance code does not admit it. For `criteria_set` this means:
+- the emitted measurement always carries a direction;
+- a criterion may state `preference` (and `target`), and an ill-formed one is refused at authoring;
+- a criterion that states none gets the scale preset's `increasing` and is listed in `defaultedPreference`.
+
+The default stays because the presets are ordinal and most criteria are benefits. It is reported rather than silent because a cost criterion scored `increasing` when nobody said otherwise is the *misaligned preference direction* failure of generated rubrics. Whether an unstated direction should be refused instead is the same refuse-or-report question as [#138](https://github.com/thorwhalen/rubricator/issues/138).
+
+**A replication pass is a round.** When the deployed runtime re-scores the matrix (the `k` repeated draws above, or the connector's re-score with the prior withheld), each pass is one `rounds[]` entry `{id, index, label?, feedback: "none", attribution: "attributed"}`, and every assertion it produced carries that round's `roundId`. There is no separate "pass" concept. Each draw *still* records its rung: `resampled`, or `perturbed` with a `perturbation` record, plus a `procedureId` naming the `procedures[]` entry (`repeats`, `reduction`, `traversal`, `temperature`). **The round says which pass; the rung says how many heads.** Different rounds never make two draws of one model independent. Change between replication rounds is test-retest, not Delphi churn, and it is labelled by the lowest rung present, exactly as the Decision says. Emitting `rounds[]`, `procedures[]`, `roundId` and `procedureId` is [#99](https://github.com/thorwhalen/rubricator/issues/99)'s job: no tool writes them yet, and a reference to a round or procedure the document lacks would be a dangling id.
+
 ## References
 1. [Findings — comparison method and prompting (2026)](../research/findings-method.md) — in this repository, § 4.3
 2. [Does Scoring Order (Column-wise vs Row-wise) Change Multi-Criteria Evaluations — for Humans, and for LLMs? — Whalen (2026)](../research/scoring-order-effects.md) — in this repository, § 8
