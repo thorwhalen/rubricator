@@ -229,10 +229,14 @@ WRITE_RESULT = {
     "analysisId": S, "contributorId": S, "written": I, "criteriaVersion": S, "summary": S,
 }
 
-_RETENTION = (
-    f"An analysis_id is an opaque handle. The connector's default store keeps an analysis for "
-    f"{RETENTION_DAYS} days from its last write; export defeats that window."
-)
+def _retention(days: int) -> str:
+    return (
+        f"An analysis_id is an opaque handle. The connector's default store keeps an analysis "
+        f"for {days} days from its last write; export defeats that window."
+    )
+
+
+_RETENTION = _retention(RETENTION_DAYS)
 
 # ---------------------------------------------------------------------------
 # The rows.
@@ -818,16 +822,22 @@ def advertised() -> tuple[ToolSpec, ...]:
     return tuple(spec for spec in FROZEN_TOOLS if spec.status != "planned")
 
 
-def describe(spec: ToolSpec) -> str:
+def describe(spec: ToolSpec, *, retention_days: int = RETENTION_DAYS) -> str:
     """The description a model reads: contract, stage, determinism, failure.
 
     Rendered from the row rather than taken from the Python docstring, because
     a docstring written for the developer maintaining a verb and a description
     written for the model choosing one have different readers, and the token
     cost of the second is measured (:data:`MEASURED`).
+
+    ``retention_days`` is the window of the store being served, stated in place
+    of the default where a row states it, so a store configured with another
+    window never advertises the default. At the default the text is the row's,
+    byte for byte, which is what the measurement pins.
     """
+    contract = spec.contract.replace(_RETENTION, _retention(retention_days))
     return (
-        f"{spec.contract}\n\nStage: {spec.stage}. Deterministic: {spec.determinism} "
+        f"{contract}\n\nStage: {spec.stage}. Deterministic: {spec.determinism} "
         f"Fails: {spec.failure}"
     )
 

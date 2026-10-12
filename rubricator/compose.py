@@ -5,8 +5,8 @@ Three seams, each **one keyword argument** with a default that genuinely works:
 ===============  ==============================================  =========================
 seam             v1 default (no new dependency)                  replacement to point at
 ===============  ==============================================  =========================
-``blobs``        ``dol.Files(root)`` over a local directory      a GitHub-backed store, so
-                                                                 a team shares one repo
+``blobs``        ``dol.Files`` over the user-data working store  a GitHub-backed store, so
+                 (:func:`rubricator.store.working_dir`)          a team shares one repo
 ``now``          :func:`rubricator.clock.system_clock`           a fixed clock, for a
                                                                  reproducible fixture
 ``new_id``       :func:`rubricator.ids.random_id`                sequential ids, for a
@@ -34,7 +34,7 @@ from typing import Any
 from rubricator.clock import Clock, system_clock
 from rubricator.ids import IdMinter, random_id
 from rubricator.schema.source import SchemaSource
-from rubricator.store import AnalysisStore, BytesStore, file_store, memory_store
+from rubricator.store import RETENTION_DAYS, AnalysisStore, BytesStore, file_store, working_store
 
 __all__ = ["Runtime", "build_runtime"]
 
@@ -69,13 +69,21 @@ def build_runtime(
     now: Clock = system_clock,
     new_id: IdMinter = random_id,
     schema: SchemaSource | None = None,
+    retention_days: int = RETENTION_DAYS,
 ) -> Runtime:
     """Wire a runtime.
 
-    ``root`` is the convenience for the common case -- a directory on disk.
-    ``blobs`` is the seam underneath it, and passing one wins: it is how a
-    GitHub-backed store, an in-memory store or anything else a ``dol`` decorator
-    produces gets in without a call site changing.
+    With neither ``root`` nor ``blobs``, analyses persist in the user-data working
+    store (:func:`rubricator.store.working_dir`, moved by ``RUBRICATOR_DATA_DIR``),
+    because a connector that forgot every analysis on exit would make ADR-0017's
+    resume a promise nobody keeps. ``root`` is the convenience for another
+    directory on disk. ``blobs`` is the seam underneath both, and passing one
+    wins: it is how a GitHub-backed store, an in-memory store (``blobs={}``) or
+    anything else a ``dol`` decorator produces gets in without a call site
+    changing.
+
+    ``retention_days`` is ADR-0017's window, from last write; the store enforces
+    it with the same ``now`` the verbs stamp with.
 
     ``new_id`` mints an ``analysis_id`` when a caller opens an analysis without
     one (ADR-0017's opaque handle); a test passes
@@ -91,10 +99,11 @@ def build_runtime(
     True
     """
     if blobs is None:
-        blobs = file_store(root) if root else memory_store()
+        blobs = file_store(root) if root else working_store()
     if schema is None:
         schema = _published_schema()
-    return Runtime(store=AnalysisStore(blobs=blobs), now=now, schema=schema, new_id=new_id)
+    store = AnalysisStore(blobs=blobs, now=now, retention_days=retention_days)
+    return Runtime(store=store, now=now, schema=schema, new_id=new_id)
 
 
 def _published_schema() -> SchemaSource:

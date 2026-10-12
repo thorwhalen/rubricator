@@ -48,6 +48,9 @@ Early. The v1 vertical slice runs — the deterministic tool layer, a store, and
 both a CLI and an MCP connector — and the first prompt ships with it. Most of the repository is
 still specification: architecture decision records and research briefs.
 
+Analyses persist in `~/.local/share/rubricator/working/` (set `RUBRICATOR_DATA_DIR` to move the
+whole data root) and are kept for 30 days from their last write; an export is yours to keep.
+
 Start at **[BRIEF.md](./BRIEF.md)**. [`CHANGELOG.md`](./CHANGELOG.md) is not a release log; it
 records the boundaries across which a number stops meaning the same thing.
 
