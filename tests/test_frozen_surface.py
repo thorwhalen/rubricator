@@ -500,3 +500,128 @@ def test_the_digest_pin_catches_a_same_length_edit() -> None:
         "properties": {**spec.input_schema["properties"], "context": {"type": "number"}}}})
     rows = tuple(edited if s.name == "frame_set" else s for s in advertised())
     assert definitions_digest(rows) != MEASURED["advertised"]["sha256"]
+
+
+# --- the second review's findings -------------------------------------------
+
+
+SELECTORS = [
+    {"type": "TextQuoteSelector", "exact": "until 2029", "prefix": "supported ", "suffix": "."},
+    {"type": "TextPositionSelector", "start": 10, "end": 20},
+    {"type": "PageRegionSelector", "page": 3, "rect": {"x": 0, "y": 0, "w": 100, "h": 20}},
+    {"type": "LineRangeSelector", "startLine": 1, "endLine": 2, "contentHash": "abc"},
+    {"type": "TimeRangeSelector", "startSeconds": 1.5, "endSeconds": 2.5},
+    {"type": "PathSelector", "syntax": "xpath", "value": "//p"},
+]
+
+
+@pytest.mark.parametrize("selector", SELECTORS, ids=lambda s: s["type"])
+def test_every_selector_the_surface_accepts_is_one_the_published_schema_accepts(selector) -> None:
+    from rubricator.merge import merge_contributions
+
+    runtime = build_runtime(blobs={}, now=fixed_clock(MOMENT))
+    verbs = bind(runtime)
+    _write(verbs, value=5, justification="j", evidence=[{
+        "id": "e1", "target": "rendition:r", "sourceType": "primary", "selectors": [selector]}])
+    merged = merge_contributions(runtime.store.frame("a1"), runtime.store.contributions("a1"))
+    result = runtime.schema.validate(merged)
+    assert result.ok, result.report()
+
+
+def test_a_boolean_is_never_a_level(verbs) -> None:
+    with pytest.raises(ValueError, match="value True is not one of the levels"):
+        _write(verbs, value=True, justification="j")
+
+
+def test_an_unknown_alternative_is_refused_like_an_unknown_criterion(verbs) -> None:
+    verbs["analysis_open"](analysis_id="a1", question="q")
+    verbs["frame_set"](analysis_id="a1", ambiguities=[])
+    verbs["alternatives_set"](analysis_id="a1", alternatives=[{"id": "x", "label": "X"}])
+    verbs["criteria_set"](analysis_id="a1", criteria=[{"id": "c", "label": "C", "anchors": ANCHORS}])
+    with pytest.raises(KeyError, match="alternatives ghost are not in this analysis"):
+        verbs["measures_write"](analysis_id="a1", contributor_id="ana", author=AUTHOR,
+                                cells=[{"alternativeId": "ghost", "criterionId": "c", "value": 3}])
+
+
+def test_an_undeclared_measure_or_missing_code_is_refused_on_write(verbs) -> None:
+    with pytest.raises(ValueError, match='measure "confidence" is not one this analysis declares'):
+        _write(verbs, measure="confidence", value=0.8)
+    with pytest.raises(ValueError, match='missingness code "paywalled" is not one'):
+        _write(verbs, missing={"code": "paywalled", "note": "n"})
+
+
+def test_a_tombstoned_row_takes_no_new_assertions(verbs) -> None:
+    _write(verbs, value=3, justification="j")
+    verbs["alternatives_set"](analysis_id="a1", alternatives=[{"id": "x", "label": "X", "tombstoned": True}])
+    with pytest.raises(ValueError, match="tombstoned and takes no new assertions"):
+        verbs["measures_write"](analysis_id="a1", contributor_id="ben", author={**AUTHOR, "id": "ben"},
+                                cells=[{"alternativeId": "x", "criterionId": "c", "value": 4,
+                                        "independence": "independent"}])
+
+
+def test_reasoning_is_declared_before_value_in_the_cell_shape() -> None:
+    """ADR-0013: property order is generation order, and this argument is the judgement."""
+    from rubricator.surface.frozen import CELL, definitions_digest
+
+    order = list(CELL["properties"])
+    assert order.index("justification") < order.index("value")
+    assert order.index("evidence") < order.index("value")
+    assert order.index("evidence") < order.index("missing")
+    # And the pin sees a reorder: insertion order is part of the digest.
+    from rubricator.surface.frozen import ToolSpec
+    spec = frozen()["measures_write"]
+    cells = spec.input_schema["properties"]["cells"]
+    reordered = {**cells, "items": {**cells["items"], "properties": dict(reversed(list(cells["items"]["properties"].items())))}}
+    edited = ToolSpec(**{**spec.__dict__, "input_schema": {
+        **spec.input_schema, "properties": {**spec.input_schema["properties"], "cells": reordered}}})
+    rows = tuple(edited if s.name == "measures_write" else s for s in advertised())
+    assert definitions_digest(rows) != MEASURED["advertised"]["sha256"]
+
+
+def test_the_citation_threshold_is_not_a_model_knob(verbs) -> None:
+    assert "partial_threshold" not in frozen()["check_citations"].input_schema["properties"]
+    with pytest.raises(ValueError, match="partial_threshold"):
+        verbs["check_citations"](citations=[{"quote": "a", "source": "b"}], partial_threshold=0)
+
+
+@pytest.mark.parametrize("moment", ["2026-08-22", "2026-08-22T12", "2026-08-22T12:00:00",
+                                    "20260822T120000Z", "2026-W34-6T12:00Z", "next tuesday"])
+def test_a_moment_that_is_not_rfc3339_is_refused(verbs, moment) -> None:
+    _write(verbs, value=3, justification="j")
+    with pytest.raises(ValueError, match=r"at \$\.at"):
+        verbs["measures_write"](analysis_id="a1", contributor_id="ana", author=AUTHOR, at=moment,
+                                cells=[{"alternativeId": "x", "criterionId": "c", "value": 4}])
+
+
+@pytest.mark.parametrize("moment", ["2026-08-22T12:00:00Z", "2026-08-22T12:00:00z",
+                                    "2026-08-22T12:00:00.5Z", "2026-08-22T12:00:00.123456789+02:00",
+                                    "2026-08-22t12:00:00-05:30"])
+def test_an_rfc3339_moment_is_accepted_on_every_supported_python(verbs, moment) -> None:
+    _write(verbs, value=3, justification="j")
+    verbs["measures_write"](analysis_id="a1", contributor_id="ana", author=AUTHOR, at=moment,
+                            cells=[{"alternativeId": "x", "criterionId": "c", "value": 4,
+                                    "independence": "resampled"}])
+
+
+@pytest.mark.parametrize(
+    "violation, schema",
+    [
+        ("what it admits", {}),
+        ("what it admits", {"description": "anything"}),
+        ("declare items", {"type": "array"}),
+        ("required must be", {"type": "object", "additionalProperties": False, "properties": {"a": {"type": "string"}}, "required": "a"}),
+        ("$defs must be", {"type": "string", "$defs": []}),
+    ],
+)
+def test_the_checker_catches_the_latent_holes(violation, schema) -> None:
+    found = subset_violations(schema)
+    assert any(violation in line for line in found), (violation, found)
+
+
+def test_a_minted_id_never_starts_with_an_option_dash() -> None:
+    from rubricator.ids import random_id
+    from rubricator.store import check_id
+
+    ids = {random_id() for _ in range(200)}
+    assert len(ids) == 200
+    assert all(not i.startswith("-") and check_id(i) for i in ids)

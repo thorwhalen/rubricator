@@ -38,13 +38,17 @@ __all__ = ["IdMinter", "random_id", "sequential_ids"]
 IdMinter = Callable[[], str]
 
 #: Bytes of entropy behind a minted id. 12 bytes is 96 bits -- unguessable in the
-#: ADR-0017 sense, and 16 URL-safe characters, short enough to read back.
+#: ADR-0017 sense, and 24 hex characters, short enough to read back.
 _ENTROPY_BYTES = 12
 
 
 def random_id() -> str:
-    """A fresh, unguessable, URL-safe handle."""
-    return secrets.token_urlsafe(_ENTROPY_BYTES)
+    """A fresh, unguessable handle: a letter, then 24 hex characters.
+
+    Hex rather than URL-safe base64 so that an id never begins with ``-``,
+    which a shell command line would read as an option.
+    """
+    return "a" + secrets.token_hex(_ENTROPY_BYTES)
 
 
 def sequential_ids(prefix: str = "analysis") -> IdMinter:

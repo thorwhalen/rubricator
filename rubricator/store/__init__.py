@@ -140,15 +140,15 @@ class AnalysisStore:
 
     @staticmethod
     def frame_key(analysis_id: str) -> str:
-        return f"analyses/{check_id(analysis_id)}/frame.json"
+        return f"analyses/{analysis_id}/frame.json"
 
     @staticmethod
     def contribution_key(analysis_id: str, contributor_id: str) -> str:
-        return f"analyses/{check_id(analysis_id)}/contributions/{check_id(contributor_id)}.json"
+        return f"analyses/{analysis_id}/contributions/{contributor_id}.json"
 
     @staticmethod
     def rendition_key(analysis_id: str, rendition_id: str) -> str:
-        return f"analyses/{check_id(analysis_id)}/renditions/{check_id(rendition_id)}.json"
+        return f"analyses/{analysis_id}/renditions/{rendition_id}.json"
 
     # -- reading ------------------------------------------------------------
 
@@ -193,16 +193,24 @@ class AnalysisStore:
 
     # -- writing ------------------------------------------------------------
 
+    # Ids are checked on the write path only. A read lists the keys that exist
+    # and must be able to read them all back -- a stray file in a shared
+    # repository must not make the whole analysis unreadable.
+
     def put_frame(self, analysis_id: str, frame: dict[str, Any]) -> None:
-        self._write(self.frame_key(analysis_id), frame)
+        self._write(self.frame_key(check_id(analysis_id)), frame)
 
     def put_contribution(
         self, analysis_id: str, contributor_id: str, contribution: dict[str, Any]
     ) -> None:
-        self._write(self.contribution_key(analysis_id, contributor_id), contribution)
+        self._write(
+            self.contribution_key(check_id(analysis_id), check_id(contributor_id)), contribution
+        )
 
     def put_rendition(self, analysis_id: str, rendition: dict[str, Any]) -> None:
-        self._write(self.rendition_key(analysis_id, rendition["id"]), rendition)
+        self._write(
+            self.rendition_key(check_id(analysis_id), check_id(rendition["id"])), rendition
+        )
 
     def exists(self, analysis_id: str) -> bool:
         return self.frame_key(analysis_id) in self.blobs

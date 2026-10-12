@@ -364,11 +364,7 @@ def report_citations(
     return CitationReport(tuple(checks))
 
 
-def check_citations(
-    citations: Sequence[Mapping[str, Any]],
-    *,
-    partial_threshold: float = DEFAULT_PARTIAL_THRESHOLD,
-) -> dict[str, Any]:
+def check_citations(citations: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     """Check many claimed quotes against their sources, deterministically.
 
     The surface verb: ``citations`` is a list of ``{quote, source, evidenceId?}``
@@ -380,6 +376,11 @@ def check_citations(
     ordered-token overlap over text the caller supplies. It never fetches a
     source; a caller that has not got the text has nothing to check yet.
 
+    The fuzzy threshold is **not** an argument here. It is on
+    :func:`report_citations` for the evaluation harness; a model that could set
+    it to zero could grade a fabricated quote ``fuzzy`` on the one tool that is
+    the product.
+
     >>> r = check_citations([{"quote": "brown fox", "source": "the quick brown fox"},
     ...                      {"evidenceId": "e2", "quote": "zebra", "source": "no"}])
     >>> r["total"], r["verbatim"], r["failed"], r["checks"][1]["evidenceId"]
@@ -388,6 +389,5 @@ def check_citations(
     '2 citation(s), 1 verbatim, 1 NOT FOUND'
     """
     return report_citations(
-        [(c.get("evidenceId"), c["quote"], c["source"]) for c in citations],
-        partial_threshold=partial_threshold,
+        [(c.get("evidenceId"), c["quote"], c["source"]) for c in citations]
     ).as_dict()

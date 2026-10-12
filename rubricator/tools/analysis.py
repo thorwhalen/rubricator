@@ -102,8 +102,8 @@ def analysis_open(
         }
     if not (question or "").strip():
         raise ValueError(
-            f'refused: no analysis "{analysis_id}" exists, and a new one needs a question. '
-            "Pass the question being decided, or the id of an existing analysis."
+            "refused: a new analysis needs a question. Pass the question being decided, or "
+            "the id of an existing analysis to reopen it."
         )
     frame = {
         "id": analysis_id,
@@ -433,19 +433,25 @@ def measures_write(
             "the criteria and re-score, so no score is stamped with a version it never saw."
         )
     known = {c["id"]: c for c in frame.get("criteria", [])}
-    unknown = sorted({c["criterionId"] for c in cells} - set(known))
-    if unknown:
-        raise KeyError(
-            f"refused, nothing was written: criteria {', '.join(unknown)} are not in this "
-            "analysis. Declare them with criteria_set first."
-        )
-    off_scale = [
-        problem
+    rows = {a["id"]: a for a in frame.get("alternatives", [])}
+    for axis, index, verb in (
+        ("criteria", known, "criteria_set"), ("alternatives", rows, "alternatives_set")
+    ):
+        key = "criterionId" if axis == "criteria" else "alternativeId"
+        unknown = sorted({c[key] for c in cells} - set(index))
+        if unknown:
+            raise KeyError(
+                f"refused, nothing was written: {axis} {', '.join(unknown)} are not in this "
+                f"analysis. Declare them with {verb} first."
+            )
+    measures = {m["name"] for m in frame.get("measures", [])} or {"score"}
+    problems = [
+        p
         for cell in cells
-        if (problem := _off_scale(cell, known[cell["criterionId"]]))
+        for p in _cell_problems(cell, rows, known, measures, frame)
     ]
-    if off_scale:
-        raise ValueError("refused, nothing was written: " + "; ".join(off_scale))
+    if problems:
+        raise ValueError("refused, nothing was written: " + "; ".join(problems))
     contribution = _existing(store, analysis_id, contributor_id, author)
     index = {
         (c["alternativeId"], c["criterionId"], c["measure"]): c
@@ -850,34 +856,88 @@ def declarations_for(document: Mapping[str, Any], criterion_id: str) -> list[Map
     return [*criterion.get("missingCodes", []), *document.get("missingCodes", [])]
 
 
+def _cell_problems(
+    cell: Mapping[str, Any],
+    rows: Mapping[str, Mapping[str, Any]],
+    criteria: Mapping[str, Mapping[str, Any]],
+    measures: set[str],
+    frame: Mapping[str, Any],
+) -> list[str]:
+    """Every reason ``cell`` cannot be written, each naming the cell.
+
+    Four checks the schema cannot make because the answer is data in the frame:
+    the measure is one the analysis declares; the row and the column are not
+    tombstoned; a missingness code is one the vocabulary resolves (the same
+    rule :func:`measures_mark_missing` applies); and a ``score`` value is one
+    its criterion's scale can take (:func:`_off_scale`).
+    """
+    where = f"cell {cell['alternativeId']}/{cell['criterionId']}"
+    out: list[str] = []
+    measure = cell.get("measure", "score")
+    if measure not in measures:
+        out.append(
+            f'{where}: measure "{measure}" is not one this analysis declares '
+            f"({', '.join(sorted(measures))})"
+        )
+    for label, item in (("alternative", rows[cell["alternativeId"]]),
+                        ("criterion", criteria[cell["criterionId"]])):
+        if item.get("tombstoned"):
+            out.append(f'{where}: {label} "{item["id"]}" is tombstoned and takes no new assertions')
+    missing = cell.get("missing")
+    if isinstance(missing, Mapping):
+        declarations = declarations_for(frame, cell["criterionId"])
+        if vocabulary().resolve(missing["code"], declarations).source == "undeclared":
+            out.append(
+                f'{where}: missingness code "{missing["code"]}" is not one the core vocabulary, '
+                "the analysis or the criterion declares"
+            )
+    if measure == "score":
+        problem = _off_scale(cell, criteria[cell["criterionId"]])
+        if problem:
+            out.append(problem)
+    return out
+
+
 def _off_scale(cell: Mapping[str, Any], criterion: Mapping[str, Any]) -> str | None:
-    """Why ``cell``'s value is one its criterion's scale cannot take, or ``None``.
+    """Why ``cell``'s score is one its criterion's scale cannot take, or ``None``.
 
     The frozen surface cannot bound ``value`` in the schema -- the scale is data
     (ADR-0021) and is not known when the schema is written -- so ADR-0013's
     range check lives here, against the measurement the criterion declares: the
     ``levels`` where it lists them, the ``range`` otherwise. A blank has no
-    value and is never off scale.
+    value and is never off scale. A boolean is never a number here: ``True``
+    equals ``1`` in Python and would otherwise pass as a level.
 
     >>> crit = {"id": "c", "defaultMeasurement": {"levels": [1, 2, 3], "range": {"min": 1, "max": 3}}}
     >>> _off_scale({"alternativeId": "x", "criterionId": "c", "value": 2}, crit) is None
     True
     >>> _off_scale({"alternativeId": "x", "criterionId": "c", "value": 2.5}, crit)
     'cell x/c: value 2.5 is not one of the levels its scale declares (1, 2, 3)'
+    >>> _off_scale({"alternativeId": "x", "criterionId": "c", "value": True}, crit)
+    'cell x/c: value True is not one of the levels its scale declares (1, 2, 3)'
     """
     if "value" not in cell or cell["value"] is None:
         return None
     value = cell["value"]
     measurement = criterion.get("defaultMeasurement", {})
     where = f"cell {cell['alternativeId']}/{cell['criterionId']}"
+
+    def same(a: Any, b: Any) -> bool:
+        return type(a) is type(b) and a == b or (
+            isinstance(a, (int, float)) and isinstance(b, (int, float))
+            and not isinstance(a, bool) and not isinstance(b, bool) and a == b
+        )
+
     levels = measurement.get("levels")
     if levels:
-        if not any(value == lvl and type(value) is not bool for lvl in levels) and value not in levels:
+        if not any(same(value, lvl) for lvl in levels):
             shown = ", ".join(str(lvl) for lvl in levels)
             return f"{where}: value {value!r} is not one of the levels its scale declares ({shown})"
         return None
     rng = measurement.get("range")
-    if rng and isinstance(value, (int, float)) and not isinstance(value, bool):
+    if rng:
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return f"{where}: value {value!r} is not a number, and the scale is a numeric range"
         if value < rng["min"] or value > rng["max"]:
             return f"{where}: value {value!r} is outside the scale's range {rng['min']}..{rng['max']}"
     return None

@@ -120,6 +120,14 @@ def _walk(
     declared = node.get("type")
     if declared is not None and (not isinstance(declared, str) or declared not in TYPES):
         out.append(f"{path}: type {declared!r} is not one of the seven JSON types (use anyOf)")
+    if not any(k in node for k in ("type", "$ref", "anyOf", "allOf", "enum", "const")):
+        out.append(f"{path}: a schema must say what it admits (type, enum, const, anyOf, allOf or $ref); an unconstrained schema admits open objects")
+    if declared == "array" and "items" not in node:
+        out.append(f"{path}: an array must declare items; without them it admits open objects")
+    if "required" in node and not isinstance(node["required"], list):
+        out.append(f"{path}: required must be a list of property names")
+    if "$defs" in node and not isinstance(node["$defs"], Mapping):
+        out.append(f"{path}: $defs must be an object")
 
     is_object = declared == "object" or any(
         k in node for k in ("properties", "required", "additionalProperties")
@@ -136,7 +144,8 @@ def _walk(
             properties = {}
         for name, child in properties.items():
             _walk(child, root, f"{path}.{name}", ref_stack, out)
-        for name in node.get("required", ()):
+        required = node.get("required", ())
+        for name in (required if isinstance(required, list) else ()):
             if name not in properties:
                 out.append(f"{path}: required names {name!r}, which is not a property")
 
@@ -168,7 +177,8 @@ def _walk(
         for i, child in enumerate(node.get(combinator, ())):
             _walk(child, root, f"{path}.{combinator}[{i}]", ref_stack, out)
 
-    for name, child in node.get("$defs", {}).items():
+    defs = node.get("$defs", {})
+    for name, child in (defs.items() if isinstance(defs, Mapping) else ()):
         _walk(child, root, f"{path}.$defs.{name}", ref_stack, out)
 
 

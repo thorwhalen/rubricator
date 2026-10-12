@@ -166,7 +166,9 @@ SELECTOR = {"anyOf": [
     obj({"type": const("TextQuoteSelector"), "exact": S, "prefix": S, "suffix": S},
         ("type", "exact")),
     obj({"type": const("TextPositionSelector"), "start": N, "end": N}, ("type", "start", "end")),
-    obj({"type": const("PageSelector"), "page": N}, ("type", "page")),
+    obj({"type": const("PageRegionSelector"), "page": N,
+         "rect": obj({"x": N, "y": N, "w": N, "h": N}, ("x", "y", "w", "h"))},
+        ("type", "page")),
     obj({"type": const("LineRangeSelector"), "startLine": N, "endLine": N, "contentHash": S},
         ("type", "startLine", "endLine")),
     obj({"type": const("TimeRangeSelector"), "startSeconds": N, "endSeconds": N},
@@ -187,13 +189,17 @@ EVIDENCE = obj(
     },
     ("id", "target", "sourceType"),
 )
+#: Reasoning before value (ADR-0013): property order is generation order under
+#: constrained decoding, and in the connector this argument *is* the judgement.
+#: ``justification`` and ``evidence`` come before ``value`` and ``missing``, and
+#: a test holds that order, because nothing else in the schema would notice.
 CELL = obj(
     {
         "alternativeId": S, "criterionId": S, "measure": S, "assertionId": S,
-        "value": SCALAR,
-        "missing": obj({"code": S, "note": S}, ("code",)),
         "justification": S,
         "evidence": arr(EVIDENCE),
+        "value": SCALAR,
+        "missing": obj({"code": S, "note": S}, ("code",)),
         "independence": INDEPENDENCE,
         "perturbation": obj({"kind": S, "seed": {"anyOf": [S, N]}, "detail": S}, ("kind",)),
     },
@@ -549,11 +555,10 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
             "so a bad citation can be repaired inside the scoring loop. Give the source text; "
             "nothing is fetched."
         ),
-        determinism="String containment and ordered-token overlap; the normaliser is versioned.",
+        determinism="String containment and ordered-token overlap at a fixed threshold; the normaliser is versioned.",
         failure="An empty quote is graded unresolvable rather than passing; a missing source is refused.",
         input_schema=obj(
-            {"citations": arr(obj({"quote": S, "source": S, "evidenceId": S}, ("quote", "source"))),
-             "partial_threshold": N},
+            {"citations": arr(obj({"quote": S, "source": S, "evidenceId": S}, ("quote", "source")))},
             ("citations",),
         ),
         output_schema=obj(
@@ -840,11 +845,16 @@ def definitions(specs: tuple[ToolSpec, ...] = FROZEN_TOOLS) -> list[dict[str, An
 
 
 def definitions_json(specs: tuple[ToolSpec, ...] = FROZEN_TOOLS) -> bytes:
-    """:func:`definitions` as canonical compact JSON: sorted keys, no whitespace, UTF-8."""
+    """:func:`definitions` as canonical compact JSON: insertion order, no whitespace, ASCII.
+
+    Insertion order, **not** sorted keys: property order is generation order
+    under constrained decoding (ADR-0013), so reordering a schema's properties
+    changes what the model does and must change the digest.
+    """
     import json
 
     return json.dumps(
-        definitions(specs), separators=(",", ":"), sort_keys=True, ensure_ascii=True
+        definitions(specs), separators=(",", ":"), sort_keys=False, ensure_ascii=True
     ).encode("ascii")
 
 
@@ -917,11 +927,11 @@ MEASURED: Mapping[str, Any] = {
     "measuredAt": "2026-10-12",
     "model": "claude-sonnet-5-5",
     "advertised": {
-        "tools": 11, "tokens": 6604, "bytes": 15436,
-        "sha256": "c0ff82eeec1397ec113234e2214f827559f153561d83907e5d9a652fb88666c3",
+        "tools": 11, "tokens": 6692, "bytes": 15611,
+        "sha256": "ae9a948c8685a95913c6914570102ed3d2e14cd0d3a0ee4ca786123da1b9f752",
     },
     "wholeSurface": {
-        "tools": 22, "tokens": 10454, "bytes": 25286,
-        "sha256": "88e47ae05e059fa8eb04f4e35a1c49a3883c3ae27313be6e87f3a2412d83fdb6",
+        "tools": 22, "tokens": 10542, "bytes": 25461,
+        "sha256": "e5b2eb65b08a5d29b5e28e9045390f2ed44bdebd188a209b761c98795c713d3d",
     },
 }
