@@ -32,7 +32,8 @@ ANCHORS = {"1": "none", "3": "some", "5": "all"}
 def store():
     rt = build_runtime(blobs={})
     s = rt.store
-    analysis_open(s, analysis_id="a", question="which?")
+    analysis_open(s, analysis_id="a", question="which?",
+        allow_skip_confirmation=True, at="2026-08-22T12:00:00Z")
     frame_set(s, analysis_id="a", ambiguities=[])
     alternatives_set(s, analysis_id="a", alternatives=[{"id": "x", "label": "X"}])
     criteria_set(s, analysis_id="a", criteria=[{"id": "c", "label": "C", "anchors": ANCHORS}])
@@ -130,7 +131,8 @@ def test_what_is_emitted_validates_against_the_frozen_schema(store) -> None:
 def _two_cell_store():
     rt = build_runtime(blobs={})
     s = rt.store
-    analysis_open(s, analysis_id="a", question="which?")
+    analysis_open(s, analysis_id="a", question="which?",
+        allow_skip_confirmation=True, at="2026-08-22T12:00:00Z")
     frame_set(s, analysis_id="a", ambiguities=[])
     alternatives_set(s, analysis_id="a", alternatives=[{"id": "x", "label": "X"}, {"id": "y", "label": "Y"}])
     criteria_set(s, analysis_id="a", criteria=[{"id": "c", "label": "C", "anchors": ANCHORS}])

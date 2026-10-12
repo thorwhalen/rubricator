@@ -349,6 +349,10 @@ class AnalysisStore:
         return f"analyses/{analysis_id}/renditions/{rendition_id}.json"
 
     @staticmethod
+    def confirmations_key(analysis_id: str) -> str:
+        return f"analyses/{analysis_id}/confirmations.json"
+
+    @staticmethod
     def stamp_prefix(key: str) -> str:
         """The directory holding the stamps that date ``key``'s last write."""
         _, analysis_id, rest = key.split("/", 2)
@@ -515,6 +519,24 @@ class AnalysisStore:
         check_id(rendition["id"])
         self._require(analysis_id)
         self._write(self.rendition_key(analysis_id, rendition["id"]), rendition)
+
+    def confirmations(self, analysis_id: str) -> list[dict[str, Any]]:
+        """The step-4 records (ADR-0005), oldest first; empty when none was given.
+
+        Beside the document rather than in it: the closed comparanda v1 schema
+        has no slot for a confirmation, and writing one into the document would
+        make the stored analysis invalid (#152).
+        """
+        self._require(analysis_id)
+        key = self.confirmations_key(analysis_id)
+        if key not in self.blobs:
+            return []
+        return list(self._read(key).get("records", []))
+
+    def put_confirmations(self, analysis_id: str, records: list[dict[str, Any]]) -> None:
+        check_id(analysis_id)
+        self._require(analysis_id)
+        self._write(self.confirmations_key(analysis_id), {"records": list(records)})
 
     def exists(self, analysis_id: str) -> bool:
         """Whether a live analysis is here. An expired one is deleted and is not."""

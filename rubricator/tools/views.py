@@ -130,16 +130,21 @@ def _superseded(document: Mapping[str, Any]) -> int:
 
 
 def stage_of(
-    document: Mapping[str, Any], *, outstanding: int | None = None, superseded: int | None = None
+    document: Mapping[str, Any],
+    *,
+    confirmed: bool,
+    outstanding: int | None = None,
+    superseded: int | None = None,
 ) -> int:
     """The earliest ADR-0005 stage whose work is not on record.
 
     Stage 1 is open until ``frame_set`` has recorded whether anyone looked for
     ambiguities; 2 until a live alternative exists; 3 until a live criterion
     does; 5 while any cell is outstanding *or* answers an older definition of
-    its criterion (ADR-0016: work genuinely remains); 6 after. Stage 4, the
-    confirmation gate, is reported once ``frame_confirm`` exists to pass it
-    (#57).
+    its criterion (ADR-0016: work genuinely remains); 6 after. Stage 4 sits
+    between: open while the step-4 gate is closed (``confirmed``, which lives
+    beside the document and so is the caller's to supply), because nothing can
+    be scored until it is passed.
     """
     if "ambiguities" not in (document.get("subject") or {}):
         return 1
@@ -147,6 +152,8 @@ def stage_of(
         return 2
     if not _live(document.get("criteria", [])):
         return 3
+    if not confirmed:
+        return 4
     if outstanding is None:
         outstanding = len(outstanding_cells(document))
     if superseded is None:
@@ -296,7 +303,12 @@ def analysis_get(
     criteria = _live(document.get("criteria", []))
     measures = len(document.get("measures", [])) or 1
     by_code = Counter(c["code"] for c in outstanding)
-    stage = stage_of(document, outstanding=len(outstanding), superseded=superseded)
+    from rubricator.tools.confirm import gate
+
+    confirmed = gate(store.confirmations(analysis_id))["open"]
+    stage = stage_of(
+        document, confirmed=confirmed, outstanding=len(outstanding), superseded=superseded
+    )
     name, action = STAGES[stage]
     cells = len(alternatives) * len(criteria) * measures
     subject = document.get("subject") or {}

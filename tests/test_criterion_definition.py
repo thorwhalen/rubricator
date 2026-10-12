@@ -33,7 +33,8 @@ FULL = {
 @pytest.fixture()
 def runtime():
     rt = build_runtime(blobs={})
-    analysis_open(rt.store, analysis_id="a", question="which?")
+    analysis_open(rt.store, analysis_id="a", question="which?",
+        allow_skip_confirmation=True, at="2026-08-22T12:00:00Z")
     return rt
 
 

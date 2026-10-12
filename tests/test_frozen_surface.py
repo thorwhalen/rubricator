@@ -57,7 +57,7 @@ def verbs():
 
 
 def _open_scored(verbs) -> None:
-    verbs["analysis_open"](analysis_id="a1", question="which?")
+    verbs["analysis_open"](analysis_id="a1", question="which?", allow_skip_confirmation=True)
     verbs["frame_set"](analysis_id="a1", ambiguities=["which region?"], decision="adopt one")
     verbs["alternatives_set"](analysis_id="a1", alternatives=[{"id": "x", "label": "X"}])
     verbs["criteria_set"](analysis_id="a1", criteria=[{"id": "c", "label": "C", "anchors": ANCHORS}])
@@ -357,7 +357,7 @@ def test_the_adr_records_the_measurement() -> None:
 
 
 def _write(verbs, cell_extra=None, **cell):
-    verbs["analysis_open"](analysis_id="a1", question="which?")
+    verbs["analysis_open"](analysis_id="a1", question="which?", allow_skip_confirmation=True)
     verbs["frame_set"](analysis_id="a1", ambiguities=[])
     verbs["alternatives_set"](analysis_id="a1", alternatives=[{"id": "x", "label": "X"}])
     verbs["criteria_set"](analysis_id="a1", criteria=[{"id": "c", "label": "C", "anchors": ANCHORS}])
@@ -534,7 +534,7 @@ def test_a_boolean_is_never_a_level(verbs) -> None:
 
 
 def test_an_unknown_alternative_is_refused_like_an_unknown_criterion(verbs) -> None:
-    verbs["analysis_open"](analysis_id="a1", question="q")
+    verbs["analysis_open"](analysis_id="a1", question="q", allow_skip_confirmation=True)
     verbs["frame_set"](analysis_id="a1", ambiguities=[])
     verbs["alternatives_set"](analysis_id="a1", alternatives=[{"id": "x", "label": "X"}])
     verbs["criteria_set"](analysis_id="a1", criteria=[{"id": "c", "label": "C", "anchors": ANCHORS}])

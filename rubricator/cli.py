@@ -62,7 +62,12 @@ def demo(root: str | None = None) -> int:
     at = runtime.now()
     analysis_id = "demo"
 
-    analysis_open(store, analysis_id=analysis_id, question="Which runtime should we adopt?")
+    # A scripted demo has no user to confirm with, so it takes ADR-0005's explicit
+    # skip -- recorded as the agent's, never as a human confirmation.
+    analysis_open(
+        store, analysis_id=analysis_id, question="Which runtime should we adopt?",
+        allow_skip_confirmation=True, at=at,
+    )
     frame_set(
         store,
         analysis_id=analysis_id,

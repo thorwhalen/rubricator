@@ -24,7 +24,7 @@ One more force. The closed comparanda v1 schema refuses unknown keys, and the wr
 | 5 | `frame_set` | frame | 1 | implemented | yes | — | 5 |
 | 6 | `alternatives_set` | alternatives | 2 | implemented (checks: #55) | yes | — | 6 |
 | 7 | `criteria_set` | criteria | 3 | implemented | yes | — | 7 |
-| 8 | `frame_confirm` | frame | 4 | planned (#57) | yes | — | 8 |
+| 8 | `frame_confirm` | frame | 4 | implemented (#57) | yes | — | 8 |
 | 9 | `plan_traversal` | plan | 5 | implemented | yes | — | 9 |
 | 10 | `measures_write` | measures | 5 | implemented | yes | — | 10 |
 | 11 | `measures_mark_missing` | measures | 5, resume | implemented | no | 4 | 11 |
@@ -129,3 +129,25 @@ Row 2 is implemented, in `rubricator/tools/views.py`. Every view is a pure proje
 Re-measured on 2026-10-12 against `claude-sonnet-5-5`:
 - the advertised definitions: 13 tools, 7,325 tokens, 17,308 bytes;
 - the whole surface: 22 tools, 10,582 tokens, 25,601 bytes. It moved because `analysis_open`'s failure text changed.
+
+### 2026-10-12 — `frame_confirm` lands, and scoring waits for it (#57)
+
+- **Deciders:** Thor Whalen (three of the choices below are filed for ratification in #152)
+
+Row 8 is implemented, in `rubricator/tools/confirm.py`, as ADR-0005's out-of-band path. Wiring real elicitation in the connector stays #81's: the verb exposes no way to *claim* an elicited answer, and the connector — the only party that can know a form reached a person — will record one through `record_decision`, which is not on the surface.
+
+**Two input amendments.** `analysis_open` gains `allow_skip_confirmation` (ADR-0005: "until the gate has been passed or `allow_skip_confirmation` was set when the analysis was opened") and `at`, which dates the skip and sets the document's `createdAt`. `frame_confirm` gains `at`, like `measures_write`. Both verbs join `NEEDS_CLOCK`. The skip can only be set at creation, and is stored as a record attributed to the agent (`authorId: agent`, `mechanism: skip-at-open`), never as a human confirmation.
+
+**What cannot be fabricated, and how that is tested.** A `confirm` is recorded only when it answers a question asked since the last decision — the first call, with no decision, returns the instructions and notes that the question was asked — and only with `confirmed_by` and `confirmation_text` both non-blank. Otherwise the result is `confirmed: false` with instructions and nothing is written. A test runs every combination of decision, scope, author and text, and no single call passes the gate. After the question, exactly one combination does: `confirm`, scope `all`, a name and words. `revise` and `reject` need no fresh question, because they can only close the gate. The out-of-band channel still trusts the caller's model to relay the user truthfully; that is the degraded path ADR-0005 specifies, and elicitation (#81) is the stronger one.
+
+**The gate.** For each of the frame, the alternatives and the criteria, the latest decision covering it must be `confirm` (or the skip). `measures_write` — and so `measures_mark_missing` — refuses with nothing written until then, naming the parts still open. A later `revise` or `reject` closes the gate again. A criteria revision does not: ADR-0005 says the gate opens both ways, and ADR-0016 owns what a revision costs. The record keeps the criteria version it was given against, and `frame_confirm` says when the set has moved since, so a session can choose to re-ask (#152).
+
+**Resume.** A call with no decision on an open gate returns the deciding record with `mechanism: recorded` and writes nothing. `analysis_get` and `analysis_open` now report stage 4 while the gate is closed. `stage_of` takes `confirmed` as a required argument, because the records live outside the document.
+
+**Where the records live.** In `analyses/{id}/confirmations.json`, beside the frame and inside the same retention window, not in the document. Comparanda v1 is closed and has no slot for them, and writing one would make the stored analysis invalid. A test holds the document schema-valid after a confirmation. #152 recommends asking comparanda for the slot, by the same route as #126.
+
+**Fixtures.** Tests that score but are not about the gate open with the explicit skip; the CLI demo does too, with a comment, since a scripted demo has no user to ask. The store's stage-chain test gains a real stage-4 step.
+
+Re-measured on 2026-10-12 against `claude-sonnet-5-5`:
+- the advertised definitions: 14 tools, 7,875 tokens, 18,741 bytes;
+- the whole surface: 22 tools, 10,750 tokens, 26,051 bytes.
