@@ -30,6 +30,7 @@ from rubricator.store import AnalysisStore
 __all__ = [
     "analysis_open",
     "frame_set",
+    "alternatives_set",
     "criteria_set",
     "measures_write",
     "measures_mark_missing",
@@ -68,13 +69,42 @@ DEFINITION_FIELDS: tuple[str, ...] = (
 DEFINITION_EXPECTED: tuple[str, ...] = DEFINITION_FIELDS
 
 
-def analysis_open(store: AnalysisStore, *, analysis_id: str, question: str) -> dict[str, Any]:
-    """Start an analysis. Writes the frame and nothing else.
+def analysis_open(
+    store: AnalysisStore, *, analysis_id: str, question: str | None = None
+) -> dict[str, Any]:
+    """Start an analysis, or reopen one. Writes the frame and nothing else.
 
     An analysis exists before it has any alternatives or criteria, because the
     thing being decided is the first thing that is known and the criteria
     discussion is the valuable part (ADR-0005).
+
+    **Reopening never overwrites.** An id the store already holds returns
+    ``created: false`` with what is there, so that a resumed session -- or a
+    model retrying a call -- cannot reset a matrix by opening it twice. A new
+    analysis needs a ``question``; a reopened one ignores the argument, because
+    the question is the one thing a frame may not quietly change.
+
+    The ``analysis_id`` is an opaque handle (ADR-0017). The surface mints one
+    when the caller gives none (:mod:`rubricator.ids`); the connector's default
+    store keeps an analysis for 30 days from its last write
+    (:data:`rubricator.store.RETENTION_DAYS`), and export defeats that window.
     """
+    if store.exists(analysis_id):
+        frame = store.frame(analysis_id)
+        n_alt, n_crit = len(frame.get("alternatives", [])), len(frame.get("criteria", []))
+        return {
+            "analysisId": analysis_id,
+            "created": False,
+            "question": frame["subject"]["question"],
+            "alternatives": n_alt,
+            "criteria": n_crit,
+            "summary": f'reopened "{analysis_id}": {n_alt} alternative(s), {n_crit} criteria',
+        }
+    if not (question or "").strip():
+        raise ValueError(
+            "refused: a new analysis needs a question. Pass the question being decided, or "
+            "the id of an existing analysis to reopen it."
+        )
     frame = {
         "id": analysis_id,
         "schemaVersion": 1,
@@ -98,35 +128,99 @@ def analysis_open(store: AnalysisStore, *, analysis_id: str, question: str) -> d
         "renditions": [],
     }
     store.put_frame(analysis_id, frame)
-    return {"analysisId": analysis_id, "created": True}
+    return {
+        "analysisId": analysis_id,
+        "created": True,
+        "question": question,
+        "alternatives": 0,
+        "criteria": 0,
+        "summary": f'opened "{analysis_id}" with no alternatives and no criteria yet',
+    }
 
 
 def frame_set(
     store: AnalysisStore,
     *,
     analysis_id: str,
-    alternatives: Sequence[Mapping[str, Any]],
-    ambiguities: Sequence[str] = (),
+    ambiguities: Sequence[str],
     decision: str | None = None,
+    decider: str | None = None,
+    context: str | None = None,
 ) -> dict[str, Any]:
-    """Record what is being compared, and what is still ambiguous about it.
+    """Record the frame: the decision, who decides, and what is still ambiguous.
+
+    Stage 1 of ADR-0005. The rows are **not** written here: they are stage 2's
+    output and :func:`alternatives_set` writes them, so that a frame can be
+    settled and confirmed before anyone has enumerated anything.
 
     ``ambiguities`` is required to be *considered*, not required to be non-empty:
-    the ADR-0005 rule is that surface ambiguity is surfaced rather than resolved
+    the ADR-0005 rule is that ambiguity is surfaced rather than resolved
     silently, and a caller that has genuinely found none says so by passing an
     empty list. What is not available is not passing the argument at all and
     having the question of whether anyone looked go unrecorded.
     """
     frame = store.frame(analysis_id)
+    subject = frame["subject"]
+    # None leaves a field as it was; an empty string clears it. Both are
+    # needed: a model re-stating the frame must not erase what it did not
+    # mention, and a user must be able to withdraw a decider.
+    for key, value in (("decision", decision), ("decider", decider), ("context", context)):
+        if value is None:
+            continue
+        if value.strip():
+            subject[key] = value
+        else:
+            subject.pop(key, None)
+    subject["ambiguities"] = list(ambiguities)
+    store.put_frame(analysis_id, frame)
+    n = len(subject["ambiguities"])
+    return {
+        "analysisId": analysis_id,
+        "decision": subject.get("decision"),
+        "decider": subject.get("decider"),
+        "ambiguities": subject["ambiguities"],
+        "summary": f"frame recorded; {n} ambiguit{'y' if n == 1 else 'ies'} left open for the user",
+    }
+
+
+def alternatives_set(
+    store: AnalysisStore, *, analysis_id: str, alternatives: Sequence[Mapping[str, Any]]
+) -> dict[str, Any]:
+    """Declare the alternatives -- the rows -- replacing the current set.
+
+    Stage 2 of ADR-0005. Dropping an alternative that any cell refers to is
+    refused, for the same reason :func:`criteria_set` refuses to drop a scored
+    criterion: a row with history is never deleted, it is tombstoned, and that
+    is a separate, visible act.
+
+    Near-duplicate and unsourced alternatives are *flagged*, never merged, by
+    the checks tracked in #55; this verb writes.
+    """
+    frame = store.frame(analysis_id)
+    ids = [a["id"] for a in alternatives]
+    if len(set(ids)) != len(ids):
+        dupes = sorted({i for i in ids if ids.count(i) > 1})
+        raise ValueError(
+            f"refused, nothing was written: alternative ids {', '.join(dupes)} appear more than "
+            "once. Two rows with one id would be one row with two labels."
+        )
+    referenced = {
+        cell["alternativeId"]
+        for _, contribution in store.contributions(analysis_id)
+        for cell in contribution.get("cells", [])
+    }
+    dropped = sorted(referenced - set(ids))
+    if dropped:
+        raise ValueError(
+            f"refused, nothing was written: alternatives {', '.join(dropped)} would be dropped, "
+            "but cells refer to them. Keep them in the set, or tombstone them."
+        )
     frame["alternatives"] = [dict(a) for a in alternatives]
-    if decision:
-        frame["subject"]["decision"] = decision
-    frame["subject"]["ambiguities"] = list(ambiguities)
     store.put_frame(analysis_id, frame)
     return {
         "analysisId": analysis_id,
-        "alternatives": len(frame["alternatives"]),
-        "ambiguities": list(ambiguities),
+        "alternatives": ids,
+        "summary": f"{len(ids)} alternative(s) declared",
     }
 
 
@@ -204,7 +298,7 @@ def criteria_set(
             )
         else:
             defaulted.append(c["id"])
-        anchors = c.get("anchors")
+        anchors = _anchor_levels(c.get("anchors"))
         required = list(preset["anchorsRequiredAt"])
         if required:
             if not anchors:
@@ -249,6 +343,12 @@ def criteria_set(
         }
         if isinstance(definition, Mapping):
             emitted["definition"] = _copy_definition(definition)
+        # Retired, never deleted (ADR-0016): the two comparanda fields for a
+        # column that stays in the set because cells refer to it.
+        if c.get("tombstoned"):
+            emitted["tombstoned"] = True
+        if c.get("supersededBy"):
+            emitted["supersededBy"] = list(c["supersededBy"])
         out.append(emitted)
         declared.setdefault(
             scale_id, {"id": scale_id, "broader": "stevens", "means": preset["means"], "params": {}}
@@ -270,20 +370,34 @@ def criteria_set(
     # stored: a retry then sees the same before-state and the same revision.
     merged = merge_contributions(frame, store.contributions(analysis_id))
     store.put_frame(analysis_id, frame)
+    superseded = superseded_cells(merged)
+    summary = f'{len(out)} criteria at version "{frame["criteriaVersion"]}"'
+    if revised:
+        summary += f"; {len(revised)} revised"
+    if superseded["count"]:
+        summary += f"; {superseded['count']} cell(s) now answer an older definition"
+    if gaps:
+        summary += f"; {len(gaps)} under-defined"
     return {
         "analysisId": analysis_id,
         "criteria": [c["id"] for c in out],
         "criteriaVersion": frame["criteriaVersion"],
-        "revised": revised,
-        "supersededCells": superseded_cells(merged),
+        # Lists rather than id-keyed objects, because the frozen surface closes
+        # every object (ADR-0013 rule 3) and an id-keyed object cannot be closed.
+        "revised": [
+            {"criterionId": cid, "fields": r["fields"], "material": r["material"]}
+            for cid, r in revised.items()
+        ],
+        "supersededCells": superseded,
         # Completeness, not a refusal: which definition fields each criterion
         # still lacks. Empty when every criterion is fully defined.
-        "definitionGaps": gaps,
+        "definitionGaps": [{"criterionId": cid, "fields": f} for cid, f in gaps.items()],
         # Criteria whose direction of preference came from the scale preset
         # rather than from the caller. Misaligned direction is a documented
         # failure of generated rubrics; a cost scored "increasing" because
         # nobody said otherwise is exactly it, so the default is made visible.
         "defaultedPreference": defaulted,
+        "summary": summary,
     }
 
 
@@ -318,13 +432,26 @@ def measures_write(
             f'"{expected_criteria_version}", and the set is now at "{criteria_version}". Re-read '
             "the criteria and re-score, so no score is stamped with a version it never saw."
         )
-    known = {c["id"] for c in frame.get("criteria", [])}
-    unknown = sorted({c["criterionId"] for c in cells} - known)
-    if unknown:
-        raise KeyError(
-            f"refused, nothing was written: criteria {', '.join(unknown)} are not in this "
-            "analysis. Declare them with criteria_set first."
-        )
+    known = {c["id"]: c for c in frame.get("criteria", [])}
+    rows = {a["id"]: a for a in frame.get("alternatives", [])}
+    for axis, index, verb in (
+        ("criteria", known, "criteria_set"), ("alternatives", rows, "alternatives_set")
+    ):
+        key = "criterionId" if axis == "criteria" else "alternativeId"
+        unknown = sorted({c[key] for c in cells} - set(index))
+        if unknown:
+            raise KeyError(
+                f"refused, nothing was written: {axis} {', '.join(unknown)} are not in this "
+                f"analysis. Declare them with {verb} first."
+            )
+    measures = {m["name"] for m in frame.get("measures", [])} or {"score"}
+    problems = [
+        p
+        for cell in cells
+        for p in _cell_problems(cell, rows, known, measures, frame)
+    ]
+    if problems:
+        raise ValueError("refused, nothing was written: " + "; ".join(problems))
     contribution = _existing(store, analysis_id, contributor_id, author)
     index = {
         (c["alternativeId"], c["criterionId"], c["measure"]): c
@@ -363,7 +490,15 @@ def measures_write(
     contribution["cells"] = [index[k] for k in sorted(index)]
     _refuse_dishonest(store, analysis_id, contributor_id, contribution, added=added)
     store.put_contribution(analysis_id, contributor_id, contribution)
-    return {"analysisId": analysis_id, "contributorId": contributor_id, "written": len(cells)}
+    valued = sum(1 for c in cells if c.get("value") is not None)
+    return {
+        "analysisId": analysis_id,
+        "contributorId": contributor_id,
+        "written": len(cells),
+        "criteriaVersion": criteria_version,
+        "summary": f"{len(cells)} assertion(s) written for {contributor_id}: "
+        f"{valued} valued, {len(cells) - valued} qualified blank(s)",
+    }
 
 
 def measures_mark_missing(
@@ -394,7 +529,12 @@ def measures_mark_missing(
     assertion (``independence-recorded``); a blank beside a score is two claims.
     """
     frame = store.frame(analysis_id)
-    criteria = list(criterion_ids) or [c["id"] for c in frame["criteria"]]
+    # The default selection is every *live* row and column: a tombstoned one
+    # takes no new assertions, and "mark the rest" must not fail because a row
+    # was retired. One named explicitly is still refused, by measures_write.
+    criteria = list(criterion_ids) or [
+        c["id"] for c in frame["criteria"] if not c.get("tombstoned")
+    ]
     for crit in criteria:
         declarations = declarations_for(frame, crit)
         if vocabulary().resolve(code, declarations).source == "undeclared":
@@ -407,7 +547,9 @@ def measures_mark_missing(
                 "the blank."
             )
 
-    alternatives = list(alternative_ids) or [a["id"] for a in frame["alternatives"]]
+    alternatives = list(alternative_ids) or [
+        a["id"] for a in frame["alternatives"] if not a.get("tombstoned")
+    ]
     cells = [
         {
             "alternativeId": alt,
@@ -433,7 +575,12 @@ def measures_mark_missing(
         at=at,
         cells=cells,
     )
-    return {**result, "code": code, "marked": len(cells)}
+    return {
+        **result,
+        "code": code,
+        "marked": len(cells),
+        "summary": f'{len(cells)} cell(s) marked "{code}" for {contributor_id}',
+    }
 
 
 def report_completeness(store: AnalysisStore, *, analysis_id: str) -> dict[str, Any]:
@@ -520,6 +667,11 @@ def report_completeness(store: AnalysisStore, *, analysis_id: str) -> dict[str, 
             {"path": p.path, "message": p.message, "fix": p.fix, "ruleId": p.rule_id}
             for p in honesty_problems(merged)
         ],
+        "summary": (
+            f"{present} valued, {settled} settled blank(s), {outstanding} outstanding of "
+            f"{applicable} applicable cell(s); silenceRate {rate(informative):.2f}"
+            + (f"; {len(degradations)} code(s) this build could not interpret" if degradations else "")
+        ),
     }
 
 
@@ -709,6 +861,121 @@ def declarations_for(document: Mapping[str, Any], criterion_id: str) -> list[Map
     """
     criterion = next((c for c in document.get("criteria", []) if c.get("id") == criterion_id), {})
     return [*criterion.get("missingCodes", []), *document.get("missingCodes", [])]
+
+
+def _cell_problems(
+    cell: Mapping[str, Any],
+    rows: Mapping[str, Mapping[str, Any]],
+    criteria: Mapping[str, Mapping[str, Any]],
+    measures: set[str],
+    frame: Mapping[str, Any],
+) -> list[str]:
+    """Every reason ``cell`` cannot be written, each naming the cell.
+
+    Four checks the schema cannot make because the answer is data in the frame:
+    the measure is one the analysis declares; the row and the column are not
+    tombstoned; a missingness code is one the vocabulary resolves (the same
+    rule :func:`measures_mark_missing` applies); and a ``score`` value is one
+    its criterion's scale can take (:func:`_off_scale`).
+    """
+    where = f"cell {cell['alternativeId']}/{cell['criterionId']}"
+    out: list[str] = []
+    measure = cell.get("measure", "score")
+    if measure not in measures:
+        out.append(
+            f'{where}: measure "{measure}" is not one this analysis declares '
+            f"({', '.join(sorted(measures))})"
+        )
+    for label, item in (("alternative", rows[cell["alternativeId"]]),
+                        ("criterion", criteria[cell["criterionId"]])):
+        if item.get("tombstoned"):
+            out.append(f'{where}: {label} "{item["id"]}" is tombstoned and takes no new assertions')
+    missing = cell.get("missing")
+    if isinstance(missing, Mapping):
+        declarations = declarations_for(frame, cell["criterionId"])
+        if vocabulary().resolve(missing["code"], declarations).source == "undeclared":
+            out.append(
+                f'{where}: missingness code "{missing["code"]}" is not one the core vocabulary, '
+                "the analysis or the criterion declares"
+            )
+    if measure == "score":
+        problem = _off_scale(cell, criteria[cell["criterionId"]])
+        if problem:
+            out.append(problem)
+    return out
+
+
+def _off_scale(cell: Mapping[str, Any], criterion: Mapping[str, Any]) -> str | None:
+    """Why ``cell``'s score is one its criterion's scale cannot take, or ``None``.
+
+    The frozen surface cannot bound ``value`` in the schema -- the scale is data
+    (ADR-0021) and is not known when the schema is written -- so ADR-0013's
+    range check lives here, against the measurement the criterion declares: the
+    ``levels`` where it lists them, the ``range`` otherwise. A blank has no
+    value and is never off scale. A boolean is never a number here: ``True``
+    equals ``1`` in Python and would otherwise pass as a level.
+
+    >>> crit = {"id": "c", "defaultMeasurement": {"levels": [1, 2, 3], "range": {"min": 1, "max": 3}}}
+    >>> _off_scale({"alternativeId": "x", "criterionId": "c", "value": 2}, crit) is None
+    True
+    >>> _off_scale({"alternativeId": "x", "criterionId": "c", "value": 2.5}, crit)
+    'cell x/c: value 2.5 is not one of the levels its scale declares (1, 2, 3)'
+    >>> _off_scale({"alternativeId": "x", "criterionId": "c", "value": True}, crit)
+    'cell x/c: value True is not one of the levels its scale declares (1, 2, 3)'
+    """
+    if "value" not in cell or cell["value"] is None:
+        return None
+    value = cell["value"]
+    measurement = criterion.get("defaultMeasurement", {})
+    where = f"cell {cell['alternativeId']}/{cell['criterionId']}"
+
+    def same(a: Any, b: Any) -> bool:
+        return type(a) is type(b) and a == b or (
+            isinstance(a, (int, float)) and isinstance(b, (int, float))
+            and not isinstance(a, bool) and not isinstance(b, bool) and a == b
+        )
+
+    levels = measurement.get("levels")
+    if levels:
+        if not any(same(value, lvl) for lvl in levels):
+            shown = ", ".join(str(lvl) for lvl in levels)
+            return f"{where}: value {value!r} is not one of the levels its scale declares ({shown})"
+        return None
+    rng = measurement.get("range")
+    if rng:
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return f"{where}: value {value!r} is not a number, and the scale is a numeric range"
+        if value < rng["min"] or value > rng["max"]:
+            return f"{where}: value {value!r} is outside the scale's range {rng['min']}..{rng['max']}"
+    return None
+
+
+def _anchor_levels(anchors: Any) -> dict[str, str] | None:
+    """Anchors as the stored ``{level: text}`` mapping, from either input shape.
+
+    The frozen surface takes anchors as a **list** of ``{level, text}`` rows,
+    because an object keyed by level cannot be closed and ADR-0013 closes every
+    object a tool accepts. Python callers may still pass the mapping. Both land
+    here as one shape, so nothing downstream knows there were two.
+
+    >>> _anchor_levels([{"level": "1", "text": "a"}, {"level": 3, "text": "b"}])
+    {'1': 'a', '3': 'b'}
+    >>> _anchor_levels({"1": "a"})
+    {'1': 'a'}
+    >>> _anchor_levels(None) is None
+    True
+    """
+    if anchors is None:
+        return None
+    if isinstance(anchors, Mapping):
+        return {str(k): v for k, v in anchors.items()}
+    rows = list(anchors)
+    levels = [str(r["level"]) for r in rows]
+    if len(set(levels)) != len(levels):
+        raise ValueError(
+            "anchors name the same level twice; one evidence condition per level."
+        )
+    return {str(r["level"]): r["text"] for r in rows}
 
 
 def _copy_definition(definition: Mapping[str, Any]) -> dict[str, Any]:

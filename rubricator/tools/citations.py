@@ -27,9 +27,10 @@ from __future__ import annotations
 import re
 import unicodedata
 from dataclasses import dataclass, field
-from typing import Iterable, Literal, Sequence
+from typing import Any, Iterable, Literal, Mapping, Sequence
 
 __all__ = [
+    "report_citations",
     "CitationCheck",
     "CitationVerdict",
     "VERDICTS_FOUND",
@@ -151,6 +152,16 @@ class CitationCheck:
     #: Ordered-token overlap, always computed, so a caller can rank near misses.
     overlap: float = 0.0
     evidence_id: str | None = None
+
+    def as_dict(self) -> dict[str, Any]:
+        """The closed JSON shape the surface returns (ADR-0013: no tuples)."""
+        return {
+            "evidenceId": self.evidence_id,
+            "status": self.status,
+            "detail": self.detail,
+            "span": None if self.span is None else {"start": self.span[0], "end": self.span[1]},
+            "overlap": self.overlap,
+        }
 
     @property
     def found(self) -> bool:
@@ -296,6 +307,19 @@ class CitationReport:
         """The strictest rung alone. Reported beside the gate, never as it."""
         return self.exact / self.total if self.total else 0.0
 
+    def as_dict(self) -> dict[str, Any]:
+        """The closed JSON shape the surface returns, counts included."""
+        return {
+            "total": self.total,
+            "exact": self.exact,
+            "verbatim": self.verbatim,
+            "failed": len(self.failed),
+            "verbatimRate": self.verbatim_rate,
+            "exactRate": self.exact_rate,
+            "checks": [c.as_dict() for c in self.checks],
+            "summary": self.summary(),
+        }
+
     def summary(self) -> str:
         if not self.total:
             return "no citations to check"
@@ -308,19 +332,19 @@ class CitationReport:
         return ", ".join(parts)
 
 
-def check_citations(
+def report_citations(
     pairs: Iterable[tuple[str, str]] | Iterable[tuple[str, str, str]],
     *,
     partial_threshold: float = DEFAULT_PARTIAL_THRESHOLD,
 ) -> CitationReport:
-    """Check many citations.
+    """Check many citations, for a Python caller that wants the report object.
 
     Accepts ``(quote, source)`` or ``(evidence_id, quote, source)`` triples. The
     result preserves input order, because a report whose order depends on a set
     or a dict would not be byte-identical across runs -- and reproducibility is
     the property this whole module is for.
 
-    >>> r = check_citations([("brown fox", "the quick brown fox"), ("zebra", "no")])
+    >>> r = report_citations([("brown fox", "the quick brown fox"), ("zebra", "no")])
     >>> r.total, r.verbatim, len(r.failed)
     (2, 1, 1)
     >>> r.summary()
@@ -338,3 +362,32 @@ def check_citations(
             )
         )
     return CitationReport(tuple(checks))
+
+
+def check_citations(citations: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    """Check many claimed quotes against their sources, deterministically.
+
+    The surface verb: ``citations`` is a list of ``{quote, source, evidenceId?}``
+    rows -- objects rather than tuples, because the frozen surface (ADR-0013)
+    admits no tuple shapes -- and the result is the closed report of
+    :meth:`CitationReport.as_dict`, in input order.
+
+    Stage 5 and 6 of ADR-0005. Needs no inference: it is string containment and
+    ordered-token overlap over text the caller supplies. It never fetches a
+    source; a caller that has not got the text has nothing to check yet.
+
+    The fuzzy threshold is **not** an argument here. It is on
+    :func:`report_citations` for the evaluation harness; a model that could set
+    it to zero could grade a fabricated quote ``fuzzy`` on the one tool that is
+    the product.
+
+    >>> r = check_citations([{"quote": "brown fox", "source": "the quick brown fox"},
+    ...                      {"evidenceId": "e2", "quote": "zebra", "source": "no"}])
+    >>> r["total"], r["verbatim"], r["failed"], r["checks"][1]["evidenceId"]
+    (2, 1, 1, 'e2')
+    >>> r["summary"]
+    '2 citation(s), 1 verbatim, 1 NOT FOUND'
+    """
+    return report_citations(
+        [(c.get("evidenceId"), c["quote"], c["source"]) for c in citations]
+    ).as_dict()

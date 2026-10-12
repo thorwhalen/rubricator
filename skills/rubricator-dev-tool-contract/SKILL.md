@@ -80,6 +80,30 @@ In the docstring, because it becomes the tool description the model actually rea
 - **Its determinism justification** — one line saying why it needs no inference.
 - **Its failure mode** — what it returns when it cannot do the job. Never a silent empty result.
 
+## The frozen surface (ADR-0026): a tool is a row first
+
+Every tool -- implemented or not -- is a row in `rubricator/surface/frozen.py`, and
+`tests/test_frozen_surface.py` holds the code to the rows. Adding or changing a tool:
+
+1. **Edit the row first**: name, family, stage, status, minimum-viable flag and cut rank,
+   contract / determinism / failure (that text is what the model reads -- the Python
+   docstring is for you), `inputSchema`, `outputSchema`. Run
+   `rubricator.surface.subset.subset_violations` over both schemas: no `minimum`/`maximum`,
+   no string lengths, `additionalProperties: false` on every object, internal `$ref` only,
+   no recursion, `minItems` 0 or 1, scalar enums, no tuple shapes. A dynamic-key object
+   cannot be closed: make it a list of `{key, value}` rows.
+2. **Write the verb** as a plain keyword-only function returning a dict with a required
+   `summary` string. Its parameter names and required-ness must match the row; the closed
+   shapes live in the row, not in type annotations. Register it in `TOOL_REFS`.
+3. **Re-measure**: `ANTHROPIC_API_KEY=... python scripts/measure_tool_tokens.py` and paste
+   the block into `MEASURED`. The byte pin fails until you do. The whole surface is at the
+   10k-token line; a new description is paid for on every turn.
+4. A **name** or **input** change is an amendment to ADR-0026 with its reason. An **output**
+   field may be added without one.
+
+Never add a name from `DELIBERATELY_ABSENT`, and never a `temperature` or model-seed
+parameter; a test refuses both.
+
 ## Granularity
 
 - Fewer, well-named tools beat many overlapping ones; tool-selection accuracy degrades as the
@@ -104,4 +128,6 @@ look".
     docs/adr/0005-the-elicitation-pipeline.md  the stages tools serve
     docs/adr/0006-evidence-and-honest-uncertainty.md  the honesty rule
     docs/research/findings-method.md          the proposed tool surface and its reasoning
+    docs/adr/0026-the-frozen-tool-surface.md  the frozen surface: rows, envelope, errors, cut order
+    rubricator/surface/frozen.py              the rows themselves; tests/test_frozen_surface.py holds them
     docs/prompts/                             prompts as versioned content

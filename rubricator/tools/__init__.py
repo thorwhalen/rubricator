@@ -15,17 +15,22 @@ caller's model runs, plus a deterministic tool that validates what came back.
 
 from rubricator.tools.citations import (
     CitationCheck,
+    CitationReport,
     check_citation,
     check_citations,
     normalise_for_match,
+    report_citations,
 )
-from rubricator.tools.traversal import TraversalPlan, plan_traversal
+from rubricator.tools.traversal import TraversalPlan, build_traversal, plan_traversal
 
 __all__ = [
     "CitationCheck",
+    "CitationReport",
     "check_citation",
     "check_citations",
+    "report_citations",
     "normalise_for_match",
     "TraversalPlan",
+    "build_traversal",
     "plan_traversal",
 ]

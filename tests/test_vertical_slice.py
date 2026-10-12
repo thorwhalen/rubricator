@@ -31,6 +31,7 @@ from rubricator.compose import build_runtime
 from rubricator.contributors import human, persona
 from rubricator.merge import MergeProblem, merge_contributions
 from rubricator.tools.analysis import (
+    alternatives_set,
     analysis_open,
     criteria_set,
     frame_set,
@@ -59,10 +60,12 @@ def _run(runtime) -> dict[str, Any]:
     store, at = runtime.store, runtime.now()
     analysis_open(store, analysis_id="demo", question="Which runtime should we adopt?")
     frame_set(
-        store,
-        analysis_id="demo",
-        alternatives=[{"id": "alpha", "label": "Alpha"}, {"id": "beta", "label": "Beta"}],
+        store, analysis_id="demo",
         ambiguities=['"adopt" -- for the new service only, or everywhere?'],
+    )
+    alternatives_set(
+        store, analysis_id="demo",
+        alternatives=[{"id": "alpha", "label": "Alpha"}, {"id": "beta", "label": "Beta"}],
     )
     criteria_set(
         store,

@@ -40,18 +40,20 @@ def prompts_list() -> dict[str, Any]:
     >>> 'score-cell' in [p['id'] for p in prompts_list()['prompts']]
     True
     """
+    prompts = [
+        {
+            "id": p.id,
+            "title": p.title,
+            "version": p.version,
+            "stage": p.stage,
+            "updated": p.updated,
+            "missingCodes": list(p.missing_codes),
+        }
+        for p in sorted(_bundle().values(), key=lambda p: (p.stage or 0, p.id))
+    ]
     return {
-        "prompts": [
-            {
-                "id": p.id,
-                "title": p.title,
-                "version": p.version,
-                "stage": p.stage,
-                "updated": p.updated,
-                "missingCodes": list(p.missing_codes),
-            }
-            for p in sorted(_bundle().values(), key=lambda p: (p.stage or 0, p.id))
-        ]
+        "prompts": prompts,
+        "summary": f"{len(prompts)} prompt(s): " + ", ".join(p["id"] for p in prompts),
     }
 
 
@@ -80,4 +82,5 @@ def prompts_get(*, prompt_id: str) -> dict[str, Any]:
         "updated": prompt.updated,
         "missingCodes": list(prompt.missing_codes),
         "body": prompt.body,
+        "summary": f'prompt "{prompt.id}" v{prompt.version}, {len(prompt.body)} characters',
     }

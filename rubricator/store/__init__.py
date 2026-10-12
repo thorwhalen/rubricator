@@ -41,15 +41,51 @@ point: an uncached merge nobody wrote down becomes a mysterious slowness later.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from typing import Any, Iterator, MutableMapping
 
-__all__ = ["AnalysisStore", "BytesStore", "memory_store", "file_store"]
+__all__ = ["AnalysisStore", "BytesStore", "memory_store", "file_store", "check_id", "RETENTION_DAYS"]
 
 #: The whole persistence interface. See the module docstring.
 BytesStore = MutableMapping[str, bytes]
 
+#: The retention window, in days from **last write**, that ADR-0017 makes a
+#: stated contract: it is quoted verbatim in ``analysis_open``'s description,
+#: where the model reads it, and a test keeps the two in step. Export defeats it
+#: -- the window governs only this working store, never a file the user owns.
+#:
+#: Stated here before it is enforced. No store in this package expires anything
+#: yet; the sweep that does is #51's work, and it reads this constant rather than
+#: a number of its own. Until then the contract errs in the safe direction: a
+#: caller told that a handle may be discarded after 30 idle days loses nothing
+#: when it is in fact kept.
+RETENTION_DAYS = 30
+
 _ENCODING = "utf-8"
+
+#: What an id that becomes part of a key may look like. Keys are paths on the
+#: filesystem target (ADR-0023), so an id is confined to what cannot leave its
+#: directory: no separators, no dots, no empty string.
+_ID = re.compile(r"[A-Za-z0-9_-]{1,64}\Z")
+
+
+def check_id(value: str) -> str:
+    """``value`` if it may be part of a store key; ``ValueError`` otherwise.
+
+    >>> check_id("demo-1")
+    'demo-1'
+    >>> check_id("../escape")
+    Traceback (most recent call last):
+        ...
+    ValueError: refused: "../escape" is not a usable id. An id is 1 to 64 letters, digits, "-" or "_", because it becomes part of a path.
+    """
+    if not isinstance(value, str) or not _ID.match(value):
+        raise ValueError(
+            f'refused: "{value}" is not a usable id. An id is 1 to 64 letters, digits, "-" or '
+            '"_", because it becomes part of a path.'
+        )
+    return value
 
 
 def memory_store() -> BytesStore:
@@ -157,16 +193,24 @@ class AnalysisStore:
 
     # -- writing ------------------------------------------------------------
 
+    # Ids are checked on the write path only. A read lists the keys that exist
+    # and must be able to read them all back -- a stray file in a shared
+    # repository must not make the whole analysis unreadable.
+
     def put_frame(self, analysis_id: str, frame: dict[str, Any]) -> None:
-        self._write(self.frame_key(analysis_id), frame)
+        self._write(self.frame_key(check_id(analysis_id)), frame)
 
     def put_contribution(
         self, analysis_id: str, contributor_id: str, contribution: dict[str, Any]
     ) -> None:
-        self._write(self.contribution_key(analysis_id, contributor_id), contribution)
+        self._write(
+            self.contribution_key(check_id(analysis_id), check_id(contributor_id)), contribution
+        )
 
     def put_rendition(self, analysis_id: str, rendition: dict[str, Any]) -> None:
-        self._write(self.rendition_key(analysis_id, rendition["id"]), rendition)
+        self._write(
+            self.rendition_key(check_id(analysis_id), check_id(rendition["id"])), rendition
+        )
 
     def exists(self, analysis_id: str) -> bool:
         return self.frame_key(analysis_id) in self.blobs

@@ -49,10 +49,12 @@ def test_the_clock_is_optional_where_it_is_bound(verbs) -> None:
 
 def test_a_bound_verb_runs_without_a_moment(verbs) -> None:
     verbs["analysis_open"](analysis_id="a1", question="which?")
-    verbs["frame_set"](analysis_id="a1", alternatives=[{"id": "x", "label": "X"}])
+    verbs["frame_set"](analysis_id="a1", ambiguities=[])
+    verbs["alternatives_set"](analysis_id="a1", alternatives=[{"id": "x", "label": "X"}])
     verbs["criteria_set"](
         analysis_id="a1",
-        criteria=[{"id": "c", "label": "C", "anchors": {"1": "a", "3": "b", "5": "c"}}],
+        criteria=[{"id": "c", "label": "C", "anchors": [
+            {"level": "1", "text": "a"}, {"level": "3", "text": "b"}, {"level": "5", "text": "c"}]}],
     )
     result = verbs["measures_write"](
         analysis_id="a1", contributor_id="ana",
