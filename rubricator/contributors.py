@@ -234,12 +234,21 @@ def _check_rung(independence: str | None, perturbation: Mapping[str, Any] | None
             "ADR-0018's older spelling maps in-session to shared-context."
         )
     if perturbation is not None:
+        import math
+
+        if not isinstance(perturbation, Mapping):
+            raise ValueError("a perturbation record is a mapping {kind, seed?, detail?}.")
         extra = set(perturbation) - {"kind", "seed", "detail"}
         seed = perturbation.get("seed")
+        seed_ok = seed is None or isinstance(seed, str) or (
+            isinstance(seed, (int, float))
+            and not isinstance(seed, bool)
+            and math.isfinite(seed)
+        )
         if (
             extra
+            or not seed_ok
             or not isinstance(perturbation.get("kind"), str)
-            or (seed is not None and not isinstance(seed, (str, int, float)))
             or not isinstance(perturbation.get("detail", ""), str)
         ):
             raise ValueError(

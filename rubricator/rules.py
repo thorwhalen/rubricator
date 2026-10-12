@@ -167,7 +167,9 @@ def supersession_resolves(document: Mapping[str, Any]) -> Iterable[Problem]:
             while nxt in by_id and nxt not in seen:
                 seen.add(nxt)
                 nxt = by_id[nxt].get("supersededBy")
-            if nxt in seen:
+            # Flag only the members of the cycle, as the companion does: an
+            # assertion that merely leads into one is reported by its members.
+            if nxt == assertion["id"]:
                 yield Problem(
                     path=path,
                     message=f'assertion "{assertion["id"]}" is on a supersession cycle, so no assertion in it is live.',

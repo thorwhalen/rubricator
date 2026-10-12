@@ -176,7 +176,10 @@ def test_a_caller_supplied_id_already_in_the_cell_is_refused(store) -> None:
         _score(store, ana, 3, assertionId="s1", independence="shared-context")
 
 
-@pytest.mark.parametrize("bad", [{"kind": 7}, {"kind": "t", "bogus": 1}, {"kind": "t", "seed": [1]}])
+@pytest.mark.parametrize("bad", [
+    {"kind": 7}, {"kind": "t", "bogus": 1}, {"kind": "t", "seed": [1]},
+    {"kind": "t", "seed": True}, {"kind": "t", "seed": float("nan")}, ["kind"],
+])
 def test_a_perturbation_record_has_the_closed_shape(bad) -> None:
     with pytest.raises(ValueError, match="perturbation record is"):
         sign({"id": "a"}, at=AT, assertion_id="s", value=1, independence="perturbed",
@@ -206,3 +209,26 @@ def test_merge_namespaces_supersession_with_the_ids() -> None:
     merged = merge_contributions(frame, [("ana", contrib)])
     assert merged["cells"][0]["assertions"][0]["supersededBy"] == "ana:s2"
     assert honesty_problems(merged) == []
+
+
+def test_a_reused_caller_id_in_another_cell_is_not_blamed_for_this_one() -> None:
+    """Review repro G: ids are unique per cell, so matching must include the cell."""
+    s = _two_cell_store()
+    ana, ben = human("ana", "Ana"), human("ben", "Ben")
+    _score(s, ana, 4, assertionId="s1")
+    _score(s, ben, 2, independence="independent")
+    measures_write(s, analysis_id="a", contributor_id="ana", author=ana, at=AT,
+                   cells=[{"alternativeId": "y", "criterionId": "c", "value": 3,
+                           "justification": "because", "assertionId": "s1",
+                           "independence": "independent"}])
+
+
+def test_only_cycle_members_are_flagged() -> None:
+    doc = {"cells": [{"alternativeId": "x", "criterionId": "c", "measure": "score", "assertions": [
+        {"id": "a", "authorId": "u", "value": 1, "supersededBy": "b"},
+        {"id": "b", "authorId": "u", "value": 1, "supersededBy": "c"},
+        {"id": "c", "authorId": "u", "value": 1, "supersededBy": "b"},
+    ]}]}
+    flagged = [p.path for p in honesty_problems(doc) if p.rule_id == "supersession-acyclic"]
+    assert flagged == ["cells[x/c/score].assertions[b].supersededBy",
+                       "cells[x/c/score].assertions[c].supersededBy"]

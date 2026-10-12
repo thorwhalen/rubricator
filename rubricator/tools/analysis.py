@@ -217,7 +217,7 @@ def measures_write(
         for c in contribution["cells"]
     }
 
-    added: list[str] = []
+    added: list[tuple[tuple[str, str, str], str]] = []
     for cell in cells:
         key = (cell["alternativeId"], cell["criterionId"], cell.get("measure", "score"))
         target = index.setdefault(
@@ -230,7 +230,7 @@ def measures_write(
                 f'refused, nothing was written: assertion id "{assertion_id}" is already used in '
                 f"cell {'/'.join(key)}. Omit assertionId to get a fresh one, or choose another."
             )
-        added.append(assertion_id)
+        added.append((key, assertion_id))
         target["assertions"].append(
             sign(
                 author,
@@ -426,7 +426,7 @@ def _refuse_dishonest(
     contributor_id: str,
     contribution: Mapping[str, Any],
     *,
-    added: Sequence[str],
+    added: Sequence[tuple[tuple[str, str, str], str]],
 ) -> None:
     """The write-time honesty hook (ADR-0024): refuse before the bytes land.
 
@@ -450,11 +450,13 @@ def _refuse_dishonest(
     merged = merge_contributions(
         store.frame(analysis_id), sorted([*others, (contributor_id, contribution)])
     )
-    own = {f"assertions[{contributor_id}:{a}]" for a in added}
+    # Matched by cell *and* id: a caller's ids need only be unique per cell, so
+    # an id alone would pull in another cell's stored problem.
+    own = {f"cells[{'/'.join(key)}].assertions[{contributor_id}:{a}]" for key, a in added}
     problems = [
         p
         for p in honesty_problems(merged)
-        if any(f"{o}." in p.path or p.path.endswith(o) for o in own)
+        if any(p.path == o or p.path.startswith(f"{o}.") for o in own)
     ]
     if problems:
         raise ValueError(
