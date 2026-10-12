@@ -25,7 +25,7 @@ from typing import Any, Mapping, Sequence
 from rubricator.contributors import sign
 from rubricator.interpret.resolution import Degradation, degradation_of
 from rubricator.schema.vocabulary import vocabulary
-from rubricator.store import AnalysisStore
+from rubricator.store import AnalysisNotFound, AnalysisStore
 
 __all__ = [
     "analysis_open",
@@ -69,6 +69,19 @@ DEFINITION_FIELDS: tuple[str, ...] = (
 DEFINITION_EXPECTED: tuple[str, ...] = DEFINITION_FIELDS
 
 
+def _live_frame(store: AnalysisStore, analysis_id: str) -> dict[str, Any] | None:
+    """The frame, or ``None`` when no live analysis has this id.
+
+    One read rather than ``exists()`` then ``frame()``: the retention window can
+    end between two calls, and a reopen that raced it must start afresh rather
+    than fail.
+    """
+    try:
+        return store.frame(analysis_id)
+    except AnalysisNotFound:
+        return None
+
+
 def analysis_open(
     store: AnalysisStore, *, analysis_id: str, question: str | None = None
 ) -> dict[str, Any]:
@@ -89,8 +102,8 @@ def analysis_open(
     store keeps an analysis for 30 days from its last write
     (:data:`rubricator.store.RETENTION_DAYS`), and export defeats that window.
     """
-    if store.exists(analysis_id):
-        frame = store.frame(analysis_id)
+    frame = _live_frame(store, analysis_id)
+    if frame is not None:
         n_alt, n_crit = len(frame.get("alternatives", [])), len(frame.get("criteria", []))
         return {
             "analysisId": analysis_id,

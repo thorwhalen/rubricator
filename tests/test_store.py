@@ -282,8 +282,8 @@ def test_a_contribution_dates_the_analysis_without_sharing_a_key(clock) -> None:
     written = set(blobs) - keys_before
     stamps = {k for k in written if "/touched/" in k}
     assert stamps == {
-        "analyses/a1/touched/contributions/ana.json",
-        "analyses/a1/touched/contributions/ben.json",
+        "analyses/a1/touched/contributions/ana.json/20260916T120000Z",
+        "analyses/a1/touched/contributions/ben.json/20260916T120000Z",
     }, "two contributors must never write the same key -- stamps included"
     clock.advance(days=25)
     assert store.exists("a1")
@@ -348,7 +348,7 @@ def test_a_nonsense_window_is_refused(bad) -> None:
 
 
 def test_the_surface_reports_expiry_as_the_typed_error(clock) -> None:
-    runtime = build_runtime(blobs={}, now=clock)
+    runtime = build_runtime(blobs={}, retention_clock=clock)
     verbs = bind(runtime)
     opened = verbs["analysis_open"](question="Which runtime?")
     clock.advance(days=RETENTION_DAYS)
@@ -374,3 +374,91 @@ def test_no_tool_module_reaches_below_the_store_facade() -> None:
                 assert not any(m.split(".")[0] == "dol" for m in modules), path.name
             if isinstance(node, ast.Attribute):
                 assert node.attr != "blobs", f"{path.name} reaches into the bytes store"
+
+
+# --- found by the adversarial review of #145 ---------------------------------
+
+
+def test_a_fixture_written_with_a_fixed_clock_is_not_deleted_on_read(tmp_path, capsys) -> None:
+    """The assertion clock is not the retention clock."""
+    from rubricator.cli import main
+    from rubricator.clock import fixed_clock
+
+    root = str(tmp_path / "store")
+    runtime = build_runtime(root=root, now=fixed_clock("2020-01-01T00:00:00Z"))
+    analysis_open(runtime.store, analysis_id="fixture", question="Which?")
+    assert main(["show", "fixture", "--root", root]) == 0
+    assert '"question": "Which?"' in capsys.readouterr().out
+
+
+def test_two_branches_editing_the_frame_leave_two_stamps_not_a_conflict(clock) -> None:
+    """What a clean git merge of two frame edits leaves behind: both stamps, old one gone."""
+    base: dict[str, bytes] = {}
+    store = _opened(clock, blobs=base)
+    ana, ben = dict(base), dict(base)
+    clock.advance(days=1)
+    alternatives_set(AnalysisStore(ana, now=clock), analysis_id="a1",
+                     alternatives=[{"id": "alpha", "label": "Alpha"}])
+    clock.advance(days=1)
+    criteria_set(AnalysisStore(ben, now=clock), analysis_id="a1", criteria=[{
+        "id": "support", "label": "Vendor support",
+        "anchors": {"1": "none", "3": "undated", "5": "dated"},
+    }])
+    old = {k for k in base if "/touched/" in k}
+    assert not old & set(ana) and not old & set(ben), "each branch deleted the old stamp"
+    added_ana = {k for k in ana if "/touched/" in k}
+    added_ben = {k for k in ben if "/touched/" in k}
+    assert added_ana.isdisjoint(added_ben), "different moments are different files"
+    merged = {**ana, **ben, "analyses/a1/frame.json": ben["analyses/a1/frame.json"]}
+    assert AnalysisStore(merged, now=clock).last_write("a1") == "2026-08-24T12:00:00Z"
+
+
+@pytest.mark.parametrize("stray", ["frame.json/20260822T120000Z.orig", "frame.json.orig", "x"])
+def test_a_stray_file_under_touched_is_ignored(clock, stray) -> None:
+    blobs: dict[str, bytes] = {}
+    store = _opened(clock, blobs=blobs)
+    blobs[f"analyses/a1/touched/{stray}"] = b"<<<<<<< HEAD\n"
+    assert store.analyses() == ["a1"] and store.sweep() == []
+    assert report_completeness(store, analysis_id="a1")["analysisId"] == "a1"
+
+
+def test_the_typed_error_survives_pickling() -> None:
+    import pickle
+
+    error = pickle.loads(pickle.dumps(AnalysisNotFound("a1", retention_days=7)))
+    assert isinstance(error, AnalysisNotFound) and "kept for 7 days" in str(error)
+
+
+def test_a_window_too_long_to_express_is_refused() -> None:
+    with pytest.raises(ValueError, match="export"):
+        AnalysisStore({}, retention_days=10**9)
+
+
+def test_contributors_of_an_expired_analysis_is_the_typed_error(clock) -> None:
+    store = _opened(clock)
+    clock.advance(days=RETENTION_DAYS)
+    with pytest.raises(AnalysisNotFound):
+        store.contributors("a1")
+
+
+def test_a_reopen_reads_once_so_it_cannot_race_the_window(monkeypatch, clock) -> None:
+    """analysis_open asks for the frame once: no exists()-then-frame() window to fall into."""
+    store = _opened(clock)
+    monkeypatch.setattr(AnalysisStore, "exists", lambda self, a: pytest.fail("exists() called"))
+    clock.advance(days=RETENTION_DAYS)
+    assert analysis_open(store, analysis_id="a1", question="again")["created"] is True
+
+
+def test_the_cli_reports_a_missing_analysis_as_a_message(data_root, capsys) -> None:
+    from rubricator.cli import main
+
+    assert main(["show", "nope"]) == 1
+    err = capsys.readouterr().err
+    assert err.startswith("rubricator: no analysis \"nope\"") and "Traceback" not in err
+
+
+def test_a_symlink_into_the_package_is_refused(tmp_path) -> None:
+    link = tmp_path / "innocent"
+    link.symlink_to(PACKAGE_DIR, target_is_directory=True)
+    with pytest.raises(ValueError, match="inside the rubricator package directory"):
+        file_store(link / "data")

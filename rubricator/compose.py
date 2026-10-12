@@ -70,6 +70,7 @@ def build_runtime(
     new_id: IdMinter = random_id,
     schema: SchemaSource | None = None,
     retention_days: int = RETENTION_DAYS,
+    retention_clock: Clock = system_clock,
 ) -> Runtime:
     """Wire a runtime.
 
@@ -82,8 +83,11 @@ def build_runtime(
     anything else a ``dol`` decorator produces gets in without a call site
     changing.
 
-    ``retention_days`` is ADR-0017's window, from last write; the store enforces
-    it with the same ``now`` the verbs stamp with.
+    ``retention_days`` is ADR-0017's window, from last write, and
+    ``retention_clock`` is what dates writes and decides expiry. It is the wall
+    clock, separately from ``now``: ``now`` is what the verbs record in the
+    document, and a fixture pinned to a fixed moment for reproducibility must not
+    be read as written that long ago -- and deleted.
 
     ``new_id`` mints an ``analysis_id`` when a caller opens an analysis without
     one (ADR-0017's opaque handle); a test passes
@@ -102,7 +106,7 @@ def build_runtime(
         blobs = file_store(root) if root else working_store()
     if schema is None:
         schema = _published_schema()
-    store = AnalysisStore(blobs=blobs, now=now, retention_days=retention_days)
+    store = AnalysisStore(blobs=blobs, now=retention_clock, retention_days=retention_days)
     return Runtime(store=store, now=now, schema=schema, new_id=new_id)
 
 

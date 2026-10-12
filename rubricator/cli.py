@@ -21,10 +21,9 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from dataclasses import replace
 from typing import Sequence
 
-from rubricator.clock import fixed_clock, system_clock
+from rubricator.clock import fixed_clock
 from rubricator.compose import build_runtime
 from rubricator.contributors import human, persona
 from rubricator.tools.analysis import (
@@ -52,14 +51,14 @@ def demo(root: str | None = None) -> int:
     ``silenceRate``, and a completeness report. Every seam is on its default,
     except two: with no ``root`` nothing is kept, so a demo never lands in the
     user's working store; and the moment the assertions record is fixed, so the
-    output is reproducible -- while the store still dates its writes by the real
-    clock, so a demo written to a directory is not already past its retention
-    window when ``show`` reads it.
+    output is reproducible. The store still dates its writes by the wall clock
+    (``retention_clock``), so a demo written to a directory is not already past
+    its retention window when ``show`` reads it.
     """
     runtime = build_runtime(
         root=root, blobs=None if root else {}, now=fixed_clock(_DEMO_MOMENT)
     )
-    store = replace(runtime.store, now=system_clock)
+    store = runtime.store
     at = runtime.now()
     analysis_id = "demo"
 
@@ -187,6 +186,19 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "demo":
         return demo(args.root)
+    try:
+        return _read_command(args)
+    except (KeyError, ValueError) as refusal:
+        # A refusal is a message for the person at the terminal, not a traceback:
+        # the same text the connector returns as a tool error (ADR-0026).
+        # A bare KeyError's str() is the repr of its message; its argument is the text.
+        plain = type(refusal) is KeyError and refusal.args
+        message = str(refusal.args[0]) if plain else str(refusal)
+        sys.stderr.write(f"rubricator: {message}\n")
+        return 1
+
+
+def _read_command(args: argparse.Namespace) -> int:
     runtime = build_runtime(root=args.root)
     if args.command == "show":
         return _show(runtime.store, args.analysis_id)

@@ -48,13 +48,23 @@ analysis raises :class:`AnalysisNotFound`, the same error an id that never
 existed raises: the id is opaque and unguessable, so there is nothing to learn
 from the difference and nothing to leak by refusing to tell.
 
-The last write is recorded, not inferred from the backend. Each written key gets
-a stamp at ``analyses/{analysis_id}/touched/<the rest of that key>``, so the
-stamps are exactly as disjoint as the keys they date: two contributors still
-never write the same key, and a shared git repository still merges without a
-conflict. A file modification time would have been free and wrong -- a fresh
-clone dates everything to the clone. An analysis written before stamps existed
-has no date, and is kept: the window errs toward losing nothing.
+The last write is recorded, not inferred from the backend. Writing a key adds a
+stamp whose *name* is the moment --
+``analyses/{analysis_id}/touched/<the rest of that key>/20260822T120000Z`` -- and
+removes that key's older stamps. Named rather than filled, so that two people
+editing the frame on two branches each delete the old stamp and add a *different*
+file, which git merges cleanly; a stamp with the moment as content would conflict
+on every such merge, including ones where the frame itself merged without one.
+The latest parseable stamp wins, and a file under ``touched/`` that does not
+parse -- a merge's ``.orig``, a stray -- is ignored rather than allowed to make
+the analysis unreadable. A file modification time would have been free and wrong:
+a fresh clone dates everything to the clone. An analysis written before stamps
+existed has no date, and is kept: the window errs toward losing nothing.
+
+The retention clock is the wall clock, and is not the clock the verbs record in
+the document. A fixture written with :func:`rubricator.clock.fixed_clock` so its
+assertions are reproducible is still dated by when it was written, and is not
+deleted the first time it is read.
 
 ## What is deliberately not here
 
@@ -147,11 +157,8 @@ def data_dir() -> Path:
     at import, so a bad variable fails the call that needs the directory rather
     than every import of the package.
 
-    >>> import os
-    >>> os.environ[DATA_DIR_ENV] = "/srv/rubricator-data"
-    >>> str(data_dir()), str(working_dir())
-    ('/srv/rubricator-data', '/srv/rubricator-data/working')
-    >>> del os.environ[DATA_DIR_ENV]
+    >>> working_dir() == data_dir() / "working"
+    True
     """
     override = os.environ.get(DATA_DIR_ENV)
     if override:
@@ -176,7 +183,15 @@ def _package_dir() -> Path:
 def _refuse_inside_package(root: str | os.PathLike[str]) -> Path:
     resolved = Path(root).expanduser().resolve()
     package = _package_dir()
-    if resolved == package or package in resolved.parents:
+
+    # samefile, not path equality: on a case-insensitive filesystem (a Mac's)
+    # ".../RUBRICATOR/data" is inside the package and does not compare equal to it.
+    def _is_package(candidate: Path) -> bool:
+        return candidate == package or (
+            candidate.exists() and package.exists() and os.path.samefile(candidate, package)
+        )
+
+    if any(_is_package(c) for c in (resolved, *resolved.parents)):
         raise ValueError(
             f"refused: {str(resolved)!r} is inside the rubricator package directory. Data in a "
             "code directory is deleted by the next install or deploy. Use the default "
@@ -233,6 +248,9 @@ class AnalysisNotFound(KeyError):
         self.analysis_id = analysis_id
         self.retention_days = retention_days
 
+    def __reduce__(self) -> tuple[Any, ...]:
+        return (_not_found, (self.analysis_id, self.retention_days))
+
     def __str__(self) -> str:
         return (
             f'no analysis "{self.analysis_id}" in this store. Analyses are kept for '
@@ -241,6 +259,27 @@ class AnalysisNotFound(KeyError):
             "analysis_open, or list the analyses this store holds. If you expected it to be "
             "here, the store may be rooted somewhere else than the one that wrote it."
         )
+
+
+def _not_found(analysis_id: str, retention_days: int) -> AnalysisNotFound:
+    return AnalysisNotFound(analysis_id, retention_days=retention_days)
+
+
+#: How a stamp's moment is spelled in its key: compact, sortable, and free of
+#: ":" so it is a legal file name on every platform.
+_STAMP_FORMAT = "%Y%m%dT%H%M%SZ"
+
+
+def _stamp_name(moment: str) -> str:
+    return _instant(moment).astimezone(timezone.utc).strftime(_STAMP_FORMAT)
+
+
+def _stamp_moment(name: str) -> datetime | None:
+    """The moment a stamp's name spells, or ``None`` for anything else."""
+    try:
+        return datetime.strptime(name, _STAMP_FORMAT).replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
 
 
 def _instant(stamp: str) -> datetime:
@@ -259,7 +298,8 @@ class AnalysisStore:
 
     ``now`` and ``retention_days`` are the retention contract (ADR-0017): the
     clock dates every write and decides what has expired, so a test can move
-    time without waiting for it.
+    time without waiting for it. It is the wall clock by default and is
+    deliberately not the clock the verbs stamp assertions with (see "Retention").
 
     >>> from rubricator.clock import fixed_clock
     >>> blobs = {}
@@ -283,6 +323,13 @@ class AnalysisStore:
                 f"refused: retention_days={self.retention_days!r}. The retention window is a "
                 "whole number of days, at least 1."
             )
+        try:
+            timedelta(days=self.retention_days)
+        except OverflowError:
+            raise ValueError(
+                f"refused: retention_days={self.retention_days!r} is longer than a date can "
+                "express. To keep analyses indefinitely, export them."
+            ) from None
 
     # -- keys ---------------------------------------------------------------
     #
@@ -302,18 +349,23 @@ class AnalysisStore:
         return f"analyses/{analysis_id}/renditions/{rendition_id}.json"
 
     @staticmethod
-    def stamp_key(key: str) -> str:
-        """Where the last write of ``key`` is dated: one stamp per written key."""
+    def stamp_prefix(key: str) -> str:
+        """The directory holding the stamps that date ``key``'s last write."""
         _, analysis_id, rest = key.split("/", 2)
-        return f"analyses/{analysis_id}/touched/{rest}"
+        return f"analyses/{analysis_id}/touched/{rest}/"
 
     # -- retention ----------------------------------------------------------
 
     def last_write(self, analysis_id: str) -> str | None:
         """The latest write to any part of the analysis, or ``None`` if undated."""
         prefix = f"analyses/{analysis_id}/touched/"
-        stamps = [self._read(k)["at"] for k in self.blobs if k.startswith(prefix)]
-        return max(stamps, key=_instant) if stamps else None
+        moments = [
+            m for k in self.blobs
+            if k.startswith(prefix) and (m := _stamp_moment(k.rsplit("/", 1)[-1])) is not None
+        ]
+        if not moments:
+            return None
+        return max(moments).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     def expired(self, analysis_id: str) -> bool:
         """Whether the window has run out since the last write. Undated is never expired."""
@@ -377,6 +429,10 @@ class AnalysisStore:
 
     def contributors(self, analysis_id: str) -> list[str]:
         """Contributor ids with a file, sorted -- so a merge is reproducible."""
+        self._require(analysis_id)
+        return self._contributor_ids(analysis_id)
+
+    def _contributor_ids(self, analysis_id: str) -> list[str]:
         prefix = f"analyses/{analysis_id}/contributions/"
         return sorted(
             k[len(prefix):].removesuffix(".json") for k in self.blobs if k.startswith(prefix)
@@ -391,7 +447,7 @@ class AnalysisStore:
         stored analysis diffable.
         """
         self._require(analysis_id)
-        for contributor_id in self.contributors(analysis_id):
+        for contributor_id in self._contributor_ids(analysis_id):
             yield contributor_id, self._read(self.contribution_key(analysis_id, contributor_id))
 
     def renditions(self, analysis_id: str) -> list[dict[str, Any]]:
@@ -467,4 +523,8 @@ class AnalysisStore:
         # up as a whole-file change and buries the one line that moved.
         payload = json.dumps(document, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
         self.blobs[key] = payload.encode(_ENCODING)
-        self.blobs[self.stamp_key(key)] = (json.dumps({"at": self.now()}) + "\n").encode(_ENCODING)
+        prefix = self.stamp_prefix(key)
+        stamp = prefix + _stamp_name(self.now())
+        self.blobs[stamp] = b""
+        for old in [k for k in self.blobs if k.startswith(prefix) and k != stamp]:
+            del self.blobs[old]
