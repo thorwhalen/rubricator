@@ -217,17 +217,25 @@ def measures_write(
         for c in contribution["cells"]
     }
 
+    added: list[str] = []
     for cell in cells:
         key = (cell["alternativeId"], cell["criterionId"], cell.get("measure", "score"))
         target = index.setdefault(
             key,
             {"alternativeId": key[0], "criterionId": key[1], "measure": key[2], "assertions": []},
         )
+        assertion_id = cell.get("assertionId") or _fresh_id(target, key)
+        if any(a["id"] == assertion_id for a in target["assertions"]):
+            raise ValueError(
+                f'refused, nothing was written: assertion id "{assertion_id}" is already used in '
+                f"cell {'/'.join(key)}. Omit assertionId to get a fresh one, or choose another."
+            )
+        added.append(assertion_id)
         target["assertions"].append(
             sign(
                 author,
                 at=at,
-                assertion_id=cell.get("assertionId") or _fresh_id(target, key),
+                assertion_id=assertion_id,
                 value=cell.get("value"),
                 missing=cell.get("missing"),
                 justification=cell.get("justification"),
@@ -238,7 +246,7 @@ def measures_write(
         )
 
     contribution["cells"] = [index[k] for k in sorted(index)]
-    _refuse_dishonest(store, analysis_id, contributor_id, contribution)
+    _refuse_dishonest(store, analysis_id, contributor_id, contribution, added=added)
     store.put_contribution(analysis_id, contributor_id, contribution)
     return {"analysisId": analysis_id, "contributorId": contributor_id, "written": len(cells)}
 
@@ -254,6 +262,7 @@ def measures_mark_missing(
     note: str,
     criterion_ids: Sequence[str] = (),
     alternative_ids: Sequence[str] = (),
+    independence: str | None = None,
 ) -> dict[str, Any]:
     """Mark a selection of cells as a qualified blank.
 
@@ -265,6 +274,9 @@ def measures_mark_missing(
     This is what makes "fill these two criteria and mark the rest deferred" a
     first-class instruction rather than a prompt hope, and it is what makes a
     partial analysis a valid, resumable document rather than a broken one.
+
+    ``independence`` is needed when a marked cell already holds another live
+    assertion (``independence-recorded``); a blank beside a score is two claims.
     """
     frame = store.frame(analysis_id)
     declarations = list(frame.get("missingCodes", []))
@@ -287,6 +299,7 @@ def measures_mark_missing(
             "measure": "score",
             "missing": {"code": code, "note": note},
             "justification": note,
+            **({"independence": independence} if independence else {}),
         }
         for alt in alternatives
         for crit in criteria
@@ -320,6 +333,7 @@ def report_completeness(store: AnalysisStore, *, analysis_id: str) -> dict[str, 
     reader's gap look like a property of the data.
     """
     from rubricator.merge import merge_contributions
+    from rubricator.rules import honesty_problems
 
     frame = store.frame(analysis_id)
     merged = merge_contributions(
@@ -379,6 +393,13 @@ def report_completeness(store: AnalysisStore, *, analysis_id: str) -> dict[str, 
             {"axis": d.axis, "id": d.id, "at": d.at, "because": d.because, "broader": d.broader}
             for d in degradations
         ],
+        # Not completeness: the honesty problems the write-time hook could not
+        # refuse (they sit on assertions already stored). Reported here so they
+        # are seen; #61's analysis_validate is where they reject.
+        "honestyProblems": [
+            {"path": p.path, "message": p.message, "fix": p.fix, "ruleId": p.rule_id}
+            for p in honesty_problems(merged)
+        ],
     }
 
 
@@ -404,17 +425,23 @@ def _refuse_dishonest(
     analysis_id: str,
     contributor_id: str,
     contribution: Mapping[str, Any],
+    *,
+    added: Sequence[str],
 ) -> None:
     """The write-time honesty hook (ADR-0024): refuse before the bytes land.
 
     Checks the document as it **would be merged** with this contribution in
     place, because the rules are cross-contributor: two people each scoring a
     cell once is fine on its own and dishonest together if neither recorded
-    independence. A problem caused only by other contributors' assertions does
-    not block this write -- this caller cannot fix those, and refusing would
-    let one silent contributor freeze everyone else's work. It is still
-    reported by :func:`rubricator.rules.honesty_problems` over the merged
-    document, which names whose assertion needs the field.
+    independence.
+
+    **Refuses only for the assertions this call adds**, the ones the caller can
+    still change. A problem on an assertion already stored -- this contributor's
+    or anyone's -- does not block: nothing can amend a stored assertion in place,
+    so refusing would lock that contributor (or everyone) out of the whole
+    analysis over one cell. `comparanda` counts by difference for the same
+    reason. Those problems stay visible: :func:`report_completeness` returns
+    them as ``honestyProblems`` over the merged document.
     """
     from rubricator.merge import merge_contributions
     from rubricator.rules import honesty_problems
@@ -423,12 +450,12 @@ def _refuse_dishonest(
     merged = merge_contributions(
         store.frame(analysis_id), sorted([*others, (contributor_id, contribution)])
     )
-    own = {
-        f"assertions[{contributor_id}:{a['id']}]"
-        for cell in contribution["cells"]
-        for a in cell["assertions"]
-    }
-    problems = [p for p in honesty_problems(merged) if any(o in p.path for o in own)]
+    own = {f"assertions[{contributor_id}:{a}]" for a in added}
+    problems = [
+        p
+        for p in honesty_problems(merged)
+        if any(f"{o}." in p.path or p.path.endswith(o) for o in own)
+    ]
     if problems:
         raise ValueError(
             "refused, nothing was written: "

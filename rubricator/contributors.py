@@ -233,6 +233,20 @@ def _check_rung(independence: str | None, perturbation: Mapping[str, Any] | None
             f'unknown independence rung "{independence}". Known: {", ".join(ladder)}. '
             "ADR-0018's older spelling maps in-session to shared-context."
         )
+    if perturbation is not None:
+        extra = set(perturbation) - {"kind", "seed", "detail"}
+        seed = perturbation.get("seed")
+        if (
+            extra
+            or not isinstance(perturbation.get("kind"), str)
+            or (seed is not None and not isinstance(seed, (str, int, float)))
+            or not isinstance(perturbation.get("detail", ""), str)
+        ):
+            raise ValueError(
+                "a perturbation record is {kind: str, seed?: str | number, detail?: str}"
+                + (f"; unexpected keys: {', '.join(sorted(extra))}" if extra else "")
+                + ". Summarise anything else into detail."
+            )
     if independence == "perturbed" and not (perturbation and perturbation.get("kind")):
         raise ValueError(
             'independence="perturbed" needs a perturbation record with at least a "kind" '

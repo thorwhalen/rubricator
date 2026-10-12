@@ -41,6 +41,8 @@ __all__ = [
     "HONESTY_RULES",
     "honesty_problems",
     "independence_recorded",
+    "unique_ids",
+    "supersession_resolves",
     "live_assertions",
 ]
 
@@ -115,8 +117,67 @@ def independence_recorded(document: Mapping[str, Any]) -> Iterable[Problem]:
             )
 
 
+def unique_ids(document: Mapping[str, Any]) -> Iterable[Problem]:
+    """No two assertions in one cell share an id (`comparanda`'s ``unique-ids``).
+
+    A duplicate makes every ``supersededBy`` naming that id ambiguous.
+    """
+    for cell in document.get("cells", []):
+        seen: set[str] = set()
+        for assertion in cell.get("assertions", []):
+            if assertion["id"] in seen:
+                yield Problem(
+                    path=f"{_cell_path(cell)}.assertions[{assertion['id']}]",
+                    message=f'duplicate assertion id "{assertion["id"]}" in this cell.',
+                    fix="give one of them a different id.",
+                    rule_id="unique-ids",
+                )
+            seen.add(assertion["id"])
+
+
+def supersession_resolves(document: Mapping[str, Any]) -> Iterable[Problem]:
+    """``supersededBy`` names another assertion in the same cell, without a cycle.
+
+    Mirrors `comparanda`'s ``supersession-resolves`` and ``supersession-acyclic``.
+    Unchecked, a reference to nothing switches an assertion off -- it stops being
+    live -- and so exempts its cell from ``independence-recorded``: the escape
+    `comparanda` closed in its #165.
+    """
+    for cell in document.get("cells", []):
+        by_id = {a["id"]: a for a in cell.get("assertions", [])}
+        for assertion in cell.get("assertions", []):
+            target = assertion.get("supersededBy")
+            if not target:
+                continue
+            path = f"{_cell_path(cell)}.assertions[{assertion['id']}].supersededBy"
+            if target == assertion["id"] or target not in by_id:
+                yield Problem(
+                    path=path,
+                    message=(
+                        f'assertion "{assertion["id"]}" is superseded by "{target}", which is '
+                        + ("itself." if target == assertion["id"] else "not an assertion in this cell.")
+                        + " It no longer counts as live, and nothing replaced it."
+                    ),
+                    fix="name the assertion in this cell that replaced it, or remove supersededBy.",
+                    rule_id="supersession-resolves",
+                )
+                continue
+            seen = {assertion["id"]}
+            nxt = target
+            while nxt in by_id and nxt not in seen:
+                seen.add(nxt)
+                nxt = by_id[nxt].get("supersededBy")
+            if nxt in seen:
+                yield Problem(
+                    path=path,
+                    message=f'assertion "{assertion["id"]}" is on a supersession cycle, so no assertion in it is live.',
+                    fix="break the cycle: the latest assertion carries no supersededBy.",
+                    rule_id="supersession-acyclic",
+                )
+
+
 #: The honesty rules, in the order their problems are reported.
-HONESTY_RULES: Sequence[Rule] = (independence_recorded,)
+HONESTY_RULES: Sequence[Rule] = (unique_ids, supersession_resolves, independence_recorded)
 
 
 def honesty_problems(
