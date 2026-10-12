@@ -93,7 +93,7 @@ import hashlib
 import json
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterator, Mapping, MutableMapping
@@ -331,10 +331,18 @@ def _writable_back_out(document: Any) -> None:
             if isinstance(child, (dict, list))
         ]
     try:
-        json.dumps(document, allow_nan=False)
+        text = json.dumps(document, allow_nan=False, ensure_ascii=False)
     except ValueError:
         raise ValueError(
             "holds NaN or an infinite number, which JSON cannot carry; repair or remove the file"
+        ) from None
+    try:
+        text.encode(_ENCODING)
+    except UnicodeEncodeError as error:
+        raise ValueError(
+            f"holds text that cannot be written as {_ENCODING} ({error.reason} at character "
+            f"{error.start}, typically a lone surrogate escape such as \\ud800); repair or "
+            "remove the file"
         ) from None
 
 
@@ -394,6 +402,13 @@ class AnalysisStore:
     #: comparanda v1, so a tolerant read never serves a document the published
     #: schema refuses (#159).
     contract: Any = None
+    # Each file's contract verdict, by the sha256 of its bytes: a file that has
+    # not changed is not validated again, so a read costs a validation only for
+    # what changed since the last one (#159). Bounded by the number of distinct
+    # file versions this process has seen, and never stored.
+    _verdicts: dict[str, str | None] = field(
+        default_factory=dict, init=False, repr=False, compare=False
+    )
 
     def __post_init__(self) -> None:
         if (
@@ -622,17 +637,27 @@ class AnalysisStore:
         contributions, skipped = self.mergeable_contributions(analysis_id, frame=frame)
         prefix = f"analyses/{analysis_id}/renditions/"
 
-        def rendition_trial(document: dict[str, Any]) -> None:
+        def rendition_trial(key: str, document: dict[str, Any]) -> None:
             merge_contributions(frame, [], renditions=[document])
             self._refuse_off_contract(
-                [(document, "/properties/renditions/items", "$")], "rendition"
+                key, [(document, "/properties/renditions/items", "$")], "rendition"
             )
 
         kept = {
             key: r
             for key in sorted(k for k in self.blobs if k.startswith(prefix))
-            if (r := self._mergeable(key, rendition_trial, skipped)) is not None
+            if (r := self._mergeable(key, lambda d, k=key: rendition_trial(k, d), skipped))
+            is not None
         }
+        # A rendition the frame already holds is shadowed by it (#159): named,
+        # never silently dropped.
+        in_frame = {r["id"] for r in frame.get("renditions", [])}
+        for key in [k for k, r in kept.items() if r["id"] in in_frame]:
+            skipped.append({
+                "file": key,
+                "because": f'the frame already holds a rendition "{kept.pop(key)["id"]}", which '
+                "is the one read; rename this file's id, or remove it if it is a copy.",
+            })
         by_id: dict[str, list[str]] = {}
         for key, r in kept.items():
             by_id.setdefault(r["id"], []).append(key)
@@ -648,6 +673,7 @@ class AnalysisStore:
             for key in sorted(clashing)
         ]
         renditions = [r for key, r in kept.items() if key not in clashing]
+        skipped.sort(key=lambda s: s["file"])
         merged = merge_contributions(
             frame, contributions, renditions=renditions,
             contributors=self._contributor_ids(analysis_id),
@@ -669,6 +695,14 @@ class AnalysisStore:
 
         frame = self.frame(analysis_id) if frame is None else frame
         merge_contributions(frame, [])
+        try:
+            _writable_back_out(frame)
+        except ValueError as error:
+            from rubricator.merge import MergeProblem
+
+            raise MergeProblem(
+                f"the frame {error}. Every read of this analysis needs it."
+            ) from None
         roster = self._contributor_ids(analysis_id)
         skipped: list[dict[str, str]] = []
         contributions = []
@@ -680,10 +714,9 @@ class AnalysisStore:
             # checked is what this file adds, so a frame problem is never blamed
             # on a contribution, and a read costs no full-document validation.
             self._refuse_off_contract(
-                [(a, "/properties/authors/items", f"$.authors[{i}]")
-                 for i, a in enumerate(document.get("authors", []))]
-                + [(c, "/properties/cells/items", f"$.cells[{i}]")
-                   for i, c in enumerate(document.get("cells", []))],
+                self.contribution_key(analysis_id, contributor_id),
+                [(document.get("authors", []), "/properties/authors", "$.authors"),
+                 (document.get("cells", []), "/properties/cells", "$.cells")],
                 "contribution",
             )
 
@@ -720,26 +753,35 @@ class AnalysisStore:
         return document
 
     def _refuse_off_contract(
-        self, fragments: list[tuple[Any, str, str]], what: str
+        self, key: str, fragments: list[tuple[Any, str, str]], what: str
     ) -> None:
-        """Raise :class:`OffContract` if any ``(value, schema pointer, root)`` breaks the contract."""
+        """Raise :class:`OffContract` if any ``(value, schema pointer, root)`` breaks the contract.
+
+        The verdict is remembered by the sha256 of the bytes at ``key``, so an
+        unchanged file is validated once per process, not once per read.
+        """
         if self.contract is None:
             from rubricator.schema.source import SchemaSource
 
             contract = SchemaSource.vendored()
         else:
             contract = self.contract
-        lines = [
-            line
-            for value, pointer, root in fragments
-            for line in contract.refusals(value, pointer=pointer, root=root)
-        ]
-        if lines:
-            raise OffContract(
+        digest = f"{id(contract)}:{hashlib.sha256(self.blobs[key]).hexdigest()}"
+        if digest not in self._verdicts:
+            lines = [
+                line
+                for value, pointer, root in fragments
+                for line in contract.refusals(value, pointer=pointer, root=root)
+            ]
+            self._verdicts[digest] = (
                 f"this {what} merges, but breaks the {contract.origin} comparanda schema: "
                 + "; ".join(lines)
                 + ". Repair or remove the file."
+                if lines
+                else None
             )
+        if self._verdicts[digest] is not None:
+            raise OffContract(self._verdicts[digest])
 
     # -- writing ------------------------------------------------------------
 

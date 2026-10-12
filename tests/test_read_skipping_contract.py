@@ -131,3 +131,58 @@ def test_a_frame_cell_with_no_alternative_is_the_frame_s_problem(runtime) -> Non
     _edit_frame(runtime, lambda f: f["cells"].append({"criterionId": "speed", "measure": "score"}))
     with pytest.raises(MergeProblem, match="the frame"):
         bind(runtime)["analysis_open"](analysis_id="a1")
+
+
+# -- review findings of #165 ---------------------------------------------------
+
+
+def test_a_lone_surrogate_is_left_out(runtime) -> None:
+    """Finding 3: ``\\ud800`` parses, then no UTF-8 writer can emit it."""
+    runtime.store.blobs[STRAY] = _zed().replace(b'"value": 3', b'"value": 3, "justification": "\\ud800"')
+    document, skipped = runtime.store.read_skipping("a1")
+    assert [s["file"] for s in skipped] == [STRAY]
+    json.dumps(document, ensure_ascii=False).encode("utf-8")
+
+
+def test_a_frame_rendition_with_no_id_is_the_frame_s_problem(runtime) -> None:
+    """Finding 5: a bare KeyError on every read and every write."""
+    _edit_frame(runtime, lambda f: f.setdefault("renditions", []).append({"label": "?"}))
+    with pytest.raises(MergeProblem, match="the frame"):
+        runtime.store.read_skipping("a1")
+
+
+def test_a_frame_holding_nan_is_the_frame_s_problem(runtime) -> None:
+    """Finding 7: a frame v1 accepts can still not be written back out."""
+    key = runtime.store.frame_key("a1")
+    runtime.store.blobs[key] = runtime.store.blobs[key].replace(b'"criteria"', b'"x": NaN, "criteria"', 1)
+    with pytest.raises(MergeProblem, match="the frame holds NaN"):
+        runtime.store.read_skipping("a1")
+
+
+def test_a_rendition_the_frame_already_holds_is_named(runtime) -> None:
+    """Finding 6: it used to be dropped silently."""
+    _edit_frame(runtime, lambda f: f.setdefault("renditions", []).append(json.loads(_rendition("r1"))))
+    runtime.store.blobs["analyses/a1/renditions/copy.json"] = _rendition("r1")
+    document, skipped = runtime.store.read_skipping("a1")
+    assert [s["file"] for s in skipped] == ["analyses/a1/renditions/copy.json"]
+    assert len(document["renditions"]) == 1
+
+
+def test_a_changed_file_is_judged_again(runtime) -> None:
+    """Verdicts are remembered by the file's bytes, never by its name."""
+    runtime.store.blobs[STRAY] = _zed()
+    assert runtime.store.read_skipping("a1")[1] == []
+    runtime.store.blobs[STRAY] = _zed(at=5)
+    assert [s["file"] for s in runtime.store.read_skipping("a1")[1]] == [STRAY]
+
+
+def test_the_runtime_s_contract_is_the_store_s(runtime) -> None:
+    """Finding 2: one contract, and a fragment's ``$ref`` resolves against its schema."""
+    from rubricator.schema.source import SchemaSource
+
+    assert runtime.store.contract is runtime.schema
+    sketched = build_runtime(blobs=dict(runtime.store.blobs), now=fixed_clock(MOMENT),
+                             schema=SchemaSource.sketch())
+    sketched.store.blobs[STRAY] = _zed()
+    _, skipped = sketched.store.read_skipping("a1")
+    assert all("PointerToNowhere" not in s["because"] for s in skipped)

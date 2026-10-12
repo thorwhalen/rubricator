@@ -197,7 +197,15 @@ def _index_frame(
             f"the frame is not shaped like one this build can merge ({type(error).__name__}: "
             f"{error}). Every read of this analysis needs it, so repair the frame file."
         ) from None
-    ids = [*authors, *(v for key in cells for v in key)]
+    try:
+        renditions = [r["id"] for r in frame.get("renditions", [])]
+    except (AttributeError, KeyError, TypeError) as error:
+        raise MergeProblem(
+            f"the frame's renditions are not shaped like ones this build can merge "
+            f"({type(error).__name__}: {error}). Every read of this analysis needs the frame, so "
+            "repair the frame file."
+        ) from None
+    ids = [*authors, *(v for key in cells for v in key), *renditions]
     if not all(isinstance(v, str) for v in ids):
         raise MergeProblem(
             f"the frame gives ids as {[v for v in ids if not isinstance(v, str)]!r}; every id is "

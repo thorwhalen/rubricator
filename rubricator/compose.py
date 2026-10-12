@@ -101,7 +101,11 @@ def build_runtime(
         blobs = file_store(root) if root else working_store()
     if schema is None:
         schema = _published_schema()
-    store = AnalysisStore(blobs=blobs, now=retention_clock, retention_days=retention_days)
+    # One contract: what the tools validate against is what a tolerant read
+    # holds each file to.
+    store = AnalysisStore(
+        blobs=blobs, now=retention_clock, retention_days=retention_days, contract=schema
+    )
     return Runtime(store=store, now=now, schema=schema, new_id=new_id)
 
 
