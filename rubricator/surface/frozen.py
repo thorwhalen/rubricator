@@ -801,12 +801,15 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
                 "supersededCells": SUPERSEDED,
                 "honestyProblems": arr(obj({"path": S, "message": S, "fix": S, "ruleId": S},
                                            ("path", "message", "fix", "ruleId"))),
+                "schemaProblems": arr(obj({"path": S, "message": S, "fix": S, "ruleId": S},
+                                          ("path", "message", "fix", "ruleId"))),
                 "skipped": arr(SKIPPED),
                 "summary": S,
             },
             ("analysisId", "total", "structural", "applicable", "present", "settledAbsent",
              "informativeAbsent", "outstanding", "examinedRate", "valuedRate", "silenceRate",
-             "degradations", "supersededCells", "honestyProblems", "skipped", "summary"),
+             "degradations", "supersededCells", "honestyProblems", "schemaProblems", "skipped",
+             "summary"),
         ),
         notes=("Not in the research's 19: added when the completeness report was built, "
                "and kept because analysis_get's outstanding view returns cells where this "

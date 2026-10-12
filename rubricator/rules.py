@@ -305,8 +305,9 @@ def no_redeclaring_core(document: Mapping[str, Any]) -> Iterable[Problem]:
 def unique_declarations(document: Mapping[str, Any]) -> Iterable[Problem]:
     """No id is declared twice in one list (`comparanda`'s ``unique-declarations``).
 
-    The later one would win silently, and which one a reader took would depend
-    on the reader.
+    Which one applies would then depend on the reader: this package's own
+    counts take the first (``declarations_for``), and nothing says another
+    reader does.
     """
     for decls, _kind, _core, field in _declaration_lists(document):
         seen: set[Any] = set()
@@ -314,7 +315,10 @@ def unique_declarations(document: Mapping[str, Any]) -> Iterable[Problem]:
             if d.get("id") in seen:
                 yield Problem(
                     path=f"{field}[{i}]",
-                    message=f'"{d.get("id")}" is declared more than once; the later one would win silently.',
+                    message=(
+                        f'"{d.get("id")}" is declared more than once, so which declaration '
+                        "applies depends on the reader (this package's counts take the first)."
+                    ),
                     fix="remove the duplicate, or give it a different id.",
                     rule_id="unique-declarations",
                     family="schema",
