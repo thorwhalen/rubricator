@@ -747,10 +747,11 @@ def report_completeness(store: AnalysisStore, *, analysis_id: str) -> dict[str, 
     reader's gap look like a property of the data.
     """
     from rubricator.criteria_versions import superseded_cells
-    from rubricator.rules import honesty_problems
+    from rubricator.rules import honesty_problems, schema_problems
     from rubricator.tools.views import skipped_note
 
     merged, skipped = store.read_skipping(analysis_id)
+    declarations = schema_problems(merged)
     vocab = vocabulary()
 
     total = present = structural = settled = informative = outstanding = 0
@@ -815,11 +816,23 @@ def report_completeness(store: AnalysisStore, *, analysis_id: str) -> dict[str, 
             {"path": p.path, "message": p.message, "fix": p.fix, "ruleId": p.rule_id}
             for p in honesty_problems(merged)
         ],
+        # The schema family's declaration rules (#161): a missing-code declaration
+        # the companion refuses -- redeclaring a core code, claiming structural
+        # absence under another parent, one id declared twice. criteria_set
+        # refuses them at authoring; this is where they are seen when they reach
+        # the document another way -- an analysis-level list, a hand edit, an
+        # import, or a frame stored before #140.
+        "schemaProblems": [
+            {"path": p.path, "message": p.message, "fix": p.fix, "ruleId": p.rule_id}
+            for p in declarations
+        ],
         "skipped": skipped,
         "summary": (
             f"{present} valued, {settled} settled blank(s), {outstanding} outstanding of "
             f"{applicable} applicable cell(s); silenceRate {rate(informative):.2f}"
             + (f"; {len(degradations)} code(s) this build could not interpret" if degradations else "")
+            + (f"; {len(declarations)} declaration(s) the companion would refuse (see "
+               "schemaProblems)" if declarations else "")
             + skipped_note(skipped)
         ),
     }
