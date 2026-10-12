@@ -96,7 +96,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Iterator, MutableMapping
+from typing import Any, Callable, Iterator, MutableMapping
 
 from rubricator.clock import Clock, system_clock
 
@@ -278,6 +278,20 @@ def _sequence_of(key: str) -> int:
     """The write sequence a confirmation record's name starts with; 0 when it has none."""
     head = key.rsplit("/", 1)[-1].split("-", 1)[0]
     return int(head) if head.isdigit() else 0
+
+
+def _why_unmergeable(error: Exception) -> str:
+    """Why a file was left out of a read, in words its owner can act on."""
+    from rubricator.merge import MergeProblem
+
+    if isinstance(error, MergeProblem):
+        return str(error)
+    if isinstance(error, ValueError):
+        return f"not readable as JSON ({error}); repair or remove the file"
+    return (
+        "not shaped like a contribution or rendition this build can merge "
+        f"({type(error).__name__}: {error}); repair or remove the file"
+    )
 
 
 def _not_found(analysis_id: str, retention_days: int) -> AnalysisNotFound:
@@ -472,8 +486,13 @@ class AnalysisStore:
 
     def _contributor_ids(self, analysis_id: str) -> list[str]:
         prefix = f"analyses/{analysis_id}/contributions/"
+        # Only `.json` names are contributions: any other file there (a README, an
+        # editor's backup) is not one, and naming it as a missing `.json` would
+        # report a file that does not exist.
         return sorted(
-            k[len(prefix):].removesuffix(".json") for k in self.blobs if k.startswith(prefix)
+            k[len(prefix):].removesuffix(".json")
+            for k in self.blobs
+            if k.startswith(prefix) and k.endswith(".json")
         )
 
     def contributions(self, analysis_id: str) -> Iterator[tuple[str, dict[str, Any]]]:
@@ -499,6 +518,11 @@ class AnalysisStore:
         The record is the document (ADR-0017): what comes back is one comparanda
         analysis at whatever stage the work has reached, never a checkpoint
         format. Merged on read and never written back (its 2026-08-22 amendment).
+
+        **Strict**: one contribution or rendition that cannot be merged -- not
+        JSON, or naming an author its contributor is not behind -- raises, so a
+        forged attribution is never read past. A reader that must keep working
+        beside a broken file uses :meth:`read_skipping`.
         """
         from rubricator.merge import merge_contributions
 
@@ -507,6 +531,64 @@ class AnalysisStore:
             self.contributions(analysis_id),
             renditions=self.renditions(analysis_id),
         )
+
+    def read_skipping(self, analysis_id: str) -> tuple[dict[str, Any], list[dict[str, str]]]:
+        """The analysis merged from every file that *can* be merged, and what was left out.
+
+        A stray or half-written file in a shared, git-backed store must not take
+        every reader down (#151). So each contribution and each rendition is
+        tried on its own against the frame; one that fails is left out, and
+        named -- ``{"file": <key>, "because": <why>}`` -- in the second element,
+        which a caller must surface beside the document, never drop.
+
+        What is left out is left out whole: a contribution whose file is valid
+        JSON but introduces a colleague as an author (``MergeProblem``)
+        contributes none of its assertions. (What the merge rule does not yet
+        catch -- an assertion whose ``authorId`` names someone the file never
+        introduced, or a persona id that shadows another contributor -- is #158.) The
+        frame is not skippable -- without it there is no analysis -- so a frame
+        that cannot be read raises, as :meth:`read` does.
+
+        >>> from rubricator.clock import fixed_clock
+        >>> store = AnalysisStore({}, now=fixed_clock("2026-01-01T00:00:00Z"))
+        >>> store.put_frame("a1", {"id": "a1", "subject": {"question": "which?"}})
+        >>> store.blobs["analyses/a1/contributions/ben.json"] = b"{half-written"
+        >>> document, skipped = store.read_skipping("a1")
+        >>> document["cells"], [s["file"] for s in skipped]
+        ([], ['analyses/a1/contributions/ben.json'])
+        """
+        from rubricator.merge import merge_contributions
+
+        frame = self.frame(analysis_id)
+        merge_contributions(frame, [])
+        skipped: list[dict[str, str]] = []
+
+        def mergeable(key: str, trial: Callable[[dict[str, Any]], Any]) -> dict[str, Any] | None:
+            try:
+                document = self._read(key)
+                trial(document)
+            except (AttributeError, KeyError, TypeError, ValueError, RecursionError) as error:
+                skipped.append({"file": key, "because": _why_unmergeable(error)})
+                return None
+            return document
+
+        contributions = []
+        for contributor_id in self._contributor_ids(analysis_id):
+            document = mergeable(
+                self.contribution_key(analysis_id, contributor_id),
+                lambda d, c=contributor_id: merge_contributions(frame, [(c, d)]),
+            )
+            if document is not None:
+                contributions.append((contributor_id, document))
+        prefix = f"analyses/{analysis_id}/renditions/"
+        renditions = [
+            r
+            for key in sorted(k for k in self.blobs if k.startswith(prefix))
+            if (r := mergeable(key, lambda d: merge_contributions(frame, [], renditions=[d])))
+            is not None
+        ]
+        merged = merge_contributions(frame, contributions, renditions=renditions)
+        return merged, skipped
 
     # -- writing ------------------------------------------------------------
 

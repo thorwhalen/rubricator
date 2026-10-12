@@ -251,12 +251,13 @@ def test_a_score_answering_an_older_definition_keeps_the_stage_at_populate(verbs
                 "cells": []}).encode(),
 ])
 def test_a_bad_contribution_does_not_lock_the_resume_entry_point(runtime, verbs, stray) -> None:
+    """Left out and named (#151), not a refusal of the whole analysis."""
     _matrix(verbs)
     runtime.store.blobs["analyses/a1/contributions/zed.json"] = stray
     reopened = verbs["analysis_open"](analysis_id="a1")
-    assert reopened["created"] is False and "could not be read" in reopened["summary"]
-    with pytest.raises(ValueError, match="cannot be read whole.*analysis_open"):
-        verbs["analysis_get"](analysis_id="a1")
+    assert reopened["created"] is False and "could not be merged" in reopened["summary"]
+    got = verbs["analysis_get"](analysis_id="a1")
+    assert [s["file"] for s in got["skipped"]] == ["analyses/a1/contributions/zed.json"]
 
 
 def test_open_blanks_are_ordered_as_instants_not_strings(verbs) -> None:

@@ -106,6 +106,7 @@ def merge_contributions(
 
         for cell in contribution.get("cells", []):
             key = (cell["alternativeId"], cell["criterionId"], cell["measure"])
+            _check_identity(contributor_id, "a cell's alternativeId, criterionId and measure", key)
             target = cells.setdefault(
                 key,
                 {
@@ -141,6 +142,20 @@ def merge_contributions(
     return merged
 
 
+def _check_identity(contributor_id: str, what: str, values: Iterable[Any]) -> None:
+    """Ids are strings, or the merge cannot order them beside everyone else's.
+
+    Checked per contribution, so a file that would only fail once merged with
+    another -- ``null`` sorted against a string -- fails on its own, where a
+    reader that skips unmergeable files can still leave it out (#151).
+    """
+    if not all(isinstance(v, str) for v in values):
+        raise MergeProblem(
+            f'contribution "{contributor_id}" gives {what} as {list(values)!r}; every id is a '
+            "string. Repair or remove the file."
+        )
+
+
 def _check_author(contributor_id: str, author: Mapping[str, Any]) -> None:
     """A contributor may only introduce authors they are behind.
 
@@ -151,6 +166,7 @@ def _check_author(contributor_id: str, author: Mapping[str, Any]) -> None:
     well formed.
     """
     author_id = author.get("id")
+    _check_identity(contributor_id, "an author id", [author_id])
     principal = author.get("principalId")
     if author_id == contributor_id or principal == contributor_id:
         return

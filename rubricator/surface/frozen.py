@@ -210,6 +210,9 @@ CELL = obj(
     },
     ("alternativeId", "criterionId"),
 )
+#: A stored file a read left out because it cannot be merged (#151): never
+#: dropped silently, so every reading tool returns the list, empty when whole.
+SKIPPED = obj({"file": S, "because": S}, ("file", "because"))
 SUPERSEDED_CELL = obj(
     {"alternativeId": S, "criterionId": S, "measure": S, "definedInVersion": S,
      "assertions": arr(obj({"id": S, "criteriaVersion": S}, ("id", "criteriaVersion")))},
@@ -268,8 +271,9 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
                           "at": DATE_TIME}),
         output_schema=obj(
             {"analysisId": S, "created": B, "question": S, "alternatives": I, "criteria": I,
-             "stage": I, "summary": S},
-            ("analysisId", "created", "question", "alternatives", "criteria", "stage", "summary"),
+             "stage": I, "skipped": arr(SKIPPED), "summary": S},
+            ("analysisId", "created", "question", "alternatives", "criteria", "stage", "skipped",
+             "summary"),
         ),
     ),
     ToolSpec(
@@ -305,9 +309,10 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
                     ("alternativeId", "criterionId", "measure", "code", "recorded"))),
                 "resourceLink": opt(S),
                 "omitted": arr(S),
+                "skipped": arr(SKIPPED),
                 "summary": S,
             },
-            ("analysisId", "view", "question", "stage", "counts", "omitted", "summary"),
+            ("analysisId", "view", "question", "stage", "counts", "omitted", "skipped", "summary"),
         ),
     ),
     ToolSpec(
@@ -628,9 +633,10 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
                      "offScale": I, "polarised": B, "contested": B},
                     ("alternativeId", "criterionId", "measure", "n", "reduced", "polarised",
                      "contested"))),
+                "skipped": arr(SKIPPED),
                 "summary": S,
             },
-            ("analysisId", "reduction", "cells", "summary"),
+            ("analysisId", "reduction", "cells", "skipped", "summary"),
         ),
     ),
     ToolSpec(
@@ -793,11 +799,12 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
                 "supersededCells": SUPERSEDED,
                 "honestyProblems": arr(obj({"path": S, "message": S, "fix": S, "ruleId": S},
                                            ("path", "message", "fix", "ruleId"))),
+                "skipped": arr(SKIPPED),
                 "summary": S,
             },
             ("analysisId", "total", "structural", "applicable", "present", "settledAbsent",
              "informativeAbsent", "outstanding", "examinedRate", "valuedRate", "silenceRate",
-             "degradations", "supersededCells", "honestyProblems", "summary"),
+             "degradations", "supersededCells", "honestyProblems", "skipped", "summary"),
         ),
         notes=("Not in the research's 19: added when the completeness report was built, "
                "and kept because analysis_get's outstanding view returns cells where this "

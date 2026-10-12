@@ -162,9 +162,12 @@ def demo(root: str | None = None) -> int:
 
 
 def _show(store, analysis_id: str) -> int:
-    merged = store.read(analysis_id)
+    merged, skipped = store.read_skipping(analysis_id)
     json.dump(merged, sys.stdout, indent=2, sort_keys=True, ensure_ascii=False)
     sys.stdout.write("\n")
+    # On stderr, so the document on stdout stays one parseable analysis.
+    for s in skipped:
+        print(f"left out {s['file']}: {s['because']}", file=sys.stderr)
     return 0
 
 
