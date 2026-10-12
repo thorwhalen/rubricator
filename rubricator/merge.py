@@ -116,9 +116,14 @@ def merge_contributions(
                 },
             )
             for assertion in cell.get("assertions", []):
-                target["assertions"].append(
-                    {**assertion, "id": _namespaced(contributor_id, assertion["id"])}
-                )
+                namespaced = {**assertion, "id": _namespaced(contributor_id, assertion["id"])}
+                # A contributor supersedes their own assertions, so the reference
+                # is namespaced the same way; left bare it would name nothing.
+                if assertion.get("supersededBy"):
+                    namespaced["supersededBy"] = _namespaced(
+                        contributor_id, assertion["supersededBy"]
+                    )
+                target["assertions"].append(namespaced)
             # A cell-level reduction override travels with whoever set it. Last
             # writer in contributor order wins, which is arbitrary -- and a
             # contributor overriding the displayed reduction of a shared cell is

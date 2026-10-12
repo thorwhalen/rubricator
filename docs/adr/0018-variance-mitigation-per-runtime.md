@@ -159,6 +159,26 @@ highest-value open question in the project, and it still costs a few dollars.
 
 Refs #24.
 
+### 2026-10-12 — the ladder is stored in the companion's spelling
+
+- **Status:** accepted
+- **Date:** 2026-10-12
+
+The Decision's ladder `in-session < fresh-session < distinct-model < distinct-human` names the rungs as *policy*. The stored field is `comparanda`'s closed `independence` enum, weakest first: `shared-context < resampled < perturbed < independent`, plus `consensus` (an agreed value, not an observation). `comparanda`'s ADR-0011 and ADR-0022 amendments of 2026-08-21 make that spelling govern and read `in-session` as `shared-context`; this package's ADR-0022 already uses `resampled` and `independent` from it. So the request in [#30](https://github.com/thorwhalen/rubricator/issues/30) for the four policy names as the closed value set is answered by the shipped five, and the mapping is:
+
+| policy rung (this ADR) | stored `independence` |
+|---|---|
+| `in-session` | `shared-context` |
+| `fresh-session` (same model, new session) | `resampled`, or `perturbed` with a `perturbation` record when something was deliberately varied. A new session or a new round never makes two draws of one model independent. |
+| `distinct-model` | `independent`, with `Author.kind = agent` |
+| `distinct-human` | `independent`, with `Author.kind = human` |
+
+**`distinct-model` and `distinct-human` share one stored value**, and the distinction is recovered from the author, not from the rung. Reports keep this ADR's rule that a distinct-model set is not labelled "independent raters" (confident errors are partly shared across providers): a report reading `independent` on agent-authored assertions labels them *distinct models*. That is a labelling rule over stored facts, not a stored rung, so it does not ask the companion for a sixth value.
+
+**One tension in the companion, resolved by its later text.** `comparanda`'s ADR-0011 table says an agent run with no prior context is `independent`; its ADR-0023 amendment of 2026-10-12 (thorwhalen/comparanda#160) says a new round never makes two draws of one model independent. This package follows the later text: a fresh session of the **same** model is `resampled`. If the companion settles otherwise, only this table changes.
+
+**What is enforced, and where.** `sign()` refuses a spelling outside the ladder at authoring, and refuses `perturbed` without a `perturbation` record. `rubricator.rules.independence_recorded` mirrors `comparanda`'s honesty rule `independence-recorded`: a cell with two or more live assertions records the rung on each, a single assertion is exempt, absences count. `unique_ids` and `supersession_resolves` mirror the companion's `unique-ids`, `supersession-resolves` and `supersession-acyclic`, which close the escape of switching an assertion off with a dangling `supersededBy`. `measures_write` runs them on the would-be merged document and refuses only for **the assertions that call adds**. A problem on an assertion already stored does not block, because nothing can amend a stored assertion in place, and refusing would lock its author out of the whole analysis. `report_completeness` returns those as `honestyProblems`, and #61's validator is where they reject. The `procedure` record and populating the rung from the runtime remain [#99](https://github.com/thorwhalen/rubricator/issues/99).
+
 ## References
 1. [Findings — comparison method and prompting (2026)](../research/findings-method.md) — in this repository, § 4.3
 2. [Does Scoring Order (Column-wise vs Row-wise) Change Multi-Criteria Evaluations — for Humans, and for LLMs? — Whalen (2026)](../research/scoring-order-effects.md) — in this repository, § 8
