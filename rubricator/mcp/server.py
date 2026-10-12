@@ -87,8 +87,13 @@ def _analysis_resource(runtime: Runtime):
     def analysis_document(analysis_id: str) -> ResourceResult:
         # The mime type is stated on the content, because a template's own
         # mime_type does not reach a function's plain-string result.
-        body = json.dumps(runtime.store.read(analysis_id), ensure_ascii=False, sort_keys=True)
-        return ResourceResult([ResourceContent(body, mime_type=_JSON)])
+        # A file that cannot be merged is left out of the body and named in the
+        # content's metadata (#151): the body is a closed comparanda document
+        # with no slot for it, and leaving it out silently is not an option.
+        document, skipped = runtime.store.read_skipping(analysis_id)
+        body = json.dumps(document, ensure_ascii=False, sort_keys=True)
+        meta = {"skipped": skipped} if skipped else None
+        return ResourceResult([ResourceContent(body, mime_type=_JSON, meta=meta)])
 
     # Concrete, not the postponed strings: the host resolves annotations in this
     # module's globals, where the locally imported names do not exist.

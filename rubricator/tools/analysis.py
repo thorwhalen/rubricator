@@ -78,27 +78,20 @@ DEFINITION_EXPECTED: tuple[str, ...] = DEFINITION_FIELDS
 
 def _live_document(
     store: AnalysisStore, analysis_id: str
-) -> tuple[dict[str, Any] | None, str | None]:
+) -> tuple[dict[str, Any] | None, list[dict[str, str]]]:
     """The merged document, or ``None`` when no live analysis has this id.
 
     One read rather than ``exists()`` then ``read()``: the retention window can
     end between two calls, and a reopen that raced it must start afresh rather
     than fail.
 
-    **A contribution that cannot be merged does not lock the analysis.** A
-    stray or malformed file in a shared store must not make the resume entry
-    point fail, so the frame alone is returned beside the reason the whole
-    could not be read.
+    **A contribution that cannot be merged does not lock the analysis** (#151):
+    it is left out, and named beside the document.
     """
     try:
-        return store.read(analysis_id), None
+        return store.read_skipping(analysis_id)
     except AnalysisNotFound:
-        return None, None
-    except (AttributeError, KeyError, TypeError, ValueError) as error:
-        try:
-            return store.frame(analysis_id), str(error)
-        except AnalysisNotFound:
-            return None, None
+        return None, []
 
 
 _NEEDS_A_QUESTION = (
@@ -154,9 +147,9 @@ def analysis_open(
     (:data:`rubricator.store.RETENTION_DAYS`), and export defeats that window.
     """
     from rubricator.tools.confirm import gate, skip_record
-    from rubricator.tools.views import STAGES, stage_of
+    from rubricator.tools.views import STAGES, skipped_note, stage_of
 
-    document, unreadable = _live_document(store, analysis_id)
+    document, skipped_files = _live_document(store, analysis_id)
     if document is not None:
         records = store.confirmations(analysis_id)
         skipped = any(r.get("decision") == "skip" for r in records)
@@ -175,13 +168,9 @@ def analysis_open(
         stage = stage_of(document, confirmed=gate(records)["open"])
         summary = (
             f'reopened "{analysis_id}" at stage {stage} ({STAGES[stage][0]}): {n_alt} '
-            f"alternative(s), {n_crit} criteria; next: {STAGES[stage][1]}"
+            f"alternative(s), {n_crit} criteria{skipped_note(skipped_files)}; "
+            f"next: {STAGES[stage][1]}"
         )
-        if unreadable:
-            summary += (
-                f". The contributions could not be read ({unreadable}), so the stage is "
-                "computed from the frame alone and may be behind."
-            )
         return {
             "analysisId": analysis_id,
             "created": False,
@@ -189,6 +178,7 @@ def analysis_open(
             "alternatives": n_alt,
             "criteria": n_crit,
             "stage": stage,
+            "skipped": skipped_files,
             "summary": summary,
         }
     if not (question or "").strip():
@@ -239,6 +229,7 @@ def analysis_open(
         "alternatives": 0,
         "criteria": 0,
         "stage": 1,
+        "skipped": [],
         "summary": f'opened "{analysis_id}" with no alternatives and no criteria yet; next: '
         + STAGES[1][1],
     }
@@ -717,13 +708,10 @@ def report_completeness(store: AnalysisStore, *, analysis_id: str) -> dict[str, 
     reader's gap look like a property of the data.
     """
     from rubricator.criteria_versions import superseded_cells
-    from rubricator.merge import merge_contributions
     from rubricator.rules import honesty_problems
+    from rubricator.tools.views import skipped_note
 
-    frame = store.frame(analysis_id)
-    merged = merge_contributions(
-        frame, store.contributions(analysis_id), renditions=store.renditions(analysis_id)
-    )
+    merged, skipped = store.read_skipping(analysis_id)
     vocab = vocabulary()
 
     total = present = structural = settled = informative = outstanding = 0
@@ -788,10 +776,12 @@ def report_completeness(store: AnalysisStore, *, analysis_id: str) -> dict[str, 
             {"path": p.path, "message": p.message, "fix": p.fix, "ruleId": p.rule_id}
             for p in honesty_problems(merged)
         ],
+        "skipped": skipped,
         "summary": (
             f"{present} valued, {settled} settled blank(s), {outstanding} outstanding of "
             f"{applicable} applicable cell(s); silenceRate {rate(informative):.2f}"
             + (f"; {len(degradations)} code(s) this build could not interpret" if degradations else "")
+            + skipped_note(skipped)
         ),
     }
 

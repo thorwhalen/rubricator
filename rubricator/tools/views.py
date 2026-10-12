@@ -267,6 +267,16 @@ def _projected(rows: Any, shape: Mapping[str, Any], path: str, cut: list[str]) -
     return got
 
 
+def skipped_note(skipped: Sequence[Mapping[str, str]]) -> str:
+    """The clause a reading tool's summary carries when a read left files out (#151)."""
+    if not skipped:
+        return ""
+    return (
+        f"; {len(skipped)} stored file(s) could not be merged and were left out (see skipped), "
+        "so what is reported here is behind until whoever owns them repairs or removes them"
+    )
+
+
 def analysis_get(
     store: AnalysisStore, *, analysis_id: str, view: str = "summary"
 ) -> dict[str, Any]:
@@ -285,18 +295,7 @@ def analysis_get(
 
     if view not in VIEWS:
         raise ValueError(f'unknown view "{view}"; the views are {", ".join(VIEWS)}.')
-    try:
-        document = store.read(analysis_id)
-    except AnalysisNotFound:
-        raise
-    except (AttributeError, KeyError, TypeError, ValueError) as error:
-        # A malformed contribution in a shared store: say which read failed and
-        # where the way back in is, rather than a bare decode error.
-        raise ValueError(
-            f'refused: analysis "{analysis_id}" cannot be read whole: {error}. analysis_open '
-            "still reopens it from the frame alone; the contribution file that fails must be "
-            "repaired or removed by whoever owns it."
-        ) from error
+    document, skipped = store.read_skipping(analysis_id)
     outstanding = outstanding_cells(document)
     superseded = _superseded(document)
     alternatives = _live(document.get("alternatives", []))
@@ -347,6 +346,7 @@ def analysis_get(
     # field, not only in prose, because handing a cut view back to the writing
     # verb would silently delete or rewrite what was dropped.
     result["omitted"] = cut
+    result["skipped"] = skipped
     codes = ", ".join(f"{by_code[k]} {k}" for k in sorted(by_code))
     result["summary"] = (
         f'"{analysis_id}" at stage {stage} ({name}): {len(alternatives)} alternative(s), '
@@ -356,6 +356,7 @@ def analysis_get(
         + (f"; {len(cut)} stored field(s) do not fit the contract and were left out (see "
            f"omitted), so do NOT hand this view back to {_WRITER[view]}: it would delete or "
            "rewrite what was left out" if cut else "")
+        + skipped_note(skipped)
         + f"; next: {action}"
     )
     return result

@@ -88,8 +88,8 @@ def refuse_a_mean(store: AnalysisStore, arguments: Mapping[str, Any]) -> None:
     reduction = arguments.get("reduction")
     if reduction is not None and _is_a_mean(reduction):
         try:
-            criteria = store.read(arguments["analysis_id"])["criteria"]
-        except (KeyError, TypeError):
+            criteria = store.frame(arguments["analysis_id"])["criteria"]
+        except (KeyError, TypeError, ValueError):
             criteria = []
         raise ValueError(_mean_refusal(str(reduction), criteria))
 
@@ -119,7 +119,9 @@ def aggregate_assertions(
             f"refused: polarised_gap={polarised_gap!r}. It is a whole number of empty levels, 0 or "
             "more."
         )
-    document = store.read(analysis_id)
+    from rubricator.tools.views import skipped_note
+
+    document, skipped = store.read_skipping(analysis_id)
     live_alternatives = {a["id"] for a in document["alternatives"] if not a.get("tombstoned")}
     criteria = {c["id"]: c for c in document["criteria"] if not c.get("tombstoned")}
     rows = []
@@ -140,7 +142,8 @@ def aggregate_assertions(
         "analysisId": analysis_id,
         "reduction": reduction,
         "cells": rows,
-        "summary": _summary(rows, reduction, allow_contested_reduction),
+        "skipped": skipped,
+        "summary": _summary(rows, reduction, allow_contested_reduction) + skipped_note(skipped),
     }
 
 
