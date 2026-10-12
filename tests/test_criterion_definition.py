@@ -90,3 +90,47 @@ def test_the_definition_shape_is_closed(runtime, bad, match) -> None:
 def test_an_anchor_on_a_level_the_scale_cannot_take_is_refused(runtime) -> None:
     with pytest.raises(ValueError, match="cannot take"):
         _set(runtime, anchors={**ANCHORS, "7": "beyond the scale"})
+
+
+def test_a_criterion_declaration_wins_over_the_analysis_one() -> None:
+    """Review finding 1: nearest scope first, as comparanda's makeVocabulary."""
+    good = {"id": "x", "broader": "not-evidenced", "means": "m"}
+    bogus = {"id": "x", "broader": "nonsense", "means": "m"}
+    rule = {"missingRules": [{"when": "w", "code": "x"}]}
+    on_crit_bogus = {"missingCodes": [good], "criteria": [
+        {"id": "c", "label": "C", "missingCodes": [bogus], "definition": rule}]}
+    on_crit_good = {"missingCodes": [bogus], "criteria": [
+        {"id": "c", "label": "C", "missingCodes": [good], "definition": rule}]}
+    assert [p.rule_id for p in honesty_problems(on_crit_bogus)] == ["missing-rule-code-defined"]
+    assert honesty_problems(on_crit_good) == []
+
+
+@pytest.mark.parametrize("bad", [5, ["objective"], "objective", {1: "x"}])
+def test_a_non_object_definition_gets_the_helpful_error(runtime, bad) -> None:
+    with pytest.raises(ValueError, match="definition"):
+        _set(runtime, definition=bad)
+
+
+def test_a_blank_string_is_a_gap_and_an_empty_list_is_an_answer(runtime) -> None:
+    result = _set(runtime, definition={**FULL, "objective": "  ", "question": "",
+                                       "exclusions": []})
+    assert result["definitionGaps"] == {"c": ["objective", "question"]}
+
+
+def test_a_criterion_scoped_code_can_be_recorded_and_counted(runtime) -> None:
+    """Review finding 3: authoring accepted it, so the write and report paths must too."""
+    from rubricator.contributors import human
+    from rubricator.tools.analysis import frame_set, measures_mark_missing, report_completeness
+
+    decl = [{"id": "paywalled", "broader": "not-evidenced", "means": "behind a paywall",
+             "informative": True}]
+    frame_set(runtime.store, analysis_id="a", alternatives=[{"id": "x", "label": "X"}],
+              ambiguities=[])
+    _set(runtime, missingCodes=decl,
+         definition={**FULL, "missingRules": [{"when": "paywalled", "code": "paywalled"}]})
+    ana = human("ana", "Ana")
+    measures_mark_missing(runtime.store, analysis_id="a", contributor_id="ana", author=ana,
+                          at="2026-10-12T00:00:00Z", code="paywalled", note="paywall",
+                          criterion_ids=["c"])
+    report = report_completeness(runtime.store, analysis_id="a")
+    assert report["degradations"] == [] and report["informativeAbsent"] == 1

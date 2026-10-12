@@ -204,12 +204,13 @@ def criteria_set(
         if definition is not None:
             problems.extend(
                 _definition_problems(
-                    c.get("id"), definition, [*frame.get("missingCodes", []), *criterion_codes]
+                    c.get("id"), definition, [*criterion_codes, *frame.get("missingCodes", [])]
                 )
             )
-        gap = [f for f in DEFINITION_EXPECTED if f not in (definition or {})]
-        if gap:
-            gaps[c["id"]] = gap
+        if definition is None or isinstance(definition, Mapping):
+            gap = [f for f in DEFINITION_EXPECTED if _is_blank((definition or {}).get(f))]
+            if gap:
+                gaps[c["id"]] = gap
 
         emitted = {
             "id": c["id"],
@@ -217,7 +218,7 @@ def criteria_set(
             "defaultMeasurement": measurement,
             "missingCodes": criterion_codes,
         }
-        if definition is not None:
+        if isinstance(definition, Mapping):
             emitted["definition"] = _copy_definition(definition)
         out.append(emitted)
         declared.setdefault(
@@ -323,18 +324,19 @@ def measures_mark_missing(
     assertion (``independence-recorded``); a blank beside a score is two claims.
     """
     frame = store.frame(analysis_id)
-    declarations = list(frame.get("missingCodes", []))
-    resolution = vocabulary().resolve(code, declarations)
-    if resolution.source == "undeclared":
-        known = ", ".join(sorted(vocabulary().missing_codes))
-        raise KeyError(
-            f'unknown missingness code "{code}". This analysis knows: {known}'
-            + (f", plus {', '.join(d['id'] for d in declarations)}" if declarations else "")
-            + ". Declare it in the analysis with a broader parent and what it means, so that a "
-            "reader which does not implement it can still classify the blank."
-        )
-
     criteria = list(criterion_ids) or [c["id"] for c in frame["criteria"]]
+    for crit in criteria:
+        declarations = declarations_for(frame, crit)
+        if vocabulary().resolve(code, declarations).source == "undeclared":
+            known = ", ".join(sorted(vocabulary().missing_codes))
+            raise KeyError(
+                f'unknown missingness code "{code}" for criterion "{crit}". Known here: {known}'
+                + (f", plus {', '.join(d['id'] for d in declarations)}" if declarations else "")
+                + ". Declare it on the analysis (or on that criterion) with a broader parent and "
+                "what it means, so that a reader which does not implement it can still classify "
+                "the blank."
+            )
+
     alternatives = list(alternative_ids) or [a["id"] for a in frame["alternatives"]]
     cells = [
         {
@@ -383,7 +385,6 @@ def report_completeness(store: AnalysisStore, *, analysis_id: str) -> dict[str, 
     merged = merge_contributions(
         frame, store.contributions(analysis_id), renditions=store.renditions(analysis_id)
     )
-    declarations = list(merged.get("missingCodes", []))
     vocab = vocabulary()
 
     total = present = structural = settled = informative = outstanding = 0
@@ -396,7 +397,7 @@ def report_completeness(store: AnalysisStore, *, analysis_id: str) -> dict[str, 
                 present += 1
                 continue
             code = assertion.get("missing", {}).get("code", "")
-            resolution = vocab.resolve(code, declarations)
+            resolution = vocab.resolve(code, declarations_for(merged, cell["criterionId"]))
             d = degradation_of(
                 resolution,
                 "missing-code",
@@ -456,14 +457,27 @@ def _anchor_level_problems(
     levels may be numbers.
     """
     declared = [str(lvl) for lvl in measurement.get("levels", [])]
-    keys = [*anchors, *measurement.get("anchors", {}).get("requires", [])]
-    bad = sorted({str(k) for k in keys if declared and str(k) not in declared})
+    rng = measurement.get("range")
+    keys = {str(k) for k in [*anchors, *measurement.get("anchors", {}).get("requires", [])]}
+
+    def fits(key: str) -> bool:
+        if declared:
+            return key in declared
+        if not rng:
+            return True
+        try:
+            n = float(key)
+        except ValueError:
+            return False
+        return n == n and rng["min"] <= n <= rng["max"]
+
+    bad = sorted(k for k in keys if not fits(k))
     if not bad:
         return []
+    scale = f"levels: {', '.join(declared)}" if declared else f"range [{rng['min']}, {rng['max']}]"
     return [
         f'criterion "{criterion_id}" has an anchor at level(s) {", ".join(bad)}, which the scale '
-        f"cannot take (levels: {', '.join(declared)}). An anchor on such a level is a condition "
-        "no score can ever meet."
+        f"cannot take ({scale}). An anchor on such a level is a condition no score can ever meet."
     ]
 
 
@@ -475,7 +489,7 @@ def _definition_problems(
     if not isinstance(definition, Mapping):
         return [f"{where} must be an object with fields {', '.join(DEFINITION_FIELDS)}."]
     problems: list[str] = []
-    extra = sorted(set(definition) - set(DEFINITION_FIELDS))
+    extra = sorted(map(str, set(definition) - set(DEFINITION_FIELDS)))
     if extra:
         problems.append(
             f"{where} has unknown field(s) {', '.join(extra)}; the fields are "
@@ -505,6 +519,22 @@ def _definition_problems(
                 "code, or declare it in missingCodes with a broader parent and what it means."
             )
     return problems
+
+
+def _is_blank(value: Any) -> bool:
+    """Absent, or a whitespace-only string. An empty *list* is an answer ("none")."""
+    return value is None or (isinstance(value, str) and not value.strip())
+
+
+def declarations_for(document: Mapping[str, Any], criterion_id: str) -> list[Mapping[str, Any]]:
+    """The missingness declarations in scope for one criterion, nearest first.
+
+    The criterion's own codes come before the analysis's, as in the companion's
+    ``makeVocabulary``: the resolver takes the first match, so a criterion-scoped
+    redefinition wins inside that criterion and nowhere else.
+    """
+    criterion = next((c for c in document.get("criteria", []) if c.get("id") == criterion_id), {})
+    return [*criterion.get("missingCodes", []), *document.get("missingCodes", [])]
 
 
 def _copy_definition(definition: Mapping[str, Any]) -> dict[str, Any]:

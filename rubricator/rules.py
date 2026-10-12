@@ -191,7 +191,8 @@ def missing_rule_code_defined(document: Mapping[str, Any]) -> Iterable[Problem]:
 
     analysis_codes = list(document.get("missingCodes", []))
     for i, criterion in enumerate(document.get("criteria", [])):
-        declarations = [*analysis_codes, *criterion.get("missingCodes", [])]
+        # Nearest scope first, as the companion's makeVocabulary orders it.
+        declarations = [*criterion.get("missingCodes", []), *analysis_codes]
         rules = (criterion.get("definition") or {}).get("missingRules", [])
         for k, rule in enumerate(rules):
             code = rule.get("code", "")
