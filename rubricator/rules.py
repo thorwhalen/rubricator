@@ -42,6 +42,7 @@ __all__ = [
     "honesty_problems",
     "independence_recorded",
     "unique_ids",
+    "missing_rule_code_defined",
     "supersession_resolves",
     "live_assertions",
 ]
@@ -178,8 +179,46 @@ def supersession_resolves(document: Mapping[str, Any]) -> Iterable[Problem]:
                 )
 
 
+def missing_rule_code_defined(document: Mapping[str, Any]) -> Iterable[Problem]:
+    """A criterion's missing rule names a code someone defines.
+
+    Mirrors `comparanda`'s ``missing-rule-code-defined`` (its ADR-0030): the
+    code is a core one, or declared on the analysis, or on the criterion. A rule
+    naming anything else is one nobody can follow, because nothing says what
+    its blank means.
+    """
+    from rubricator.schema.vocabulary import vocabulary
+
+    analysis_codes = list(document.get("missingCodes", []))
+    for i, criterion in enumerate(document.get("criteria", [])):
+        # Nearest scope first, as the companion's makeVocabulary orders it.
+        declarations = [*criterion.get("missingCodes", []), *analysis_codes]
+        rules = (criterion.get("definition") or {}).get("missingRules", [])
+        for k, rule in enumerate(rules):
+            code = rule.get("code", "")
+            if vocabulary().resolve(code, declarations).source != "undeclared":
+                continue
+            yield Problem(
+                path=f"criteria[{i}].definition.missingRules[{k}].code",
+                message=(
+                    f'criterion "{criterion.get("id")}" tells raters to record "{code}", but that '
+                    "code is neither a core code nor declared in this document or on this criterion."
+                ),
+                fix=(
+                    "name a core code, or declare this one in missingCodes (on the analysis or on "
+                    "the criterion) with a broader parent and what it means."
+                ),
+                rule_id="missing-rule-code-defined",
+            )
+
+
 #: The honesty rules, in the order their problems are reported.
-HONESTY_RULES: Sequence[Rule] = (unique_ids, supersession_resolves, independence_recorded)
+HONESTY_RULES: Sequence[Rule] = (
+    unique_ids,
+    supersession_resolves,
+    independence_recorded,
+    missing_rule_code_defined,
+)
 
 
 def honesty_problems(

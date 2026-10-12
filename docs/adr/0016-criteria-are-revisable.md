@@ -138,3 +138,22 @@ reason code, and this ADR's own Consequences settle its value — "the coverage 
 count an invalidated cell as outstanding, which is correct — work genuinely remains". Outstanding
 work is precisely `terminal: false`. It was previously assumed rather than decided; it is decided
 now, and it agrees with the default the flag would inherit from `broader: not-assessed`.
+
+### 2026-10-12 — the definition as comparanda v1 shipped it, and what is required of it
+
+- **Status:** accepted, with the refuse-or-report question open in [#138](https://github.com/thorwhalen/rubricator/issues/138)
+- **Date:** 2026-10-12
+
+[#27](https://github.com/thorwhalen/rubricator/issues/27) asked the companion for a structured definition. thorwhalen/comparanda#158 shipped it as `criteria[].definition = {objective?, question?, evidenceRule?, missingRules?: [{when, code}], exclusions?}`. Every field is optional there. The ten fields of the amendment above map as follows:
+
+| field (this ADR) | where it lives in v1 | required here? |
+|---|---|---|
+| `objective`, `question`, `evidence_rule`, `exclusions` | `definition.objective`, `.question`, `.evidenceRule`, `.exclusions` | expected; reported in `criteria_set`'s `definitionGaps` when absent |
+| `missing_rule` | `definition.missingRules: [{when, code}]` | expected, as above; **a rule's code must resolve** (core, or declared on the analysis or the criterion), or authoring raises. This mirrors the honesty rule `missing-rule-code-defined` |
+| `level`, `preference` | `defaultMeasurement.level`, `.preference` | **always present**: the scale preset supplies both, and the companion requires `preference` on every measurement |
+| anchors | `defaultMeasurement.anchors` (not the definition; `CriterionDefinition.anchors` was removed) | **required at the preset's levels for ordinal scales only**; an anchor on a level the scale cannot take is refused |
+| `attribute_type` | **no slot**: the v1 shape is closed | not emitted; open in #138 |
+
+**Why anchors are required for ordinal criteria only.** An ordinal level is a rank with no meaning of its own, so "3" means whatever the rater thinks it means unless an anchor writes down the evidence condition (ADR-0012). A nominal level is its own label, and an interval or ratio value is a number in a declared unit and range. Both already say what they mean, and an anchor on them would be a second, competing definition.
+
+**Refuse or report.** The amendment above says a missing required field is *rejected*. ADR-0024, written later, puts incompleteness in the family that informs. Until #138 is decided, `criteria_set` reports the gaps and refuses only what is malformed or dishonest. The record and the reality disagree on purpose here, and #138 is where they get reconciled.
