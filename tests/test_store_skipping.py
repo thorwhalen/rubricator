@@ -34,6 +34,12 @@ STRAYS = {
     "not an object": b"[]",
     "cell missing its keys": json.dumps({"authors": [], "cells": [{"assertions": []}]}).encode(),
     "forged author": FORGED,
+    "an id that is not a string": json.dumps({"authors": [], "cells": [
+        {"alternativeId": None, "criterionId": "speed", "measure": "score", "assertions": []}]}).encode(),
+    "an author id that is not a string": json.dumps({
+        "authors": [{"id": 7, "displayName": "S", "kind": "human", "principalId": "zed"}],
+        "cells": []}).encode(),
+    "nested past any parser's depth": b"[" * 100_000 + b"]" * 100_000,
 }
 
 
@@ -135,3 +141,18 @@ def test_the_resource_names_what_it_left_out_in_its_metadata(runtime) -> None:
     content = asyncio.run(server.read_resource(analysis_uri("a1"))).contents[0]
     assert content.meta == {"skipped": [{"file": STRAY, "because": content.meta["skipped"][0]["because"]}]}
     assert "ninety seconds" in content.content
+
+
+def test_a_file_that_is_not_json_by_name_is_not_a_contribution(runtime) -> None:
+    runtime.store.blobs["analyses/a1/contributions/README.txt"] = b"notes"
+    _, skipped = runtime.store.read_skipping("a1")
+    assert skipped == []
+
+
+def test_show_prints_the_document_and_names_what_it_left_out(runtime, capsys) -> None:
+    from rubricator.cli import _show
+
+    runtime.store.blobs[STRAY] = b"{half-written"
+    assert _show(runtime.store, "a1") == 0
+    out, err = capsys.readouterr()
+    assert json.loads(out)["id"] == "a1" and f"left out {STRAY}" in err

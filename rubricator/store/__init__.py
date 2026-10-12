@@ -486,8 +486,13 @@ class AnalysisStore:
 
     def _contributor_ids(self, analysis_id: str) -> list[str]:
         prefix = f"analyses/{analysis_id}/contributions/"
+        # Only `.json` names are contributions: any other file there (a README, an
+        # editor's backup) is not one, and naming it as a missing `.json` would
+        # report a file that does not exist.
         return sorted(
-            k[len(prefix):].removesuffix(".json") for k in self.blobs if k.startswith(prefix)
+            k[len(prefix):].removesuffix(".json")
+            for k in self.blobs
+            if k.startswith(prefix) and k.endswith(".json")
         )
 
     def contributions(self, analysis_id: str) -> Iterator[tuple[str, dict[str, Any]]]:
@@ -537,8 +542,10 @@ class AnalysisStore:
         which a caller must surface beside the document, never drop.
 
         What is left out is left out whole: a contribution whose file is valid
-        JSON but names a colleague as its author (``MergeProblem``) contributes
-        none of its assertions, so a forged attribution reaches no reader. The
+        JSON but introduces a colleague as an author (``MergeProblem``)
+        contributes none of its assertions. (What the merge rule does not yet
+        catch -- an assertion whose ``authorId`` names someone the file never
+        introduced, or a persona id that shadows another contributor -- is #158.) The
         frame is not skippable -- without it there is no analysis -- so a frame
         that cannot be read raises, as :meth:`read` does.
 
@@ -560,7 +567,7 @@ class AnalysisStore:
             try:
                 document = self._read(key)
                 trial(document)
-            except (AttributeError, KeyError, TypeError, ValueError) as error:
+            except (AttributeError, KeyError, TypeError, ValueError, RecursionError) as error:
                 skipped.append({"file": key, "because": _why_unmergeable(error)})
                 return None
             return document
