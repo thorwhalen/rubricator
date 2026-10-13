@@ -1,9 +1,9 @@
 ---
 id: score-cell
-version: 1
+version: 2
 stage: 5
 title: Score one cell
-updated: 2026-09-14
+updated: 2026-10-13
 missing-codes:
   - not-applicable
   - not-assessed
@@ -12,6 +12,7 @@ missing-codes:
   - indeterminate
   - withheld
 changelog:
+  - 2 (2026-10-13) — The emission is now the measures_write cell itself, field for field, with confidence and dependsOn beside it rather than inside it, because the closed comparanda v1 cell has no slot for either and a caller that mapped v1's output onto a cell was refused (#154). The plan is still written first and is no longer emitted: its value is that it is written before the value, not that it is stored. Every cell now declares which other criteria its level turns on, empty when none, expected to surface preference dependence as a declared signal where v1 let the model fold it into the score silently. Revised once before landing, against a blind run in which both models read "consulted" literally and let a span that ties one criterion to another pass as an anchor's stated limit; and once after an adversarial review, which found that the prose allowed evidence the stored cell cannot honestly carry and gave the downgrade reason nowhere to go: evidence is now only spans the scorer was handed, an inference is stated in the justification with the spans it is drawn from, the downgrade reason opens the justification in a fixed countable form, and the value is a number. Hypothesis: schema validity of the emitted cell rises to every time with no repair, and refusal to guess does not move, since none of the blank-selection text changed.
   - 1 (2026-09-14) — First version. Teaches the two terminal blanks apart, because collapsing "we looked and the sources say nothing" into "we looked and the sources do not agree" makes the completeness report unreadable and sends a reader to the wrong next action on exactly the cells that matter most. Revised twice before landing against blind adherence checks on constructed cells, which never confused the two terminal blanks but had to guess elsewhere; now stated rather than implied are whether a contradiction blocks a level, that a cell nobody searched is never terminal, that unanchored levels 2 and 4 are reachable and are not what `indeterminate` is for, how far a contradiction downgrades confidence, that `not-assessed` and `deferred` carry no evidence, and what the note says when nothing was searched.
 ---
 
@@ -36,8 +37,8 @@ effects are removed rather than apologised for.
   structurally "between", and you emit one when the evidence clears the level below and falls short
   of the level above. Say which two anchors it sits between, in the justification.
 - **The alternative**: what is being judged.
-- **The spans**: passages already extracted as bearing on this cell, each with its source and its
-  stance. You receive the spans, not the corpus. If a claim is not in a span you were handed, you
+- **The spans**: passages already extracted as bearing on this cell, each with its id, its source
+  (the `target` it was read from) and its stance. You receive the spans, not the corpus. If a claim is not in a span you were handed, you
   did not find it — you remembered it, and remembering is not evidence.
 
 ## The rule that outranks the rest
@@ -63,10 +64,11 @@ means "the evidence puts this squarely in the middle". All of your uncertainty g
 
 1. **Plan.** In one or two sentences: which anchor condition would have to be met for each level you
    consider live, and which span would settle it. Write this before you look at the answer you are
-   drifting toward. It is kept as provenance, so it is also the record of what you thought you were
-   doing.
+   drifting toward. The plan is working, not output: it is **not emitted**. Its whole value is that
+   it is written before the value, so the value follows from a test you set rather than the test
+   being invented to fit the value.
 2. **Judge.** Test the spans against the anchor conditions. Settle on the level whose condition the
-   spans actually meet.
+   spans actually meet. Notice, as you do, whether you had to look at another criterion to decide.
 3. **Emit.** Either a score with its evidence, or a blank with its code and its note. Never both,
    and never a score followed by a caveat that reads like a blank.
 
@@ -194,53 +196,174 @@ reason**, not a quiet shading of the number: **one step down** from what the evi
 otherwise carry, and name the reason. One step, not an amount you choose — otherwise the same cell
 scored twice gets two different confidences and every aggregate over the column is noise.
 
-The reason is a **kind**, not a sentence: which two sources disagree, and what kind of disagreement
-it is — one supersedes the other, they measure different things, they are the same claim at
-different dates. Where the analysis declares a set of contradiction reasons, use it. A free-prose
-excuse cannot be counted, and a downgrade nobody can count is a downgrade nobody can audit.
+The reason is a **kind**, not a sentence, and it goes at the very start of the justification in a
+fixed form, so it can be counted: `downgraded (<kind>): <span id> vs <span id>.` and then the rest
+of the line. Where the analysis declares a set of contradiction reasons, the kind is one of those.
+Otherwise it is one of `superseded` (one source replaces the other), `different-quantity` (they
+measure different things), `different-date` (the same claim at different dates) or `unexplained`
+(nothing in the spans says why they differ). A free-prose excuse cannot be counted, and a downgrade
+nobody can count is a downgrade nobody can audit.
 
 For a level with no anchor of its own — a 2 or a 4 — confidence still grades the evidence, not your
 placement of it. Quotable primary spans that clearly bracket the level are `high`.
 
+## Which other criteria did this cell turn on?
+
+Every cell answers this, score or blank: **could the level of this cell change if you learned how the
+alternative stands on another of this analysis's criteria?** If yes, this cell depends on that
+criterion, and you list its id in `dependsOn`.
+
+The test is not whether you happened to look at the other criterion. It is whether this one can be
+judged without it. Two shapes are common:
+
+- **You find yourself needing the answer.** You cannot place the alternative on "ease of
+  migration" until you know where it stands on "data export format".
+- **A span says so.** A source states that this criterion's outcome turns on something another
+  criterion measures — "how much of the uptime credit applies depends on which support tier you
+  buy" ties a reliability criterion to a support-tier criterion. A span like that is a dependence
+  whether or not you also scored the cell from it, and whatever level you placed it at.
+
+An empty list is an answer, and it is the usual one; give it explicitly. A non-empty list is not a
+failure and not a reason to blank the cell. Score it as the evidence allows and declare the
+dependence: it tells the reviewer that two criteria may be counting the same thing twice, which is
+something only the person scoring a cell is in a position to notice. Folding it silently into the
+score hides it — including by treating the dependence as one of the anchor's "stated limits" and
+saying nothing more.
+
+List criteria by id, from this analysis's own criteria only. Do not list a criterion because it is
+related in general, and never list the criterion you are scoring.
+
 ## What to emit
 
-`plan` comes first in every case — the sentences you wrote at step 1, kept as provenance. It is
-emitted before the value fields, not after: writing the reasoning after the answer makes it a
-justification of a decision already taken.
+One object, with three keys, in this order:
 
-For a score:
+- `cell` — the measure, in exactly the shape the analysis stores it. Nothing more goes into it: a
+  key the stored cell has no slot for is refused, and the whole write with it.
+- `confidence` — for a score, `high`, `medium` or `low`, graded as above. Omitted for a blank: a
+  blank's uncertainty is its code.
+- `dependsOn` — the ids of the criteria this cell turns on, from the section above. Always present;
+  `[]` when there were none.
 
-- `plan` — what you set out to test, from step 1
-- `value` — the level, from the criterion's own scale
-- `confidence` — `high`, `medium`, or `low`
+`confidence` and `dependsOn` sit **beside** the cell, not inside it, because the stored cell has no
+field for either yet. Do not move them into the justification or the note to get them stored: a
+confidence written into prose cannot be counted, and a reader cannot tell it from a source's words.
+The one thing about confidence that does go into the justification is the downgrade reason, in the
+fixed form above, because it is a fact about the evidence rather than a grade of it.
+
+Inside `cell`, the reasoning comes before the value. Emit the keys in the order below: the
+justification and the evidence are written first, and the value or the blank last, so the value is
+generated from what you cited rather than the citations being chosen to fit the value.
+
+For a score, `cell` carries:
+
+- `alternativeId`, `criterionId` — as you were given them
 - `justification` — one line. What the evidence shows, not a restatement of the anchor. If you
-  scored across a contradiction, name it here
-- `evidence` — at least one span, quoted exactly, with its source and whether it supports,
-  contradicts, qualifies or merely contextualises the claim; and marked as primary source, secondary
-  summary, your own summary, or your own inference
+  scored across a contradiction, name it here; if you emitted a 2 or a 4, say which two anchors it
+  sits between
+- `evidence` — at least one span. For each: its `id` and `target` exactly as you were handed them;
+  `sourceType` — `primary` when the span is the source speaking for itself, `secondary` when it is
+  someone else's summary of it; its `stance` — `supports`, `contradicts`, `qualifies` or `context`;
+  and `selectors`, holding one `TextQuoteSelector` whose `exact` is the words you rely on, quoted
+  exactly as they appear
+- `value` — the level, from the criterion's own scale, as a number: `4`, not `"4"`
 
-For a blank:
+Evidence here is only ever spans you were handed. **Your own inference is never an evidence entry**:
+it has no source to quote and no id to copy, and dressed as a span it reads as something a source
+said. When the level rests on an inference across spans — two spans that together meet a condition
+neither meets alone — say so in the justification, naming the spans it is drawn from ("inferred from
+span-1 and span-2: …"), cite those spans as evidence, and grade confidence `medium`, which is what
+inference from adjacent evidence means.
 
-- `plan` — as above
-- `code` — from the table above, or from this analysis's declared extensions
-- `note` — in one or two lines. For the terminal codes, what was searched and what came back; for
+For a blank, `cell` carries:
+
+- `alternativeId`, `criterionId` — as above
+- `evidence` — the spans you did find, when there are any, in the same form. An `indeterminate` cell
+  with its two conflicting quotes attached is far more useful than the same cell left empty.
+  **`not-assessed` and `deferred` carry no evidence at all — omit the key**: an attached span on an
+  unsearched cell reads as proof that somebody searched, which is the exact misreading those two
+  codes exist to prevent
+- `missing` — `code`, from the table above or from this analysis's declared extensions, and `note`,
+  in one or two lines: for the terminal codes, what was searched and what came back; for
   `not-assessed` and `deferred`, why nothing was
-- `evidence` — the spans you did find, when there are any. An `indeterminate` cell with its two
-  conflicting quotes attached is far more useful than the same cell left empty. **`not-assessed` and
-  `deferred` carry no evidence at all** — an attached span on an unsearched cell reads as proof that
-  somebody searched, which is the exact misreading those two codes exist to prevent
 
-The field names above are what each value is called; the shape you emit them in is supplied by the
-caller, and the deterministic verb on the other side validates it. Do not invent a wrapper.
+A cell has `value` or `missing`, never both and never neither. Every blank has a `note`; every score
+has at least one span; no two spans in one cell share an id. Emit the three-key object exactly as
+described — no further wrapper around it, and no keys added to it or to the cell.
 
-Worked, on the invented vendor comparison above:
+Worked, on the invented vendor comparison above, criterion `support-window`, alternative
+`vendor-a`. The plan, not emitted, was: "level 5 needs a span naming a dated commitment; level 3
+needs a commitment with no date."
 
-> **score** — plan: "level 5 needs a span naming a dated commitment; level 3 needs a commitment with
-> no date." value: 5. confidence: `high`. justification: "the vendor's own page states a dated
-> window, which is the level-5 condition." evidence: "supported until 30 June 2029" — vendor support
-> page, primary source, supports.
+A score:
 
-> **blank** — plan: as above. code: `not-evidenced`. note: "searched the vendor site, changelog and
-> two industry summaries; none states a support window." evidence: none.
+```json
+{
+  "cell": {
+    "alternativeId": "vendor-a",
+    "criterionId": "support-window",
+    "justification": "The vendor's own page states a dated support window, which is the level-5 condition.",
+    "evidence": [
+      {
+        "id": "span-1",
+        "target": "vendor-a-support-page",
+        "sourceType": "primary",
+        "stance": "supports",
+        "selectors": [{"type": "TextQuoteSelector", "exact": "supported until 30 June 2029"}]
+      }
+    ],
+    "value": 5
+  },
+  "confidence": "high",
+  "dependsOn": []
+}
+```
+
+The silent case — retrieval searched and returned nothing:
+
+```json
+{
+  "cell": {
+    "alternativeId": "vendor-a",
+    "criterionId": "support-window",
+    "missing": {
+      "code": "not-evidenced",
+      "note": "Retrieval covered the vendor site, changelog and two industry summaries and returned nothing on a support window."
+    }
+  },
+  "dependsOn": []
+}
+```
+
+The conflicting case — both spans cited, because the conflict is the evidence:
+
+```json
+{
+  "cell": {
+    "alternativeId": "vendor-a",
+    "criterionId": "support-window",
+    "evidence": [
+      {
+        "id": "span-1",
+        "target": "vendor-a-support-page",
+        "sourceType": "primary",
+        "stance": "supports",
+        "selectors": [{"type": "TextQuoteSelector", "exact": "supported until 30 June 2029"}]
+      },
+      {
+        "id": "span-2",
+        "target": "reseller-datasheet",
+        "sourceType": "secondary",
+        "stance": "contradicts",
+        "selectors": [{"type": "TextQuoteSelector", "exact": "support ends 2027"}]
+      }
+    ],
+    "missing": {
+      "code": "indeterminate",
+      "note": "Vendor page states 2029, reseller datasheet states 2027; neither is dated later and nothing reconciles them."
+    }
+  },
+  "dependsOn": []
+}
+```
 
 Then stop. The next cell is a separate call, with a separate plan.

@@ -1,0 +1,165 @@
+[
+  {
+    "cellId": "c1",
+    "output": {
+      "plan": "Level 5 needs a span stating a dated support commitment more than 12 months out; level 1 needs a span stating support ends within 12 months; level 3 needs an undated commitment. The vendor's support page is the span that would settle it.",
+      "value": 5,
+      "confidence": "high",
+      "justification": "The vendor's own support page gives a dated end of support, 31 March 2030, about three and a half years after the 2026-10-13 date; this meets the level-5 condition. The span is about the Team plan, which is taken as the current plan.",
+      "evidence": [
+        {
+          "spanId": "s1",
+          "quote": "The Team plan is supported until 31 March 2030.",
+          "source": "the vendor's own support page",
+          "stance": "supports",
+          "provenance": "primary source"
+        }
+      ]
+    }
+  },
+  {
+    "cellId": "c2",
+    "output": {
+      "plan": "Levels 1, 3 and 5 each need a span stating a support window; no span was handed to me, so nothing can be quoted against any anchor. The retrieval record shows sources were searched, so the blank is a terminal code rather than not-assessed.",
+      "code": "not-evidenced",
+      "note": "Retrieval searched the Larkpad website, the Larkpad changelog and two independent review sites; none returned a span on a support window.",
+      "evidence": []
+    }
+  },
+  {
+    "cellId": "c3",
+    "output": {
+      "plan": "Level 5 needs a dated commitment more than 12 months out; level 1 needs a span stating support ends within 12 months. Both the vendor's pricing page and the reseller catalogue speak to Business plan support, but they meet different anchor conditions, so no single level can carry the cell.",
+      "code": "indeterminate",
+      "note": "Retrieval searched the Mossnote pricing page and a reseller catalogue. The vendor page states support through December 2029; the reseller entry, same quarter, states end of support June 2026. Nothing dates or supersedes either, and nothing reconciles them.",
+      "evidence": [
+        {
+          "spanId": "s1",
+          "quote": "Business plan customers are supported through December 2029.",
+          "source": "the vendor's own pricing page",
+          "stance": "supports",
+          "provenance": "primary source"
+        },
+        {
+          "spanId": "s2",
+          "quote": "Mossnote Business: end of support announced for June 2026.",
+          "source": "a reseller's catalogue entry, same quarter",
+          "stance": "contradicts",
+          "provenance": "secondary summary"
+        }
+      ]
+    }
+  },
+  {
+    "cellId": "c4",
+    "output": {
+      "plan": "Level 5 needs a source documenting export of all data in an open, documented format; level 3 needs export only in a proprietary format. The help centre span would settle it on whether it covers all data and states a published open schema; the API reference span would qualify the scope of that schema.",
+      "value": 5,
+      "confidence": "medium",
+      "justification": "The vendor's help centre says every workspace exports to Markdown and JSON with a published JSON schema, which meets the level-5 condition. The API reference scopes the open-schema documentation to bulk-endpoint exports, so the confidence is medium rather than high.",
+      "evidence": [
+        {
+          "spanId": "s1",
+          "quote": "Export every workspace to Markdown and JSON; the JSON schema is published in our API reference.",
+          "source": "the vendor's own help centre",
+          "stance": "supports",
+          "provenance": "primary source"
+        },
+        {
+          "spanId": "s2",
+          "quote": "Exports produced by the bulk endpoint are documented in the open Notes Interchange schema, version 2.",
+          "source": "the vendor's own API reference",
+          "stance": "qualifies",
+          "provenance": "primary source"
+        }
+      ]
+    }
+  },
+  {
+    "cellId": "c5",
+    "output": {
+      "plan": "Anchors need a span on this cell's data export; no retrieval record was handed to me, so no source has been consulted and a search-based code such as not-evidenced would be a claim nobody has made.",
+      "code": "not-assessed",
+      "note": "No retrieval record for this cell, so the Larkpad sources have not been consulted for data export. The search is outstanding.",
+      "evidence": []
+    }
+  },
+  {
+    "cellId": "c6",
+    "output": {
+      "plan": "Level 3 needs export only in a proprietary format; level 5 needs all data exported in an open format. The help centre span states both an open export and a proprietary-only export, so it should sit between the two anchors.",
+      "value": 4,
+      "confidence": "high",
+      "justification": "The vendor's help centre says notes and folders export openly to Markdown, but comments and attachments export only as a proprietary .mossarchive bundle. The evidence clears the proprietary-only condition at level 3 and falls short of the all-open condition at level 5.",
+      "evidence": [
+        {
+          "spanId": "s1",
+          "quote": "Notes and folders export to plain Markdown. Comments and attachments export only as a .mossarchive bundle, readable by Mossnote.",
+          "source": "the vendor's own help centre",
+          "stance": "supports",
+          "provenance": "primary source"
+        }
+      ]
+    }
+  },
+  {
+    "cellId": "c7",
+    "output": {
+      "plan": "Level 3 needs a self-serve migration path with stated limits; level 5 needs one with no stated limits. The help centre span settles it by whether it states a self-serve path and whether it states any limit.",
+      "value": 3,
+      "confidence": "high",
+      "justification": "The vendor's help centre states a self-serve move exists and states a limit, that completeness depends on the export formats the data supports. This meets the level-3 condition and rules out level 5, which requires no stated limits.",
+      "evidence": [
+        {
+          "spanId": "s1",
+          "quote": "You can move your team off Quillbase yourself at any time. How complete the move is depends on the export formats your data supports; see the export guide.",
+          "source": "the vendor's own help centre",
+          "stance": "supports",
+          "provenance": "primary source"
+        }
+      ]
+    }
+  },
+  {
+    "cellId": "c8",
+    "output": {
+      "plan": "Support-window anchors need a span stating a dated support commitment. The only span is homepage marketing about support quality, which places the window at no anchor. The search record decides between not-evidenced and not-assessed.",
+      "code": "not-evidenced",
+      "note": "Retrieval searched the Larkpad homepage and press releases. The only span is homepage copy about support quality, which states no support window.",
+      "evidence": [
+        {
+          "spanId": "s1",
+          "quote": "Industry-leading support, there for your team whenever you need it.",
+          "source": "the vendor's own homepage",
+          "stance": "contextualises",
+          "provenance": "primary source"
+        }
+      ]
+    }
+  },
+  {
+    "cellId": "c9",
+    "output": {
+      "plan": "Level 1 needs a source stating migration requires the vendor's paid professional services; level 3 needs a self-serve path. The vendor's help centre span would settle it, and the consultancy blog span would corroborate it within its stated scope.",
+      "value": 1,
+      "confidence": "high",
+      "justification": "The vendor's help centre states that moving an organisation off Mossnote is handled by its paid Migration Services team, which meets the level-1 condition. The consultancy post, a secondary summary, agrees and is scoped to organisations of more than 50 seats.",
+      "evidence": [
+        {
+          "spanId": "s1",
+          "quote": "Moving an organisation off Mossnote is handled by our paid Migration Services team.",
+          "source": "the vendor's own help centre",
+          "stance": "supports",
+          "provenance": "primary source"
+        },
+        {
+          "spanId": "s2",
+          "quote": "Mossnote requires a paid engagement with its own services team to migrate an organisation of more than 50 seats.",
+          "source": "a migration consultancy's blog post",
+          "stance": "supports",
+          "provenance": "secondary summary"
+        }
+      ]
+    }
+  }
+]

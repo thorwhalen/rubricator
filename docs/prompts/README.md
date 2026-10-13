@@ -30,7 +30,7 @@ Ten prompts, mapped to the ADR-0005 stages. "Shipped" means the file exists and 
 | `propose-criteria` | 3 | — | Criteria with definitions, polarity, level of measurement, veto status; flag overlaps |
 | `confirm-frame` | 4 | — | The checkpoint, run as an MCP elicitation where the client declares the capability |
 | `extract-evidence` | 5 | — | Which returned span bears on this claim. Runs *before* `score-cell`, which never sees the corpus |
-| `score-cell` | 5 | **yes** | **The default** (ADR-0011). One cell: score, confidence, one-line justification, evidence spans — and which blank, when there is no score to give |
+| `score-cell` | 5 | **yes** | **The default** (ADR-0011). One cell: score, confidence, one-line justification, evidence spans — and which blank, when there is no score to give. Emits the `measures_write` cell as it stands, with `confidence` and `dependsOn` beside it until the contract has slots for them (#126, #170) |
 | `score-column` | 5 | — | One criterion across all alternatives. **Not the default** — it survives only as arm 2 of the ADR-0008 evaluation harness, awaiting validation (ADR-0011) |
 | `review` | 6 | — | Self-critique: thin evidence, overlapping criteria, what would most change the picture |
 | `run-analysis` | — | — | The whole pipeline, for a caller who wants one instruction |
