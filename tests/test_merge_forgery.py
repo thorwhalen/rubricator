@@ -164,3 +164,41 @@ def test_a_broken_file_still_reserves_its_contributor_s_id(store) -> None:
         [forged, store.contribution_key("a1", "ben")]
     )
     assert document["authors"] == []
+
+
+# -- the frame is a hand-editable file too (#195) ------------------------------
+
+
+def test_a_frame_cell_carrying_an_assertion_is_the_frame_s_problem(store) -> None:
+    """A frame cell with ``{"authorId": "ben"}`` was served by both readers, unchecked."""
+    frame = {**FRAME, "cells": [{"alternativeId": "k1", "criterionId": "speed",
+                                 "measure": "score",
+                                 "assertions": [{"id": "x", "authorId": "ben", "value": 1}]}]}
+    with pytest.raises(MergeProblem, match="the frame holds assertions in cell"):
+        merge_contributions(frame, [("ben", BEN)])
+    store.blobs[store.frame_key("a1")] = json.dumps({**frame, "id": "a1"}).encode()
+    for read in (store.read, store.read_skipping):
+        with pytest.raises(MergeProblem, match="repair the frame file"):
+            read("a1")
+
+
+def test_a_frame_persona_named_after_a_contributor_speaks_for_nobody(store) -> None:
+    """``{"id": "ben", "principalId": "ana"}`` let ana's file sign as ben."""
+    frame = {**FRAME, "authors": [_human("ben", "Ben", principalId="ana")]}
+    ana = _contribution([], "ben")
+    with pytest.raises(MergeProblem, match='the frame gives "ben" to "ana"'):
+        merge_contributions(frame, [("ana", ana), ("ben", _contribution([], "zed"))])
+    # Neither party signs as the contested id, and the analysis still reads.
+    store.blobs[store.frame_key("a1")] = json.dumps({**frame, "id": "a1"}).encode()
+    forged = _place(store, "ana", ana)
+    document, skipped = store.read_skipping("a1")
+    assert sorted(s["file"] for s in skipped) == sorted(
+        [forged, store.contribution_key("a1", "ben")])
+    assert "neither signs as it" in next(s["because"] for s in skipped if s["file"] == forged)
+    assert document["cells"] == []
+
+
+def test_a_frame_persona_still_signs_for_its_principal_when_nobody_else_has_its_id() -> None:
+    frame = {**FRAME, "authors": [_human("ben", "Ben", principalId="ana")]}
+    merged = merge_contributions(frame, [("ana", _contribution([], "ben"))])
+    assert [a["authorId"] for a in merged["cells"][0]["assertions"]] == ["ben"]

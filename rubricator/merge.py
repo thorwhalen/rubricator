@@ -37,6 +37,12 @@ The two places where it is more than that:
   3. every assertion's ``authorId`` is one the file may speak for: its own id,
      an author it introduced, or a frame author whose principal it is.
 
+  The frame is a file a person can edit like any other, so it is held to the
+  same line (#195). It carries no assertions -- it has no contributor to speak
+  for them -- and a frame persona named after a contributor speaks for nobody:
+  the file of that name and the persona's principal both claim the id, which
+  is genuine cannot be told, so neither signs as it.
+
 ## Order
 
 Contributions merge in contributor-id order and assertions keep their within-file
@@ -111,6 +117,12 @@ def merge_contributions(
     # the contribution that got there first.
     declared_by: dict[str, str] = {a: "the frame" for a in authors}
     frame_authors = dict(authors)
+    # A frame persona whose id is also a contributor's file name: claimed by
+    # two parties, and spoken for by neither (#195).
+    contested = {
+        a: record["principalId"] for a, record in frame_authors.items()
+        if a in roster and record.get("principalId") not in (None, a)
+    }
 
     for contributor_id, contribution in contributions:
         own: dict[str, Any] = {}
@@ -127,7 +139,8 @@ def merge_contributions(
                 authors[author_id] = author
                 declared_by[author_id] = f'contribution "{contributor_id}"'
         speaks_for = {*own} | {
-            a for a, record in frame_authors.items() if record.get("principalId") == contributor_id
+            a for a, record in frame_authors.items()
+            if record.get("principalId") == contributor_id and a not in contested
         }
         # Its own id, unless the frame gives that id to somebody else: a file
         # named after a frame persona would otherwise sign as that persona.
@@ -147,7 +160,7 @@ def merge_contributions(
                 },
             )
             for assertion in cell.get("assertions", []):
-                _check_speaks_for(contributor_id, assertion, speaks_for)
+                _check_speaks_for(contributor_id, assertion, speaks_for, contested=contested)
                 namespaced = {**assertion, "id": _namespaced(contributor_id, assertion["id"])}
                 # A contributor supersedes their own assertions, so the reference
                 # is namespaced the same way; left bare it would name nothing.
@@ -205,6 +218,14 @@ def _index_frame(
             f"({type(error).__name__}: {error}). Every read of this analysis needs the frame, so "
             "repair the frame file."
         ) from None
+    signed = sorted("/".join(key) for key, c in cells.items() if c["assertions"])
+    if signed:
+        raise MergeProblem(
+            f"the frame holds assertions in cell(s) {', '.join(signed)}. An assertion belongs in "
+            "the contribution of whoever made it, where the merge checks who may sign it; the "
+            "frame speaks for nobody. Move them into that person's contribution file, or remove "
+            "them. Every read of this analysis needs the frame, so repair the frame file."
+        )
     ids = [*authors, *(v for key in cells for v in key), *renditions]
     if not all(isinstance(v, str) for v in ids):
         raise MergeProblem(
@@ -296,7 +317,11 @@ def _check_one_record(
 
 
 def _check_speaks_for(
-    contributor_id: str, assertion: Mapping[str, Any], speaks_for: set[str]
+    contributor_id: str,
+    assertion: Mapping[str, Any],
+    speaks_for: set[str],
+    *,
+    contested: Mapping[str, str] | None = None,
 ) -> None:
     """An assertion's ``authorId`` is one its file may speak for (#158).
 
@@ -310,6 +335,14 @@ def _check_speaks_for(
     author_id = assertion.get("authorId")
     if author_id in speaks_for:
         return
+    if contested and author_id in contested:
+        raise MergeProblem(
+            f'contribution "{contributor_id}" has assertion "{assertion.get("id")}" signed by '
+            f'"{author_id}", whom that file may not speak for: the frame gives "{author_id}" to '
+            f'"{contested[author_id]}" as a persona, and a contribution file is also named '
+            f'"{author_id}". Which is genuine cannot be told from the files, so neither signs as '
+            f'it. Rename the frame\'s persona "{contested[author_id]}:<name>", or remove it.'
+        )
     raise MergeProblem(
         f'contribution "{contributor_id}" has assertion "{assertion.get("id")}" signed by '
         f"{author_id!r}, whom that file may not speak for: a contribution signs only as its "
