@@ -103,8 +103,8 @@ def test_a_blank_counts_as_a_member_of_the_set(store) -> None:
 
 def test_a_superseded_assertion_is_not_live() -> None:
     doc = {"cells": [{"alternativeId": "x", "criterionId": "c", "measure": "score",
-                      "assertions": [{"id": "s1", "authorId": "a", "value": 1, "evidence": CITED, "supersededBy": "s2"},
-                                     {"id": "s2", "authorId": "a", "value": 2, "evidence": CITED}]}]}
+                      "assertions": [{"id": "s1", "authorId": "a", "value": 1, "evidence": CITED, "justification": "j", "supersededBy": "s2"},
+                                     {"id": "s2", "authorId": "a", "value": 2, "evidence": CITED, "justification": "j"}]}]}
     assert honesty_problems(doc) == []
 
 
@@ -198,13 +198,13 @@ def test_supersession_must_resolve_or_it_would_switch_an_assertion_off() -> None
     def doc(*assertions):
         return {"cells": [{"alternativeId": "x", "criterionId": "c", "measure": "score",
                            "assertions": list(assertions)}]}
-    ghost = doc({"id": "s1", "authorId": "a", "value": 1, "evidence": CITED, "supersededBy": "ghost"},
-                {"id": "s2", "authorId": "b", "value": 2, "evidence": CITED})
+    ghost = doc({"id": "s1", "authorId": "a", "value": 1, "evidence": CITED, "justification": "j", "supersededBy": "ghost"},
+                {"id": "s2", "authorId": "b", "value": 2, "evidence": CITED, "justification": "j"})
     assert [p.rule_id for p in honesty_problems(ghost)] == ["supersession-resolves"]
-    cycle = doc({"id": "s1", "authorId": "a", "value": 1, "evidence": CITED, "supersededBy": "s2"},
-                {"id": "s2", "authorId": "a", "value": 2, "evidence": CITED, "supersededBy": "s1"})
+    cycle = doc({"id": "s1", "authorId": "a", "value": 1, "evidence": CITED, "justification": "j", "supersededBy": "s2"},
+                {"id": "s2", "authorId": "a", "value": 2, "evidence": CITED, "justification": "j", "supersededBy": "s1"})
     assert {p.rule_id for p in honesty_problems(cycle)} == {"supersession-acyclic"}
-    dup = doc({"id": "s1", "authorId": "a", "value": 1, "evidence": CITED}, {"id": "s1", "authorId": "a", "value": 2, "evidence": CITED,
+    dup = doc({"id": "s1", "authorId": "a", "value": 1, "evidence": CITED, "justification": "j"}, {"id": "s1", "authorId": "a", "value": 2, "evidence": CITED, "justification": "j",
                                                           "independence": "resampled"})
     assert "unique-ids" in [p.rule_id for p in honesty_problems(dup)]
 
@@ -212,8 +212,8 @@ def test_supersession_must_resolve_or_it_would_switch_an_assertion_off() -> None
 def test_merge_namespaces_supersession_with_the_ids() -> None:
     frame = {"id": "a", "cells": [], "authors": []}
     contrib = {"authors": [], "cells": [{"alternativeId": "x", "criterionId": "c", "measure": "score",
-               "assertions": [{"id": "s1", "authorId": "ana", "value": 1, "evidence": CITED, "supersededBy": "s2"},
-                              {"id": "s2", "authorId": "ana", "value": 2, "evidence": CITED}]}]}
+               "assertions": [{"id": "s1", "authorId": "ana", "value": 1, "evidence": CITED, "justification": "j", "supersededBy": "s2"},
+                              {"id": "s2", "authorId": "ana", "value": 2, "evidence": CITED, "justification": "j"}]}]}
     merged = merge_contributions(frame, [("ana", contrib)])
     assert merged["cells"][0]["assertions"][0]["supersededBy"] == "ana:s2"
     assert honesty_problems(merged) == []
