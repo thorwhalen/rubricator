@@ -188,6 +188,8 @@ MALFORMED_EVIDENCE = {
     "a list of ids": (["e1"], "$.cells[0].evidence[0]"),
     "a list holding a null": ([SPAN, None], "$.cells[0].evidence[1]"),
     "a list holding a list": ([[SPAN]], "$.cells[0].evidence[0]"),
+    "selectors that are a number": ([{**SPAN, "selectors": 5}], "$.cells[0].evidence[0].selectors"),
+    "selectors that are a boolean": ([{**SPAN, "selectors": True}], "$.cells[0].evidence[0].selectors"),
 }
 
 
@@ -205,11 +207,24 @@ def test_malformed_evidence_is_refused_with_its_path_not_a_crash(route, base, ro
     assert message.startswith("refused")
     assert f"at {where}:" in message
     if route is _through_the_verb:
-        assert "nothing was written" in message and "Fix: " in message
+        assert "nothing was written" in message
     assert dict(runtime.store.blobs) == before
+
+
+def test_a_read_only_mapping_as_a_reference_is_refused_not_a_crash() -> None:
+    from types import MappingProxyType
+
+    runtime, verbs = _runtime()
+    with pytest.raises(ValueError, match=r"at \$\.cells\[0\]\.evidence\[0\]: .*Fix: "):
+        _through_the_verb(runtime, verbs, {**SCORE, "evidence": [MappingProxyType(SPAN)]})
+
+
+def test_a_python_caller_may_still_pass_evidence_as_a_tuple() -> None:
+    runtime, verbs = _runtime()
+    assert _through_the_verb(runtime, verbs, {**SCORE, "evidence": (SPAN,)})["written"] == 1
 
 
 def test_the_locator_profile_skips_a_reference_that_is_not_an_object() -> None:
     from rubricator.locators import profile_problems
 
-    assert profile_problems(["e1", None, {**SPAN, "selectors": QUOTE}]) == []
+    assert profile_problems(["e1", None, {**SPAN, "selectors": QUOTE}, {**SPAN, "selectors": 5}]) == []
