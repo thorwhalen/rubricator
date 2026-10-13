@@ -1,0 +1,30 @@
+[
+  {
+    "scenarioId": "s1",
+    "output": "Kettles is at the populate stage. Ana's confirmation of the frame on 2026-10-12 stands, so there is nothing to ask again. Of the nine cells, four have not been looked at, two are set aside on purpose (deferred), and the recorded assessments show one scored cell and two settled blanks. The summary does not say which criteria or alternatives the four unlooked cells are, so I cannot name them from these results.\n\nConfirmed: Ana at 2026-10-12T09:30:00Z, criteria version 1\nNobody has looked: 4\nSet aside on purpose: 2\nLooked, answer is a blank: 2\nScored: 1\nRe-score after a criteria change: 0\nNext: score — score the four cells nobody has looked at; the outstanding view would name their criterion columns or alternative rows, and the two deferred cells stay set aside unless you say to take them up."
+  },
+  {
+    "scenarioId": "s2",
+    "output": "Kettles is at the confirm stage and nothing has been scored. The frame has not been confirmed, and the stored instructions say the user must answer before any cell is scored. All nine cells are unlooked at. These results do not include the alternatives or the criterion definitions, so I cannot show them here; they would be put to you in chat when you are ready.\n\nConfirmed: no\nNobody has looked: 9\nSet aside on purpose: 0\nLooked, answer is a blank: 0\nScored: 0\nRe-score after a criteria change: 0\nNext: confirm — put the question, the three alternatives and the three criteria to the user in chat and record their answer before anything is scored."
+  },
+  {
+    "scenarioId": "s3",
+    "output": "Kettles is at the populate stage, but the criteria have moved on since Ana confirmed them. Her confirmation covered criteria version 1, the set is now at version 2, and the stored instructions say the old confirmation does not cover the new criteria. Two cells, the repair-policy score for brindle and copperleaf, answer version 1 and need re-scoring once the criteria are confirmed. Six cells have not been looked at, and the summary gives no per-criterion breakdown of them.\n\nConfirmed: criteria changed since Ana's confirmation at 2026-10-12T09:30:00Z\nNobody has looked: 6\nSet aside on purpose: 0\nLooked, answer is a blank: 1\nScored: 2\nRe-score after a criteria change: 2\nNext: confirm — put the frame to the user again, since the criteria changed after Ana's confirmation; nothing is scored or re-scored before they answer."
+  },
+  {
+    "scenarioId": "s4",
+    "output": "Kettles is at the populate stage. Ana's confirmation stands. Nothing is unlooked at and nothing answers an older definition. Four cells are scored and two are settled blanks. The remaining three are set aside on purpose (deferred), which is not work remaining until you say to take them up.\n\nConfirmed: Ana at 2026-10-12T09:30:00Z, criteria version 1\nNobody has looked: 0\nSet aside on purpose: 3\nLooked, answer is a blank: 2\nScored: 4\nRe-score after a criteria change: 0\nNext: ask-deferred — ask whether you want to take up the three deferred cells now; they stay set aside until you say so."
+  },
+  {
+    "scenarioId": "s5",
+    "output": "Kettles is at the populate stage, and Ana's confirmation stands. One cell has not been looked at. Two cells are queued, and the noise criterion declares queued as refining deferred (the record says it is waiting on the lab's decibel report), so they are set aside on purpose. Five cells are scored and one is a settled blank. The results do not say which alternative or criterion the unlooked cell is.\n\nConfirmed: Ana at 2026-10-12T09:30:00Z, criteria version 1\nNobody has looked: 1\nSet aside on purpose: 2\nLooked, answer is a blank: 1\nScored: 5\nRe-score after a criteria change: 0\nNext: score — score the one cell nobody has looked at; the outstanding view would name its criterion column or alternative row, and the two queued cells stay set aside."
+  },
+  {
+    "scenarioId": "s6",
+    "output": "Kettles is at the review stage. Every cell is recorded, nothing is outstanding, and nothing answers an older definition. Ana's confirmation stands. Six cells are scored and three are settled blanks, which the sources do not settle and which are finished work.\n\nConfirmed: Ana at 2026-10-12T09:30:00Z, criteria version 1\nNobody has looked: 0\nSet aside on purpose: 0\nLooked, answer is a blank: 3\nScored: 6\nRe-score after a criteria change: 0\nNext: review — read the analysis through, starting with the weakest scores as the summary suggests."
+  },
+  {
+    "scenarioId": "s7",
+    "output": "Kettles is at the populate stage with nothing outstanding. Ana confirmed on 2026-10-12 against criteria version 2 (the new noise anchors), so the confirmation stands and does not need asking again. Nine cells are scored, but three of them, the noise scores for brindle, copperleaf and tamsin, were scored against version 1 of the noise criterion and need re-scoring.\n\nConfirmed: Ana at 2026-10-12T09:30:00Z, criteria version 2\nNobody has looked: 0\nSet aside on purpose: 0\nLooked, answer is a blank: 0\nScored: 9\nRe-score after a criteria change: 3\nNext: rescore — re-score the noise column for brindle, copperleaf and tamsin against version 2 of the criteria."
+  }
+]
