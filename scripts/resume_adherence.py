@@ -31,8 +31,10 @@ LINES = {
 }
 KINDS = ("confirm", "score", "rescore", "ask-deferred", "review")
 COUNTS = ("nobody", "aside", "rescore", "scored", "blank", "na")
-#: Asking the user to confirm, in prose, where the block says otherwise.
-REASK = re.compile(r"\b(re-?confirm|please confirm|confirm (the|these|this|that|your|whether))\b", re.I)
+#: Asking the user to confirm, in prose, where the block says otherwise (not "nothing to re-confirm").
+REASK = re.compile(
+    r"(?<!nothing to )(?<!no need to )(?<!not )(?<!n't )"
+    r"\b(re-?confirm|please confirm|confirm (the|these|this|that|your|whether))\b", re.I)
 
 
 def _label(label: str) -> re.Pattern[str]:

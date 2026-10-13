@@ -156,3 +156,23 @@ def test_the_recorded_evaluation_still_grades_as_recorded(arm) -> None:
     row = grader.grade(scenarios, outputs)
     assert row.pop("settled_counted_as_work").startswith("0/")
     assert all(hits == total for hits, total in (v.split("/") for v in row.values())), row
+
+
+@pytest.mark.parametrize("arm", ["sonnet", "haiku"])
+def test_the_recorded_v2_evaluation_still_grades_as_recorded(arm) -> None:
+    scenarios = json.loads(SCENARIOS.read_text())
+    outputs = json.loads((ROOT / f"docs/evaluation/resume/2026-10-13-v2/out-v2-{arm}.json").read_text())
+    row = grader.grade(scenarios, outputs)
+    assert row.pop("settled_counted_as_work").startswith("0/")
+    assert row["names_a_real_place"] == "5/5" and row["adds_up"] == "12/12"
+    assert all(hits == total for hits, total in (v.split("/") for v in row.values())), row
+
+
+@pytest.mark.parametrize("prose, asks", [
+    ("Could you re-confirm the criteria before I go on?", True),
+    ("Please confirm whether the noise column can wait.", True),
+    ("Ana's confirmation stands, so there is nothing to re-confirm.", False),
+    ("There is no need to re-confirm; we did not ask again.", False),
+])
+def test_the_reask_check_ignores_a_reply_that_says_nothing_needs_confirming(prose, asks) -> None:
+    assert bool(grader.REASK.search(prose)) is asks

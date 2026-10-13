@@ -93,18 +93,19 @@ spelled: a code declared on the analysis or a criterion counts as the core code 
   answer is known and deliberately not shown). Settled. Not work remaining.
 
 `not-applicable` is neither: the criterion does not apply to that alternative, so the cell leaves
-every count and comparison. It has its own line.
+every comparison and rate. It is still a cell of the matrix, and has its own line.
 
 Cells that **answer an older criteria definition** (`counts.superseded`) need re-scoring once
-the new criteria are confirmed. A cell can be on two lines: a settled blank that answers an older
-definition is settled under the old criteria and due a fresh look under the new.
+the new criteria are confirmed. A cell can be on two lines: a scored or settled-blank cell that
+answers an older definition is settled under the old criteria and due a fresh look under the new.
 
 ## One unit: cells
 
 Every line of the block counts **cells**, and each number comes from its field in `counts`; do not
 add, subtract or estimate one the tool did not give. Nobody has looked + set aside on purpose +
 scored + looked-and-blank + not applicable add up to `counts.cells`. Re-score is the exception: it is
-a subset, the cells that answer an older definition and so can also be on a scored or blank line. If
+a subset, the cells that answer an older definition, and each of them is also on one of the other
+lines. If
 a tool reports `skipped` contributions, say how many could not be read: every count leaves them out.
 
 ## What to write
@@ -123,7 +124,7 @@ Not applicable: <n> cells
 Next: <kind> — <one sentence>
 ```
 
-The lines come from `analysis_get`: `byCode` and `superseded` as before, and `byKind` for scored
+The lines come from `analysis_get`: `byCode` and `superseded`, and `byKind` for scored
 (`scored`), looked-and-blank (`settledBlank`) and not applicable (`notApplicable`).
 
 The first line always begins `Confirmed:`. When no person's confirmation stands, it reads
