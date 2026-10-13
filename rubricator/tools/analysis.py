@@ -565,6 +565,7 @@ def measures_write(
             "the criteria and re-score, so no score is stamped with a version it never saw."
         )
     _refuse_malformed_cells(cells)
+    _refuse_malformed_author(author)
     known = {c["id"]: c for c in frame.get("criteria", [])}
     rows = {a["id"]: a for a in frame.get("alternatives", [])}
     for axis, index, verb in (
@@ -1454,6 +1455,30 @@ def _as_checked(cell: Any) -> Any:
         evidence = cell["evidence"]
         plain["evidence"] = list(evidence) if isinstance(evidence, (list, tuple)) else evidence
     return plain
+
+
+def _refuse_malformed_author(author: Any) -> None:
+    """Refuse an author the frozen AUTHOR shape does not admit, with its path (#195, from #178).
+
+    As :func:`_refuse_malformed_cells` does for cells: ``bind`` refuses these at
+    its input schema, and a direct caller reached ``author["id"]`` and crashed
+    with a bare ``KeyError`` instead. Unknown keys are left to the contract
+    check, which names the keys that are allowed.
+    """
+    from rubricator.schema.source import explain
+    from rubricator.surface.frozen import AUTHOR
+    from rubricator.surface import _validator
+
+    problems = [
+        explain(e, root="$.author")
+        for e in sorted(_validator(AUTHOR).iter_errors(author), key=lambda e: list(e.path))
+        if e.validator != "additionalProperties"
+    ]
+    if problems:
+        raise ValueError(
+            "refused, nothing was written: " + "; ".join(problems) + ". Fix: pass author as an "
+            "object with id and displayName (strings) and kind, as contributors.human() builds it."
+        )
 
 
 def _refuse_malformed_cells(cells: Any) -> None:

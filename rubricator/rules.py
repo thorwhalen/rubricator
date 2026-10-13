@@ -468,16 +468,39 @@ def _is_blank_text(value: Any) -> bool:
 
 
 def value_cites_evidence(document: Mapping[str, Any]) -> Iterable[Problem]:
-    """A value rests on at least one evidence reference (#59, ADR-0006).
+    """A value rests on at least one evidence reference that supports it (#59, ADR-0006).
 
     The honesty-family twin of `comparanda`'s completeness rule
     ``value-has-evidence``: that one tolerates a considered human judgement with
     nothing cited, and a renderer may. A producer whose claim is "cite spans,
     not documents" may not -- a value with nothing under it is the confident
     guess ADR-0006 replaces with a qualified blank.
+
+    **Rests on** means a reference whose ``stance`` is ``supports`` (absent
+    means ``supports``, the schema's default). A top score whose only citations
+    contradict it, qualify it or give context is cited, and nothing under it
+    says it is so (#195, from #178).
     """
     for _cell, assertion, path in _assertions(document):
-        if assertion.get("value") is not None and not _spans(assertion):
+        if assertion.get("value") is None:
+            continue
+        spans = _spans(assertion)
+        if spans and not any(r.get("stance", "supports") == "supports" for r in spans):
+            stances = ", ".join(sorted({str(r.get("stance")) for r in spans}))
+            yield Problem(
+                path=f"{path}.evidence",
+                message=(
+                    f"a value whose every evidence reference is {stances}, so nothing cited "
+                    "supports it."
+                ),
+                fix=(
+                    'cite the span the value rests on with stance "supports", or record a '
+                    'qualified blank instead ("indeterminate" if the sources conflict, '
+                    '"not-evidenced" if none bears on it).'
+                ),
+                rule_id="value-cites-evidence",
+            )
+        elif not spans:
             yield Problem(
                 path=f"{path}.evidence",
                 message="a value with no evidence reference, so nothing a reader can check supports it.",
