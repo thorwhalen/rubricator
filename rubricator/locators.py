@@ -54,6 +54,7 @@ from __future__ import annotations
 import math
 import re
 from dataclasses import asdict, dataclass
+from decimal import Decimal
 from typing import Any, Iterable, Mapping, Union
 from urllib.parse import quote as _percent, unquote
 
@@ -108,6 +109,28 @@ def _count(value: Any, name: str) -> None:
              f"{name} must be a non-negative integer, got {value!r}")
 
 
+def _text(value: Any, name: str, *, required: bool = False) -> None:
+    """A string that can travel: UTF-8 encodable (no lone surrogate), non-blank when required."""
+    _require(isinstance(value, str), f"{name} must be a string, got {value!r}")
+    try:
+        value.encode("utf-8")
+    except UnicodeEncodeError:
+        raise ValueError(f"{name} holds a lone surrogate, which no document can contain") from None
+    _require(not required or bool(value.strip()), f"{name} must not be blank")
+
+
+def _seconds(value: Any, name: str) -> float:
+    _require(isinstance(value, (int, float)) and not isinstance(value, bool),
+             f"{name} must be a number of seconds, got {value!r}")
+    try:
+        seconds = float(value)
+    except OverflowError:
+        raise ValueError(f"{name} is too large to be a time: {value!r}") from None
+    _require(math.isfinite(seconds) and seconds >= 0,
+             f"{name} must be a finite, non-negative number of seconds, got {value!r}")
+    return seconds
+
+
 @dataclass(frozen=True)
 class TextQuoteSelector:
     """The span's own words, with context to disambiguate it. The truth of a reference."""
@@ -117,7 +140,9 @@ class TextQuoteSelector:
     suffix: str = ""
 
     def __post_init__(self) -> None:
-        _require(isinstance(self.exact, str) and bool(self.exact), "a quote needs a non-empty exact")
+        _text(self.exact, "exact", required=True)
+        _text(self.prefix, "prefix")
+        _text(self.suffix, "suffix")
 
 
 @dataclass(frozen=True)
@@ -130,7 +155,8 @@ class TextPositionSelector:
     def __post_init__(self) -> None:
         _count(self.start, "start")
         _count(self.end, "end")
-        _require(self.start <= self.end, f"start {self.start} is after end {self.end}")
+        _require(self.start < self.end,
+                 f"[{self.start}, {self.end}) selects no characters; end must be after start")
 
 
 @dataclass(frozen=True)
@@ -158,6 +184,7 @@ class PageSelector:
         _count(self.index, "index")
         _require(isinstance(self.label, str) and bool(self.label),
                  "a page needs its label as well as its index: they are different numbers")
+        _text(self.label, "label", required=True)
 
 
 @dataclass(frozen=True)
@@ -168,12 +195,8 @@ class MediaTimeSelector:
     end: float
 
     def __post_init__(self) -> None:
-        for name in ("start", "end"):
-            value = getattr(self, name)
-            _require(isinstance(value, (int, float)) and not isinstance(value, bool)
-                     and math.isfinite(value) and value >= 0,
-                     f"{name} must be a finite, non-negative number of seconds, got {value!r}")
-        _require(self.start <= self.end, f"start {self.start} is after end {self.end}")
+        start, end = _seconds(self.start, "start"), _seconds(self.end, "end")
+        _require(start < end, f"{start}s to {end}s selects no time; end must be after start")
 
 
 @dataclass(frozen=True)
@@ -184,8 +207,8 @@ class FragmentSelector:
     conforms_to: str
 
     def __post_init__(self) -> None:
-        _require(bool(self.value) and bool(self.conforms_to),
-                 "a fragment needs both a value and the standard it conformsTo")
+        _text(self.value, "value", required=True)
+        _text(self.conforms_to, "conformsTo", required=True)
 
 
 Selector = Union[TextQuoteSelector, TextPositionSelector, LineRangeSelector, PageSelector,
@@ -209,6 +232,7 @@ def selector_from_dict(data: Mapping[str, Any]) -> Selector:
     ValueError: XPathSelector is not in the locator profile: it binds the reference to a DOM ...
     """
     kind = data.get("type")
+    _require(isinstance(kind, str), f"a selector's type must be a string, got {kind!r}")
     if kind in REJECTED:
         raise ValueError(f"{kind} is not in the locator profile: {REJECTED[kind]}")
     if kind not in _TYPES:
@@ -251,8 +275,15 @@ def to_stored(selector: Selector) -> dict[str, Any]:
 # -- fragments ---------------------------------------------------------------------------------
 
 def _number(value: float) -> str:
-    """The shortest spelling that reads back as the same float: ``12`` for 12.0, ``1.5`` for 1.5."""
-    return str(int(value)) if float(value).is_integer() else repr(float(value))
+    """The shortest plain-decimal spelling that reads back as the same float.
+
+    Media Fragments' ``npt`` seconds are digits with an optional fraction and no
+    exponent, so ``repr`` (``1e-05``) is not allowed: the shortest round-tripping
+    digits are written out in positional form instead (``0.00001``).
+    """
+    if float(value).is_integer():
+        return str(int(value))
+    return format(Decimal(repr(float(value))), "f")
 
 
 def _directive(text: str) -> str:
@@ -286,7 +317,7 @@ def to_fragment(selector: Selector) -> FragmentSelector:
 _CHAR = re.compile(r"char=(\d+),(\d+)")
 _LINE = re.compile(r"line=(\d+),(\d+)")
 _PAGE = re.compile(r"page=(\d+)&pagelabel=([^&]+)")
-_TIME = re.compile(r"t=(?:npt:)?([0-9.e+-]+),([0-9.e+-]+)")
+_TIME = re.compile(r"t=(?:npt:)?(\d+(?:\.\d+)?),(\d+(?:\.\d+)?)")
 
 
 def from_fragment(fragment: FragmentSelector) -> Selector:
@@ -316,11 +347,27 @@ def text_fragment_link(quote: TextQuoteSelector, *, url: str = "") -> str:
 
 # -- the write path ----------------------------------------------------------------------------
 
+#: How each stored comparanda v1 selector reads as a profile type, for validation.
+#: ``contentHash`` on a line range is v1's own integrity field and is not checked here.
+_AS_PROFILE = {
+    "TextQuoteSelector": lambda s: selector_from_dict(s),
+    "TextPositionSelector": lambda s: selector_from_dict(s),
+    "LineRangeSelector": lambda s: LineRangeSelector(s.get("startLine"), s.get("endLine")),
+    "TimeRangeSelector": lambda s: MediaTimeSelector(s.get("startSeconds"), s.get("endSeconds")),
+}
+
+
+def _same_standard(a: Any, b: str) -> bool:
+    return isinstance(a, str) and a.rstrip("/") == b.rstrip("/")
+
+
 def profile_problems(evidence: Iterable[Mapping[str, Any]]) -> list[str]:
     """Every way a set of evidence references leaves the locator profile, each naming the reference.
 
     Run before anything is stored. Refuses a rejected selector type, a stored
-    text fragment (derive it instead), and a position with no quote beside it.
+    text fragment (derive it instead), a selector the profile's own rules refuse
+    (a blank quote, an empty or reversed range), and a position with no usable
+    quote beside it.
 
     >>> profile_problems([{"id": "e1", "selectors": [{"type": "TextPositionSelector", "start": 1, "end": 4}]}])
     ['evidence e1: a TextPositionSelector is a hint that may go stale and is never the sole locator; add the TextQuoteSelector for the same span (ADR-0014)']
@@ -329,15 +376,25 @@ def profile_problems(evidence: Iterable[Mapping[str, Any]]) -> list[str]:
     for ref in evidence:
         where = f"evidence {ref.get('id', '?')}"
         selectors = [s for s in ref.get("selectors") or [] if isinstance(s, Mapping)]
-        kinds = [s.get("type") for s in selectors]
+        kinds = [k if isinstance(k, str) else repr(k) for k in (s.get("type") for s in selectors)]
         out += [f"{where}: {kind} is not in the locator profile: {REJECTED[kind]}"
                 for kind in kinds if kind in REJECTED]
         out += [f"{where}: a text-fragment link is rendered from the TextQuoteSelector, never "
                 "stored beside it as a second locator; drop the FragmentSelector (ADR-0014)"
                 for s in selectors
-                if s.get("type") == "FragmentSelector" and s.get("conformsTo") == TEXT_FRAGMENTS]
+                if s.get("type") == "FragmentSelector"
+                and _same_standard(s.get("conformsTo"), TEXT_FRAGMENTS)]
+        valid: list[str] = []
+        for selector, kind in zip(selectors, kinds):
+            if kind not in _AS_PROFILE:
+                continue
+            try:
+                _AS_PROFILE[kind](selector)
+                valid.append(kind)
+            except (ValueError, TypeError) as refused:
+                out.append(f"{where}: {kind} is outside the locator profile: {refused}")
         out += [f"{where}: a {kind} is a hint that may go stale and is never the sole locator; "
                 "add the TextQuoteSelector for the same span (ADR-0014)"
                 for kind in dict.fromkeys(kinds)
-                if kind in _TEXT_ADDRESSED and "TextQuoteSelector" not in kinds]
+                if kind in _TEXT_ADDRESSED and "TextQuoteSelector" not in valid]
     return out

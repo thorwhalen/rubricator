@@ -268,7 +268,10 @@ def test_a_stored_problem_moved_by_a_reordering_is_still_the_stored_one(runtime)
 
 
 def test_nan_never_reaches_the_store(runtime) -> None:
-    selector = {"type": "TextPositionSelector", "start": float("nan"), "end": float("inf")}
+    # A page region: the locator profile (#62) checks positions itself, and would
+    # refuse a NaN offset before this check is reached.
+    selector = {"type": "PageRegionSelector", "page": float("nan"),
+                "rect": {"x": float("inf"), "y": 0, "w": 1, "h": 1}}
     _unchanged(
         runtime,
         lambda: measures_write(runtime.store, analysis_id="a1", contributor_id="ana",

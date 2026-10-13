@@ -31,16 +31,18 @@ from rubricator.locators import (
 TYPED = [
     TextQuoteSelector("supported until 2029"),
     TextQuoteSelector("a-b, c & d", prefix="x-,", suffix=",-y"),
-    TextQuoteSelector("100% «guaranteed»", prefix="", suffix="—end"),
+    TextQuoteSelector("100% \u00abguaranteed\u00bb", prefix="", suffix="\u2014end"),
     TextQuoteSelector("ends with a dash -", prefix="- starts with one"),
-    TextPositionSelector(0, 0),
+    TextPositionSelector(0, 1),
     TextPositionSelector(120, 345),
     LineRangeSelector(1, 1),
     LineRangeSelector(41, 58),
     PageSelector(0, "i"),
     PageSelector(3, "iv"),
     PageSelector(11, "A&B=3 %"),
-    MediaTimeSelector(0, 0),
+    MediaTimeSelector(0, 0.5),
+    MediaTimeSelector(1e-05, 2),
+    MediaTimeSelector(5e-324, 1),
     MediaTimeSelector(12.5, 20),
     MediaTimeSelector(0.1, 1e-7 + 3),
     FragmentSelector("xywh=10,10,50,50", MEDIA_FRAGMENTS),
@@ -119,7 +121,16 @@ def test_media_and_page_need_no_quote() -> None:
 
 @pytest.mark.parametrize("bad", [
     lambda: TextQuoteSelector(""),
+    lambda: TextQuoteSelector("   "),
+    lambda: TextQuoteSelector("x", prefix=5),
+    lambda: TextQuoteSelector("\ud800"),
+    lambda: PageSelector(1, "\udfff"),
     lambda: TextPositionSelector(5, 4),
+    lambda: TextPositionSelector(4, 4),
+    lambda: MediaTimeSelector(3, 3),
+    lambda: MediaTimeSelector(10 ** 400, 10 ** 401),
+    lambda: FragmentSelector(1, 2),
+    lambda: selector_from_dict({"type": ["TextQuoteSelector"], "exact": "x"}),
     lambda: TextPositionSelector(-1, 4),
     lambda: LineRangeSelector(0, 3),
     lambda: MediaTimeSelector(float("nan"), 1),
@@ -161,3 +172,46 @@ def test_what_v1_can_store_is_stored_in_a_shape_the_write_path_accepts(selector)
 def test_what_v1_cannot_store_losslessly_is_refused_not_degraded(selector) -> None:
     with pytest.raises(ValueError, match="no lossless slot in comparanda v1"):
         to_stored(selector)
+
+
+def test_a_time_fragment_is_plain_decimal_never_an_exponent() -> None:
+    """Media Fragments' npt seconds have no exponent form; repr() would write one."""
+    assert to_fragment(MediaTimeSelector(1e-05, 2)).value == "t=0.00001,2"
+    assert "e" not in to_fragment(MediaTimeSelector(5e-324, 1)).value
+
+
+@pytest.mark.parametrize("bad, says", [
+    ({"type": "TextQuoteSelector", "exact": "   "}, "must not be blank"),
+    ({"type": "TextPositionSelector", "start": 5, "end": 2}, "selects no characters"),
+    ({"type": "TextPositionSelector", "start": 1.5, "end": 2}, "non-negative integer"),
+    ({"type": "LineRangeSelector", "startLine": 0, "endLine": -3}, "non-negative integer"),
+    ({"type": "TimeRangeSelector", "startSeconds": 4, "endSeconds": 1}, "selects no time"),
+])
+def test_the_write_path_applies_the_profile_rules_not_only_the_type_names(bad, says) -> None:
+    quote = {"type": "TextQuoteSelector", "exact": "q"}
+    problems = profile_problems([{"id": "e1", "selectors": [quote, bad]}])
+    assert any(says in p for p in problems), problems
+
+
+def test_a_blank_quote_does_not_count_as_the_quote_beside_a_position() -> None:
+    problems = profile_problems([{"id": "e1", "selectors": [
+        {"type": "TextQuoteSelector", "exact": ""}, {"type": "TextPositionSelector", "start": 1, "end": 4}]}])
+    assert any("never the sole locator" in p for p in problems)
+
+
+def test_a_line_range_keeps_its_stored_content_hash_and_passes() -> None:
+    selectors = [{"type": "TextQuoteSelector", "exact": "q"},
+                 {"type": "LineRangeSelector", "startLine": 2, "endLine": 3, "contentHash": "sha256:ab"}]
+    assert profile_problems([{"id": "e1", "selectors": selectors}]) == []
+
+
+def test_a_stored_text_fragment_is_refused_however_its_standard_is_spelt() -> None:
+    fragment = {"type": "FragmentSelector", "value": ":~:text=q", "conformsTo": TEXT_FRAGMENTS.rstrip("/")}
+    assert profile_problems([{"id": "e1", "selectors": [
+        {"type": "TextQuoteSelector", "exact": "q"}, fragment]}])
+
+
+def test_a_selector_type_that_is_not_a_string_is_not_a_crash() -> None:
+    """The frozen input schema refuses it first; the profile check must not raise on it either."""
+    problems = profile_problems([{"id": "e1", "selectors": [{"type": ["x"]}]}])
+    assert problems == []
