@@ -242,6 +242,14 @@ def frame_confirm(
         if state["open"]:
             deciding = state["deciding"]["criteria"]
             version = deciding.get("criteriaVersion")
+            if deciding.get("mechanism") == "skip-at-open":
+                # Nobody confirmed: the caller asked, when opening, for the checkpoint
+                # to be skipped (ADR-0005, ADR-0006: do not present what did not happen).
+                return result(
+                    True, "recorded", deciding, None,
+                    f"skipped at open, at the caller's request, at {deciding['at']}: nobody confirmed "
+                    "the criteria; scoring is open",
+                )
             if version in (None, current):
                 return result(
                     True, "recorded", deciding, None,

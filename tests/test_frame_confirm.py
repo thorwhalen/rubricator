@@ -196,6 +196,9 @@ def test_the_skip_is_explicit_at_creation_and_never_a_human_confirmation() -> No
     got = verbs["frame_confirm"](analysis_id="a1")
     assert got["confirmed"] is True and got["record"]["authorId"] == "agent"
     assert got["record"]["mechanism"] == "skip-at-open"
+    # The summary says what happened: a skip, not a confirmation (#187).
+    assert "skipped at open" in got["summary"] and "nobody confirmed" in got["summary"]
+    assert "already confirmed" not in got["summary"]
     # Retrying the same create is fine; adding a skip to an existing analysis is not.
     verbs["analysis_open"](analysis_id="a1", allow_skip_confirmation=True)
     verbs["analysis_open"](analysis_id="b1", question="q")

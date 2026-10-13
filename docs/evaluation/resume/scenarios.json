@@ -726,7 +726,7 @@
      "mechanism": "skip-at-open"
     },
     "instructions": null,
-    "summary": "already confirmed by agent at 2026-10-12T09:30:00Z; nothing to ask"
+    "summary": "skipped at open, at the caller's request, at 2026-10-12T09:30:00Z: nobody confirmed the criteria; scoring is open"
    },
    "report_completeness": {
     "analysisId": "kettles",

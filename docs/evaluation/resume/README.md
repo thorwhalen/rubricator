@@ -16,7 +16,7 @@ Twelve partial analyses on an invented domain (three fictional kettles, one offi
 | s5 | confirmed; two cells carry `queued`, a code declared on the criterion as refining `deferred` | `score` |
 | s6 | confirmed; every cell scored or a settled blank | `review` |
 | s7 | revised and confirmed again; every cell answers the older definition | `rescore` |
-| s8 | the checkpoint was skipped at open: `confirmed: true`, `record.decision: skip`, and a summary that says "already confirmed by agent" ([#187](https://github.com/thorwhalen/rubricator/issues/187)) | `score` |
+| s8 | the checkpoint was skipped at open: `confirmed: true`, `record.decision: skip`, and a summary that says it was skipped at open and nobody confirmed (fixed in [#187](https://github.com/thorwhalen/rubricator/issues/187); the recorded runs saw the old "already confirmed by agent" wording) | `score` |
 | s9 | the user answered `revise`, and the changes were never put back | `confirm` |
 | s10 | two raters on one cell, and an alternative removed after it was scored: claims outnumber live cells | `score` |
 | s11 | only the criteria were confirmed (`scope: criteria`) | `confirm` |
