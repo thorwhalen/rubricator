@@ -498,3 +498,37 @@ def test_a_later_occurrence_contributes_its_declaration_and_its_uri() -> None:
     assert not any("although not declared" in w for w in result["warnings"])
     (rendition,) = runtime.store.read("a1")["renditions"]
     assert rendition["originalLocator"] == "https://example.org/k2"
+
+
+# --- the third #201 review's findings -------------------------------------------
+
+
+@pytest.mark.parametrize("field, value", [
+    ("target", "rendition:{id}#120-140"), ("target", "{id}#span-0"), ("target", "doc:{id}"),
+    ("target", " {id} "), ("target", "RENDITION:{ID}"), ("renditionId", "{id} "),
+    ("target", "https://example.org/k2#p1"), ("target", "https://example.org/k2/"),
+    ("target", "http://EXAMPLE.org/k2"),
+])
+def test_any_spelling_of_a_marked_documents_name_is_refused_as_primary(field, value) -> None:
+    _, verbs = _scorable()
+    doc_id = verbs["corpus_add"](analysis_id="a1", sources=[{**SPEC, "agentProduced": True}])[
+        "documentIds"][0]
+    ref = {"id": "e1", "target": "doc:k2", "sourceType": "primary",
+           "selectors": [{"type": "TextQuoteSelector", "exact": "under four minutes"}]}
+    ref[field] = value.format(id=doc_id, ID=doc_id.upper())
+    with pytest.raises(ValueError, match=rf"cites {doc_id}"):
+        verbs["measures_write"](
+            analysis_id="a1", contributor_id="ana", author=AUTHOR,
+            cells=[{"alternativeId": "k2", "criterionId": "speed", "value": 4,
+                    "justification": "the sheet says so", "evidence": [ref]}])
+
+
+@pytest.mark.parametrize("record", [
+    {"id": "TKT-88", "subject": "Kettle K2 recall"},
+    {"id": "TKT-88", "subject": {"question": "Is the K2 recalled?"}},
+])
+def test_a_ticket_export_with_id_and_subject_is_not_marked(record) -> None:
+    _, verbs = _verbs()
+    result = verbs["corpus_add"](analysis_id="a1",
+                                 sources=[{"text": json.dumps(record), "agentProduced": False}])
+    assert result["documents"][0]["agentProduced"] is False

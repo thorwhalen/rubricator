@@ -170,21 +170,25 @@ def _as_json(text: str) -> Any:
 
 
 @lru_cache(maxsize=1)
-def _shapes() -> tuple[tuple[frozenset[str], frozenset[str], str], ...]:
-    """(required keys, allowed keys, what it is) for every object rubricator emits whole.
+def _shapes() -> tuple[tuple[Any, frozenset[str], str], ...]:
+    """(validator, keys that must be present, what it is) for every object rubricator emits whole.
 
-    Read from the contracts themselves -- the vendored comparanda schema and the
-    frozen output schemas -- so a source is recognised only when its keys fit one
-    of them exactly, never on two common words like ``summary``.
+    The contracts themselves -- the vendored comparanda schema and the frozen
+    output schemas -- with types, nested shapes and closed objects, so a source
+    is recognised only when it *validates* as one of them, never on key names
+    like ``id`` and ``subject`` that a ticket export also has. An analysis must
+    also carry ``alternatives`` and ``criteria``, which every analysis rubricator
+    writes has from ``analysis_open`` on.
     """
-    from rubricator.schema.source import VENDORED_PATH
+    from jsonschema import Draft202012Validator
+
+    from rubricator.schema.source import SchemaSource
     from rubricator.surface.frozen import FROZEN_TOOLS
 
-    analysis = json.loads(VENDORED_PATH.read_text(encoding="utf-8"))
-    shapes = [(frozenset(analysis["required"]), frozenset(analysis["properties"]),
+    shapes = [(Draft202012Validator(SchemaSource.vendored().schema), frozenset({"alternatives", "criteria"}),
                "a comparanda analysis document")]
     shapes += [
-        (frozenset(spec.output_schema["required"]), frozenset(spec.output_schema["properties"]),
+        (Draft202012Validator(spec.output_schema), frozenset(spec.output_schema["required"]),
          f"a {spec.name} result")
         for spec in FROZEN_TOOLS
     ]
@@ -201,9 +205,8 @@ def _rubricator_output(text: str) -> str | None:
     parsed = _as_json(text)
     if not isinstance(parsed, dict):
         return None
-    keys = frozenset(parsed)
-    for required, allowed, what in _shapes():
-        if required <= keys <= allowed:
+    for validator, present, what in _shapes():
+        if present <= parsed.keys() and validator.is_valid(parsed):
             return f"the text is {what}, which only an analysis run produces"
     return None
 
@@ -519,36 +522,69 @@ def _usable(ingest: Any) -> bool:
     )
 
 
+#: scheme://host, then path, query and fragment. Parsed here rather than with
+#: ``urllib``, which the determinism boundary keeps out of the tool layer.
+_URI_PARTS = re.compile(r"\A([A-Za-z][\w+.-]*)://([^/?#]*)([^?#]*)(\?[^#]*)?(#.*)?\Z")
+
+
+def _canonical_uri(value: str) -> str:
+    """A uri as two spellings of the same page agree on it: no fragment, no trailing slash, case-folded host."""
+    parts = _URI_PARTS.match(value.strip())
+    if not parts:
+        return value.strip()
+    scheme, host, path, query, _ = parts.groups()
+    scheme = "https" if scheme.lower() in ("http", "https") else scheme.lower()
+    return f"{scheme}://{host.lower()}{path.rstrip('/')}{query or ''}"
+
+
 def agent_produced_names(store: AnalysisStore, analysis_id: str) -> dict[str, str]:
-    """Every way an evidence reference can name a marked document, mapped to its id.
+    """The marked documents, by id and by canonical original uri, mapped to their id.
 
     A reference names a document by ``renditionId``, or by ``target``, which
-    comparanda leaves opaque: the bare id, ``rendition:<id>``, or the original's
-    uri. A uri counts only when no unmarked document shares it, so a summary
-    given its source's uri does not make the source itself uncitable.
-    Cheap when nothing is marked: markers are found by key, not by parsing.
+    comparanda leaves opaque. :func:`cited_document` finds an id anywhere in
+    either (``rendition:<id>#120-140`` names it as surely as the bare id), and a
+    uri in any spelling :func:`_canonical_uri` folds together. A uri counts only
+    while no unmarked document shares it, so a summary filed under its source's
+    uri leaves the source citable -- at the price that adding an unmarked
+    document under a marked one's uri makes that uri ambiguous, and it stops
+    naming the marked one. Cheap when nothing is marked: markers are found by key.
     """
     marked = store.corpus_record_ids(analysis_id, MARKER_RECORD)
     if not marked:
         return {}
-    names = {alias: rid for rid in marked for alias in (rid, f"rendition:{rid}")}
+    names = {rid: rid for rid in marked}
     frame = store.frame(analysis_id)
     by_locator: dict[str, set[str]] = {}
     for r in [*frame.get("renditions", []), *store.renditions(analysis_id)]:
         if isinstance(r, dict) and isinstance(r.get("originalLocator"), str):
-            by_locator.setdefault(r["originalLocator"], set()).add(r.get("id"))
+            by_locator.setdefault(_canonical_uri(r["originalLocator"]), set()).add(r.get("id"))
     for locator, ids in by_locator.items():
         if locator != _INLINE_LOCATOR and ids <= marked:
-            names[locator] = min(ids)
+            names[_URI + locator] = min(ids)
     return names
 
 
+#: Keys of :func:`agent_produced_names` that are canonical uris rather than ids.
+_URI = "uri:"
+
+
 def cited_document(ref: Mapping[str, Any], names: Mapping[str, str]) -> str | None:
-    """The marked document ``ref`` names, by ``renditionId`` or ``target``, or ``None``."""
+    """The marked document ``ref`` names, by ``renditionId`` or ``target``, or ``None``.
+
+    An id is matched anywhere in the field, case-folded: ids are ``doc-`` and 32
+    hex characters, so no other string contains one by accident.
+    """
+    ids = sorted(rid for key, rid in names.items() if not key.startswith(_URI))
     for field in ("renditionId", "target"):
         value = ref.get(field)
-        if isinstance(value, str) and value in names:
-            return names[value]
+        if not isinstance(value, str):
+            continue
+        folded = value.casefold()
+        hit = next((rid for rid in ids if rid.casefold() in folded), None)
+        if hit is None:
+            hit = names.get(_URI + _canonical_uri(value))
+        if hit:
+            return hit
     return None
 
 
@@ -556,7 +592,7 @@ def _cited_as_primary(store: AnalysisStore, analysis_id: str, marked: set[str]) 
     """Assertions already on record that cite a document this call has just marked, as primary."""
     if not marked:
         return []
-    names = {a: rid for a, rid in agent_produced_names(store, analysis_id).items() if rid in marked}
+    names = {k: rid for k, rid in agent_produced_names(store, analysis_id).items() if rid in marked}
     document, _ = store.read_skipping(analysis_id)
     cited: dict[str, list[str]] = {}
     for cell in document.get("cells", []):
