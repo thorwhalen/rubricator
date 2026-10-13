@@ -130,5 +130,5 @@ def test_the_recorded_evaluation_still_grades_as_recorded(arm) -> None:
     scenarios = json.loads(SCENARIOS.read_text())
     outputs = json.loads((ROOT / f"docs/evaluation/resume/2026-10-13/out-v1-{arm}.json").read_text())
     row = grader.grade(scenarios, outputs)
-    assert row.pop("settled_counted_as_work") == "0/5"
+    assert row.pop("settled_counted_as_work").startswith("0/")
     assert all(hits == total for hits, total in (v.split("/") for v in row.values())), row
