@@ -68,13 +68,13 @@ def test_a_frame_cell_with_no_assertions_still_merges() -> None:
 
 
 def test_a_frame_persona_signs_for_its_principal_beside_other_contributors() -> None:
-    frame = {**FRAME, "authors": [{"id": "cfo", "displayName": "CFO", "kind": "human",
+    frame = {**FRAME, "authors": [{"id": "ana:cfo", "displayName": "CFO", "kind": "human",
                                    "principalId": "ana"}]}
     signed = {"authors": [], "cells": [{"alternativeId": "k1", "criterionId": "speed",
                                         "measure": "score",
-                                        "assertions": [{"id": "s1", "authorId": "cfo"}]}]}
+                                        "assertions": [{"id": "s1", "authorId": "ana:cfo"}]}]}
     merged = merge_contributions(frame, [("ana", signed), ("ben", {"cells": []})])
-    assert merged["cells"][0]["assertions"][0]["authorId"] == "cfo"
+    assert merged["cells"][0]["assertions"][0]["authorId"] == "ana:cfo"
 
 
 # -- the gate -------------------------------------------------------------------

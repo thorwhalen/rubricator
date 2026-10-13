@@ -68,13 +68,19 @@ OUT_OF_BAND_INSTRUCTIONS = (
 )
 
 
+#: The subject fields the user is shown when asked (:data:`OUT_OF_BAND_INSTRUCTIONS`),
+#: and so the ones a confirmation answered: every field ``frame_set`` writes.
+_SHOWN_SUBJECT: tuple[str, ...] = ("question", "decision", "decider", "context", "ambiguities")
+
+
 def covered(frame: Mapping[str, Any]) -> dict[str, Any]:
     """What each part shows the user, kept on a confirmation so a later read can tell it moved.
 
-    The frame is a digest of its question, decision, decider and open
-    ambiguities; the alternatives are the live rows as ``[id, label]``; the
-    criteria are the live column ids -- their meaning is ``criteriaVersion``'s
-    to track. Read tolerantly: a damaged list is kept as what it holds.
+    The frame is a digest of its question, decision, decider, context and open
+    ambiguities; the alternatives are the live rows as ``[id, digest of the
+    row]``, so a changed label or description is a changed row; the criteria
+    are the live column ids -- their meaning is ``criteriaVersion``'s to track.
+    Read tolerantly: a damaged list is kept as what it holds.
 
     >>> covered({"subject": {"question": "which?"}, "criteria": [{"id": "c"}, {"id": "d", "tombstoned": True}],
     ...          "alternatives": [{"id": "k0", "label": "K"}]})["criteria"]
@@ -85,13 +91,15 @@ def covered(frame: Mapping[str, Any]) -> dict[str, Any]:
         return [r for r in rows if isinstance(r, Mapping) and not r.get("tombstoned")] \
             if isinstance(rows, list) else []
 
+    def digest(value: Any) -> str:
+        canonical = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False,
+                               default=str)
+        return "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
     subject = frame.get("subject") if isinstance(frame.get("subject"), Mapping) else {}
-    wording = {k: subject.get(k) for k in ("question", "decision", "decider", "ambiguities")}
-    canonical = json.dumps(wording, sort_keys=True, separators=(",", ":"), ensure_ascii=False,
-                           default=str)
     return {
-        "frame": "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
-        "alternatives": sorted([str(a.get("id")), str(a.get("label"))] for a in live("alternatives")),
+        "frame": digest({k: subject.get(k) for k in _SHOWN_SUBJECT}),
+        "alternatives": sorted([str(a.get("id")), digest(a)] for a in live("alternatives")),
         "criteria": sorted(str(c.get("id")) for c in live("criteria")),
     }
 
@@ -115,13 +123,13 @@ def _moved(state: Mapping[str, Any], frame: Mapping[str, Any]) -> list[str]:
         then = kept.get(part) if isinstance(kept, Mapping) else None
         if part == "frame":
             if then != now[part]:
-                out.append("the frame's question, decision, decider or ambiguities changed")
+                out.append("the frame's question, decision, decider, context or ambiguities changed")
             continue
         seen = {json.dumps(x, default=str) for x in then} if isinstance(then, list) else None
         new = [x for x in now[part] if seen is None or json.dumps(x) not in seen]
         if new:
             names = ", ".join(x[0] if isinstance(x, list) else x for x in new)
-            out.append(f"alternatives added or relabelled: {names}" if part == "alternatives"
+            out.append(f"alternatives added or changed: {names}" if part == "alternatives"
                        else f"criteria added: {names}")
     return out
 

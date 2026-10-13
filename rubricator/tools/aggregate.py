@@ -333,7 +333,7 @@ def _summary(
         text += f"; {off} value(s) off their scale, not counted"
     if older:
         text += (
-            f"; {older} score(s) given under an earlier definition of their criterion, not "
+            f"; {older} value(s) given under an earlier definition of their criterion, not "
             "counted: re-score those cells against the current one"
         )
     return text

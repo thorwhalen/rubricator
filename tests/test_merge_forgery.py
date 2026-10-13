@@ -75,18 +75,22 @@ def test_a_frame_author_cannot_be_redeclared_differently() -> None:
 
 
 def test_a_frame_author_may_be_signed_only_by_its_principal() -> None:
-    cfo = _human("cfo", "The CFO", principalId="ana")
+    # Prefixed since #195: a frame persona carries its principal, as a contribution's does.
+    cfo = _human("ana:cfo", "The CFO", principalId="ana")
     frame = {**FRAME, "authors": [cfo]}
-    merge_contributions(frame, [("ana", _contribution([], "cfo"))])
+    merge_contributions(frame, [("ana", _contribution([], "ana:cfo"))])
     with pytest.raises(MergeProblem, match="may not speak for"):
-        merge_contributions(frame, [("zed", _contribution([], "cfo"))])
+        merge_contributions(frame, [("zed", _contribution([], "ana:cfo"))])
 
 
 def test_a_file_named_after_a_frame_persona_cannot_sign_as_it() -> None:
-    """Review finding F1: ``cfo.json`` signing ``cfo`` displayed as Ana's persona."""
-    frame = {**FRAME, "authors": [_human("cfo", "The CFO (Ana)", principalId="ana")]}
+    """Review finding F1: ``cfo.json`` signing ``cfo`` displayed as Ana's persona.
+
+    Since #195 the persona is ``ana:cfo``, so only a hand-made file name can match it.
+    """
+    frame = {**FRAME, "authors": [_human("ana:cfo", "The CFO (Ana)", principalId="ana")]}
     with pytest.raises(MergeProblem, match="may not speak for"):
-        merge_contributions(frame, [("cfo", _contribution([], "cfo"))])
+        merge_contributions(frame, [("ana:cfo", _contribution([], "ana:cfo"))])
 
 
 def test_honest_contributions_still_merge() -> None:
@@ -182,23 +186,24 @@ def test_a_frame_cell_carrying_an_assertion_is_the_frame_s_problem(store) -> Non
             read("a1")
 
 
-def test_a_frame_persona_named_after_a_contributor_speaks_for_nobody(store) -> None:
-    """``{"id": "ben", "principalId": "ana"}`` let ana's file sign as ben."""
-    frame = {**FRAME, "authors": [_human("ben", "Ben", principalId="ana")]}
-    ana = _contribution([], "ben")
-    with pytest.raises(MergeProblem, match='the frame gives "ben" to "ana"'):
-        merge_contributions(frame, [("ana", ana), ("ben", _contribution([], "zed"))])
-    # Neither party signs as the contested id, and the analysis still reads.
+@pytest.mark.parametrize("persona", [
+    _human("ben", "Ben", principalId="ana"),          # a colleague's id, before or after they join
+    _human("cfo", "CFO", principalId="ana"),          # free today, a contributor's name tomorrow
+    _human("cara:cfo", "CFO", principalId="ben"),     # reads as cara's persona, signed by ben
+    _human("ana", "Ana", principalId=["ana"]),         # a principal that is not an id
+])
+def test_a_frame_persona_without_its_principal_s_prefix_is_the_frame_s_problem(store, persona) -> None:
+    """The review of #196: an unprefixed frame persona let its principal sign as a colleague."""
+    frame = {**FRAME, "authors": [persona]}
+    with pytest.raises(MergeProblem, match="whose id does not start with its principal"):
+        merge_contributions(frame, [("ana", _contribution([], "ana"))])
     store.blobs[store.frame_key("a1")] = json.dumps({**frame, "id": "a1"}).encode()
-    forged = _place(store, "ana", ana)
-    document, skipped = store.read_skipping("a1")
-    assert sorted(s["file"] for s in skipped) == sorted(
-        [forged, store.contribution_key("a1", "ben")])
-    assert "neither signs as it" in next(s["because"] for s in skipped if s["file"] == forged)
-    assert document["cells"] == []
+    for read in (store.read, store.read_skipping):
+        with pytest.raises(MergeProblem, match="repair the frame file"):
+            read("a1")
 
 
-def test_a_frame_persona_still_signs_for_its_principal_when_nobody_else_has_its_id() -> None:
-    frame = {**FRAME, "authors": [_human("ben", "Ben", principalId="ana")]}
-    merged = merge_contributions(frame, [("ana", _contribution([], "ben"))])
-    assert [a["authorId"] for a in merged["cells"][0]["assertions"]] == ["ben"]
+def test_a_frame_persona_carrying_its_principal_signs_beside_other_contributors() -> None:
+    frame = {**FRAME, "authors": [_human("ana:cfo", "CFO", principalId="ana")]}
+    merged = merge_contributions(frame, [("ana", _contribution([], "ana:cfo")), ("ben", BEN)])
+    assert [a["authorId"] for a in merged["cells"][0]["assertions"]] == ["ana:cfo", "ben"]

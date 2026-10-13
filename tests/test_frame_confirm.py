@@ -390,7 +390,7 @@ def test_a_swapped_frame_is_put_to_the_user_again_not_reported_confirmed() -> No
     got = verbs["frame_confirm"](analysis_id="a1")
     assert got["instructions"] == OUT_OF_BAND_INSTRUCTIONS
     assert "nothing to ask" not in got["summary"]
-    assert "alternatives added or relabelled: k2" in got["summary"]
+    assert "alternatives added or changed: k2" in got["summary"]
     assert "criteria added: support" in got["summary"]
     # A fresh confirm answers the new question, and covers what is there now.
     again = verbs["frame_confirm"](analysis_id="a1", decision="confirm", confirmed_by="ana",
@@ -427,4 +427,18 @@ def test_a_record_that_kept_nothing_is_asked_again_rather_than_trusted() -> None
         record = json.loads(runtime.store.blobs[key])
         record.pop("covered", None)
         runtime.store.blobs[key] = json.dumps(record).encode()
+    assert verbs["frame_confirm"](analysis_id="a1")["instructions"] == OUT_OF_BAND_INSTRUCTIONS
+
+
+@pytest.mark.parametrize("change", [
+    lambda v: v["frame_set"](analysis_id="a1", ambiguities=[], context="no budget limit"),
+    lambda v: v["alternatives_set"](analysis_id="a1", alternatives=[
+        {"id": "k1", "label": "Kettle one", "description": "a 0.5 l travel kettle"}]),
+])
+def test_a_changed_context_or_row_description_is_put_to_the_user_again(change) -> None:
+    """The review of #196: both read as already confirmed."""
+    _, verbs = _verbs()
+    _framed(verbs)
+    _ask_and_answer(verbs)
+    change(verbs)
     assert verbs["frame_confirm"](analysis_id="a1")["instructions"] == OUT_OF_BAND_INSTRUCTIONS

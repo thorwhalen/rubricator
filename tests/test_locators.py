@@ -267,3 +267,18 @@ def test_a_hash_made_by_the_normaliser_it_names_is_accepted() -> None:
     ref = _quoted(excerpt="until 2029", excerptHash=excerpt_hash("until 2029"),
                   normaliserId="nfc-v1")
     assert profile_problems([ref]) == []
+
+
+
+@pytest.mark.parametrize("exact", ["\u200b", "\ufe0f", "\u0301\u0301", "\u3164", "\u2800 "])
+def test_a_quote_of_nothing_visible_is_blank(exact) -> None:
+    """The review of #196: marks alone and filler characters passed as a quote."""
+    (problem,) = profile_problems([{"id": "e1", "selectors": [
+        {"type": "TextQuoteSelector", "exact": exact}]}])
+    assert "must not be blank" in problem
+
+
+@pytest.mark.parametrize("extra", [{"normaliserId": ["nfc-v1"]}, {"excerptHash": 7, "excerpt": "x"}])
+def test_a_hash_field_of_the_wrong_type_is_refused_not_a_crash(extra) -> None:
+    (problem,) = profile_problems([_quoted(**extra)])
+    assert "must be a string" in problem

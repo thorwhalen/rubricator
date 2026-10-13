@@ -106,18 +106,33 @@ REJECTED: Mapping[str, str] = {
 _TEXT_ADDRESSED = ("TextPositionSelector", "LineRangeSelector")
 
 
+#: Characters that are letters or symbols to Unicode and render as nothing: the
+#: Hangul fillers and the blank braille pattern. Listed, because no category
+#: says so.
+_INVISIBLE = frozenset("\u115f\u1160\u3164\uffa0\u2800")
+
+#: Categories with nothing to see on their own: format characters (a zero-width
+#: space), and marks, which only modify a character beside them (a variation
+#: selector, a lone combining accent).
+_INVISIBLE_CATEGORIES = frozenset({"Cf", "Mn", "Me"})
+
+
 def is_blank_text(value: str) -> bool:
     """Whether ``value`` has nothing visible in it.
 
     ``str.strip`` keeps a zero-width space (a format character), so a quote or
-    a note of one would read as written and say nothing.
+    a note of one would read as written and say nothing. A text of marks alone,
+    or of a filler character, says nothing either.
 
-    >>> is_blank_text(" \\u200b\\n"), is_blank_text("2029")
-    (True, False)
+    >>> is_blank_text(" \\u200b\\n"), is_blank_text("\\ufe0f\\u0301"), is_blank_text("2029")
+    (True, True, False)
     """
     import unicodedata
 
-    return all(ch.isspace() or unicodedata.category(ch) == "Cf" for ch in value)
+    return all(
+        ch.isspace() or ch in _INVISIBLE or unicodedata.category(ch) in _INVISIBLE_CATEGORIES
+        for ch in value
+    )
 
 
 def _require(condition: bool, message: str) -> None:
@@ -412,6 +427,11 @@ def _hash_problems(ref: Mapping[str, Any]) -> list[str]:
     from rubricator.normalise import NORMALISERS, excerpt_matches
 
     normaliser, recorded, excerpt = ref.get("normaliserId"), ref.get("excerptHash"), ref.get("excerpt")
+    wrong = [f"{name} must be a string, got {value!r}"
+             for name, value in (("normaliserId", normaliser), ("excerptHash", recorded))
+             if value is not None and not isinstance(value, str)]
+    if wrong:
+        return wrong
     if normaliser is not None and normaliser not in NORMALISERS:
         return [f"normaliserId {normaliser!r} is not one this package can reproduce (known: "
                 f"{', '.join(sorted(NORMALISERS))}); a quote recorded under it cannot be checked, "
