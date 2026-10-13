@@ -395,12 +395,13 @@ def frame_confirm(
                     # not reopened to a second confirmation by a read (#206 review) -- and one the
                     # user offers later is a recorded answer to it, not a decision out of nowhere.
                     # It asks for nothing: scoring is open.
-                    ask(scope_of([part for part in PARTS
-                                  if state["deciding"][part].get("mechanism") == "skip-at-open"]))
+                    invited = scope_of([part for part in PARTS
+                                        if state["deciding"][part].get("mechanism") == "skip-at-open"])
+                    ask(invited)
                     return result(
                         True, "recorded", deciding, None,
                         f"{standing}; scoring is open. A confirmation the user offers can be "
-                        "recorded now with frame_confirm and their name and words.",
+                        f"recorded now with frame_confirm, scope {invited}, and their name and words.",
                     )
                 return result(True, "recorded", deciding, None, f"already {standing}; nothing to ask")
             # Something moved since: scoring stays open (ADR-0005's gate opens
@@ -446,10 +447,15 @@ def frame_confirm(
         _kind(r) != "request" for r in records[last_request + 1:]
     )
     if DECISIONS[decision] and unasked:
+        latest = records[-1] if records else None
+        narrower = (f" The question pending was put for {latest['scope']} only: confirm that scope, "
+                    f"or call frame_confirm with no decision and scope {scope} first."
+                    if latest and _kind(latest) == "request" else "")
         return result(
             False, "out-of-band", None, OUT_OF_BAND_INSTRUCTIONS,
             "nothing recorded: the question has not been put to the user yet. Call frame_confirm "
-            "with no decision first, follow its instructions, then call again with their answer.",
+            "with no decision first, follow its instructions, then call again with their answer."
+            + narrower,
         )
     # One decision per part, all under the one question just checked: a reply that covers two
     # parts is one answer, and recording the second must not need a second question (#206).
@@ -460,10 +466,8 @@ def frame_confirm(
         )
     state = gate(store.confirmations(analysis_id))
     if state["open"]:
-        standing, skipped = _standing(state)
-        return result(True, "out-of-band", record, None,
-                      f"{standing}: scoring may start" if skipped
-                      else f"confirmed by {record['authorId']}: scoring may start")
+        standing, _ = _standing(state)
+        return result(True, "out-of-band", record, None, f"{standing}: scoring may start")
     follow = (
         "Make the changes the user asked for, then call frame_confirm with no decision to ask again."
         if decision != "confirm" else

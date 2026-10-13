@@ -655,3 +655,35 @@ def test_a_mixed_state_read_names_each_parts_own_record() -> None:
     got = verbs["frame_confirm"](analysis_id="a1")
     assert got["record"]["authorId"] == "ana"
     assert "nobody confirmed the frame, alternatives" in got["summary"] and "criteria: confirmed by ana" in got["summary"]
+
+
+def test_the_result_of_a_decision_names_each_parts_own_confirmation() -> None:
+    """The third review of #206: 'confirmed by bob: scoring may start' for parts Alice confirmed."""
+    _, verbs = _verbs()
+    _framed(verbs)
+    verbs["frame_confirm"](analysis_id="a1")
+    verbs["frame_confirm"](analysis_id="a1", scope="frame+alternatives", decision="confirm",
+                           confirmed_by="alice", confirmation_text="Those two are right.")
+    verbs["frame_confirm"](analysis_id="a1", scope="criteria")
+    done = verbs["frame_confirm"](analysis_id="a1", scope="criteria", decision="confirm", confirmed_by="bob",
+                                  confirmation_text="The criteria too.")
+    assert done["confirmed"] is True and "scoring may start" in done["summary"]
+    assert "frame, alternatives: confirmed by alice" in done["summary"] and "criteria: confirmed by bob" in done["summary"]
+    assert "confirmed by bob:" not in done["summary"].replace("criteria: confirmed by bob", "")
+
+
+def test_the_skip_read_names_the_scope_to_record_under_and_a_whole_confirm_is_told_what_is_pending() -> None:
+    runtime, verbs = _verbs()
+    _framed(verbs, allow_skip_confirmation=True)
+    verbs["frame_confirm"](analysis_id="a1")
+    verbs["frame_confirm"](analysis_id="a1", scope="criteria", decision="confirm", confirmed_by="ana",
+                           confirmation_text="The criteria are right.")
+    read = verbs["frame_confirm"](analysis_id="a1")
+    assert "scope frame+alternatives" in read["summary"]
+    refused = verbs["frame_confirm"](analysis_id="a1", scope="all", decision="confirm", confirmed_by="ana",
+                                     confirmation_text="Everything looks right.")
+    assert refused["record"] is None
+    assert "put for frame+alternatives only" in refused["summary"]
+    ok = verbs["frame_confirm"](analysis_id="a1", scope="frame+alternatives", decision="confirm",
+                                confirmed_by="ana", confirmation_text="Everything looks right.")
+    assert ok["confirmed"] is True and "skipped" not in ok["summary"]

@@ -61,7 +61,8 @@ user said, as if it were their words.
      the user offers one, record it (below), provided they have seen the frame: if it was not put
      to them in this conversation and they do not say they have read it, show it first and then
      record what they answer. The read you just made noted that a confirmation is invited, for the
-     parts that rest on the skip.
+     parts that rest on the skip, and names the scope to record it under; use that scope, even if
+     the user says "everything looks right" (the parts a person already confirmed need nothing more).
    - **`instructions` present**: the question is open, and the call has recorded that you are asking
      it. Ask it in this reply, as below. If `confirmed` is also true, something moved since the last
      confirmation; say what, from the `summary`.

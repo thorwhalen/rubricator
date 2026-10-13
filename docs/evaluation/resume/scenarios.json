@@ -1171,7 +1171,7 @@
      "mechanism": "skip-at-open"
     },
     "instructions": null,
-    "summary": "skipped at open, at the caller's request, at 2026-10-12T09:30:00Z: nobody confirmed the frame, alternatives, criteria; scoring is open. A confirmation the user offers can be recorded now with frame_confirm and their name and words."
+    "summary": "skipped at open, at the caller's request, at 2026-10-12T09:30:00Z: nobody confirmed the frame, alternatives, criteria; scoring is open. A confirmation the user offers can be recorded now with frame_confirm, scope all, and their name and words."
    }
   },
   "expected": {

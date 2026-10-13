@@ -801,7 +801,7 @@
      "mechanism": "out-of-band"
     },
     "instructions": null,
-    "summary": "frame, alternatives: skipped at open, at the caller's request, at 2026-10-12T09:30:00Z: nobody confirmed the frame, alternatives; criteria: confirmed by Ana at 2026-10-12T09:30:00Z; scoring is open. A confirmation the user offers can be recorded now with frame_confirm and their name and words."
+    "summary": "frame, alternatives: skipped at open, at the caller's request, at 2026-10-12T09:30:00Z: nobody confirmed the frame, alternatives; criteria: confirmed by Ana at 2026-10-12T09:30:00Z; scoring is open. A confirmation the user offers can be recorded now with frame_confirm, scope frame+alternatives, and their name and words."
    }
   },
   "conversation": [
@@ -1479,7 +1479,7 @@
      "mechanism": "skip-at-open"
     },
     "instructions": null,
-    "summary": "skipped at open, at the caller's request, at 2026-10-12T09:30:00Z: nobody confirmed the frame, alternatives, criteria; scoring is open. A confirmation the user offers can be recorded now with frame_confirm and their name and words."
+    "summary": "skipped at open, at the caller's request, at 2026-10-12T09:30:00Z: nobody confirmed the frame, alternatives, criteria; scoring is open. A confirmation the user offers can be recorded now with frame_confirm, scope all, and their name and words."
    }
   },
   "expected": {
@@ -1525,7 +1525,7 @@
      "mechanism": "skip-at-open"
     },
     "instructions": null,
-    "summary": "skipped at open, at the caller's request, at 2026-10-12T09:30:00Z: nobody confirmed the frame, alternatives, criteria; scoring is open. A confirmation the user offers can be recorded now with frame_confirm and their name and words."
+    "summary": "skipped at open, at the caller's request, at 2026-10-12T09:30:00Z: nobody confirmed the frame, alternatives, criteria; scoring is open. A confirmation the user offers can be recorded now with frame_confirm, scope all, and their name and words."
    }
   },
   "expected": {
@@ -1742,7 +1742,7 @@
      "mechanism": "elicitation"
     },
     "instructions": null,
-    "summary": "confirmed by Ana: scoring may start"
+    "summary": "confirmed by Ana at 2026-10-13T10:00:00Z: scoring may start"
    }
   },
   "expected": {
