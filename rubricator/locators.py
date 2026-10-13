@@ -373,9 +373,12 @@ def profile_problems(evidence: Iterable[Mapping[str, Any]]) -> list[str]:
     ['evidence e1: a TextPositionSelector is a hint that may go stale and is never the sole locator; add the TextQuoteSelector for the same span (ADR-0014)']
     """
     out: list[str] = []
-    for ref in evidence:
+    # A reference that is not an object is a shape problem, the schema's to
+    # report; skipped here so this check never raises on one (#179).
+    for ref in (r for r in evidence if isinstance(r, Mapping)):
         where = f"evidence {ref.get('id', '?')}"
-        selectors = [s for s in ref.get("selectors") or [] if isinstance(s, Mapping)]
+        raw = ref.get("selectors")
+        selectors = [s for s in raw if isinstance(s, Mapping)] if isinstance(raw, (list, tuple)) else []
         kinds = [k if isinstance(k, str) else repr(k) for k in (s.get("type") for s in selectors)]
         out += [f"{where}: {kind} is not in the locator profile: {REJECTED[kind]}"
                 for kind in kinds if kind in REJECTED]

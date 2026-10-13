@@ -577,6 +577,7 @@ def measures_write(
                 f"analysis. Declare them with {verb} first."
             )
     _refuse_unknown_keys(cells, "CELL", root="$.cells")
+    _refuse_malformed_evidence(cells)
     measures = {m["name"] for m in frame.get("measures", [])} or {"score"}
     problems = [
         p
@@ -1416,6 +1417,42 @@ def _refuse_unknown_keys(items: Sequence[Any], shape: str, *, root: str) -> None
     ]
     if problems:
         raise ValueError("refused, nothing was written: " + "; ".join(problems))
+
+
+def _refuse_malformed_evidence(cells: Sequence[Mapping[str, Any]]) -> None:
+    """Refuse an ``evidence`` that is not a list of objects, before any check walks it (#179).
+
+    ``bind`` refuses one at its schema, but a direct caller reaches the verb
+    without it, and every check after this one -- the locator profile, the
+    honesty rules, :func:`sign` -- walks evidence as a list of objects: a string
+    or a dict crashed there, and :func:`sign` would have turned a dict into a
+    list of its keys. Only the container is checked here; what is wrong *inside*
+    a reference object is the stored-document check's, which reports it beside
+    the other problems of that stage.
+    """
+    problems: list[str] = []
+    for i, cell in enumerate(cells):
+        evidence = cell.get("evidence", [])
+        # A tuple is a Python caller's list, and was always written as one.
+        if not isinstance(evidence, (list, tuple)):
+            problems.append(
+                f"at $.cells[{i}].evidence: {evidence!r} is a {type(evidence).__name__}, not a "
+                "list of evidence references"
+            )
+            continue
+        problems += [
+            f"at $.cells[{i}].evidence[{k}]: {ref!r} is a {type(ref).__name__}, not an evidence "
+            "reference object"
+            # dict, not Mapping: the reference is stored as JSON, and a read-only
+            # mapping would pass every rule and fail in the store.
+            for k, ref in enumerate(evidence) if not isinstance(ref, dict)
+        ]
+    if problems:
+        raise ValueError(
+            "refused, nothing was written: " + "; ".join(problems) + ". Fix: pass evidence as a "
+            "list of reference objects (id, target, sourceType, stance, and a selector or an "
+            "excerpt), or leave the key out (not null) for a blank that cites nothing."
+        )
 
 
 def _existing(

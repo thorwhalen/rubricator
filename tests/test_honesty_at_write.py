@@ -177,3 +177,54 @@ def test_the_external_source_types_are_members_of_the_closed_enum() -> None:
 
 def test_every_new_rule_cites_where_it_was_decided() -> None:
     assert {rule for _cell, rule, _where in DISHONEST.values()} <= set(RULE_SOURCES)
+
+
+#: Evidence that is not a list of reference objects, and where the refusal points (#179).
+MALFORMED_EVIDENCE = {
+    "a string": ("e1", "$.cells[0].evidence"),
+    "one reference, not in a list": (SPAN, "$.cells[0].evidence"),
+    "null": (None, "$.cells[0].evidence"),
+    "a number": (3, "$.cells[0].evidence"),
+    "a list of ids": (["e1"], "$.cells[0].evidence[0]"),
+    "a list holding a null": ([SPAN, None], "$.cells[0].evidence[1]"),
+    "a list holding a list": ([[SPAN]], "$.cells[0].evidence[0]"),
+    "selectors that are a number": ([{**SPAN, "selectors": 5}], "$.cells[0].evidence[0].selectors"),
+    "selectors that are a boolean": ([{**SPAN, "selectors": True}], "$.cells[0].evidence[0].selectors"),
+}
+
+
+@pytest.mark.parametrize("route", list(ROUTES.values()), ids=list(ROUTES))
+@pytest.mark.parametrize("base", [SCORE, _blank("not-evidenced")], ids=["value", "blank"])
+@pytest.mark.parametrize("row", list(MALFORMED_EVIDENCE.values()), ids=list(MALFORMED_EVIDENCE))
+def test_malformed_evidence_is_refused_with_its_path_not_a_crash(route, base, row) -> None:
+    """A direct caller is not behind ``bind``'s schema: the verb refuses, it does not raise inside."""
+    evidence, where = row
+    runtime, verbs = _runtime()
+    before = dict(runtime.store.blobs)
+    with pytest.raises(ValueError) as refused:
+        route(runtime, verbs, {**base, "evidence": evidence})
+    message = str(refused.value)
+    assert message.startswith("refused")
+    assert f"at {where}:" in message
+    if route is _through_the_verb:
+        assert "nothing was written" in message
+    assert dict(runtime.store.blobs) == before
+
+
+def test_a_read_only_mapping_as_a_reference_is_refused_not_a_crash() -> None:
+    from types import MappingProxyType
+
+    runtime, verbs = _runtime()
+    with pytest.raises(ValueError, match=r"at \$\.cells\[0\]\.evidence\[0\]: .*Fix: "):
+        _through_the_verb(runtime, verbs, {**SCORE, "evidence": [MappingProxyType(SPAN)]})
+
+
+def test_a_python_caller_may_still_pass_evidence_as_a_tuple() -> None:
+    runtime, verbs = _runtime()
+    assert _through_the_verb(runtime, verbs, {**SCORE, "evidence": (SPAN,)})["written"] == 1
+
+
+def test_the_locator_profile_skips_a_reference_that_is_not_an_object() -> None:
+    from rubricator.locators import profile_problems
+
+    assert profile_problems(["e1", None, {**SPAN, "selectors": QUOTE}, {**SPAN, "selectors": 5}]) == []
