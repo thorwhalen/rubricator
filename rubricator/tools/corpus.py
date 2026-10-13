@@ -533,22 +533,50 @@ def _usable(ingest: Any) -> bool:
 #: ``urllib``, which the determinism boundary keeps out of the tool layer.
 _URI_PARTS = re.compile(r"\A([A-Za-z][\w+.-]*)://([^/?#]*)([^?#]*)(\?[^#]*)?(#.*)?\Z")
 
+#: A target that looks like ``host.tld/path`` with no scheme: a dot in the first
+#: segment, which a bare id, a ``rendition:...`` name or a path like ``docs/a.md`` lacks.
+_SCHEMELESS = re.compile(r"\A(?:[^\s/@:?#]+@)?[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+(?::\d+)?(?:[/?#]|\Z)")
+
+_PERCENT = re.compile(r"%([0-9A-Fa-f]{2})")
+_UNRESERVED = frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
+
+#: Shortest run of hex characters taken as the start of a document id. Ids are
+#: 32 hex characters of a hash, so 8 is a collision in four billion.
+_MIN_ID_PREFIX = 8
+_HEX_RUN = re.compile(r"[0-9a-f]{%d,}" % _MIN_ID_PREFIX)
+
+
+def _unescaped(value: str) -> str:
+    """``value`` with the escapes of unreserved characters decoded and the rest upper-cased."""
+    def one(m: re.Match[str]) -> str:
+        char = chr(int(m.group(1), 16))
+        return char if char in _UNRESERVED else m.group(0).upper()
+
+    return _PERCENT.sub(one, value)
+
 
 def _canonical_uri(value: str) -> str:
     """A uri as spellings of the same page agree on it.
 
-    Folded away: the fragment, a trailing slash or ``?``, ``http`` against
-    ``https``, the host's case, a leading ``www.``, and a default port.
+    Folded away: the fragment, a trailing slash or ``?``, a missing scheme,
+    ``http`` against ``https``, ``user@`` in the authority, the host's case, a
+    leading ``www.``, a default port, the case of path and query, and
+    percent-escapes of characters that need none. Case is folded in the path
+    too, though uris are case-sensitive there: the cost of a false match is a
+    primary citation recorded as secondary, which is the safe direction.
     """
-    parts = _URI_PARTS.match(value.strip())
+    text = value.strip()
+    if "://" not in text and _SCHEMELESS.match(text):
+        text = "https://" + text
+    parts = _URI_PARTS.match(text)
     if not parts:
-        return value.strip()
+        return text
     scheme, host, path, query, _ = parts.groups()
     scheme = "https" if scheme.lower() in ("http", "https") else scheme.lower()
-    host = re.sub(r":(80|443)\Z", "", host.lower())
+    host = re.sub(r":(80|443)\Z", "", host.rpartition("@")[2].lower())
     host = host[len("www."):] if host.startswith("www.") else host
     query = "" if query in (None, "?") else query
-    return f"{scheme}://{host}{path.rstrip('/')}{query}"
+    return f"{scheme}://{host}{_unescaped(path).rstrip('/')}{_unescaped(query)}".casefold()
 
 
 def agent_produced_names(store: AnalysisStore, analysis_id: str) -> dict[str, str]:
@@ -592,8 +620,8 @@ def cited_document(ref: Mapping[str, Any], names: Mapping[str, str]) -> str | No
     reference into the unmarked original is not refused because its ``target``
     carries a uri a marked summary was filed under. Otherwise an id is matched
     anywhere in ``renditionId`` or ``target``, case-folded, with or without its
-    ``doc-`` prefix (ids are 32 hex characters, so nothing contains one by
-    accident), and then ``target`` as a uri in any spelling.
+    ``doc-`` prefix or shortened to its first 8 or more hex characters (ids are
+    32 hex characters, so nothing contains one by accident), and then ``target`` as a uri in any spelling.
     """
     ids = sorted(key for key in names if not key.startswith(_URI))
 
@@ -601,11 +629,21 @@ def cited_document(ref: Mapping[str, Any], names: Mapping[str, str]) -> str | No
         if not isinstance(value, str):
             return None
         folded = value.casefold()
-        return next(
+        whole = next(
             (rid for rid in ids if rid.casefold() in folded
              or rid.casefold().removeprefix(_ID_PREFIX) in folded),
             None,
         )
+        if whole is not None:
+            return whole
+        # A shortened id: a run of hex characters that starts one. Ambiguity
+        # between a marked and an unmarked document resolves to the marked one.
+        starts = sorted(
+            (rid for run in _HEX_RUN.findall(folded) for rid in ids
+             if len(run) <= _ID_HEX and rid.casefold().removeprefix(_ID_PREFIX).startswith(run)),
+            key=lambda rid: not names[rid],
+        )
+        return starts[0] if starts else None
 
     by_rendition = named(ref.get("renditionId"))
     if by_rendition is not None:

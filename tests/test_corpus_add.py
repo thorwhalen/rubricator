@@ -569,6 +569,46 @@ def test_more_spellings_of_a_marked_documents_name_are_refused(target) -> None:
                     "justification": "the sheet says so", "evidence": [ref]}])
 
 
+# --- the rarer spellings of #203 -------------------------------------------------
+
+
+@pytest.mark.parametrize("target", [
+    "example.org/k2", "www.example.org/k2/",
+    "doc-{short}", "{short}", "RENDITION:DOC-{short}#span-1",
+    "https://example.org/%6B2", "https://example.org/k%32", "https://example.org/K2",
+    "https://user@example.org/k2", "https://user:pw@EXAMPLE.org:443/k2",
+])
+def test_rarer_spellings_of_a_marked_documents_name_are_refused(target) -> None:
+    _, verbs = _scorable()
+    doc_id = verbs["corpus_add"](analysis_id="a1", sources=[{**SPEC, "agentProduced": True}])[
+        "documentIds"][0]
+    ref = {"id": "e1", "target": target.format(short=doc_id.removeprefix("doc-")[:8]),
+           "sourceType": "primary",
+           "selectors": [{"type": "TextQuoteSelector", "exact": "under four minutes"}]}
+    with pytest.raises(ValueError, match=rf"cites {doc_id}"):
+        verbs["measures_write"](
+            analysis_id="a1", contributor_id="ana", author=AUTHOR,
+            cells=[{"alternativeId": "k2", "criterionId": "speed", "value": 4,
+                    "justification": "the sheet says so", "evidence": [ref]}])
+
+
+@pytest.mark.parametrize("target", [
+    "doc:k2", "docs/k2.md", "https://example.org/k3", "https://other.org/k2",
+    "https://example.org/k2/specs", "{seven}", "k2",
+])
+def test_names_that_are_not_the_marked_document_are_written(target) -> None:
+    _, verbs = _scorable()
+    doc_id = verbs["corpus_add"](analysis_id="a1", sources=[{**SPEC, "agentProduced": True}])[
+        "documentIds"][0]
+    ref = {"id": "e1", "target": target.format(seven=doc_id.removeprefix("doc-")[:7]),
+           "sourceType": "primary",
+           "selectors": [{"type": "TextQuoteSelector", "exact": "under four minutes"}]}
+    assert verbs["measures_write"](
+        analysis_id="a1", contributor_id="ana", author=AUTHOR,
+        cells=[{"alternativeId": "k2", "criterionId": "speed", "value": 4,
+                "justification": "the sheet says so", "evidence": [ref]}])["summary"]
+
+
 def test_a_fence_full_of_whitespace_is_linear() -> None:
     """Finding 3: the fence regex backtracked quadratically on a long whitespace run."""
     import time
