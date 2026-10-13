@@ -43,7 +43,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Mapping, Sequence
 
-__all__ = ["Prompt", "prompts", "PROMPTS_DIR"]
+__all__ = ["Prompt", "prompts", "load_bundle", "PROMPTS_DIR"]
 
 #: Where the shipped prompts live. One constant, so that "where are the prompts"
 #: has one answer for the wheel, the tests and both runtimes.
@@ -98,16 +98,22 @@ def prompts(root: str | Path | None = None) -> Mapping[str, Prompt]:
     """
     if root is None:
         return _shipped()
-    return _load(Path(root))
+    return load_bundle(Path(root))
 
 
 @lru_cache(maxsize=1)
 def _shipped() -> Mapping[str, Prompt]:
     """The bundle inside the wheel, read once."""
-    return _load(PROMPTS_DIR)
+    return load_bundle(PROMPTS_DIR)
 
 
-def _load(root: Path) -> Mapping[str, Prompt]:
+def load_bundle(root: Path) -> Mapping[str, Prompt]:
+    """Every content file in ``root``, keyed by id, in the front-matter dialect below.
+
+    Public because the disclosures (:mod:`rubricator.disclosures`) are content
+    of the same shape served from their own directory, and one loader is what
+    keeps the two dialects from drifting.
+    """
     found: dict[str, Prompt] = {}
     for path in sorted(root.glob("*.md")):
         prompt = _parse(path.read_text(encoding="utf-8"), default_id=path.stem)

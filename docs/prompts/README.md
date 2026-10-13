@@ -100,3 +100,15 @@ instructing an agent to emit a value `measures_mark_missing` will refuse.
 The retired spellings — `pending`, now `deferred`; `unknown`, now `indeterminate` — are banned from
 prompt text outright. See [`CHANGELOG.md`](../../CHANGELOG.md) for that boundary and what it means
 for any number measured on either side of it.
+
+## Disclosures
+
+A disclosure is content for the analysis's *reader*, not for a model: the variance notice ADR-0018 requires is the first. It follows the same file contract and is read by the same loader (`rubricator.prompts.load_bundle`), from its own directory, so the prompt rules above (the honesty clause, the vocabulary check) do not apply to it and its own do.
+
+    rubricator/data/disclosures/*.md   the files, shipped in the wheel
+    rubricator/disclosures.py          the accessor -- `disclosures()`, with `root` as the seam
+    tests/test_disclosures.py          what the variance text must say, and must not
+
+One extra header key, `placeholders`: the `{name}` fields a renderer fills with what the analysis records (its procedure records, the seeds, the assertions' independence rungs) or with "not recorded". Each is a value on a `label: value` line, never a word inside a sentence, because the procedures ADR-0018 prescribes vary per cell and no one sentence template is true of all of them. A test holds the declared list and the body's fields equal, and renders the connector's one pass, the deployed adaptive run and the empty record. Rendering is `disclose_variance` (tool 17, planned).
+
+`variance` must state the traversal and repeats actually used and what each step does and does not remove; that the connector's isolation is in-session isolation (attenuation, not elimination); that repeats of one model are test–retest reliability, not agreement between raters; and that human panels show the same effects (halo, joint versus separate evaluation, sequential contrast), each with its own linked source, and that this is not a claim that a machine evaluator is uniquely unreliable. It claims no size for any mitigation until the harness (#96) has measured one: a test refuses any number in the prose and any size word in the mitigation bullets.
