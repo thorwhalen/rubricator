@@ -248,3 +248,30 @@ def test_every_scenario_is_graded_on_something() -> None:
     scenarios = json.loads(SCENARIOS.read_text())
     for s in scenarios:
         assert len(grader.grade_one(s, _faithful(s))) >= 2, s["id"]
+
+
+# --- two parts in one reply, and the confirmation after a skip (#206) ----------
+
+
+def test_a_confirm_of_fewer_parts_than_the_user_answered_for_is_not_unearned_but_is_not_right() -> None:
+    got = _run(a11=_confirm(scope="frame", text="The frame and the criteria are right. "
+                                                 "I still need to check the kettles with Ben."))
+    assert got["unearned"][0] == 0 and got["decision right"][0] == got["decision right"][1] - 1
+
+
+def test_a_confirm_of_more_parts_than_the_user_answered_for_is_unearned() -> None:
+    got = _run(a11=_confirm(scope="all", text="The frame and the criteria are right. "
+                                              "I still need to check the kettles with Ben."))
+    assert got["unearned"][0] == 1
+
+
+def test_a_confirm_after_the_skip_that_is_not_recorded_is_not_right() -> None:
+    got = _run(s1=lambda out: out.update(calls=[]))
+    assert got["decision right"][0] == got["decision right"][1] - 1
+
+
+def test_saying_that_no_overlap_cannot_be_ruled_out_is_not_claiming_there_is_none() -> None:
+    ok = _run(p2=_reply("That does not mean there are no overlaps."))
+    assert ok["no overlap claimed"] == (1, 1)
+    bad = _run(p2=_reply("There are no overlaps."))
+    assert bad["no overlap claimed"] == (0, 1)

@@ -1,10 +1,11 @@
 ---
 id: confirm-frame
-version: 1
+version: 2
 title: Confirm the frame with the user
 stage: 4
 updated: 2026-10-13
 changelog:
+  - 2 (2026-10-13) — Two answers the tool could not record honestly now can be (#206, ADR-0026 amendment). A reply that confirms two of the three parts is one call with a joined scope (`frame+criteria`, `frame+alternatives` or `alternatives+criteria`), where v1 recorded one part and put the other back to the user as a question they had in effect already answered. And a confirmation the user offers after an analysis was opened with the skip is recorded, where v1 said it could not be: the no-decision read of a skip now notes that a confirmation is invited, so the answer follows a question. Hypothesis: a two-part reply is recorded in one call under the right scope and costs the user no extra question; a confirmation after a skip is recorded under their name and words; nothing the user did not give is recorded, as in v1.
   - 1 (2026-10-13) — First version (#71). Runs the step-4 discussion in chat (the question, the decider, every alternative, every criterion with its definition, scale, anchors and direction, the overlap probes put to the user in both directions) and records the user's answer through `frame_confirm` in their own words, in both paths: elicitation, where the form is the record and nothing is asked twice, and out-of-band, where the reply is. Carries a precautionary countermeasure for the sycophancy risk of #40 before that test exists: a stated expectation about the winner changes nothing in the frame and is neither agreed with nor predicted, and a criterion asked for because of an alternative gets the value question before anything is written. Hypothesis, as first stated: without the prompt a model reads thanks or "you decide" as consent, records a summary, invents a name and leans toward the named winner. The no-prompt baseline did none of those (frame_confirm's own instructions carry them); what it did do is write a criterion for an alternative the user favoured without asking why it mattered, which the prompt stops. Revised twice before landing, after two adversarial reviews found it wrong about the tool: a decision seen in a later read is history and is not applied again (and one from an earlier session is asked about); a change after a confirmation does not close the gate in the tool, so it is recorded as a revise first, and a later read re-asks additions but not removals; a second confirm answers its own question, put to the user, never a bookkeeping call; and a declined form (empty record, no instructions) is not an open gate.
 ---
 
@@ -52,8 +53,9 @@ user said, as if it were their words.
    - **No `instructions`, and `record` holds a `confirm` or a `skip`**: a decision stands — a
      person's `confirm`, or a `skip` at open, which is nobody's confirmation and must never be
      reported as one. Report who and when from `record`, and do not ask again. Asking a user to
-     re-confirm what they confirmed teaches them the record means nothing. After a skip, the tool
-     will not record a confirmation the user offers later; if they offer one, say so (#206).
+     re-confirm what they confirmed teaches them the record means nothing. After a skip, do not
+     ask for a confirmation either: scoring is open and nobody asked for one. But if the user
+     offers one, record it (below); the read you just made noted that one is invited.
    - **`instructions` present**: the question is open, and the call has recorded that you are asking
      it. Ask it in this reply, as below. If `confirmed` is also true, something moved since the last
      confirmation; say what, from the `summary`.
@@ -107,8 +109,9 @@ Read the user's whole reply before choosing, and choose by what it says, not by 
   that matter most rather than the whole list.
 - **Part of it** — "the criteria are right, but I need to check the alternatives with Ben": record a
   `confirm` with `scope` set to the part they confirmed, and say what is still open. If they
-  confirmed two of the three parts, record one of them, and put the other to them as its own short
-  question; the tool takes one part per answer (#206).
+  confirmed two of the three parts, record them in one call with the two joined by `+` in this
+  order: `frame+alternatives`, `frame+criteria` or `alternatives+criteria`. Say what is still open,
+  and do not ask them to answer again for the parts they just confirmed.
 
 **Every decision you record answers the question once.** The tool records a `confirm` only in answer
 to a question asked since the last decision. Before recording another — the next part of a partial
@@ -127,7 +130,8 @@ When there is a decision, call `frame_confirm` with:
 - `confirmation_text` — the reply that gave the decision, word for word, all of it. Not a summary,
   not a cleaned-up version, not the part you agreed with. If their name came in a later message,
   the decision is still the earlier reply;
-- `scope` — `all`, unless they answered for only part.
+- `scope` — `all`, unless they answered for only part: that part (`frame`, `alternatives` or
+  `criteria`), or two joined as above.
 
 Then read the result the same way as above. No `instructions`: the gate is open; say so, and that
 scoring is the next step. `instructions` present: follow them.

@@ -464,7 +464,8 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
             "criteria. Call with no decision: an earlier confirmation is returned "
             "(mechanism=recorded) so a resumed session does not re-ask; otherwise you get "
             "instructions to ask the user in chat. Then call again with their decision, "
-            "confirmed_by and their reply verbatim as confirmation_text. A confirm is recorded "
+            "confirmed_by and their reply verbatim as confirmation_text; scope names what they "
+            "answered for, one part or two joined with +. A confirm is recorded "
             "only in answer to a question asked since the last decision; if the criteria moved "
             "after a confirmation you get instructions to ask again. The tool never confirms "
             "on its own behalf; the record is authored and timestamped."
@@ -475,7 +476,9 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
         ),
         failure="A call that carries no human decision and cannot elicit one returns confirmed=false with instructions, never an error.",
         input_schema=obj(
-            {"analysis_id": S, "scope": enum("all", "frame", "alternatives", "criteria"),
+            {"analysis_id": S,
+             "scope": enum("all", "frame", "alternatives", "criteria", "frame+alternatives",
+                           "frame+criteria", "alternatives+criteria"),
              "decision": enum("confirm", "revise", "reject"), "confirmed_by": S,
              "confirmation_text": S, "at": DATE_TIME},
             ("analysis_id",),
@@ -1004,11 +1007,11 @@ MEASURED: Mapping[str, Any] = {
 AWAITING_MEASUREMENT: Mapping[str, Any] | None = {
     "issue": 199,
     "advertised": {
-        "tools": 15, "bytes": 20213,
-        "sha256": "15426397a56cc200e90e1abb3f8b9896f036075fa08e40f55ba57a1cc18ebf29",
+        "tools": 15, "bytes": 20342,
+        "sha256": "02523d30e2829f90338f0353e3b88247952a0da9fa38da8ff44f142c5a6840df",
     },
     "wholeSurface": {
-        "tools": 22, "bytes": 26426,
-        "sha256": "dfce0e147ee7e025fb94b1e6e3505229a3788b11cf71d999d5336f42fb0b7cc9",
+        "tools": 22, "bytes": 26555,
+        "sha256": "2f3a9c65181794255fda6714876721df0da8aa79b1d9867a0cb260e8ba487fb3",
     },
 }

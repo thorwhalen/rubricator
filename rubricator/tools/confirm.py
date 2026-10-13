@@ -26,6 +26,11 @@ keeps what each part held when it was given (:func:`covered`), and anything new
 since is put to the user again the same way (#195): retiring every confirmed criterion and alternative
 and declaring new ones is not something an earlier "confirm" answered.
 
+A reply that answers for two of the three parts is one call with a joined
+scope (``frame+criteria``), recorded as one decision per part under the one
+question asked; a no-decision call on a gate that rests on the skip records a
+request, so a confirmation the user offers afterwards is an answer to it (#206).
+
 The records live beside the document, not in it: comparanda v1 has no slot
 for one (#152).
 """
@@ -40,12 +45,26 @@ from rubricator.store import AnalysisStore
 
 __all__ = [
     "frame_confirm", "record_decision", "gate", "ordered", "refuse_unconfirmed", "skip_record",
-    "PARTS", "SCOPES", "DECISIONS", "OUT_OF_BAND_INSTRUCTIONS", "covered",
+    "PARTS", "SCOPES", "SINGLE_SCOPES", "parts_of", "DECISIONS", "OUT_OF_BAND_INSTRUCTIONS", "covered",
 ]
 
 #: The parts of an analysis a confirmation can cover; ``all`` covers every one.
 PARTS: tuple[str, ...] = ("frame", "alternatives", "criteria")
-SCOPES: tuple[str, ...] = ("all", *PARTS)
+#: What one stored decision can cover: everything, or one part.
+SINGLE_SCOPES: tuple[str, ...] = ("all", *PARTS)
+#: What a caller can name: also two parts joined with ``+``, in :data:`PARTS` order, for an answer
+#: that covers two of the three ("the frame and the criteria are right"). A joined scope is
+#: recorded as one decision per part, so the gate keeps reading one scope per record (#206).
+SCOPES: tuple[str, ...] = (*SINGLE_SCOPES, *(f"{a}+{b}" for i, a in enumerate(PARTS) for b in PARTS[i + 1:]))
+
+
+def parts_of(scope: str) -> tuple[str, ...]:
+    """The parts a scope covers.
+
+    >>> parts_of("all"), parts_of("frame+criteria"), parts_of("alternatives")
+    (('frame', 'alternatives', 'criteria'), ('frame', 'criteria'), ('alternatives',))
+    """
+    return PARTS if scope == "all" else tuple(scope.split("+"))
 
 #: The decisions a human can give, and whether each opens the gate. ``skip`` is
 #: not a human decision: it is the record ``allow_skip_confirmation`` leaves.
@@ -63,8 +82,10 @@ OUT_OF_BAND_INSTRUCTIONS = (
     "Ask them to answer confirm, revise (saying what to change) or reject. Do not answer for "
     "them, and do not read silence, thanks or a change of topic as consent. When they answer, "
     "call frame_confirm again with decision set to their answer, confirmed_by set to the name "
-    "they go by, and confirmation_text set to their reply word for word. On revise, make the "
-    "changes they asked for, then call frame_confirm with no decision to ask again."
+    "they go by, and confirmation_text set to their reply word for word. If they answered for "
+    "only part of it, set scope to the part, or to two parts joined with +, for example "
+    "frame+criteria. On revise, make the changes they asked for, then call frame_confirm with no "
+    "decision to ask again."
 )
 
 
@@ -153,7 +174,7 @@ def _kind(record: Mapping[str, Any]) -> str:
         return "request"
     if decision == _SKIP and scope == "all" and record.get("mechanism") == "skip-at-open" and said("at"):
         return "open"
-    if decision in DECISIONS and scope in SCOPES and said("authorId") and said("text") and said("at"):
+    if decision in DECISIONS and scope in SINGLE_SCOPES and said("authorId") and said("text") and said("at"):
         return "open" if DECISIONS[decision] else "close"
     return "invalid"
 
@@ -193,6 +214,13 @@ def gate(records: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     return {"open": not closed, "closed": closed, "deciding": deciding, "invalid": invalid}
 
 
+def _one_answer(a: Mapping[str, Any] | None, b: Mapping[str, Any] | None) -> bool:
+    """Two records written from one reply: a joined scope is stored as a record per part (#206)."""
+    keys = ("decision", "authorId", "at", "text", "mechanism")
+    return a is not None and b is not None and all(a.get(k) == b.get(k) for k in keys) \
+        and a.get("mechanism") != "skip-at-open"
+
+
 def _standing(state: Mapping[str, Any]) -> tuple[str, bool]:
     """What stands behind an open gate, in words, and whether any part rests on the skip.
 
@@ -204,7 +232,7 @@ def _standing(state: Mapping[str, Any]) -> tuple[str, bool]:
     for part in PARTS:
         record = state["deciding"][part]
         for parts, other in groups:
-            if other is record:
+            if other is record or _one_answer(other, record):
                 parts.append(part)
                 break
         else:
@@ -347,10 +375,17 @@ def frame_confirm(
             moved = _moved(state, frame)
             if version in (None, current) and not moved:
                 standing, skipped = _standing(state)
-                return result(
-                    True, "recorded", deciding, None,
-                    f"{standing}; scoring is open" if skipped else f"already {standing}; nothing to ask",
-                )
+                if skipped:
+                    # Nobody confirmed what rests on the skip. The read notes that a confirmation
+                    # is invited, so one the user offers later is a recorded answer to it and not
+                    # a decision out of nowhere (#206). It asks for nothing: scoring is open.
+                    ask()
+                    return result(
+                        True, "recorded", deciding, None,
+                        f"{standing}; scoring is open. A confirmation the user offers can be "
+                        "recorded now with frame_confirm and their name and words.",
+                    )
+                return result(True, "recorded", deciding, None, f"already {standing}; nothing to ask")
             # Something moved since: scoring stays open (ADR-0005's gate opens
             # both ways, #152), but the question is put again so a fresh confirm
             # of what is there now can be recorded.
@@ -383,9 +418,10 @@ def frame_confirm(
     # the last decision: one request is not a standing licence to record
     # answers. One that closes it (revise, reject) needs no fresh question --
     # the only thing a model could fabricate with it is more caution.
+    wanted = set(parts_of(scope))
     last_request = max(
         (i for i, r in enumerate(records)
-         if _kind(r) == "request" and r.get("scope") in ("all", scope)),
+         if _kind(r) == "request" and wanted <= set(parts_of(r["scope"]))),
         default=-1,
     )
     unasked = last_request < 0 or any(
@@ -397,10 +433,13 @@ def frame_confirm(
             "nothing recorded: the question has not been put to the user yet. Call frame_confirm "
             "with no decision first, follow its instructions, then call again with their answer.",
         )
-    record = record_decision(
-        store, analysis_id=analysis_id, at=at, scope=scope, decision=decision,
-        author_id=str(confirmed_by).strip(), text=str(confirmation_text), mechanism="out-of-band",
-    )
+    # One decision per part, all under the one question just checked: a reply that covers two
+    # parts is one answer, and recording the second must not need a second question (#206).
+    for single in (scope,) if scope in SINGLE_SCOPES else parts_of(scope):
+        record = record_decision(
+            store, analysis_id=analysis_id, at=at, scope=single, decision=decision,
+            author_id=str(confirmed_by).strip(), text=str(confirmation_text), mechanism="out-of-band",
+        )
     state = gate(store.confirmations(analysis_id))
     if state["open"]:
         standing, skipped = _standing(state)

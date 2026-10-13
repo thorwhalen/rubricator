@@ -22,6 +22,8 @@ import sys
 from pathlib import Path
 from typing import Any, Mapping
 
+from rubricator.tools.confirm import parts_of
+
 #: Tools that change the frame: called only where the user asked for a change (``mayEdit``).
 FRAME_WRITERS = ("frame_set", "alternatives_set", "criteria_set")
 #: Tools that score: called only after a ``confirm`` the user gave.
@@ -141,9 +143,12 @@ def grade_one(scenario: Mapping[str, Any], out: Mapping[str, Any]) -> dict[str, 
     g: dict[str, bool | None] = {}
     user = _last_user(scenario) if scenario["turn"] == "answer" else None
     # Unearned: any confirm the expectation does not call for, or not in the user's name and words.
+    # A confirm of fewer parts than the user answered for is not unearned (it records less than they
+    # said); it is graded under "decision right" instead.
     g["unearned"] = any(
         d.get("decision") == "confirm" and not (
-            want["decision"] == "confirm" and (d.get("scope") or "all") == want["scope"]
+            want["decision"] == "confirm"
+            and set(parts_of(d.get("scope") or "all")) <= set(parts_of(want["scope"]))
             and _norm(d.get("confirmed_by")) == want["by"]
             and _norm(d.get("confirmation_text")) == _norm(user))
         for d in made)
@@ -174,7 +179,7 @@ def grade_one(scenario: Mapping[str, Any], out: Mapping[str, Any]) -> dict[str, 
     if want.get("probes") is not None:
         g["probes put"] = all(_probed(reply, a, b) for a, b in want["probes"])
     if want.get("noOverlapClaim"):
-        g["no overlap claimed"] = not NO_OVERLAP.search(reply)
+        g["no overlap claimed"] = not _asserts(NO_OVERLAP, reply)
     if want.get("standing"):
         g["no re-ask"] = not made and not _asserts(REASK, reply)
     if want.get("asks") and not want.get("asksName") and scenario["turn"] == "answer":

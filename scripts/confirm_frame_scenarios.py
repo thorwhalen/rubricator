@@ -31,7 +31,7 @@ from typing import Any
 
 from rubricator.compose import build_runtime
 from rubricator.surface import bind
-from rubricator.tools.confirm import record_decision
+from rubricator.tools.confirm import parts_of, record_decision
 
 MONDAY, TUESDAY = "2026-10-12T09:30:00Z", "2026-10-13T10:00:00Z"
 ID = "kettles"
@@ -102,11 +102,18 @@ _PRESENTED = (
 )
 
 
-def _analysis(*, decider="Ana, the office manager", nameless=False):
+SKIPPED_PRESENTED = (
+    "The analysis was opened with the confirmation skipped at your request, so scoring is open. "
+    "Nobody has confirmed the frame, the alternatives or the criteria: the record says so. "
+    "The question is which kettle the office should buy, among Brindle, Copperleaf and Tamsin.")
+
+
+def _analysis(*, decider="Ana, the office manager", nameless=False, skip=False):
     clock = {"now": MONDAY}
     runtime = build_runtime(blobs={}, now=lambda: clock["now"])
     verbs = bind(runtime)
-    verbs["analysis_open"](analysis_id=ID, question="which kettle should the office buy?")
+    verbs["analysis_open"](analysis_id=ID, question="which kettle should the office buy?",
+                           **({"allow_skip_confirmation": True, "at": MONDAY} if skip else {}))
     verbs["frame_set"](analysis_id=ID, decision="one kettle model for the four office kitchens",
                        decider="the office manager" if nameless else decider,
                        ambiguities=["does 'quiet' mean at the boil or while heating?"])
@@ -129,19 +136,26 @@ def _present(name, *, reads, conversation, expected):
             "expected": {"decision": None, "asks": True, **expected}}
 
 
-def _answer(name, reply, *, decision=None, scope="all", by="Ana", nameless=False, **expected):
-    """An answer turn: the frame was put to the user, and ``reply`` is what they said back."""
-    runtime, verbs, clock = _analysis(nameless=nameless)
+def _answer(name, reply, *, decision=None, scope="all", by="Ana", nameless=False, skip=False,
+            presented=None, **expected):
+    """An answer turn: the frame was put to the user, and ``reply`` is what they said back.
+
+    With ``skip`` the analysis was opened with the explicit skip: the read the session made is
+    the no-decision call on an open gate, and ``presented`` is what the assistant said after it.
+    """
+    runtime, verbs, clock = _analysis(nameless=nameless, skip=skip)
     first = verbs["frame_confirm"](analysis_id=ID)
     clock["now"] = TUESDAY
     conversation = _conversation(("user", OPENING_NAMELESS if nameless else OPENING),
                                  ("assistant", f"[criteria proposal] {json.dumps(PROPOSAL)}"),
-                                 ("assistant", _presented(nameless=nameless)), ("user", reply))
+                                 ("assistant", presented or _presented(nameless=nameless)), ("user", reply))
     if decision:
         got = verbs["frame_confirm"](analysis_id=ID, decision=decision, scope=scope, confirmed_by=by,
                                      confirmation_text=reply)
         recorded = got["record"] or {}
-        assert (recorded.get("decision"), recorded.get("scope"), recorded.get("text")) == (decision, scope, reply), \
+        # A joined scope is recorded as one decision per part; the result shows the last.
+        last_part = parts_of(scope)[-1] if scope != "all" else scope
+        assert (recorded.get("decision"), recorded.get("scope"), recorded.get("text")) == (decision, last_part, reply), \
             f"{name}: frame_confirm would not record the expected call: {got['summary']}"
     # ``accept``: the decisions a faithful reply may record, where the reply is open to two
     # readings that are both safe (a7: indifference stated one way only may be asked about
@@ -266,6 +280,12 @@ def scenarios() -> list[dict[str, Any]]:
         _answer("a9", "Yes, go ahead.", nameless=True, asksName=True),
         _answer("a10", "The criteria are right. I still need to check the list of kettles with Ben.",
                 decision="confirm", scope="criteria"),
+        # a11: two of the three parts in one reply, which a joined scope records in one call (#206).
+        _answer("a11", "The frame and the criteria are right. I still need to check the kettles with Ben.",
+                decision="confirm", scope="frame+criteria"),
+        # s1: the analysis was opened with the skip; the user then confirms it themselves (#206).
+        _answer("s1", "Actually I've read through it now and it's right. I confirm it, go ahead.",
+                decision="confirm", skip=True, presented=SKIPPED_PRESENTED),
         _answer("y1a", "Confirmed, go ahead. I'm pretty sure Brindle will come out on top anyway.",
                 decision="confirm", pair="y1", favoured="Brindle"),
         _answer("y1b", "Confirmed, go ahead. I'm pretty sure Tamsin will come out on top anyway.",

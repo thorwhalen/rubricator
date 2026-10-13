@@ -442,3 +442,132 @@ def test_a_changed_context_or_row_description_is_put_to_the_user_again(change) -
     _ask_and_answer(verbs)
     change(verbs)
     assert verbs["frame_confirm"](analysis_id="a1")["instructions"] == OUT_OF_BAND_INSTRUCTIONS
+
+
+# --- two parts in one reply, and a confirmation after the skip (#206) ----------
+
+
+def _decisions(runtime):
+    return [(r["decision"], r["scope"]) for r in runtime.store.confirmations("a1") if r["decision"] != "requested"]
+
+
+def _requests(runtime):
+    return [r for r in runtime.store.confirmations("a1") if r["decision"] == "requested"]
+
+
+@pytest.mark.parametrize("scope, parts, closed", [
+    ("frame+alternatives", ["frame", "alternatives"], ["criteria"]),
+    ("frame+criteria", ["frame", "criteria"], ["alternatives"]),
+    ("alternatives+criteria", ["alternatives", "criteria"], ["frame"]),
+])
+def test_two_parts_confirmed_in_one_reply_are_recorded_in_one_call(scope, parts, closed) -> None:
+    """One question, one answer, two parts: no second no-decision call, no request for a question never put."""
+    runtime, verbs = _verbs()
+    _framed(verbs)
+    verbs["frame_confirm"](analysis_id="a1")
+    got = verbs["frame_confirm"](analysis_id="a1", scope=scope, decision="confirm", confirmed_by="ana",
+                                 confirmation_text="The frame and the criteria are right; the rest I'll check.")
+    assert got["confirmed"] is False and f"Still to confirm: {closed[0]}" in got["instructions"]
+    assert _decisions(runtime) == [("confirm", p) for p in parts]
+    assert len(_requests(runtime)) == 1, "the one question that was asked"
+    assert {r["text"] for r in runtime.store.confirmations("a1") if r["decision"] == "confirm"} == {
+        "The frame and the criteria are right; the rest I'll check."}
+    with pytest.raises(ValueError, match=closed[0]):
+        _score(verbs)
+
+
+def test_the_third_part_still_needs_its_own_question() -> None:
+    runtime, verbs = _verbs()
+    _framed(verbs)
+    verbs["frame_confirm"](analysis_id="a1")
+    verbs["frame_confirm"](analysis_id="a1", scope="frame+criteria", decision="confirm",
+                           confirmed_by="ana", confirmation_text="Those two are right.")
+    again = verbs["frame_confirm"](analysis_id="a1", scope="alternatives", decision="confirm",
+                                   confirmed_by="ana", confirmation_text="Yes, the kettles too.")
+    assert again["record"] is None and "has not been put to the user" in again["summary"]
+    verbs["frame_confirm"](analysis_id="a1", scope="alternatives")
+    done = verbs["frame_confirm"](analysis_id="a1", scope="alternatives", decision="confirm",
+                                  confirmed_by="ana", confirmation_text="Yes, the kettles too.")
+    assert done["confirmed"] is True and _score(verbs)["written"] == 1
+
+
+def test_a_request_for_one_part_does_not_license_confirming_two() -> None:
+    runtime, verbs = _verbs()
+    _framed(verbs)
+    verbs["frame_confirm"](analysis_id="a1", scope="criteria")
+    got = verbs["frame_confirm"](analysis_id="a1", scope="frame+criteria", decision="confirm",
+                                 confirmed_by="ana", confirmation_text="Both are right.")
+    assert got["record"] is None and not _decisions(runtime)
+
+
+def test_a_request_for_a_pair_licenses_either_part_of_it_and_the_pair() -> None:
+    runtime, verbs = _verbs()
+    _framed(verbs)
+    verbs["frame_confirm"](analysis_id="a1", scope="frame+criteria")
+    got = verbs["frame_confirm"](analysis_id="a1", scope="criteria", decision="confirm",
+                                 confirmed_by="ana", confirmation_text="The criteria are right.")
+    assert got["record"]["scope"] == "criteria"
+
+
+def test_a_joined_scope_revise_closes_both_parts() -> None:
+    runtime, verbs = _verbs()
+    _framed(verbs)
+    _ask_and_answer(verbs)
+    assert _score(verbs)["written"] == 1
+    verbs["frame_confirm"](analysis_id="a1", scope="frame+alternatives", decision="revise",
+                           confirmed_by="ana", confirmation_text="Change the question and the kettles.")
+    with pytest.raises(ValueError, match="frame, alternatives"):
+        _score(verbs)
+
+
+def test_a_stored_decision_with_a_joined_scope_is_invalid_and_closes_the_gate() -> None:
+    """The writer splits a joined scope; a hand-edited record that keeps it is a record the gate cannot read."""
+    runtime, verbs = _verbs()
+    _framed(verbs)
+    runtime.store.add_confirmation("a1", {"decision": "confirm", "scope": "frame+criteria", "authorId": "ana",
+                                         "at": MOMENT, "text": "x", "mechanism": "out-of-band"})
+    with pytest.raises(ValueError, match="cannot be read"):
+        _score(verbs)
+
+
+def test_a_confirmation_offered_after_the_skip_is_recorded_as_a_persons() -> None:
+    runtime, verbs = _verbs()
+    _framed(verbs, allow_skip_confirmation=True)
+    skipped = verbs["frame_confirm"](analysis_id="a1")
+    assert skipped["confirmed"] is True and skipped["instructions"] is None
+    assert "can be recorded now" in skipped["summary"] and len(_requests(runtime)) == 1
+    verbs["frame_confirm"](analysis_id="a1")
+    assert len(_requests(runtime)) == 1, "asked once per pending question"
+    got = verbs["frame_confirm"](analysis_id="a1", decision="confirm", confirmed_by="ana",
+                                 confirmation_text="I've read it now and it's right.")
+    assert got["record"]["authorId"] == "ana" and got["record"]["mechanism"] == "out-of-band"
+    after = verbs["frame_confirm"](analysis_id="a1")
+    assert "already confirmed by ana" in after["summary"] and "skipped" not in after["summary"]
+
+
+def test_the_skip_read_asks_for_nothing_and_a_blind_confirm_is_still_refused() -> None:
+    """Scoring stays open; and without that read, a confirm nobody was invited to give is not recorded."""
+    runtime, verbs = _verbs()
+    _framed(verbs, allow_skip_confirmation=True)
+    blind = verbs["frame_confirm"](analysis_id="a1", decision="confirm", confirmed_by="ana",
+                                   confirmation_text="Confirmed.")
+    assert blind["record"] is None and "has not been put to the user yet" in blind["summary"]
+    assert not _decisions(runtime) or all(d[0] == "skip" for d in _decisions(runtime))
+    assert _score(verbs)["written"] == 1
+
+
+def test_a_partial_confirm_after_the_skip_still_names_what_rests_on_it() -> None:
+    runtime, verbs = _verbs()
+    _framed(verbs, allow_skip_confirmation=True)
+    verbs["frame_confirm"](analysis_id="a1")
+    verbs["frame_confirm"](analysis_id="a1", scope="frame+criteria", decision="confirm", confirmed_by="ana",
+                           confirmation_text="Those two are right.")
+    got = verbs["frame_confirm"](analysis_id="a1")
+    assert "alternatives: skipped at open" in got["summary"] and "frame, criteria: confirmed by ana" in got["summary"]
+
+
+def test_the_frozen_row_offers_exactly_the_scopes_the_tool_takes() -> None:
+    from rubricator.surface.frozen import FROZEN_TOOLS
+
+    row = next(t for t in FROZEN_TOOLS if t.name == "frame_confirm")
+    assert tuple(row.input_schema["properties"]["scope"]["enum"]) == SCOPES
