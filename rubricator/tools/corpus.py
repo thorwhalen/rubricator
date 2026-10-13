@@ -39,6 +39,7 @@ records (see :mod:`rubricator.store`).
 
 from __future__ import annotations
 
+import bisect
 import hashlib
 import json
 import math
@@ -535,7 +536,7 @@ _URI_PARTS = re.compile(r"\A([A-Za-z][\w+.-]*)://([^/?#]*)([^?#]*)(\?[^#]*)?(#.*
 
 #: A target that looks like ``host.tld/path`` with no scheme: a dot in the first
 #: segment, which a bare id, a ``rendition:...`` name or a path like ``docs/a.md`` lacks.
-_SCHEMELESS = re.compile(r"\A(?:[^\s/@:?#]+@)?[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+(?::\d+)?(?:[/?#]|\Z)")
+_SCHEMELESS = re.compile(r"\A(?:[^\s/@?#]+@)?[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+(?::\d+)?(?:[/?#]|\Z)")
 
 _PERCENT = re.compile(r"%([0-9A-Fa-f]{2})")
 _UNRESERVED = frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
@@ -543,7 +544,7 @@ _UNRESERVED = frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012
 #: Shortest run of hex characters taken as the start of a document id. Ids are
 #: 32 hex characters of a hash, so 8 is a collision in four billion.
 _MIN_ID_PREFIX = 8
-_HEX_RUN = re.compile(r"[0-9a-f]{%d,}" % _MIN_ID_PREFIX)
+_HEX_RUN = re.compile(rf"[0-9a-f]{{{_MIN_ID_PREFIX},}}")
 
 
 def _unescaped(value: str) -> str:
@@ -555,28 +556,33 @@ def _unescaped(value: str) -> str:
     return _PERCENT.sub(one, value)
 
 
-def _canonical_uri(value: str) -> str:
+def _canonical_uri(value: str, *, fold_case: bool = False) -> str:
     """A uri as spellings of the same page agree on it.
 
     Folded away: the fragment, a trailing slash or ``?``, a missing scheme,
     ``http`` against ``https``, ``user@`` in the authority, the host's case, a
-    leading ``www.``, a default port, the case of path and query, and
-    percent-escapes of characters that need none. Case is folded in the path
-    too, though uris are case-sensitive there: the cost of a false match is a
-    primary citation recorded as secondary, which is the safe direction.
+    leading ``www.``, a default port, a trailing dot on the host, and
+    percent-escapes of characters that need none. The case of path and query is
+    kept unless ``fold_case``: uris are case-sensitive there, so two documents
+    at ``/K2`` and ``/k2`` are two uris, but a reference that spells a marked
+    document's path in another case is still refused (see
+    :func:`agent_produced_names`).
     """
     text = value.strip()
-    if "://" not in text and _SCHEMELESS.match(text):
+    if text.startswith("//"):
+        text = "https:" + text
+    elif "://" not in text and _SCHEMELESS.match(text):
         text = "https://" + text
     parts = _URI_PARTS.match(text)
     if not parts:
         return text
     scheme, host, path, query, _ = parts.groups()
     scheme = "https" if scheme.lower() in ("http", "https") else scheme.lower()
-    host = re.sub(r":(80|443)\Z", "", host.rpartition("@")[2].lower())
+    host = re.sub(r":(80|443)\Z", "", host.rpartition("@")[2].lower()).rstrip(".")
     host = host[len("www."):] if host.startswith("www.") else host
     query = "" if query in (None, "?") else query
-    return f"{scheme}://{host}{_unescaped(path).rstrip('/')}{_unescaped(query)}".casefold()
+    canonical = f"{scheme}://{host}{_unescaped(path).rstrip('/')}{_unescaped(query)}"
+    return canonical.casefold() if fold_case else canonical
 
 
 def agent_produced_names(store: AnalysisStore, analysis_id: str) -> dict[str, str]:
@@ -603,14 +609,22 @@ def agent_produced_names(store: AnalysisStore, analysis_id: str) -> dict[str, st
         names.setdefault(r["id"], "")  # known and unmarked: a renditionId naming it decides
         if isinstance(r.get("originalLocator"), str):
             by_locator.setdefault(_canonical_uri(r["originalLocator"]), set()).add(r["id"])
+    by_folded: dict[str, set[str]] = {}
     for locator, ids in by_locator.items():
-        if locator != _INLINE_LOCATOR and ids <= marked:
-            names[_URI + locator] = min(ids)
+        if locator == _INLINE_LOCATOR:
+            continue
+        names[_URI + locator] = min(ids) if ids <= marked else ""  # exact case decides first
+        by_folded.setdefault(_canonical_uri(locator, fold_case=True), set()).update(ids)
+    for folded, ids in by_folded.items():
+        if ids <= marked:
+            names[_URI_FOLDED + folded] = min(ids)
     return names
 
 
-#: Keys of :func:`agent_produced_names` that are canonical uris rather than ids.
+#: Prefixes of the keys of :func:`agent_produced_names` that are canonical uris
+#: rather than ids: the uri as written, then the uri with its case folded.
 _URI = "uri:"
+_URI_FOLDED = "uri~:"
 
 
 def cited_document(ref: Mapping[str, Any], names: Mapping[str, str]) -> str | None:
@@ -623,7 +637,8 @@ def cited_document(ref: Mapping[str, Any], names: Mapping[str, str]) -> str | No
     ``doc-`` prefix or shortened to its first 8 or more hex characters (ids are
     32 hex characters, so nothing contains one by accident), and then ``target`` as a uri in any spelling.
     """
-    ids = sorted(key for key in names if not key.startswith(_URI))
+    ids = sorted(key for key in names if not key.startswith((_URI, _URI_FOLDED)))
+    hexes = sorted((rid.casefold().removeprefix(_ID_PREFIX), rid) for rid in ids)
 
     def named(value: Any) -> str | None:
         if not isinstance(value, str):
@@ -638,12 +653,13 @@ def cited_document(ref: Mapping[str, Any], names: Mapping[str, str]) -> str | No
             return whole
         # A shortened id: a run of hex characters that starts one. Ambiguity
         # between a marked and an unmarked document resolves to the marked one.
-        starts = sorted(
-            (rid for run in _HEX_RUN.findall(folded) for rid in ids
-             if len(run) <= _ID_HEX and rid.casefold().removeprefix(_ID_PREFIX).startswith(run)),
-            key=lambda rid: not names[rid],
-        )
-        return starts[0] if starts else None
+        starts = []
+        for run in _HEX_RUN.findall(folded):
+            at = bisect.bisect_left(hexes, (run,)) if len(run) <= _ID_HEX else len(hexes)
+            while at < len(hexes) and hexes[at][0].startswith(run):
+                starts.append(hexes[at][1])
+                at += 1
+        return min(starts, key=lambda rid: not names[rid]) if starts else None
 
     by_rendition = named(ref.get("renditionId"))
     if by_rendition is not None:
@@ -652,7 +668,12 @@ def cited_document(ref: Mapping[str, Any], names: Mapping[str, str]) -> str | No
     if by_target is not None:
         return names[by_target] or None
     target = ref.get("target")
-    return names.get(_URI + _canonical_uri(target)) if isinstance(target, str) else None
+    if not isinstance(target, str):
+        return None
+    exact = names.get(_URI + _canonical_uri(target))
+    if exact is not None:  # a document at exactly that uri, in that case, decides
+        return exact or None
+    return names.get(_URI_FOLDED + _canonical_uri(target, fold_case=True))
 
 
 def _cited_as_primary(store: AnalysisStore, analysis_id: str, marked: set[str]) -> list[str]:
