@@ -31,6 +31,7 @@ from typing import Any, Mapping, Sequence
 
 from rubricator.contributors import sign
 from rubricator.interpret.resolution import Degradation, degradation_of
+from rubricator.locators import profile_problems
 from rubricator.schema.vocabulary import vocabulary
 from rubricator.store import AnalysisNotFound, AnalysisStore
 
@@ -1037,7 +1038,10 @@ def _cell_problems(
     the measure is one the analysis declares; the row and the column are not
     tombstoned; a missingness code is one the vocabulary resolves (the same
     rule :func:`measures_mark_missing` applies); and a ``score`` value is one
-    its criterion's scale can take (:func:`_off_scale`).
+    its criterion's scale can take (:func:`_off_scale`). And one the schema
+    allows and this repository's profile does not: every evidence reference
+    stays inside the ADR-0014 locator profile (:func:`profile_problems`) --
+    comparanda v1 accepts ``PathSelector``, and a quote-less position.
     """
     where = f"cell {cell['alternativeId']}/{cell['criterionId']}"
     out: list[str] = []
@@ -1063,6 +1067,7 @@ def _cell_problems(
         problem = _off_scale(cell, criteria[cell["criterionId"]])
         if problem:
             out.append(problem)
+    out += [f"{where}: {p}" for p in profile_problems(cell.get("evidence") or [])]
     return out
 
 

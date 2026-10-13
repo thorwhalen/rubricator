@@ -273,7 +273,8 @@ def test_nan_never_reaches_the_store(runtime) -> None:
         runtime,
         lambda: measures_write(runtime.store, analysis_id="a1", contributor_id="ana",
                                author=AUTHOR, at=MOMENT,
-                               cells=[_cell(evidence=[{**EVIDENCE, "selectors": [selector]}])]),
+                               cells=[_cell(evidence=[{**EVIDENCE, "selectors": [
+                                   *EVIDENCE["selectors"], selector]}])]),
         r"NaN or infinite",
     )
 

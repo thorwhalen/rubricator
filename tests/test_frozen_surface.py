@@ -376,7 +376,7 @@ def test_every_write_leaves_a_document_the_published_schema_accepts() -> None:
     _write(verbs, value=5, justification="dated", evidence=[{
         "id": "e1", "target": "rendition:r", "sourceType": "primary", "stance": "supports",
         "selectors": [{"type": "TextQuoteSelector", "exact": "until 2029"},
-                      {"type": "PathSelector", "syntax": "css", "value": "p.note"}],
+                      {"type": "TextPositionSelector", "start": 10, "end": 20}],
         "check": {"status": "exact", "checkedAt": MOMENT, "checkerVersion": "rubricator/0.0.1"},
     }])
     verbs["measures_mark_missing"](
@@ -513,19 +513,33 @@ SELECTORS = [
     {"type": "TimeRangeSelector", "startSeconds": 1.5, "endSeconds": 2.5},
     {"type": "PathSelector", "syntax": "xpath", "value": "//p"},
 ]
+#: Selectors the schema accepts and the ADR-0014 locator profile does not store (#62).
+OUTSIDE_THE_PROFILE = {"PathSelector"}
 
 
-@pytest.mark.parametrize("selector", SELECTORS, ids=lambda s: s["type"])
+@pytest.mark.parametrize("selector", [s for s in SELECTORS if s["type"] not in OUTSIDE_THE_PROFILE],
+                         ids=lambda s: s["type"])
 def test_every_selector_the_surface_accepts_is_one_the_published_schema_accepts(selector) -> None:
     from rubricator.merge import merge_contributions
 
     runtime = build_runtime(blobs={}, now=fixed_clock(MOMENT))
     verbs = bind(runtime)
+    # A position is a hint and never the sole locator (ADR-0014): the quote rides beside it.
+    selectors = [selector] if selector is SELECTORS[0] else [SELECTORS[0], selector]
     _write(verbs, value=5, justification="j", evidence=[{
-        "id": "e1", "target": "rendition:r", "sourceType": "primary", "selectors": [selector]}])
+        "id": "e1", "target": "rendition:r", "sourceType": "primary", "selectors": selectors}])
     merged = merge_contributions(runtime.store.frame("a1"), runtime.store.contributions("a1"))
     result = runtime.schema.validate(merged)
     assert result.ok, result.report()
+
+
+@pytest.mark.parametrize("selector", [s for s in SELECTORS if s["type"] in OUTSIDE_THE_PROFILE],
+                         ids=lambda s: s["type"])
+def test_a_selector_the_schema_accepts_and_the_profile_rejects_is_refused(verbs, selector) -> None:
+    with pytest.raises(ValueError, match=rf"{selector['type']} is not in the locator profile"):
+        _write(verbs, value=5, justification="j", evidence=[{
+            "id": "e1", "target": "rendition:r", "sourceType": "primary",
+            "selectors": [SELECTORS[0], selector]}])
 
 
 def test_a_boolean_is_never_a_level(verbs) -> None:
