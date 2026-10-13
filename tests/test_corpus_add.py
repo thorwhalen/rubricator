@@ -569,6 +569,98 @@ def test_more_spellings_of_a_marked_documents_name_are_refused(target) -> None:
                     "justification": "the sheet says so", "evidence": [ref]}])
 
 
+# --- the rarer spellings of #203 -------------------------------------------------
+
+
+@pytest.mark.parametrize("target", [
+    "example.org/k2", "www.example.org/k2/",
+    "doc-{short}", "{short}", "RENDITION:DOC-{short}#span-1",
+    "https://example.org/%6B2", "https://example.org/k%32", "https://example.org/K2",
+    "https://user@example.org/k2", "https://user:pw@EXAMPLE.org:443/k2",
+    "user:pw@example.org/k2", "//example.org/k2", "https://example.org.:443/k2",
+])
+def test_rarer_spellings_of_a_marked_documents_name_are_refused(target) -> None:
+    _, verbs = _scorable()
+    doc_id = verbs["corpus_add"](analysis_id="a1", sources=[{**SPEC, "agentProduced": True}])[
+        "documentIds"][0]
+    ref = {"id": "e1", "target": target.format(short=doc_id.removeprefix("doc-")[:8]),
+           "sourceType": "primary",
+           "selectors": [{"type": "TextQuoteSelector", "exact": "under four minutes"}]}
+    with pytest.raises(ValueError, match=rf"cites {doc_id}"):
+        verbs["measures_write"](
+            analysis_id="a1", contributor_id="ana", author=AUTHOR,
+            cells=[{"alternativeId": "k2", "criterionId": "speed", "value": 4,
+                    "justification": "the sheet says so", "evidence": [ref]}])
+
+
+@pytest.mark.parametrize("target", [
+    "doc:k2", "docs/k2.md", "https://example.org/k3", "https://other.org/k2",
+    "https://example.org/k2/specs", "{seven}", "k2",
+])
+def test_names_that_are_not_the_marked_document_are_written(target) -> None:
+    _, verbs = _scorable()
+    doc_id = verbs["corpus_add"](analysis_id="a1", sources=[{**SPEC, "agentProduced": True}])[
+        "documentIds"][0]
+    ref = {"id": "e1", "target": target.format(seven=doc_id.removeprefix("doc-")[:7]),
+           "sourceType": "primary",
+           "selectors": [{"type": "TextQuoteSelector", "exact": "under four minutes"}]}
+    assert verbs["measures_write"](
+        analysis_id="a1", contributor_id="ana", author=AUTHOR,
+        cells=[{"alternativeId": "k2", "criterionId": "speed", "value": 4,
+                "justification": "the sheet says so", "evidence": [ref]}])["summary"]
+
+
+def _primary_ref_refused_or_written(verbs, target):
+    ref = {"id": "e1", "target": target, "sourceType": "primary",
+           "selectors": [{"type": "TextQuoteSelector", "exact": "under four minutes"}]}
+    return verbs["measures_write"](
+        analysis_id="a1", contributor_id="ana", author=AUTHOR,
+        cells=[{"alternativeId": "k2", "criterionId": "speed", "value": 4,
+                "justification": "the sheet says so", "evidence": [ref]}])
+
+
+def test_a_marked_uri_differing_only_in_case_from_an_unmarked_one_is_still_decided() -> None:
+    """Review of #203: folding case must not merge two documents into one ambiguous uri."""
+    _, verbs = _scorable()
+    marked = {"text": "A model's summary.", "uri": "https://example.org/K2", "agentProduced": True}
+    unmarked = {"text": KETTLE, "uri": "https://example.org/k2", "agentProduced": False}
+    ids = verbs["corpus_add"](analysis_id="a1", sources=[marked, unmarked])["documentIds"]
+    with pytest.raises(ValueError, match=rf"cites {ids[0]}"):
+        _primary_ref_refused_or_written(verbs, "https://example.org/K2")
+    assert _primary_ref_refused_or_written(verbs, "https://example.org/k2")["summary"]
+
+
+def test_a_case_variant_of_a_lone_marked_uri_is_refused() -> None:
+    _, verbs = _scorable()
+    marked = {"text": "A model's summary.", "uri": "https://example.org/K2", "agentProduced": True}
+    doc_id = verbs["corpus_add"](analysis_id="a1", sources=[marked])["documentIds"][0]
+    with pytest.raises(ValueError, match=rf"cites {doc_id}"):
+        _primary_ref_refused_or_written(verbs, "https://example.org/k2")
+
+
+def test_file_names_differing_only_in_case_are_not_one_host() -> None:
+    """Second review of #203: `Report.pdf` is not a host to lowercase."""
+    _, verbs = _scorable()
+    marked = {"text": "A model's summary.", "uri": "Report.pdf", "agentProduced": True}
+    unmarked = {"text": KETTLE, "uri": "report.pdf", "agentProduced": False}
+    ids = verbs["corpus_add"](analysis_id="a1", sources=[marked, unmarked])["documentIds"]
+    with pytest.raises(ValueError, match=rf"cites {ids[0]}"):
+        _primary_ref_refused_or_written(verbs, "Report.pdf")
+    assert _primary_ref_refused_or_written(verbs, "report.pdf")["summary"]
+
+
+def test_a_hostile_target_of_hex_words_is_checked_in_linear_time() -> None:
+    import time
+
+    from rubricator.tools.corpus import cited_document
+
+    names = {f"doc-{i:032x}": f"doc-{i:032x}" for i in range(200)}
+    target = " ".join(f"{i:08x}" for i in range(10**6 // 9))
+    started = time.perf_counter()
+    cited_document({"target": target}, names)
+    assert time.perf_counter() - started < 3
+
+
 def test_a_fence_full_of_whitespace_is_linear() -> None:
     """Finding 3: the fence regex backtracked quadratically on a long whitespace run."""
     import time
