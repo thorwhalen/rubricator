@@ -619,7 +619,7 @@ def test_a_moment_that_is_not_rfc3339_is_refused(verbs, moment) -> None:
 def test_an_rfc3339_moment_is_accepted_on_every_supported_python(verbs, moment) -> None:
     _write(verbs, value=3, justification="j")
     verbs["measures_write"](analysis_id="a1", contributor_id="ana", author=AUTHOR, at=moment,
-                            cells=[{"alternativeId": "x", "criterionId": "c", "value": 4, "evidence": CITED,
+                            cells=[{"alternativeId": "x", "criterionId": "c", "value": 4, "evidence": CITED, "justification": "j",
                                     "independence": "resampled"}])
 
 
@@ -665,5 +665,5 @@ def test_a_bulk_blank_skips_tombstoned_cells_but_refuses_one_named(verbs) -> Non
 def test_short_fractions_are_padded_for_every_supported_python(verbs, moment) -> None:
     _write(verbs, value=3, justification="j")
     verbs["measures_write"](analysis_id="a1", contributor_id="ana", author=AUTHOR, at=moment,
-                            cells=[{"alternativeId": "x", "criterionId": "c", "value": 4, "evidence": CITED,
+                            cells=[{"alternativeId": "x", "criterionId": "c", "value": 4, "evidence": CITED, "justification": "j",
                                     "independence": "resampled"}])

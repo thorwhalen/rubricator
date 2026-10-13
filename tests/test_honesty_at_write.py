@@ -13,6 +13,9 @@ rule that over-reaches fails here too.
 
 from __future__ import annotations
 
+import re
+from pathlib import Path
+
 import pytest
 
 from rubricator.clock import fixed_clock
@@ -32,6 +35,10 @@ INFERENCE = {"id": "e2", "target": "doc:policy", "sourceType": "agent-inference"
              "stance": "supports", "excerpt": "four years from the 2025 release"}
 SCORE = {"alternativeId": "k1", "criterionId": "support", "value": 5,
          "justification": "the policy states a dated end of support"}
+#: An inference that names its source, so only the rule under test can refuse it.
+DRAWN = {**INFERENCE, "derivedFrom": ["e1"]}
+CHECK = {"status": "exact", "checkedAt": MOMENT, "checkerVersion": "quote-check/1"}
+UNJUSTIFIED = {k: v for k, v in SCORE.items() if k != "justification"}
 
 
 def _blank(code, **extra):
@@ -86,6 +93,37 @@ DISHONEST = {
     "two spans with one id": (
         {**SCORE, "evidence": [SPAN, {**SPAN, "selectors": [{**QUOTE[0], "exact": "2029"}]}]},
         "unique-evidence-ids", ".evidence[e1]"),
+    # #177: the four comparanda rules #171 left out.
+    "a score supported only by an inference": (
+        {**SCORE, "evidence": [{**SPAN, "stance": "context"}, DRAWN]},
+        "external-support-required", ".evidence"),
+    "a score supported only by a summary": (
+        {**SCORE, "evidence": [{**SPAN, "stance": "qualifies"},
+                               {**DRAWN, "sourceType": "agent-summary"}]},
+        "external-support-required", ".evidence"),
+    "a blank supported only by an inference": (
+        _blank("indeterminate", evidence=[{**SPAN, "stance": "contradicts"}, DRAWN]),
+        "external-support-required", ".evidence"),
+    "an inference whose stance defaults to supports": (
+        {**SCORE, "evidence": [{**SPAN, "stance": "context"},
+                               {k: v for k, v in DRAWN.items() if k != "stance"}]},
+        "external-support-required", ".evidence"),
+    "a verdict with no checkedAt": (
+        {**SCORE, "evidence": [{**SPAN, "check": {k: v for k, v in CHECK.items() if k != "checkedAt"}}]},
+        "check-dated", ".evidence[e1].check.checkedAt"),
+    "a verdict with a blank checkedAt": (
+        {**SCORE, "evidence": [{**SPAN, "check": {**CHECK, "checkedAt": " "}}]},
+        "check-dated", ".evidence[e1].check.checkedAt"),
+    "a verdict with no checkerVersion": (
+        {**SCORE, "evidence": [{**SPAN, "check": {k: v for k, v in CHECK.items() if k != "checkerVersion"}}]},
+        "check-attributed", ".evidence[e1].check.checkerVersion"),
+    "a stale verdict with no checkerVersion": (
+        {**SCORE, "evidence": [{**SPAN, "check": {"status": "stale", "checkedAt": MOMENT}}]},
+        "check-attributed", ".evidence[e1].check.checkerVersion"),
+    "a score with no justification": (
+        {**UNJUSTIFIED, "evidence": [SPAN]}, "score-has-a-reason", ".justification"),
+    "a score with a whitespace justification": (
+        {**SCORE, "justification": "\u200b ", "evidence": [SPAN]}, "score-has-a-reason", ".justification"),
 }
 
 #: The honest cell one edit away from each row: none of these may be refused.
@@ -98,6 +136,13 @@ HONEST = {
     "a searched blank citing what it read": _blank("indeterminate", evidence=[SPAN]),
     "a withheld blank citing what it read": _blank("withheld", evidence=[SPAN]),
     "an unsearched blank with a note": _blank("not-assessed"),
+    "an inference beside the span it rests on": {**SCORE, "evidence": [SPAN, DRAWN]},
+    "an inference contradicted by a span": {
+        **SCORE, "evidence": [SPAN, {**DRAWN, "id": "e3", "stance": "contradicts"}, DRAWN]},
+    "a blank with only contradicting evidence": _blank("indeterminate", evidence=[{**SPAN, "stance": "contradicts"}]),
+    "a dated, attributed verdict": {**SCORE, "evidence": [{**SPAN, "check": CHECK}]},
+    "an unchecked reference with no date": {**SCORE, "evidence": [{**SPAN, "check": {"status": "unchecked"}}]},
+    "a blank with no justification": _blank("not-evidenced"),
 }
 
 
@@ -228,3 +273,42 @@ def test_the_locator_profile_skips_a_reference_that_is_not_an_object() -> None:
     from rubricator.locators import profile_problems
 
     assert profile_problems(["e1", None, {**SPAN, "selectors": QUOTE}, {**SPAN, "selectors": 5}]) == []
+
+
+#: Where a developer checkout of the companion sits; absent on CI, so the parity
+#: tests below skip there, as tests/test_vocabulary_parity.py's sibling test does.
+_COMPANION = Path(__file__).resolve().parents[2] / "comparanda" / "src" / "core" / "schema"
+
+#: Honesty rule ids the companion's validateAnalysis reports that are not rules
+#: here yet, each with why. A new companion rule fails the test below until it is
+#: mirrored or listed. The audit of these is #184.
+NOT_MIRRORED = {
+    "blank-is-defined": "refused at write by _cell_problems, not yet a rule over a merged document (#184)",
+    "assertion-attributed": "sign takes authorId from the author it stores; unaudited (#184)",
+    "agent-is-typed": "unaudited (#184)",
+    "persona-keeps-kind": "unaudited (#184)",
+    "disclosure-flag-is-projection-only": "unaudited (#184)",
+}
+
+
+def _union_members(source: str, name: str) -> set[str]:
+    body = re.search(rf"export type {name} =(.*?);", source, re.S)
+    assert body, f"no `{name}` union in the companion source"
+    return set(re.findall(r"'([a-z-]+)'", body.group(1)))
+
+
+@pytest.mark.skipif(not _COMPANION.exists(), reason="no sibling comparanda checkout")
+def test_every_rule_validate_evidence_can_return_is_mirrored() -> None:
+    """The done-line of #177: each id in the companion's ``EvidenceRuleId`` is a rule here."""
+    companion = _union_members((_COMPANION / "evidence.ts").read_text(), "EvidenceRuleId")
+    assert companion, "parsed no rule ids: the companion's source moved, fix the parser"
+    assert companion <= set(RULE_SOURCES)
+
+
+@pytest.mark.skipif(not _COMPANION.exists(), reason="no sibling comparanda checkout")
+def test_every_companion_honesty_rule_is_mirrored_or_listed() -> None:
+    source = (_COMPANION / "analysis.ts").read_text()
+    reported = set(re.findall(r"\bhonesty\(\s*'([a-z-]+)'", source))
+    assert "score-has-a-reason" in reported, "parsed no honesty calls: fix the parser"
+    assert reported - set(NOT_MIRRORED) <= set(RULE_SOURCES)
+    assert not set(NOT_MIRRORED) & set(RULE_SOURCES), "mirrored now: drop it from NOT_MIRRORED"

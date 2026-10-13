@@ -21,10 +21,12 @@ Each rule is a plain function ``(document) -> Iterable[Problem]`` over a
 break the connector runtime (ADR-0003), so none does.
 
 >>> cited = [{'id': 'e1', 'sourceType': 'primary', 'excerpt': 'as stated'}]
+>>> why = 'the manual states it'
 >>> doc = {'cells': [{'alternativeId': 'a', 'criterionId': 'c', 'measure': 'score',
-...         'assertions': [{'id': 's1', 'authorId': 'ana', 'value': 4, 'evidence': cited},
+...         'assertions': [{'id': 's1', 'authorId': 'ana', 'value': 4, 'evidence': cited,
+...                         'justification': why},
 ...                        {'id': 's2', 'authorId': 'ben', 'value': 2, 'evidence': cited,
-...                         'independence': 'independent'}]}]}
+...                         'justification': why, 'independence': 'independent'}]}]}
 >>> [p.rule_id for p in honesty_problems(doc)]
 ['independence-recorded']
 >>> honesty_problems(doc)[0].path
@@ -50,6 +52,9 @@ __all__ = [
     "unsearched_blank_cites_nothing",
     "cite_a_span",
     "inference_names_its_sources",
+    "external_support_required",
+    "check_dated_and_attributed",
+    "score_has_a_reason",
     "derived_from_resolves",
     "unique_evidence_ids",
     "EXTERNAL_SOURCE_TYPES",
@@ -109,6 +114,10 @@ RULE_SOURCES: Mapping[str, str] = {
     "inference-names-its-sources": "ADR-0015",
     "derived-from-resolves": "ADR-0015",
     "derived-from-acyclic": "ADR-0015",
+    "external-support-required": "ADR-0006",
+    "check-dated": "ADR-0014",
+    "check-attributed": "ADR-0014",
+    "score-has-a-reason": "comparanda ADR-0031",
     "structural-refines-not-applicable": "comparanda ADR-0009",
     "no-redeclaring-core": "comparanda ADR-0009",
     "unique-declarations": "comparanda ADR-0030",
@@ -422,6 +431,83 @@ def inference_names_its_sources(document: Mapping[str, Any]) -> Iterable[Problem
             )
 
 
+def external_support_required(document: Mapping[str, Any]) -> Iterable[Problem]:
+    """Something other than the agent's own output supports the assertion (ADR-0006).
+
+    Mirrors `comparanda`'s ``external-support-required``: when every reference
+    whose stance is ``supports`` (absent means ``supports``, the schema's
+    default) is an ``agent-summary`` or ``agent-inference``, the agent's
+    reasoning has been filed as the citation. ``inference-names-its-sources``
+    and ``derived-from-resolves`` hold each inference to a chain; this holds the
+    assertion to an external source it rests on directly.
+    """
+    for _cell, assertion, path in _assertions(document):
+        supporting = [r for r in _spans(assertion) if r.get("stance", "supports") == "supports"]
+        if supporting and not any(r.get("sourceType") in EXTERNAL_SOURCE_TYPES for r in supporting):
+            yield Problem(
+                path=f"{path}.evidence",
+                message=(
+                    "every supporting reference is the agent's own summary or inference, so "
+                    "nothing external supports this assertion."
+                ),
+                fix=(
+                    "cite the primary or secondary span the inference rests on, with stance "
+                    '"supports", or record a qualified blank instead ("not-evidenced" if the '
+                    'sources are silent, "indeterminate" if they conflict).'
+                ),
+                rule_id="external-support-required",
+            )
+
+
+def check_dated_and_attributed(document: Mapping[str, Any]) -> Iterable[Problem]:
+    """A citation check with a verdict records when it ran and what ran it (ADR-0014).
+
+    Mirrors `comparanda`'s ``check-dated`` and ``check-attributed``. A verdict
+    with no date reads as current forever, and one with no checker cannot be
+    re-run to see whether today's checker agrees. ``unchecked`` is exempt: it is
+    the absence of a verdict, not an undated one.
+    """
+    for _cell, assertion, path in _assertions(document):
+        for ref in _spans(assertion):
+            check = ref.get("check")
+            if not isinstance(check, Mapping) or check.get("status") == "unchecked":
+                continue
+            where = f"{path}.evidence[{ref.get('id')}].check"
+            status = check.get("status")
+            if _is_blank_text(check.get("checkedAt")):
+                yield Problem(
+                    path=f"{where}.checkedAt",
+                    message=f'a check with status "{status}" records no checkedAt, so the verdict reads as current forever.',
+                    fix='set checkedAt to the moment the check ran, or set status to "unchecked".',
+                    rule_id="check-dated",
+                )
+            if _is_blank_text(check.get("checkerVersion")):
+                yield Problem(
+                    path=f"{where}.checkerVersion",
+                    message=(
+                        f'a check with status "{status}" records no checkerVersion, so a reader '
+                        "cannot tell whether the current checker would still agree."
+                    ),
+                    fix="set checkerVersion to the identifier of the checker that produced this verdict.",
+                    rule_id="check-attributed",
+                )
+
+
+def score_has_a_reason(document: Mapping[str, Any]) -> Iterable[Problem]:
+    """A value carries a ``justification`` (`comparanda`'s ``score-has-a-reason``).
+
+    The justification is the most-read field of a cell and the only part of it
+    a reader can argue with; a number without one is unarguable except on taste.
+    """
+    for _cell, assertion, path in _assertions(document):
+        if assertion.get("value") is not None and _is_blank_text(assertion.get("justification")):
+            yield Problem(
+                path=f"{path}.justification",
+                message="a value with no justification, so a reader has nothing to disagree with but the number.",
+                fix="write one line saying what the cited evidence shows, or record a qualified blank instead.",
+                rule_id="score-has-a-reason",
+            )
+
 def _ids(value: Any, *, keep_blank: bool = False) -> list[Any]:
     """The entries of a ``derivedFrom`` list; anything else is the schema's to report."""
     if not isinstance(value, list):
@@ -635,11 +721,14 @@ HONESTY_RULES: Sequence[Rule] = (
     missing_rule_code_defined,
     unique_evidence_ids,
     value_cites_evidence,
+    score_has_a_reason,
     blank_has_a_note,
     unsearched_blank_cites_nothing,
     cite_a_span,
     inference_names_its_sources,
     derived_from_resolves,
+    external_support_required,
+    check_dated_and_attributed,
 )
 
 
