@@ -1579,7 +1579,7 @@
      "mechanism": "elicitation"
     },
     "instructions": "Make the changes the user asked for, then call frame_confirm with no decision to ask again.",
-    "summary": "\"revise\" recorded from Ana; the gate stays closed for the frame, alternatives, criteria"
+    "summary": "\"revise\" recorded from Ana for the frame, alternatives, criteria; the gate stays closed for the frame, alternatives, criteria"
    }
   },
   "expected": {

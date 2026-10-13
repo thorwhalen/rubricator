@@ -571,3 +571,62 @@ def test_the_frozen_row_offers_exactly_the_scopes_the_tool_takes() -> None:
 
     row = next(t for t in FROZEN_TOOLS if t.name == "frame_confirm")
     assert tuple(row.input_schema["properties"]["scope"]["enum"]) == SCOPES
+
+
+def test_a_read_after_the_skip_does_not_reopen_a_part_a_person_confirmed() -> None:
+    """The review of #206: a request for criteria after Ana confirmed them let a second name overwrite hers."""
+    runtime, verbs = _verbs()
+    _framed(verbs, allow_skip_confirmation=True)
+    verbs["frame_confirm"](analysis_id="a1")
+    verbs["frame_confirm"](analysis_id="a1", scope="criteria", decision="confirm", confirmed_by="ana",
+                           confirmation_text="The criteria are right.")
+    verbs["frame_confirm"](analysis_id="a1", scope="criteria")
+    again = verbs["frame_confirm"](analysis_id="a1", scope="criteria", decision="confirm",
+                                   confirmed_by="bob", confirmation_text="Confirmed.")
+    assert again["record"] is None and "has not been put to the user yet" in again["summary"]
+    assert "criteria: confirmed by ana" in verbs["frame_confirm"](analysis_id="a1")["summary"]
+    assert [r["scope"] for r in _requests(runtime)] == ["all", "frame+alternatives"], \
+        "the invitation names the parts that rest on the skip, and only them"
+
+
+def test_a_part_still_resting_on_the_skip_can_be_confirmed_after_a_person_confirmed_another() -> None:
+    _, verbs = _verbs()
+    _framed(verbs, allow_skip_confirmation=True)
+    verbs["frame_confirm"](analysis_id="a1")
+    verbs["frame_confirm"](analysis_id="a1", scope="criteria", decision="confirm", confirmed_by="ana",
+                           confirmation_text="The criteria are right.")
+    verbs["frame_confirm"](analysis_id="a1")
+    got = verbs["frame_confirm"](analysis_id="a1", scope="frame+alternatives", decision="confirm",
+                                 confirmed_by="ana", confirmation_text="And the rest, yes.")
+    assert got["record"]["authorId"] == "ana"
+    assert "skipped" not in verbs["frame_confirm"](analysis_id="a1")["summary"]
+
+
+def test_record_decision_takes_one_part_and_says_why_it_refuses_a_pair() -> None:
+    from rubricator.tools.confirm import record_decision
+
+    runtime, verbs = _verbs()
+    _framed(verbs)
+    with pytest.raises(ValueError, match="record a pair as one record per part"):
+        record_decision(runtime.store, analysis_id="a1", at=MOMENT, scope="frame+criteria",
+                        decision="confirm", author_id="ana", text="x", mechanism="elicitation")
+    assert not runtime.store.confirmations("a1")
+
+
+def test_a_joined_confirm_says_what_it_recorded_and_the_scope_to_ask_for_next() -> None:
+    _, verbs = _verbs()
+    _framed(verbs)
+    verbs["frame_confirm"](analysis_id="a1")
+    got = verbs["frame_confirm"](analysis_id="a1", scope="frame", decision="confirm", confirmed_by="ana",
+                                 confirmation_text="The frame is right.")
+    assert "Call frame_confirm with scope alternatives+criteria." in got["instructions"]
+    verbs["frame_confirm"](analysis_id="a1", scope="alternatives+criteria")
+    both = verbs["frame_confirm"](analysis_id="a1", scope="alternatives+criteria", decision="confirm",
+                                  confirmed_by="ana", confirmation_text="Those two as well.")
+    assert both["confirmed"] is True
+
+
+def test_scope_of_is_the_inverse_of_parts_of() -> None:
+    from rubricator.tools.confirm import parts_of, scope_of
+
+    assert all(scope_of(parts_of(s)) == s for s in SCOPES)

@@ -472,7 +472,8 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
         ),
         determinism=(
             "It records a decision; it does not make one. A call with no decision writes one "
-            "record noting that the question was asked."
+            "record noting that the question was asked (on a gate resting on the skip, that a "
+            "confirmation is invited)."
         ),
         failure="A call that carries no human decision and cannot elicit one returns confirmed=false with instructions, never an error.",
         input_schema=obj(
@@ -1007,11 +1008,11 @@ MEASURED: Mapping[str, Any] = {
 AWAITING_MEASUREMENT: Mapping[str, Any] | None = {
     "issue": 199,
     "advertised": {
-        "tools": 15, "bytes": 20342,
-        "sha256": "02523d30e2829f90338f0353e3b88247952a0da9fa38da8ff44f142c5a6840df",
+        "tools": 15, "bytes": 20406,
+        "sha256": "b8a3bfa6988276f200ab039fb97ac920053f4d133c464822984a558d1dd7119a",
     },
     "wholeSurface": {
-        "tools": 22, "bytes": 26555,
-        "sha256": "2f3a9c65181794255fda6714876721df0da8aa79b1d9867a0cb260e8ba487fb3",
+        "tools": 22, "bytes": 26619,
+        "sha256": "783bfda386ff1127a539f87847e81fca13cf9dfff224650079d37d4f3244a131",
     },
 }
