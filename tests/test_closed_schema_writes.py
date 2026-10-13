@@ -133,7 +133,7 @@ def test_a_frame_value_v1_refuses_is_not_stored(runtime) -> None:
 
 @pytest.mark.parametrize("extra", ["plan", "confidence"])
 def test_a_cell_key_the_verb_would_drop_is_refused(runtime, extra) -> None:
-    """score-cell asks for both; neither has a slot in v1, so neither may vanish silently."""
+    """score-cell v1 asked for both inside the cell; neither has a slot in v1, so neither may vanish silently."""
     _unchanged(
         runtime,
         lambda: measures_write(runtime.store, analysis_id="a1", contributor_id="ana",
