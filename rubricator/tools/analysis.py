@@ -590,7 +590,7 @@ def measures_write(
     # however it is broken -- refuses here, cleanly, instead of failing inside.
     mergeable, skipped = store.mergeable_contributions(analysis_id)
     _refuse_an_unread_own_file(store, analysis_id, contributor_id, skipped)
-    contribution = _existing(store, analysis_id, contributor_id, author)
+    contribution, introduced = _existing(store, analysis_id, contributor_id, author)
     index = {
         (c["alternativeId"], c["criterionId"], c["measure"]): c
         for c in contribution["cells"]
@@ -638,7 +638,8 @@ def measures_write(
 
     contribution["cells"] = [index[k] for k in sorted(index)]
     _refuse_dishonest(
-        store, analysis_id, contributor_id, contribution, added=added, mergeable=mergeable
+        store, analysis_id, contributor_id, contribution, added=added, mergeable=mergeable,
+        introduced=author["id"] if introduced else None,
     )
     store.put_contribution(analysis_id, contributor_id, contribution)
     valued = sum(1 for c in cells if c.get("value") is not None)
@@ -1054,14 +1055,8 @@ def _cell_problems(
                         ("criterion", criteria[cell["criterionId"]])):
         if item.get("tombstoned"):
             out.append(f'{where}: {label} "{item["id"]}" is tombstoned and takes no new assertions')
-    missing = cell.get("missing")
-    if isinstance(missing, Mapping):
-        declarations = declarations_for(frame, cell["criterionId"])
-        if vocabulary().resolve(missing["code"], declarations).source == "undeclared":
-            out.append(
-                f'{where}: missingness code "{missing["code"]}" is not one the core vocabulary, '
-                "the analysis or the criterion declares"
-            )
+    # An undeclared missingness code is the ``blank-is-defined`` rule's, at the
+    # honesty stage, so it is refused with the rule and its source like the others (#184).
     if measure == "score":
         problem = _off_scale(cell, criteria[cell["criterionId"]])
         if problem:
@@ -1177,6 +1172,7 @@ def _refuse_dishonest(
     *,
     added: Sequence[tuple[tuple[str, str, str], str]],
     mergeable: Sequence[tuple[str, Mapping[str, Any]]],
+    introduced: str | None = None,
 ) -> None:
     """The write-time honesty hook (ADR-0024): refuse before the bytes land.
 
@@ -1186,7 +1182,9 @@ def _refuse_dishonest(
     independence.
 
     **Refuses only for the assertions this call adds**, the ones the caller can
-    still change. A problem on an assertion already stored -- this contributor's
+    still change -- and for the author this call introduces (``introduced``), whose
+    record is the caller's own argument: an author already stored is not amended by
+    a later call, so a problem on one is stored, not this call's. A problem on an assertion already stored -- this contributor's
     or anyone's -- does not block: nothing can amend a stored assertion in place,
     so refusing would lock that contributor (or everyone) out of the whole
     analysis over one cell. `comparanda` counts by difference for the same
@@ -1222,6 +1220,7 @@ def _refuse_dishonest(
         p
         for p in honesty_problems(merged)
         if any(p.path == o or p.path.startswith(f"{o}.") for o in own)
+        or (introduced is not None and p.path == f"authors[{introduced}]")
     ]
     if problems:
         raise ValueError(
@@ -1504,7 +1503,7 @@ def _existing(
     analysis_id: str,
     contributor_id: str,
     author: Mapping[str, Any],
-) -> dict[str, Any]:
+) -> tuple[dict[str, Any], bool]:
     # The caller has already refused a file every read leaves out
     # (:func:`_refuse_an_unread_own_file`), so this one merges.
     try:
@@ -1512,10 +1511,11 @@ def _existing(
     except KeyError:
         contribution = {"contributorId": contributor_id, "authors": [], "cells": []}
     authors = {a["id"]: a for a in contribution.get("authors", [])}
+    introduced = author["id"] not in authors
     authors.setdefault(author["id"], dict(author))
     contribution["authors"] = [authors[k] for k in sorted(authors)]
     contribution.setdefault("cells", [])
-    return contribution
+    return contribution, introduced
 
 
 def _anchor_hash(levels: Mapping[str, str]) -> str:

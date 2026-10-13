@@ -66,6 +66,11 @@ __all__ = [
     "structural_refines_not_applicable",
     "no_redeclaring_core",
     "unique_declarations",
+    "blank_is_defined",
+    "assertion_attributed",
+    "agent_is_typed",
+    "persona_keeps_kind",
+    "disclosure_flag_is_projection_only",
 ]
 
 #: ``honesty``: the document lies. ``schema``: it is malformed -- it declares
@@ -121,6 +126,11 @@ RULE_SOURCES: Mapping[str, str] = {
     "structural-refines-not-applicable": "comparanda ADR-0009",
     "no-redeclaring-core": "comparanda ADR-0009",
     "unique-declarations": "comparanda ADR-0030",
+    "blank-is-defined": "comparanda ADR-0030",
+    "assertion-attributed": "comparanda ADR-0012",
+    "agent-is-typed": "comparanda ADR-0012",
+    "persona-keeps-kind": "comparanda ADR-0012",
+    "disclosure-flag-is-projection-only": "comparanda ADR-0021",
 }
 
 
@@ -265,6 +275,142 @@ def missing_rule_code_defined(document: Mapping[str, Any]) -> Iterable[Problem]:
                 ),
                 rule_id="missing-rule-code-defined",
             )
+
+
+def blank_is_defined(document: Mapping[str, Any]) -> Iterable[Problem]:
+    """A blank's code is one the document defines (`comparanda`'s ``blank-is-defined``, its ADR-0030).
+
+    Distinct from :func:`missing_rule_code_defined`, which is about a *rule* naming a
+    code. This is a stored blank whose code is neither core nor declared on the
+    analysis or its criterion: nothing anywhere says what the blank means, which no
+    reader can repair. A code a build merely does not implement degrades through
+    ``broader`` and is not a problem here.
+    """
+    from rubricator.schema.vocabulary import vocabulary
+
+    for cell, assertion, path in _assertions(document):
+        missing = assertion.get("missing")
+        if not isinstance(missing, Mapping):
+            continue
+        code = str(missing.get("code", ""))
+        declarations = declarations_for(document, cell["criterionId"])
+        if vocabulary().resolve(code, declarations).source != "undeclared":
+            continue
+        yield Problem(
+            path=f"{path}.missing.code",
+            message=(
+                f'the code "{code}" is neither a core code nor declared in this document or on '
+                "this criterion, so nothing anywhere says what this blank means."
+            ),
+            fix=(
+                "use a core code, or declare this one in missingCodes (on the analysis or on the "
+                "criterion) with a broader parent and what it means."
+            ),
+            rule_id="blank-is-defined",
+        )
+
+
+def assertion_attributed(document: Mapping[str, Any]) -> Iterable[Problem]:
+    """Every assertion names an author the document lists (`comparanda`'s ``assertion-attributed``, its ADR-0012).
+
+    An assertion nobody is named for cannot be weighed, and an agreement statistic over
+    it cannot know how many heads produced it.
+    """
+    known = {a.get("id") for a in document.get("authors", []) if isinstance(a, Mapping)}
+    for _cell, assertion, path in _assertions(document):
+        if assertion.get("authorId") in known:
+            continue
+        yield Problem(
+            path=f"{path}.authorId",
+            message=(
+                f'unknown author "{assertion.get("authorId")}". An assertion nobody is named for '
+                "cannot be weighed, and an agreement statistic over it cannot know how many heads "
+                "produced it."
+            ),
+            fix="add the author to authors, or attribute the assertion to an existing one.",
+            rule_id="assertion-attributed",
+        )
+
+
+def agent_is_typed(document: Mapping[str, Any]) -> Iterable[Problem]:
+    """An author carrying an agent run is not of kind ``human`` (`comparanda`'s ``agent-is-typed``, its ADR-0012).
+
+    A model dressed as a person is the lie; an import or a derivation that records the run
+    behind it is not.
+    """
+    for author in document.get("authors", []):
+        if isinstance(author, Mapping) and author.get("agent") and author.get("kind") == "human":
+            yield Problem(
+                path=f"authors[{author.get('id')}]",
+                message=(
+                    f'author "{author.get("id")}" carries an agent run but is of kind "human", so a '
+                    "model's assertions would read as a person's."
+                ),
+                fix=(
+                    'set kind to "agent", or remove the agent record if a person or import really '
+                    "made these assertions."
+                ),
+                rule_id="agent-is-typed",
+            )
+
+
+def persona_keeps_kind(document: Mapping[str, Any]) -> Iterable[Problem]:
+    """A persona has its principal's kind (`comparanda`'s ``persona-keeps-kind``, its ADR-0012).
+
+    A persona never changes who made the assertion.
+    """
+    kinds = {a.get("id"): a.get("kind") for a in document.get("authors", []) if isinstance(a, Mapping)}
+    for author in document.get("authors", []):
+        if not isinstance(author, Mapping) or author.get("principalId") is None:
+            continue
+        principal_kind = kinds.get(author["principalId"])
+        if principal_kind is None or principal_kind == author.get("kind"):
+            continue
+        yield Problem(
+            path=f"authors[{author.get('id')}]",
+            message=(
+                f'persona "{author.get("id")}" is of kind "{author.get("kind")}" but its principal '
+                f'"{author["principalId"]}" is "{principal_kind}"; a persona never changes who made '
+                "the assertion."
+            ),
+            fix=f'give the persona its principal\'s kind, "{principal_kind}".',
+            rule_id="persona-keeps-kind",
+        )
+
+
+def disclosure_flag_is_projection_only(document: Mapping[str, Any]) -> Iterable[Problem]:
+    """``withheldFromReader`` is true only of an assertion with nothing left in it (`comparanda`'s rule, its ADR-0021).
+
+    The flag records what a projection removed. On an assertion that still carries a value,
+    a justification, a note or evidence it is either a producer mistaking it for a request to
+    withhold, or an attempt to inflate the widened-cell count.
+    """
+    for _cell, assertion, path in _assertions(document):
+        disclosure = assertion.get("disclosure")
+        if not (isinstance(disclosure, Mapping) and disclosure.get("withheldFromReader") is True):
+            continue
+        missing = assertion.get("missing")
+        has_content = (
+            assertion.get("value") is not None
+            or not _is_blank_text(assertion.get("justification"))
+            or bool(assertion.get("evidence"))
+            or (isinstance(missing, Mapping) and not _is_blank_text(missing.get("note")))
+        )
+        if not has_content:
+            continue
+        yield Problem(
+            path=f"{path}.disclosure.withheldFromReader",
+            message=(
+                "marked as projected out for its reader, but it still carries a value, a "
+                "justification, a note or evidence. The flag records what a projection removed; "
+                "it is not a request to withhold, and it cannot be true of an assertion with content."
+            ),
+            fix=(
+                "remove withheldFromReader and let projectForReader decide what this reader sees; "
+                "to keep the value from every reader, record a withheld absence instead."
+            ),
+            rule_id="disclosure-flag-is-projection-only",
+        )
 
 
 def declarations_for(document: Mapping[str, Any], criterion_id: str) -> list[Mapping[str, Any]]:
@@ -730,6 +876,11 @@ HONESTY_RULES: Sequence[Rule] = (
     derived_from_resolves,
     external_support_required,
     check_dated_and_attributed,
+    blank_is_defined,
+    assertion_attributed,
+    agent_is_typed,
+    persona_keeps_kind,
+    disclosure_flag_is_projection_only,
 )
 
 

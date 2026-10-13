@@ -123,6 +123,8 @@ DISHONEST = {
     "a stale verdict with no checkerVersion": (
         {**SCORE, "evidence": [{**SPAN, "check": {"status": "stale", "checkedAt": MOMENT}}]},
         "check-attributed", ".evidence[e1].check.checkerVersion"),
+    "a blank whose code nothing defines": (
+        _blank("paywalled"), "blank-is-defined", ".missing.code"),
     "a score with no justification": (
         {**UNJUSTIFIED, "evidence": [SPAN]}, "score-has-a-reason", ".justification"),
     # Stricter than the companion, deliberately, as blank-has-a-note is: JS trim()
@@ -286,14 +288,8 @@ _COMPANION = Path(__file__).resolve().parents[2] / "comparanda" / "src" / "core"
 
 #: Honesty rule ids the companion's validateAnalysis reports that are not rules
 #: here yet, each with why. A new companion rule fails the test below until it is
-#: mirrored or listed. The audit of these is #184.
-NOT_MIRRORED = {
-    "blank-is-defined": "refused at write by _cell_problems, not yet a rule over a merged document (#184)",
-    "assertion-attributed": "sign takes authorId from the author it stores; unaudited (#184)",
-    "agent-is-typed": "unaudited (#184)",
-    "persona-keeps-kind": "unaudited (#184)",
-    "disclosure-flag-is-projection-only": "unaudited (#184)",
-}
+#: mirrored or listed. All five that were listed here are mirrored now (#184).
+NOT_MIRRORED: dict[str, str] = {}
 
 
 #: Every rule id a DISHONEST row shows refused at write -- through ``bind`` and
@@ -335,7 +331,7 @@ def test_every_verdict_but_unchecked_must_be_dated_and_attributed(status) -> Non
 
 
 def _stored(*assertions):
-    return {"cells": [{"alternativeId": "a", "criterionId": "c", "measure": "score",
+    return {"authors": [{"id": "ana", "displayName": "Ana", "kind": "human"}], "cells": [{"alternativeId": "a", "criterionId": "c", "measure": "score",
                        "assertions": list(assertions)}]}
 
 
@@ -403,3 +399,103 @@ def test_a_non_string_key_beside_a_string_one_is_refused_not_a_crash() -> None:
     with pytest.raises(ValueError, match=r"at \$\.cells\[0\]:"):
         measures_write(runtime.store, analysis_id="a1", contributor_id="scorer", author=AUTHOR,
                        at=MOMENT, cells=[{**SCORE, 1: "x", "bogus": 2}])
+
+
+# --- the analysis-level rules (#184) -------------------------------------------
+
+
+def _write_as(verbs_or_runtime, author, *, contributor="scorer", cell=SCORE, evidence=(SPAN,)):
+    return verbs_or_runtime["measures_write"](
+        analysis_id="a1", contributor_id=contributor, author=author, cells=[{**cell, "evidence": list(evidence)}])
+
+
+def test_a_model_dressed_as_a_person_is_refused_at_write() -> None:
+    runtime, verbs = _runtime()
+    bot = {"id": "bot", "displayName": "Bot", "kind": "human", "agent": {"name": "scorer-bot"}}
+    before = dict(runtime.store.blobs)
+    with pytest.raises(ValueError, match=r"authors\[bot\]: .*\[rule agent-is-typed; comparanda ADR-0012\]"):
+        _write_as(verbs, bot, contributor="bot")
+    assert dict(runtime.store.blobs) == before
+    # The honest neighbour: the same run, typed as an agent.
+    assert _write_as(verbs, {**bot, "kind": "agent"}, contributor="bot")["written"] == 1
+
+
+def test_a_persona_that_changes_its_principals_kind_is_refused_at_write() -> None:
+    runtime, verbs = _runtime()
+    ana = {"id": "ana", "displayName": "Ana", "kind": "human"}
+    assert _write_as(verbs, ana, contributor="ana")["written"] == 1
+    persona = {"id": "ana:bot", "displayName": "Ana's bot", "kind": "agent", "principalId": "ana"}
+    before = dict(runtime.store.blobs)
+    with pytest.raises(ValueError, match=r"authors\[ana:bot\]: .*\[rule persona-keeps-kind; comparanda ADR-0012\]"):
+        _write_as(verbs, persona, contributor="ana", cell={**SCORE, "criterionId": "support",
+                                                            "independence": "independent"})
+    assert dict(runtime.store.blobs) == before
+    assert _write_as(verbs, {**persona, "kind": "human"}, contributor="ana",
+                     cell={**SCORE, "independence": "independent"})["written"] == 1
+
+
+def test_an_author_already_stored_is_not_this_calls_problem() -> None:
+    """The rule refuses the record a call introduces, never locks a contributor out over a stored one."""
+    runtime, verbs = _runtime()
+    bot = {"id": "bot", "displayName": "Bot", "kind": "agent", "agent": {"name": "scorer-bot"}}
+    _write_as(verbs, bot, contributor="bot")
+    stored = runtime.store._read(runtime.store.contribution_key("a1", "bot"))
+    stored["authors"][0]["kind"] = "human"  # a hand edit
+    runtime.store.put_contribution("a1", "bot", stored)
+    again = _write_as(verbs, bot, contributor="bot", cell={**SCORE, "criterionId": "support",
+                                                           "independence": "independent"})
+    assert again["written"] == 1
+    assert "agent-is-typed" in {p["ruleId"] for p in verbs["report_completeness"](
+        analysis_id="a1")["honestyProblems"]}
+
+
+def test_a_written_assertion_is_always_attributed_to_a_listed_author() -> None:
+    """``assertion-attributed`` cannot occur through the verb: ``sign`` takes the author's own id and the author is stored with it."""
+    runtime, verbs = _runtime()
+    _through_bind(runtime, verbs, {**SCORE, "evidence": [SPAN]})
+    assert verbs["report_completeness"](analysis_id="a1")["honestyProblems"] == []
+    document = runtime.store.read("a1")
+    assert {a["authorId"] for c in document["cells"] for a in c["assertions"]} <= {
+        x["id"] for x in document["authors"]}
+
+
+def test_the_disclosure_flag_cannot_be_written_through_the_verb() -> None:
+    """``disclosure-flag-is-projection-only``: a cell has no ``disclosure`` key, so a producer cannot set it."""
+    runtime, verbs = _runtime()
+    with pytest.raises(ValueError, match="disclosure"):
+        _through_the_verb(runtime, verbs, {**SCORE, "evidence": [SPAN],
+                                           "disclosure": {"withheldFromReader": True}})
+
+
+def test_the_five_rules_report_what_reaches_the_store_another_way() -> None:
+    """An import, a hand edit or a colleague's file is checked by ``honesty_problems`` over the merged document."""
+    doc = {
+        "authors": [
+            {"id": "bot", "displayName": "Bot", "kind": "human", "agent": {"name": "b"}},
+            {"id": "p", "displayName": "P", "kind": "agent", "principalId": "ana"},
+            {"id": "ana", "displayName": "Ana", "kind": "human"},
+        ],
+        "cells": [{"alternativeId": "a", "criterionId": "c", "measure": "score", "assertions": [
+            {"id": "s1", "authorId": "ghost", "value": 3, "justification": "j", "evidence": [SPAN],
+             "disclosure": {"withheldFromReader": True}},
+            {"id": "s2", "authorId": "ana", "missing": {"code": "paywalled", "note": "n"},
+             "independence": "independent"},
+        ]}],
+    }
+    found = {(p.rule_id, p.path) for p in honesty_problems(doc)}
+    assert {
+        ("agent-is-typed", "authors[bot]"),
+        ("persona-keeps-kind", "authors[p]"),
+        ("assertion-attributed", "cells[a/c/score].assertions[s1].authorId"),
+        ("disclosure-flag-is-projection-only",
+         "cells[a/c/score].assertions[s1].disclosure.withheldFromReader"),
+        ("blank-is-defined", "cells[a/c/score].assertions[s2].missing.code"),
+    } <= found
+
+
+def test_a_projected_out_assertion_may_carry_the_flag() -> None:
+    doc = {"authors": [{"id": "ana", "displayName": "Ana", "kind": "human"}],
+           "cells": [{"alternativeId": "a", "criterionId": "c", "measure": "score", "assertions": [
+               {"id": "s1", "authorId": "ana", "disclosure": {"withheldFromReader": True},
+                "missing": {"code": "withheld"}}]}]}
+    assert "disclosure-flag-is-projection-only" not in {p.rule_id for p in honesty_problems(doc)}

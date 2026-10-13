@@ -102,7 +102,8 @@ def test_a_blank_counts_as_a_member_of_the_set(store) -> None:
 
 
 def test_a_superseded_assertion_is_not_live() -> None:
-    doc = {"cells": [{"alternativeId": "x", "criterionId": "c", "measure": "score",
+    doc = {"authors": [{"id": "a", "displayName": "A", "kind": "human"}],
+           "cells": [{"alternativeId": "x", "criterionId": "c", "measure": "score",
                       "assertions": [{"id": "s1", "authorId": "a", "value": 1, "evidence": CITED, "justification": "j", "supersededBy": "s2"},
                                      {"id": "s2", "authorId": "a", "value": 2, "evidence": CITED, "justification": "j"}]}]}
     assert honesty_problems(doc) == []
@@ -196,7 +197,8 @@ def test_a_perturbation_record_has_the_closed_shape(bad) -> None:
 
 def test_supersession_must_resolve_or_it_would_switch_an_assertion_off() -> None:
     def doc(*assertions):
-        return {"cells": [{"alternativeId": "x", "criterionId": "c", "measure": "score",
+        return {"authors": [{"id": i, "displayName": i, "kind": "human"} for i in ("a", "b")],
+                "cells": [{"alternativeId": "x", "criterionId": "c", "measure": "score",
                            "assertions": list(assertions)}]}
     ghost = doc({"id": "s1", "authorId": "a", "value": 1, "evidence": CITED, "justification": "j", "supersededBy": "ghost"},
                 {"id": "s2", "authorId": "b", "value": 2, "evidence": CITED, "justification": "j"})
@@ -211,7 +213,8 @@ def test_supersession_must_resolve_or_it_would_switch_an_assertion_off() -> None
 
 def test_merge_namespaces_supersession_with_the_ids() -> None:
     frame = {"id": "a", "cells": [], "authors": []}
-    contrib = {"authors": [], "cells": [{"alternativeId": "x", "criterionId": "c", "measure": "score",
+    contrib = {"authors": [{"id": "ana", "displayName": "Ana", "kind": "human"}],
+               "cells": [{"alternativeId": "x", "criterionId": "c", "measure": "score",
                "assertions": [{"id": "s1", "authorId": "ana", "value": 1, "evidence": CITED, "justification": "j", "supersededBy": "s2"},
                               {"id": "s2", "authorId": "ana", "value": 2, "evidence": CITED, "justification": "j"}]}]}
     merged = merge_contributions(frame, [("ana", contrib)])
