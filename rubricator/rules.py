@@ -455,16 +455,10 @@ def _spans(assertion: Mapping[str, Any]) -> list[Mapping[str, Any]]:
 
 
 def _is_blank_text(value: Any) -> bool:
-    """Not a string, or one with nothing visible in it.
+    """Not a string, or one with nothing visible in it (:func:`rubricator.locators.is_blank_text`)."""
+    from rubricator.locators import is_blank_text
 
-    ``str.strip`` keeps a zero-width space (a format character), so a note of
-    one would read as written and say nothing.
-    """
-    import unicodedata
-
-    return not isinstance(value, str) or all(
-        ch.isspace() or unicodedata.category(ch) == "Cf" for ch in value
-    )
+    return not isinstance(value, str) or is_blank_text(value)
 
 
 def value_cites_evidence(document: Mapping[str, Any]) -> Iterable[Problem]:

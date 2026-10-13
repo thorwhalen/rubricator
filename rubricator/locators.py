@@ -34,6 +34,12 @@ discovered:
 - RFC 5147 line positions are the **boundaries between** lines: ``line=40,58``
   is lines 41 to 58. So :class:`LineRangeSelector` (41, 58) is ``line=40,58``.
 
+**A stored hash names its normaliser, and matches** (#195, from #174). An
+``excerptHash`` is taken over the excerpt as a normaliser renders it
+(:mod:`rubricator.normalise`), so one is refused without its excerpt, without
+the ``normaliserId`` it was made under, or when it does not match; an unknown
+``normaliserId`` is refused outright, never checked under another (ADR-0021).
+
 **A text-fragment link is derived, never stored.** ``#:~:text=prefix-,exact,-suffix``
 is isomorphic to a ``TextQuoteSelector``; :func:`text_fragment_link` renders it
 from the stored quote, and :func:`profile_problems` refuses a stored fragment
@@ -78,6 +84,7 @@ __all__ = [
     "from_fragment",
     "text_fragment_link",
     "profile_problems",
+    "is_blank_text",
 ]
 
 #: The ``conformsTo`` value of each fragment standard this profile reaches.
@@ -99,6 +106,20 @@ REJECTED: Mapping[str, str] = {
 _TEXT_ADDRESSED = ("TextPositionSelector", "LineRangeSelector")
 
 
+def is_blank_text(value: str) -> bool:
+    """Whether ``value`` has nothing visible in it.
+
+    ``str.strip`` keeps a zero-width space (a format character), so a quote or
+    a note of one would read as written and say nothing.
+
+    >>> is_blank_text(" \\u200b\\n"), is_blank_text("2029")
+    (True, False)
+    """
+    import unicodedata
+
+    return all(ch.isspace() or unicodedata.category(ch) == "Cf" for ch in value)
+
+
 def _require(condition: bool, message: str) -> None:
     if not condition:
         raise ValueError(message)
@@ -116,7 +137,7 @@ def _text(value: Any, name: str, *, required: bool = False) -> None:
         value.encode("utf-8")
     except UnicodeEncodeError:
         raise ValueError(f"{name} holds a lone surrogate, which no document can contain") from None
-    _require(not required or bool(value.strip()), f"{name} must not be blank")
+    _require(not required or not is_blank_text(value), f"{name} must not be blank")
 
 
 def _seconds(value: Any, name: str) -> float:
@@ -354,7 +375,59 @@ _AS_PROFILE = {
     "TextPositionSelector": lambda s: selector_from_dict(s),
     "LineRangeSelector": lambda s: LineRangeSelector(s.get("startLine"), s.get("endLine")),
     "TimeRangeSelector": lambda s: MediaTimeSelector(s.get("startSeconds"), s.get("endSeconds")),
+    "PageRegionSelector": lambda s: _page_region(s),
 }
+
+
+def _page_region(stored: Mapping[str, Any]) -> None:
+    """comparanda v1's ``PageRegionSelector``: a whole page number and, optionally, a box on it.
+
+    The box must select an area at a non-negative position. Its unit is not
+    held here: the companion documents fractions of the page, and producers
+    have written pixels, so bounding it at 1 is an open contract question
+    rather than a rule. The profile has no type of its own for it, so it is
+    checked here and stored as given.
+    """
+    def number(value: Any) -> bool:
+        return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+    page = stored.get("page")
+    finite = {"page": page, **(stored["rect"] if isinstance(stored.get("rect"), Mapping) else {})}
+    _require(all(math.isfinite(v) for v in finite.values() if number(v)),
+             f"a page region holds a NaN or infinite number, which no document can carry: {finite!r}")
+    _require(number(page) and page >= 0 and float(page).is_integer(),
+             f"page must be a whole, non-negative page number, got {page!r}")
+    rect = stored.get("rect")
+    if rect is None:
+        return
+    _require(isinstance(rect, Mapping), f"rect must be an object, got {rect!r}")
+    sides = {k: rect.get(k) for k in ("x", "y", "w", "h")}
+    _require(all(number(v) and v >= 0 for v in sides.values()),
+             f"rect's x, y, w and h are non-negative numbers, got {sides!r}")
+    _require(sides["w"] > 0 and sides["h"] > 0, "rect selects no area: w and h must be above 0")
+
+
+def _hash_problems(ref: Mapping[str, Any]) -> list[str]:
+    """What is wrong with a reference's ``normaliserId`` and ``excerptHash``, as sentences."""
+    from rubricator.normalise import NORMALISERS, excerpt_matches
+
+    normaliser, recorded, excerpt = ref.get("normaliserId"), ref.get("excerptHash"), ref.get("excerpt")
+    if normaliser is not None and normaliser not in NORMALISERS:
+        return [f"normaliserId {normaliser!r} is not one this package can reproduce (known: "
+                f"{', '.join(sorted(NORMALISERS))}); a quote recorded under it cannot be checked, "
+                "and is never checked under another (ADR-0021)"]
+    if recorded is None:
+        return []
+    if not isinstance(excerpt, str) or is_blank_text(excerpt):
+        return ["an excerptHash with no excerpt hashes nothing a reader can see; add the excerpt "
+                "it was taken over, or drop excerptHash"]
+    if normaliser is None:
+        return ["an excerptHash without the normaliserId it was made under cannot be re-checked; "
+                "add normaliserId (normalise.CURRENT for a hash made now)"]
+    if not excerpt_matches(excerpt, recorded, normaliser_id=normaliser):
+        return [f"excerptHash does not match its excerpt under {normaliser}; recompute it with "
+                "normalise.excerpt_hash, or correct the excerpt"]
+    return []
 
 
 def _same_standard(a: Any, b: str) -> bool:
@@ -387,6 +460,7 @@ def profile_problems(evidence: Iterable[Mapping[str, Any]]) -> list[str]:
                 for s in selectors
                 if s.get("type") == "FragmentSelector"
                 and _same_standard(s.get("conformsTo"), TEXT_FRAGMENTS)]
+        out += [f"{where}: {p}" for p in _hash_problems(ref)]
         valid: list[str] = []
         for selector, kind in zip(selectors, kinds):
             if kind not in _AS_PROFILE:
