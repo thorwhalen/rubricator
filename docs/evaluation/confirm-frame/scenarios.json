@@ -1008,7 +1008,8 @@
    "scope": null,
    "by": null,
    "text": null,
-   "asks": true
+   "asks": true,
+   "narrowAsk": true
   }
  },
  {

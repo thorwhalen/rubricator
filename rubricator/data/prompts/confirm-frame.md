@@ -5,7 +5,7 @@ title: Confirm the frame with the user
 stage: 4
 updated: 2026-10-13
 changelog:
-  - 1 (2026-10-13) — First version (#71). Runs the step-4 discussion in chat (the question, the decider, every alternative, every criterion with its definition, scale, anchors and direction, the overlap probes put to the user in both directions) and records the user's answer through `frame_confirm` in their own words, in both paths: elicitation, where the form is the record and nothing is asked twice, and out-of-band, where the reply is. Carries a precautionary countermeasure for the sycophancy risk of #40 before that test exists: a stated expectation about the winner changes nothing in the frame and is neither agreed with nor predicted, and a criterion asked for because of an alternative gets the value question before anything is written. Hypothesis, as first stated: without the prompt a model reads thanks or "you decide" as consent, records a summary, invents a name and leans toward the named winner. The no-prompt baseline did none of those (frame_confirm's own instructions carry them); what it did do is write a criterion for an alternative the user favoured without asking why it mattered, which the prompt stops. Revised once before landing, after an adversarial review found it wrong about the tool in three states: a decision seen in a later read is history and is not applied again; a change after a confirmation does not close the gate in the tool, so it is recorded as a revise first; and a second confirm needs a fresh no-decision call.
+  - 1 (2026-10-13) — First version (#71). Runs the step-4 discussion in chat (the question, the decider, every alternative, every criterion with its definition, scale, anchors and direction, the overlap probes put to the user in both directions) and records the user's answer through `frame_confirm` in their own words, in both paths: elicitation, where the form is the record and nothing is asked twice, and out-of-band, where the reply is. Carries a precautionary countermeasure for the sycophancy risk of #40 before that test exists: a stated expectation about the winner changes nothing in the frame and is neither agreed with nor predicted, and a criterion asked for because of an alternative gets the value question before anything is written. Hypothesis, as first stated: without the prompt a model reads thanks or "you decide" as consent, records a summary, invents a name and leans toward the named winner. The no-prompt baseline did none of those (frame_confirm's own instructions carry them); what it did do is write a criterion for an alternative the user favoured without asking why it mattered, which the prompt stops. Revised twice before landing, after two adversarial reviews found it wrong about the tool: a decision seen in a later read is history and is not applied again (and one from an earlier session is asked about); a change after a confirmation does not close the gate in the tool, so it is recorded as a revise first, and a later read re-asks additions but not removals; a second confirm answers its own question, put to the user, never a bookkeeping call; and a declined form (empty record, no instructions) is not an open gate.
 ---
 
 # Confirm the frame with the user
@@ -49,10 +49,11 @@ user said, as if it were their words.
    say that the overlap check is not on record here; do not say there are no overlaps.
 3. `frame_confirm` with **no decision**, read by its `instructions` and its `record`, never by
    `confirmed` alone:
-   - **No `instructions`**: a decision stands — a person's `confirm`, or a `skip` at open, which is
-     nobody's confirmation and must never be reported as one. Report who and when from `record`, and
-     do not ask again. Asking a user to re-confirm what they confirmed teaches them the record means
-     nothing.
+   - **No `instructions`, and `record` holds a `confirm` or a `skip`**: a decision stands — a
+     person's `confirm`, or a `skip` at open, which is nobody's confirmation and must never be
+     reported as one. Report who and when from `record`, and do not ask again. Asking a user to
+     re-confirm what they confirmed teaches them the record means nothing. After a skip, the tool
+     will not record a confirmation the user offers later; if they offer one, say so (#206).
    - **`instructions` present**: the question is open, and the call has recorded that you are asking
      it. Ask it in this reply, as below. If `confirmed` is also true, something moved since the last
      confirmation; say what, from the `summary`.
@@ -63,7 +64,9 @@ the discussion by then.
 
 A decision you see in `record` on a read is history, not a new answer. Act on a decision once: when
 the user gives it — in their reply, or on the result that carried a form (below). If its changes were
-made in this conversation, put the changed frame to them; do not make them again.
+made in this conversation, put the changed frame to them; do not make them again. If they were not
+— the decision came from an earlier session — quote its text and ask whether to make those changes
+now; never assume either way.
 
 ## What to show
 
@@ -104,12 +107,16 @@ Read the user's whole reply before choosing, and choose by what it says, not by 
   that matter most rather than the whole list.
 - **Part of it** — "the criteria are right, but I need to check the alternatives with Ben": record a
   `confirm` with `scope` set to the part they confirmed, and say what is still open. If they
-  confirmed two of the three parts, record each in turn.
+  confirmed two of the three parts, record one of them, and put the other to them as its own short
+  question; the tool takes one part per answer (#206).
 
 **Every decision you record answers the question once.** The tool records a `confirm` only in answer
-to a question asked since the last decision, so before recording another one — the next part of a
-partial confirmation, or a fresh answer after a `revise` — call `frame_confirm` with no decision
-first; it records that the question is put again.
+to a question asked since the last decision. Before recording another — the next part of a partial
+confirmation, or a fresh answer after a `revise` — call `frame_confirm` with no decision, put that
+question to the user, and record their answer to it. Never make the no-decision call only to clear the
+way for an answer they have not given to that question. When a result says "Still to confirm: ...
+Call frame_confirm with that scope", that is the question to put to them, not a call to make with a
+decision.
 
 When there is a decision, call `frame_confirm` with:
 
@@ -126,8 +133,9 @@ Then read the result the same way as above. No `instructions`: the gate is open;
 scoring is the next step. `instructions` present: follow them.
 
 A change to the frame after a confirmation does **not** close the gate in the tool: scoring stays
-open, and the next read puts the changed part to the user again. So never make a change silently,
-and never score against one the user has not answered. A change they ask for is a `revise`, recorded
+open. The next read puts added or reworded parts to the user again, but not a removed criterion or
+alternative, which it treats as narrowing. So never make a change silently, and never score against
+one the user has not answered. A change they ask for is a `revise`, recorded
 first; that is what closes the gate.
 
 ## When the form was the record
@@ -137,12 +145,14 @@ back carries `mechanism: "elicitation"`. On that result, the form is the record:
 there. Do not ask the same question again in chat, and do not call `frame_confirm` with a decision for
 the answer the form carried. Read the result as above:
 
-- **No `instructions`**: the gate is open. If the form's notes ask for a change, point to them and ask
-  whether to make it; making it is a `revise`, which closes the gate again.
+- **No `instructions`, and a `confirm` in the record**: the gate is open. If the form's notes ask for
+  a change, point to them and ask whether to make it; making it is a `revise`, which closes the gate
+  again.
 - **A `revise` in the record**: its text — and any criteria the user chose to drop — is the change
   asked for. Make exactly that, then call `frame_confirm` with no decision and put the changed frame
   to them. Only on this result: a later read showing the same `revise` is history.
-- **No decision in the record** — the form was declined or dismissed: nothing was confirmed. Do not
+- **No decision in the record** (`record` is empty) — the form was declined or dismissed: nothing
+  was confirmed, whatever else the result lacks. Do not
   read a closed form as consent, and do not start scoring. Ask in chat what they would like to change,
   or whether to leave it for now.
 

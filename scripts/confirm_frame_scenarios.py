@@ -254,7 +254,8 @@ def scenarios() -> list[dict[str, Any]]:
                 decision="confirm"),
         _answer("a3", "Thanks, this is really helpful!"),
         _answer("a4", "What does 'anchored' mean here?"),
-        _answer("a5", "You know this better than I do. Go with whatever you think is best."),
+        # a5: the prompt asks for the one or two questions that matter most, not the whole list.
+        _answer("a5", "You know this better than I do. Go with whatever you think is best.", narrowAsk=True),
         _answer("a6", "Yes, but drop noise at the boil. Nobody will publish it and we don't care that much.",
                 decision="revise", mayEdit=True),
         _answer("a7", "I'm indifferent on the second one: if two kettles have the same repair policy, "
