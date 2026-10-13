@@ -196,11 +196,31 @@ def test_the_skip_is_explicit_at_creation_and_never_a_human_confirmation() -> No
     got = verbs["frame_confirm"](analysis_id="a1")
     assert got["confirmed"] is True and got["record"]["authorId"] == "agent"
     assert got["record"]["mechanism"] == "skip-at-open"
+    # The summary says what happened: a skip, not a confirmation (#187).
+    assert "skipped at open" in got["summary"] and "nobody confirmed" in got["summary"]
+    assert "already confirmed" not in got["summary"]
     # Retrying the same create is fine; adding a skip to an existing analysis is not.
     verbs["analysis_open"](analysis_id="a1", allow_skip_confirmation=True)
     verbs["analysis_open"](analysis_id="b1", question="q")
     with pytest.raises(ValueError, match="only be chosen when an analysis is created"):
         verbs["analysis_open"](analysis_id="b1", allow_skip_confirmation=True)
+
+
+def test_a_partial_confirm_after_the_skip_does_not_launder_the_rest() -> None:
+    """The frame and alternatives still rest on the skip: the summary says so (#187)."""
+    _, verbs = _verbs()
+    _framed(verbs, allow_skip_confirmation=True)
+    verbs["frame_confirm"](analysis_id="a1", decision="revise", scope="criteria", confirmed_by="ana",
+                           confirmation_text="Tighten the criteria first.")
+    verbs["frame_confirm"](analysis_id="a1")  # put the question again
+    verbs["frame_confirm"](analysis_id="a1", decision="confirm", scope="criteria", confirmed_by="ana",
+                           confirmation_text="Yes, the criteria are right.")
+    got = verbs["frame_confirm"](analysis_id="a1")
+    assert got["confirmed"] is True
+    assert "frame, alternatives: skipped at open" in got["summary"]
+    assert "nobody confirmed the frame, alternatives" in got["summary"]
+    assert "criteria: confirmed by ana" in got["summary"]
+    assert "already confirmed" not in got["summary"]
 
 
 def test_the_gate_and_stage_four_show_on_analysis_get() -> None:

@@ -121,6 +121,35 @@ def gate(records: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     return {"open": not closed, "closed": closed, "deciding": deciding, "invalid": invalid}
 
 
+def _standing(state: Mapping[str, Any]) -> tuple[str, bool]:
+    """What stands behind an open gate, in words, and whether any part rests on the skip.
+
+    Each part is decided by its own latest record, so a skip at open followed by a
+    confirm of the criteria alone leaves the frame and alternatives resting on the
+    skip: the account says which, because nobody confirmed those (#187).
+    """
+    groups: list[tuple[list[str], Mapping[str, Any]]] = []
+    for part in PARTS:
+        record = state["deciding"][part]
+        for parts, other in groups:
+            if other is record:
+                parts.append(part)
+                break
+        else:
+            groups.append(([part], record))
+
+    def one(parts: Sequence[str], record: Mapping[str, Any]) -> str:
+        if record.get("mechanism") == "skip-at-open":
+            return (f"skipped at open, at the caller's request, at {record['at']}: nobody "
+                    f"confirmed the {', '.join(parts)}")
+        return f"confirmed by {record.get('authorId', 'agent')} at {record['at']}"
+
+    skipped = any(r.get("mechanism") == "skip-at-open" for _, r in groups)
+    if len(groups) == 1:
+        return one(*groups[0]), skipped
+    return "; ".join(f"{', '.join(parts)}: {one(parts, r)}" for parts, r in groups), skipped
+
+
 def _closed_message(state: Mapping[str, Any]) -> str:
     parts = ", ".join(state["closed"])
     if state["invalid"]:
@@ -243,10 +272,10 @@ def frame_confirm(
             deciding = state["deciding"]["criteria"]
             version = deciding.get("criteriaVersion")
             if version in (None, current):
+                standing, skipped = _standing(state)
                 return result(
                     True, "recorded", deciding, None,
-                    f"already confirmed by {deciding.get('authorId', 'agent')} at {deciding['at']}; "
-                    "nothing to ask",
+                    f"{standing}; scoring is open" if skipped else f"already {standing}; nothing to ask",
                 )
             # The set has moved since: scoring stays open (ADR-0005's gate opens
             # both ways), but the question is put again so a fresh confirm of
@@ -296,8 +325,10 @@ def frame_confirm(
     )
     state = gate(store.confirmations(analysis_id))
     if state["open"]:
+        standing, skipped = _standing(state)
         return result(True, "out-of-band", record, None,
-                      f"confirmed by {record['authorId']}: scoring may start")
+                      f"{standing}: scoring may start" if skipped
+                      else f"confirmed by {record['authorId']}: scoring may start")
     follow = (
         "Make the changes the user asked for, then call frame_confirm with no decision to ask again."
         if decision != "confirm" else
