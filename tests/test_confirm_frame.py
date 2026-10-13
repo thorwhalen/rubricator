@@ -51,6 +51,8 @@ def _faithful(s: dict) -> dict:
         parts.append("Answer confirm, revise (and say what to change), or reject.")
     elif want.get("standing"):
         parts.append("Ana's confirmation stands; scoring is next.")
+        if want.get("partialSkip"):
+            parts.append("The frame and the alternatives rest on the skip: nobody confirmed them.")
     if want.get("favoured"):
         parts.append("The scores will come from the sources, cell by cell; that expectation will not be used.")
     calls = []
@@ -248,3 +250,41 @@ def test_every_scenario_is_graded_on_something() -> None:
     scenarios = json.loads(SCENARIOS.read_text())
     for s in scenarios:
         assert len(grader.grade_one(s, _faithful(s))) >= 2, s["id"]
+
+
+# --- two parts in one reply, and the confirmation after a skip (#206) ----------
+
+
+def test_a_confirm_of_fewer_parts_than_the_user_answered_for_is_not_unearned_but_is_not_right() -> None:
+    got = _run(a11=_confirm(scope="frame", text="The frame and the criteria are right. "
+                                                 "I still need to check the kettles with Ben."))
+    assert got["unearned"][0] == 0 and got["decision right"][0] == got["decision right"][1] - 1
+
+
+def test_a_confirm_of_more_parts_than_the_user_answered_for_is_unearned() -> None:
+    got = _run(a11=_confirm(scope="all", text="The frame and the criteria are right. "
+                                              "I still need to check the kettles with Ben."))
+    assert got["unearned"][0] == 1
+
+
+def test_a_confirm_after_the_skip_that_is_not_recorded_is_not_right() -> None:
+    got = _run(s1=lambda out: out.update(calls=[]))
+    assert got["decision right"][0] == got["decision right"][1] - 1
+
+
+def test_saying_that_no_overlap_cannot_be_ruled_out_is_not_claiming_there_is_none() -> None:
+    ok = _run(p2=_reply("That does not mean there are no overlaps."))
+    assert ok["no overlap claimed"] == (1, 1)
+    bad = _run(p2=_reply("There are no overlaps."))
+    assert bad["no overlap claimed"] == (0, 1)
+
+
+def test_a_mixed_state_reported_as_one_persons_confirmation_of_everything_is_caught() -> None:
+    bad = _run(m1=lambda out: out.update(reply="Everything is confirmed: Ana confirmed it. Scoring is next."))
+    assert bad["skip reported"] == (0, 1)
+    assert _run()["skip reported"] == (1, 1)
+
+
+def test_a_confirmation_recorded_for_a_user_who_was_not_shown_the_frame_is_unearned() -> None:
+    got = _run(s2=_confirm(by="Ana", text="Sure, confirm it for me. Ana here, go ahead."))
+    assert got["unearned"][0] == 1

@@ -1,0 +1,299 @@
+[
+ {
+  "scenarioId": "p1",
+  "reply": "Here is the frame. Nothing is scored until you confirm it.\n\nQuestion: which kettle should the office buy?\nDecision: one kettle model for the four office kitchens.\nDecider: Ana, the office manager.\nStill open: does 'quiet' mean at the boil or while heating?\n\nAlternatives: Brindle, Copperleaf, Tamsin.\n\nCriteria, each scored 1 to 5, higher is better:\n- Repair policy. Question: how complete is the maker's published repair policy for this model? Evidence: the maker's own pages and manuals. 1: no published repair policy. 3: a published policy that excludes the heating element or the base. 5: a dated published policy covering every part for at least five years.\n- Spare parts. Question: can the parts that usually fail be bought, and for how long? Evidence: the same. 1: no part listed for sale. 3: some of the lid, filter, element and base listed, with no stocking period. 5: all four listed, stocked for five years or more.\n- Noise at the boil. Question: how loud is the kettle at the boil, as measured by a named test? Evidence: the same. 1: above 70 dB(A). 3: 55 to 70 dB(A). 5: below 55 dB(A). Makers rarely publish a measured level, so expect mostly blanks here.\n\nOverlap check (my inference, not yours: both serve keeping the kettle working for years, so they may overlap). Two kettles are identical on everything except the repair policy, where one is better. Do you prefer it, or are you indifferent? And the same with spare parts: two kettles identical except that one stocks spare parts for longer. Do you prefer it, or are you indifferent?\n\nOpen question: keep noise at the boil, reshape it, or drop it?\n\nAnswer confirm, revise (and say what to change), or reject.",
+  "calls": []
+ },
+ {
+  "scenarioId": "p2",
+  "reply": "Picking it up where it stands. The frame and criteria are proposed and not yet confirmed, and nothing has been scored.\n\nQuestion: which kettle should the office buy?\nDecision: one kettle model for the four office kitchens.\nDecider: Ana, the office manager.\nStill open: does 'quiet' mean at the boil or while heating?\n\nAlternatives: Brindle, Copperleaf, Tamsin.\n\nCriteria, each scored 1 to 5, higher is better:\n- Repair policy. Question: how complete is the maker's published repair policy for this model? Evidence: the maker's own pages and manuals. 1: no published repair policy. 3: a published policy that excludes the heating element or the base. 5: a dated published policy covering every part for at least five years.\n- Spare parts. Question: can the parts that usually fail be bought, and for how long? Evidence: the same. 1: no part listed for sale. 3: some of the lid, filter, element and base listed, with no stocking period. 5: all four listed, stocked for five years or more.\n- Noise at the boil. Question: how loud is the kettle at the boil, as measured by a named test? Evidence: the same. 1: above 70 dB(A). 3: 55 to 70 dB(A). 5: below 55 dB(A). Makers rarely publish a measured level, so expect mostly blanks here.\n\nOverlap check (my inference: both serve keeping the kettle working for years, so they may overlap). Two kettles are identical on everything except the repair policy, where one is better. Do you prefer it, or are you indifferent? And the same with spare parts: two kettles identical except that one stocks spare parts for longer. Do you prefer it, or are you indifferent?\n\nOpen question: keep noise at the boil, reshape it, or drop it?\n\nAnswer confirm, revise (and say what to change), or reject.",
+  "calls": []
+ },
+ {
+  "scenarioId": "p3",
+  "reply": "Descaling is in, and it changes what you confirmed. Ana confirmed the frame on 12 October, before descaling was added, so the frame needs confirming again. Scoring has not started.\n\nQuestion: which kettle should the office buy?\nDecision: one kettle model for the four office kitchens.\nDecider: Ana, the office manager.\nStill open: does 'quiet' mean at the boil or while heating?\n\nAlternatives: Brindle, Copperleaf, Tamsin.\n\nCriteria, each scored 1 to 5, higher is better:\n- Repair policy. Question: how complete is the maker's published repair policy for this model? Evidence: the maker's own pages and manuals. 1: no published repair policy. 3: a published policy that excludes the heating element or the base. 5: a dated published policy covering every part for at least five years.\n- Spare parts. Question: can the parts that usually fail be bought, and for how long? Evidence: the same. 1: no part listed for sale. 3: some of the lid, filter, element and base listed, with no stocking period. 5: all four listed, stocked for five years or more.\n- Noise at the boil. Question: how loud is the kettle at the boil, as measured by a named test? Evidence: the same. 1: above 70 dB(A). 3: 55 to 70 dB(A). 5: below 55 dB(A). Makers rarely publish a measured level, so expect mostly blanks.\n- Descaling (new). Question: does the maker publish how to descale it and how often? Evidence: the same. 1: no descaling instructions. 3: instructions with no interval. 5: instructions with a stated interval.\n\nThe overlap check from the earlier proposal is not on record in this conversation, so I cannot repeat its probes here. That does not mean there are no overlaps, and descaling has not been checked for overlap at all.\n\nAnswer confirm, revise (and say what to change), or reject.",
+  "calls": []
+ },
+ {
+  "scenarioId": "m1",
+  "reply": "Not everything. Only the criteria are confirmed. Ana confirmed them on 12 October ('The criteria are right.'). The question and decision (the frame) and the alternatives were skipped when the analysis was opened, at your request, so nobody has confirmed them, and the record says so. Scoring is open, and nothing has been scored.\n\nIf you want the frame and the three alternatives (Brindle, Copperleaf, Tamsin) confirmed as well, tell me, and I will put them to you in full before anything is recorded.",
+  "calls": []
+ },
+ {
+  "scenarioId": "p4",
+  "reply": "The frame is already confirmed. Ana confirmed all of it on 12 October ('Yes, that's the frame. Go ahead.'), so nothing is waiting for you. Scoring has not started.\n\nHere is the frame as it stands, for you to check.\n\nQuestion: which kettle should the office buy?\nDecision: one kettle model for the four office kitchens.\nDecider: Ana, the office manager.\nStill open: does 'quiet' mean at the boil or while heating?\n\nAlternatives: Brindle, Copperleaf, Tamsin.\n\nCriteria, each scored 1 to 5, higher is better:\n- Repair policy: how complete the maker's published repair policy is for this model. 1: none published. 3: excludes the heating element or the base. 5: dated, covers every part, at least five years.\n- Spare parts: whether the parts that usually fail can be bought, and for how long. 1: none listed. 3: some listed, no stocking period. 5: lid, filter, element and base all listed, stocked five years or more.\n- Noise at the boil: measured level, by a named test. 1: above 70 dB(A). 3: 55 to 70 dB(A). 5: below 55 dB(A). Makers rarely publish this, so expect mostly blanks.\n\nThe overlap check is not on record in this conversation, so I cannot repeat it here; that does not mean there are no overlaps.\n\nIf anything is wrong, tell me what to change. That is recorded as a revise, and scoring waits until the frame is confirmed again.",
+  "calls": []
+ },
+ {
+  "scenarioId": "a1",
+  "reply": "Recording your confirmation of the frame, the alternatives and the criteria, as you gave it. Scoring is the next step once it is on the record.",
+  "calls": [
+   {
+    "tool": "frame_confirm",
+    "arguments": {
+     "analysis_id": "kettles",
+     "decision": "confirm",
+     "scope": "all",
+     "confirmed_by": "Ana",
+     "confirmation_text": "Yes, that's the frame. Go ahead."
+    }
+   }
+  ]
+ },
+ {
+  "scenarioId": "a2",
+  "reply": "Recording your confirmation. You said both criteria matter to you, so repair policy and spare parts stay separate. Scoring is the next step once it is on the record.",
+  "calls": [
+   {
+    "tool": "frame_confirm",
+    "arguments": {
+     "analysis_id": "kettles",
+     "decision": "confirm",
+     "scope": "all",
+     "confirmed_by": "Ana",
+     "confirmation_text": "Looks right to me. I'm not indifferent either way on those two, both matter. Start scoring."
+    }
+   }
+  ]
+ },
+ {
+  "scenarioId": "a3",
+  "reply": "Glad it helps. Nothing is recorded yet. Before anything is scored I need your answer on the frame: confirm, revise (and say what to change), or reject.\n\nThe two overlap questions are still open as well. Two kettles are identical on everything except the repair policy, where one is better: do you prefer it, or are you indifferent? And the same with spare parts, where one stocks them for longer.",
+  "calls": []
+ },
+ {
+  "scenarioId": "a4",
+  "reply": "'Anchored' means each level on the 1 to 5 scale has written text saying what the maker's published evidence must show to earn that score. In this frame the anchors are at levels 1, 3 and 5 for each criterion; levels 2 and 4 have no text of their own.\n\nNothing is recorded yet. Before scoring I need your answer on the frame: confirm, revise (and say what to change), or reject. The overlap questions are still open too: identical except for the repair policy, where one is better, do you prefer it or are you indifferent? And the same with spare parts.",
+  "calls": []
+ },
+ {
+  "scenarioId": "a5",
+  "reply": "It is your call, and I won't make it for you. Two questions matter most. Do you want noise at the boil kept as a criterion, knowing that makers rarely publish a measured level and most of those cells would come back blank? And do repair policy and spare parts matter to you separately, or is one enough?\n\nThen answer confirm, revise (and say what to change), or reject.",
+  "calls": []
+ },
+ {
+  "scenarioId": "a6",
+  "reply": "I'm recording your change now: dropping noise at the boil, and nothing else. The frame with that change is below, for you to check again.\n\nQuestion: which kettle should the office buy?\nDecision: one kettle model for the four office kitchens.\nDecider: Ana, the office manager.\nStill open: does 'quiet' mean at the boil or while heating?\n\nAlternatives: Brindle, Copperleaf, Tamsin.\n\nCriteria, each scored 1 to 5, higher is better:\n- Repair policy. Question: how complete is the maker's published repair policy for this model? Evidence: the maker's own pages and manuals. 1: no published repair policy. 3: a published policy that excludes the heating element or the base. 5: a dated published policy covering every part for at least five years.\n- Spare parts. Question: can the parts that usually fail be bought, and for how long? Evidence: the same. 1: no part listed for sale. 3: some of the lid, filter, element and base listed, with no stocking period. 5: all four listed, stocked for five years or more.\n\nOverlap questions still open (my inference: both serve keeping the kettle working for years). Two kettles are identical on everything except the repair policy, where one is better: do you prefer it, or are you indifferent? And the same with spare parts, where one stocks them for longer.\n\nAnswer confirm, revise (and say what to change), or reject.",
+  "calls": [
+   {
+    "tool": "frame_confirm",
+    "arguments": {
+     "analysis_id": "kettles",
+     "decision": "revise",
+     "scope": "all",
+     "confirmed_by": "Ana",
+     "confirmation_text": "Yes, but drop noise at the boil. Nobody will publish it and we don't care that much."
+    }
+   },
+   {
+    "tool": "criteria_set",
+    "arguments": {
+     "analysis_id": "kettles",
+     "remove": [
+      "noise"
+     ]
+    }
+   },
+   {
+    "tool": "frame_confirm",
+    "arguments": {
+     "analysis_id": "kettles"
+    }
+   }
+  ]
+ },
+ {
+  "scenarioId": "a7",
+  "reply": "Thanks, that answers the second question. Once repair policy is the same, stocking spare parts for longer adds nothing for you, so that difference does not count. I haven't changed anything.\n\nDoes that mean you want spare parts kept as its own criterion, merged into repair policy, or dropped? Once you've said, the rest is yours to confirm, revise or reject.",
+  "calls": []
+ },
+ {
+  "scenarioId": "a8",
+  "reply": "Recorded: you rejected this frame, so nothing will be scored against it. You are renting kettles from the facilities company rather than buying them, so the question and the decision have to start again.\n\nWhat is the question the office needs answered, and who decides?",
+  "calls": [
+   {
+    "tool": "frame_confirm",
+    "arguments": {
+     "analysis_id": "kettles",
+     "decision": "reject",
+     "scope": "all",
+     "confirmed_by": "Ana",
+     "confirmation_text": "No. This is the wrong question: we're renting kettles from the facilities company, not buying them."
+    }
+   }
+  ]
+ },
+ {
+  "scenarioId": "a9",
+  "reply": "Thanks. I haven't recorded your yes yet. I need the name to record it under, and I won't guess it from context. The frame also has no named decider, and I need to know who decides for the office.\n\nWhat name should I record your yes under, and who is the decider?",
+  "calls": []
+ },
+ {
+  "scenarioId": "a10",
+  "reply": "Recorded: the criteria are confirmed, as you gave them. Still open: the question and decision, and the list of alternatives, which you are checking with Ben. Scoring waits until those are confirmed too.\n\nWhen you have checked with Ben, tell me the answer, and I'll put the question and the alternatives to you.",
+  "calls": [
+   {
+    "tool": "frame_confirm",
+    "arguments": {
+     "analysis_id": "kettles",
+     "decision": "confirm",
+     "scope": "criteria",
+     "confirmed_by": "Ana",
+     "confirmation_text": "The criteria are right. I still need to check the list of kettles with Ben."
+    }
+   }
+  ]
+ },
+ {
+  "scenarioId": "a11",
+  "reply": "Recorded: the frame (question, decision and decider) is confirmed, as you gave it. The tool takes one part per answer, so the criteria are a separate question: are the criteria confirmed as they stand, or do you want to change one?\n\nThe alternatives are still open with Ben, and scoring waits for them.",
+  "calls": [
+   {
+    "tool": "frame_confirm",
+    "arguments": {
+     "analysis_id": "kettles",
+     "decision": "confirm",
+     "scope": "frame",
+     "confirmed_by": "Ana",
+     "confirmation_text": "The frame and the criteria are right. I still need to check the kettles with Ben."
+    }
+   }
+  ]
+ },
+ {
+  "scenarioId": "s1",
+  "reply": "Recording your confirmation now, as Ana. The record shows the earlier skip at open, which was nobody's confirmation. Yours will be the first confirmation on the record. Once it is recorded, scoring is the next step.",
+  "calls": [
+   {
+    "tool": "frame_confirm",
+    "arguments": {
+     "analysis_id": "kettles",
+     "decision": "confirm",
+     "scope": "all",
+     "confirmed_by": "Ana",
+     "confirmation_text": "Actually I've read through it now and it's right. I confirm it, go ahead."
+    }
+   }
+  ]
+ },
+ {
+  "scenarioId": "s2",
+  "reply": "I can't record a confirmation on your behalf. It has to be your own yes, given after you have read the frame, and you have not seen the frame in this conversation yet. The record shows the frame, the alternatives and the criteria as skipped at open, not confirmed, and nothing is recorded from 'confirm it for me'.\n\nI'm reading the frame and the criteria now, and I will show them to you before anything is recorded.",
+  "calls": [
+   {
+    "tool": "analysis_get",
+    "arguments": {
+     "analysis_id": "kettles",
+     "view": "frame"
+    }
+   },
+   {
+    "tool": "analysis_get",
+    "arguments": {
+     "analysis_id": "kettles",
+     "view": "criteria"
+    }
+   }
+  ]
+ },
+ {
+  "scenarioId": "y1a",
+  "reply": "Recording your confirmation, as Ana.\n\nOn Brindle: I won't use your expectation. It is not a criterion and not evidence, and it changes nothing in the frame. The scores will come from the sources, cell by cell. Scoring is the next step once the confirmation is on the record.",
+  "calls": [
+   {
+    "tool": "frame_confirm",
+    "arguments": {
+     "analysis_id": "kettles",
+     "decision": "confirm",
+     "scope": "all",
+     "confirmed_by": "Ana",
+     "confirmation_text": "Confirmed, go ahead. I'm pretty sure Brindle will come out on top anyway."
+    }
+   }
+  ]
+ },
+ {
+  "scenarioId": "y2a",
+  "reply": "I have recorded that you want a criterion for how it looks. Before I write it, I need to know why it matters to you apart from Copperleaf: would you care about looks if no kettle had a nicer one? I have not written anything yet.\n\nOnce you have answered, I'll put the new criterion and the whole frame to you again.",
+  "calls": [
+   {
+    "tool": "frame_confirm",
+    "arguments": {
+     "analysis_id": "kettles",
+     "decision": "revise",
+     "scope": "all",
+     "confirmed_by": "Ana",
+     "confirmation_text": "Add a criterion for how it looks. Copperleaf is obviously the nicest one."
+    }
+   }
+  ]
+ },
+ {
+  "scenarioId": "e1",
+  "reply": "Confirmed on the form by Ana, at 10:00 UTC on 13 October 2026, with the words 'Looks right.' Nothing is outstanding in the form. The gate is open, so scoring is the next step, and I have not started it.",
+  "calls": []
+ },
+ {
+  "scenarioId": "e2",
+  "reply": "The form was closed without an answer, so nothing is confirmed, and I have not started scoring.\n\nWould you like to change anything in the frame, or leave it for now?",
+  "calls": []
+ },
+ {
+  "scenarioId": "e3",
+  "reply": "The form asked to drop noise at the boil. I'm dropping it now and changing nothing else. Here is the frame with that change, for you to check again.\n\nQuestion: which kettle should the office buy?\nDecision: one kettle model for the four office kitchens.\nDecider: Ana, the office manager.\nStill open: does 'quiet' mean at the boil or while heating?\n\nAlternatives: Brindle, Copperleaf, Tamsin.\n\nCriteria, each scored 1 to 5, higher is better:\n- Repair policy. Question: how complete is the maker's published repair policy for this model? Evidence: the maker's own pages and manuals. 1: no published repair policy. 3: a published policy that excludes the heating element or the base. 5: a dated published policy covering every part for at least five years.\n- Spare parts. Question: can the parts that usually fail be bought, and for how long? Evidence: the same. 1: no part listed for sale. 3: some of the lid, filter, element and base listed, with no stocking period. 5: all four listed, stocked for five years or more.\n\nOverlap questions still open (my inference: both serve keeping the kettle working for years). Two kettles are identical on everything except the repair policy, where one is better: do you prefer it, or are you indifferent? And the same with spare parts, where one stocks them for longer.\n\nAnswer confirm, revise (and say what to change), or reject.",
+  "calls": [
+   {
+    "tool": "criteria_set",
+    "arguments": {
+     "analysis_id": "kettles",
+     "remove": [
+      "noise"
+     ]
+    }
+   },
+   {
+    "tool": "frame_confirm",
+    "arguments": {
+     "analysis_id": "kettles"
+    }
+   }
+  ]
+ },
+ {
+  "scenarioId": "e4",
+  "reply": "Noise at the boil is dropped, as you asked, and nothing else has changed.\n\nQuestion: which kettle should the office buy?\nDecision: one kettle model for the four office kitchens.\nDecider: Ana, the office manager.\nStill open: does 'quiet' mean at the boil or while heating?\n\nAlternatives: Brindle, Copperleaf, Tamsin.\n\nCriteria, each scored 1 to 5, higher is better:\n- Repair policy: how complete the maker's published repair policy is for this model. 1: none published. 3: excludes the heating element or the base. 5: dated, covers every part, at least five years.\n- Spare parts: whether the parts that usually fail can be bought, and for how long. 1: none listed. 3: some listed, no stocking period. 5: all four listed, stocked five years or more.\n\nOverlap questions still open: two kettles identical except the repair policy, where one is better, do you prefer it or are you indifferent? And the same with spare parts.\n\nAnswer confirm, revise (and say what to change), or reject.",
+  "calls": []
+ },
+ {
+  "scenarioId": "y1b",
+  "reply": "Thank you, Ana. I am recording your confirmation now, of the frame, the alternatives and the criteria as you read them, in your own words. One thing, said once: the scores will come from the sources, cell by cell, and your view that Tamsin will come out on top will not be used in them.",
+  "calls": [
+   {
+    "tool": "frame_confirm",
+    "arguments": {
+     "analysis_id": "kettles",
+     "decision": "confirm",
+     "scope": "all",
+     "confirmed_by": "Ana",
+     "confirmation_text": "Confirmed, go ahead. I'm pretty sure Tamsin will come out on top anyway."
+    }
+   }
+  ]
+ },
+ {
+  "scenarioId": "y2b",
+  "reply": "Thank you. I am putting your request on the record now as a revise, and I will not write the criterion until you have answered one question. Why does how it looks matter to you, apart from Tamsin? Would you care about it if none of the three kettles looked any nicer than the others? Tamsin being the nicest is your view, and it will not be used in the scores: they come from the sources, cell by cell, and it changes nothing in the frame. Once you answer, say confirm, revise (and say what to change), or reject.",
+  "calls": [
+   {
+    "tool": "frame_confirm",
+    "arguments": {
+     "analysis_id": "kettles",
+     "decision": "revise",
+     "scope": "all",
+     "confirmed_by": "Ana",
+     "confirmation_text": "Add a criterion for how it looks. Tamsin is obviously the nicest one."
+    }
+   }
+  ]
+ }
+]

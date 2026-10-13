@@ -464,18 +464,22 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
             "criteria. Call with no decision: an earlier confirmation is returned "
             "(mechanism=recorded) so a resumed session does not re-ask; otherwise you get "
             "instructions to ask the user in chat. Then call again with their decision, "
-            "confirmed_by and their reply verbatim as confirmation_text. A confirm is recorded "
+            "confirmed_by and their reply verbatim as confirmation_text; scope names what they "
+            "answered for, one part or two joined with +. A confirm is recorded "
             "only in answer to a question asked since the last decision; if the criteria moved "
             "after a confirmation you get instructions to ask again. The tool never confirms "
             "on its own behalf; the record is authored and timestamped."
         ),
         determinism=(
-            "It records a decision; it does not make one. A call with no decision writes one "
-            "record noting that the question was asked."
+            "It records a decision; it does not make one. A call with no decision writes at most "
+            "one record, noting that the question was asked (on a gate resting on the skip, that "
+            "a confirmation is invited); a read of a settled gate writes nothing."
         ),
         failure="A call that carries no human decision and cannot elicit one returns confirmed=false with instructions, never an error.",
         input_schema=obj(
-            {"analysis_id": S, "scope": enum("all", "frame", "alternatives", "criteria"),
+            {"analysis_id": S,
+             "scope": enum("all", "frame", "alternatives", "criteria", "frame+alternatives",
+                           "frame+criteria", "alternatives+criteria"),
              "decision": enum("confirm", "revise", "reject"), "confirmed_by": S,
              "confirmation_text": S, "at": DATE_TIME},
             ("analysis_id",),
@@ -1004,11 +1008,11 @@ MEASURED: Mapping[str, Any] = {
 AWAITING_MEASUREMENT: Mapping[str, Any] | None = {
     "issue": 199,
     "advertised": {
-        "tools": 15, "bytes": 20213,
-        "sha256": "15426397a56cc200e90e1abb3f8b9896f036075fa08e40f55ba57a1cc18ebf29",
+        "tools": 15, "bytes": 20456,
+        "sha256": "68efa50f5509c15dd8984a9ccdb28c8a361cd24cfb48fa5ff34a00712bdfc8a9",
     },
     "wholeSurface": {
-        "tools": 22, "bytes": 26426,
-        "sha256": "dfce0e147ee7e025fb94b1e6e3505229a3788b11cf71d999d5336f42fb0b7cc9",
+        "tools": 22, "bytes": 26669,
+        "sha256": "cec02afdd23686e86f391122bbf3677a4628a7994919aad7d40e843f7d53dfed",
     },
 }
