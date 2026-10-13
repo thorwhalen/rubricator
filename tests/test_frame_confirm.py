@@ -630,3 +630,28 @@ def test_scope_of_is_the_inverse_of_parts_of() -> None:
     from rubricator.tools.confirm import parts_of, scope_of
 
     assert all(scope_of(parts_of(s)) == s for s in SCOPES)
+
+
+def test_the_moved_since_read_does_not_report_the_skip_as_a_confirmation_by_the_agent() -> None:
+    """The second review of #206: it said 'confirmed by agent' for a part that rested on the skip."""
+    _, verbs = _verbs()
+    _framed(verbs, allow_skip_confirmation=True)
+    verbs["frame_confirm"](analysis_id="a1")
+    verbs["frame_confirm"](analysis_id="a1", scope="frame", decision="confirm", confirmed_by="ana",
+                           confirmation_text="The frame is right.")
+    verbs["frame_set"](analysis_id="a1", ambiguities=["does it matter?"])
+    got = verbs["frame_confirm"](analysis_id="a1")
+    assert "confirmed by agent" not in got["summary"]
+    assert "frame: confirmed by ana" in got["summary"] and "skipped at open" in got["summary"]
+    assert got["instructions"] and "the frame's question, decision, decider, context or ambiguities changed" in got["summary"]
+
+
+def test_a_mixed_state_read_names_each_parts_own_record() -> None:
+    _, verbs = _verbs()
+    _framed(verbs, allow_skip_confirmation=True)
+    verbs["frame_confirm"](analysis_id="a1")
+    verbs["frame_confirm"](analysis_id="a1", scope="criteria", decision="confirm", confirmed_by="ana",
+                           confirmation_text="The criteria are right.")
+    got = verbs["frame_confirm"](analysis_id="a1")
+    assert got["record"]["authorId"] == "ana"
+    assert "nobody confirmed the frame, alternatives" in got["summary"] and "criteria: confirmed by ana" in got["summary"]

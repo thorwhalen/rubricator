@@ -387,8 +387,8 @@ def frame_confirm(
             deciding = state["deciding"]["criteria"]
             version = deciding.get("criteriaVersion")
             moved = _moved(state, frame)
+            standing, skipped = _standing(state)
             if version in (None, current) and not moved:
-                standing, skipped = _standing(state)
                 if skipped:
                     # Nobody confirmed what rests on the skip. The read notes that a confirmation
                     # is invited -- for those parts only, so a part a person already confirmed is
@@ -407,13 +407,14 @@ def frame_confirm(
             # both ways, #152), but the question is put again so a fresh confirm
             # of what is there now can be recorded.
             ask()
-            by = deciding.get("authorId", "agent")
+            # What stands is said part by part (``_standing``): a part that rests on the skip is
+            # never reported as confirmed by whoever confirmed another (#206 review).
             return result(
                 True, "recorded", deciding, OUT_OF_BAND_INSTRUCTIONS,
-                f'confirmed by {by} at version "{version}"; the criteria are now at "{current}", so '
-                "put them to the user again and record their answer."
+                f'{standing}; the criteria are now at "{current}", not "{version}", so put them to '
+                "the user again and record their answer."
                 if version not in (None, current) else
-                f"confirmed by {by}; since then, {'; '.join(moved)}. Put the frame and criteria "
+                f"{standing}; since then, {'; '.join(moved)}. Put the frame and criteria "
                 "to the user again and record their answer.",
             )
         ask()

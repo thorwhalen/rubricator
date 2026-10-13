@@ -5,7 +5,7 @@ title: Confirm the frame with the user
 stage: 4
 updated: 2026-10-13
 changelog:
-  - 2 (2026-10-13) — Two answers the tool could not record honestly now can be (#206, ADR-0026 amendment). A reply that confirms two of the three parts is one call with a joined scope (`frame+criteria`, `frame+alternatives` or `alternatives+criteria`), where v1 recorded one part and put the other back to the user as a question they had in effect already answered. And a confirmation the user offers after an analysis was opened with the skip is recorded, where v1 said it could not be: the no-decision read of a skip now notes that a confirmation is invited, so the answer follows a recorded invitation. Hypothesis: a two-part reply is recorded in one call under the right scope and costs the user no extra question; a confirmation after a skip is recorded under their name and words; nothing the user did not give is recorded, as in v1.
+  - 2 (2026-10-13) — Two answers the tool could not record honestly now can be (#206, ADR-0026 amendment). A reply that confirms two of the three parts is one call with a joined scope (`frame+criteria`, `frame+alternatives` or `alternatives+criteria`), where v1 recorded one part and put the other back to the user as a question they had in effect already answered. And a confirmation the user offers after an analysis was opened with the skip is recorded, where v1 said it could not be: the no-decision read of a skip now notes that a confirmation is invited, so the answer follows a recorded invitation. A confirmation after a skip is recorded only once the user has seen the frame (shown to them in this conversation, or they say they read it), and where some parts rest on the skip and others carry a person's confirmation the reply reads the summary, which names each part's own record, not the one `record` the read shows. Hypothesis: a two-part reply is recorded in one call under the right scope and costs the user no extra question; a confirmation after a skip is recorded under their name and words; nothing the user did not give is recorded, as in v1.
   - 1 (2026-10-13) — First version (#71). Runs the step-4 discussion in chat (the question, the decider, every alternative, every criterion with its definition, scale, anchors and direction, the overlap probes put to the user in both directions) and records the user's answer through `frame_confirm` in their own words, in both paths: elicitation, where the form is the record and nothing is asked twice, and out-of-band, where the reply is. Carries a precautionary countermeasure for the sycophancy risk of #40 before that test exists: a stated expectation about the winner changes nothing in the frame and is neither agreed with nor predicted, and a criterion asked for because of an alternative gets the value question before anything is written. Hypothesis, as first stated: without the prompt a model reads thanks or "you decide" as consent, records a summary, invents a name and leans toward the named winner. The no-prompt baseline did none of those (frame_confirm's own instructions carry them); what it did do is write a criterion for an alternative the user favoured without asking why it mattered, which the prompt stops. Revised twice before landing, after two adversarial reviews found it wrong about the tool: a decision seen in a later read is history and is not applied again (and one from an earlier session is asked about); a change after a confirmation does not close the gate in the tool, so it is recorded as a revise first, and a later read re-asks additions but not removals; a second confirm answers its own question, put to the user, never a bookkeeping call; and a declined form (empty record, no instructions) is not an open gate.
 ---
 
@@ -50,15 +50,18 @@ user said, as if it were their words.
    say that the overlap check is not on record here; do not say there are no overlaps.
 3. `frame_confirm` with **no decision**, read by its `instructions` and its `record`, never by
    `confirmed` alone:
-   - **No `instructions`, and `record` holds a `confirm` or a `skip`**: a decision stands — a
-     person's `confirm`, or a `skip` at open, which is nobody's confirmation and must never be
-     reported as one. Report who and when from `record`, and do not ask again. Asking a user to
-     re-confirm what they confirmed teaches them the record means nothing. After a skip, do not
-     ask for a confirmation either: scoring is open and nobody asked for one. But if the user
-     offers one, record it (below), provided they have seen the frame: if it was not put to them
-     in this conversation and they do not say they have read it, show it first and then record
-     what they answer. The read you just made noted that a confirmation is invited, for the parts
-     that rest on the skip.
+   - **No `instructions`**: a decision stands — a person's `confirm`, or a `skip` at open, which is
+     nobody's confirmation and must never be reported as one. Read the `summary`, which says what
+     stands for each part (`record` shows only one record, the criteria's): who confirmed which
+     parts and when, and which parts were skipped. Where some parts were skipped and others
+     confirmed, say which, and that nobody confirmed the skipped ones; never report one person's
+     confirmation as covering the whole analysis. Do not ask again for what a person confirmed:
+     asking a user to re-confirm what they confirmed teaches them the record means nothing. After a
+     skip, do not ask for a confirmation either: scoring is open and nobody asked for one. But if
+     the user offers one, record it (below), provided they have seen the frame: if it was not put
+     to them in this conversation and they do not say they have read it, show it first and then
+     record what they answer. The read you just made noted that a confirmation is invited, for the
+     parts that rest on the skip.
    - **`instructions` present**: the question is open, and the call has recorded that you are asking
      it. Ask it in this reply, as below. If `confirmed` is also true, something moved since the last
      confirmation; say what, from the `summary`.

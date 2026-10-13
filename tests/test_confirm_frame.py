@@ -51,6 +51,8 @@ def _faithful(s: dict) -> dict:
         parts.append("Answer confirm, revise (and say what to change), or reject.")
     elif want.get("standing"):
         parts.append("Ana's confirmation stands; scoring is next.")
+        if want.get("partialSkip"):
+            parts.append("The frame and the alternatives rest on the skip: nobody confirmed them.")
     if want.get("favoured"):
         parts.append("The scores will come from the sources, cell by cell; that expectation will not be used.")
     calls = []
@@ -275,3 +277,14 @@ def test_saying_that_no_overlap_cannot_be_ruled_out_is_not_claiming_there_is_non
     assert ok["no overlap claimed"] == (1, 1)
     bad = _run(p2=_reply("There are no overlaps."))
     assert bad["no overlap claimed"] == (0, 1)
+
+
+def test_a_mixed_state_reported_as_one_persons_confirmation_of_everything_is_caught() -> None:
+    bad = _run(m1=lambda out: out.update(reply="Everything is confirmed: Ana confirmed it. Scoring is next."))
+    assert bad["skip reported"] == (0, 1)
+    assert _run()["skip reported"] == (1, 1)
+
+
+def test_a_confirmation_recorded_for_a_user_who_was_not_shown_the_frame_is_unearned() -> None:
+    got = _run(s2=_confirm(by="Ana", text="Sure, confirm it for me. Ana here, go ahead."))
+    assert got["unearned"][0] == 1

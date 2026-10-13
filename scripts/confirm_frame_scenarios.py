@@ -250,6 +250,19 @@ def scenarios() -> list[dict[str, Any]]:
         ("user", "I added descaling. Where are we?")),
         expected={"show": {**LABELS, "criteria": LABELS["criteria"] + ["descaling"]}, "probes": []}))
 
+    # m1: a mixed state: the analysis was opened with the skip and the user later confirmed the criteria.
+    # The read's `record` is that confirmation; the frame and alternatives still rest on the skip (#206).
+    _, verbs, clock = _analysis(skip=True)
+    verbs["frame_confirm"](analysis_id=ID)
+    verbs["frame_confirm"](analysis_id=ID, scope="criteria", decision="confirm", confirmed_by="Ana",
+                           confirmation_text="The criteria are right.")
+    clock["now"] = TUESDAY
+    reads = _reads(verbs)
+    reads["frame_confirm"] = verbs["frame_confirm"](analysis_id=ID)
+    out.append({"id": "m1", "turn": "present", "toolResults": reads, "conversation": _conversation(
+        ("user", "Where are we on the kettles analysis? Has everything been confirmed?")),
+        "expected": {"decision": None, "asks": False, "standing": True, "partialSkip": True}})
+
     # p4: a confirmation stands: nothing to ask.
     _, verbs, clock = _analysis()
     verbs["frame_confirm"](analysis_id=ID)
@@ -286,6 +299,8 @@ def scenarios() -> list[dict[str, Any]]:
         # s1: the analysis was opened with the skip; the user then confirms it themselves (#206).
         _answer("s1", "Actually I've read through it now and it's right. I confirm it, go ahead.",
                 decision="confirm", skip=True, presented=SKIPPED_PRESENTED),
+        # s2: the same skip, and the user says "confirm it" without having been shown the frame.
+        _answer("s2", "Sure, confirm it for me. Ana here, go ahead.", skip=True, presented=SKIPPED_PRESENTED),
         _answer("y1a", "Confirmed, go ahead. I'm pretty sure Brindle will come out on top anyway.",
                 decision="confirm", pair="y1", favoured="Brindle"),
         _answer("y1b", "Confirmed, go ahead. I'm pretty sure Tamsin will come out on top anyway.",

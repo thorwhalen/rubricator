@@ -604,7 +604,7 @@
      "mechanism": "out-of-band"
     },
     "instructions": "Ask the user in chat before anything is scored. Show them: the question, the decision and who decides, the ambiguities still open, every alternative, and every criterion with its definition, scale and direction of preference, naming any two criteria that overlap. Ask them to answer confirm, revise (saying what to change) or reject. Do not answer for them, and do not read silence, thanks or a change of topic as consent. When they answer, call frame_confirm again with decision set to their answer, confirmed_by set to the name they go by, and confirmation_text set to their reply word for word. If they answered for only part of it, set scope to the part, or to two parts joined with +, for example frame+criteria. On revise, make the changes they asked for, then call frame_confirm with no decision to ask again.",
-    "summary": "confirmed by Ana; since then, criteria added: descaling. Put the frame and criteria to the user again and record their answer."
+    "summary": "confirmed by Ana at 2026-10-12T09:30:00Z; since then, criteria added: descaling. Put the frame and criteria to the user again and record their answer."
    }
   },
   "expected": {
@@ -624,6 +624,197 @@
     ]
    },
    "probes": []
+  }
+ },
+ {
+  "id": "m1",
+  "turn": "present",
+  "toolResults": {
+   "analysis_get (frame)": {
+    "analysisId": "kettles",
+    "view": "frame",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 9,
+     "superseded": 0,
+     "byKind": {
+      "scored": 0,
+      "settledBlank": 0,
+      "notApplicable": 0
+     },
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 9
+      }
+     ]
+    },
+    "subject": {
+     "ambiguities": [
+      "does 'quiet' mean at the boil or while heating?"
+     ],
+     "decider": "Ana, the office manager",
+     "decision": "one kettle model for the four office kitchens",
+     "question": "which kettle should the office buy?"
+    },
+    "alternatives": [
+     {
+      "id": "brindle",
+      "label": "Brindle"
+     },
+     {
+      "id": "copperleaf",
+      "label": "Copperleaf"
+     },
+     {
+      "id": "tamsin",
+      "label": "Tamsin"
+     }
+    ],
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 9 of 9 cell(s) outstanding (9 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   },
+   "analysis_get (criteria)": {
+    "analysisId": "kettles",
+    "view": "criteria",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 9,
+     "superseded": 0,
+     "byKind": {
+      "scored": 0,
+      "settledBlank": 0,
+      "notApplicable": 0
+     },
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 9
+      }
+     ]
+    },
+    "criteria": [
+     {
+      "id": "repair-policy",
+      "label": "repair policy",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "no published repair policy"
+       },
+       {
+        "level": "3",
+        "text": "a published policy that excludes the heating element or the base"
+       },
+       {
+        "level": "5",
+        "text": "a dated published policy covering every part for at least five years"
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "the maker's own published pages and manuals",
+       "objective": "keep the kettle working for years",
+       "question": "How complete is the maker's published repair policy for this model?"
+      }
+     },
+     {
+      "id": "spare-parts",
+      "label": "spare parts",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "no part listed for sale"
+       },
+       {
+        "level": "3",
+        "text": "some of the lid, filter, element and base listed, with no stocking period"
+       },
+       {
+        "level": "5",
+        "text": "lid, filter, element and base all listed, stocked for five years or more"
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "the maker's own published pages and manuals",
+       "objective": "keep the kettle working for years",
+       "question": "Can the parts that usually fail be bought, and for how long?"
+      }
+     },
+     {
+      "id": "noise",
+      "label": "noise at the boil",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "a measured level above 70 dB(A)"
+       },
+       {
+        "level": "3",
+        "text": "a measured level of 55 to 70 dB(A)"
+       },
+       {
+        "level": "5",
+        "text": "a measured level below 55 dB(A)"
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "the maker's own published pages and manuals",
+       "objective": "a quiet shared kitchen",
+       "question": "How loud is the kettle at the boil, as measured by a named test?"
+      }
+     }
+    ],
+    "criteriaVersion": "1",
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 9 of 9 cell(s) outstanding (9 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   },
+   "frame_confirm": {
+    "analysisId": "kettles",
+    "confirmed": true,
+    "mechanism": "recorded",
+    "record": {
+     "authorId": "Ana",
+     "at": "2026-10-12T09:30:00Z",
+     "text": "The criteria are right.",
+     "criteriaVersion": "1",
+     "decision": "confirm",
+     "scope": "criteria",
+     "mechanism": "out-of-band"
+    },
+    "instructions": null,
+    "summary": "frame, alternatives: skipped at open, at the caller's request, at 2026-10-12T09:30:00Z: nobody confirmed the frame, alternatives; criteria: confirmed by Ana at 2026-10-12T09:30:00Z; scoring is open. A confirmation the user offers can be recorded now with frame_confirm and their name and words."
+   }
+  },
+  "conversation": [
+   {
+    "role": "user",
+    "text": "Where are we on the kettles analysis? Has everything been confirmed?"
+   }
+  ],
+  "expected": {
+   "decision": null,
+   "asks": false,
+   "standing": true,
+   "partialSkip": true
   }
  },
  {
@@ -1297,6 +1488,52 @@
    "by": "Ana",
    "text": "Actually I've read through it now and it's right. I confirm it, go ahead.",
    "asks": false
+  }
+ },
+ {
+  "id": "s2",
+  "turn": "answer",
+  "conversation": [
+   {
+    "role": "user",
+    "text": "I'm Ana, I run the office. We need to pick one kettle model for the four office kitchens: Brindle, Copperleaf or Tamsin. Help me compare them."
+   },
+   {
+    "role": "assistant",
+    "text": "[criteria proposal] {\"overlaps\": [{\"criteria\": [\"repair-policy\", \"spare-parts\"], \"via\": \"keep the kettle working for years\", \"probe\": \"Two kettles are identical on everything except the repair policy, where one is better. Do you prefer it, or are you indifferent? And: identical except that one stocks spare parts for longer. Prefer it, or indifferent?\"}], \"questions\": [\"Makers rarely publish a measured noise level, so noise at the boil may come back mostly as blanks. Keep it, reshape it, or drop it?\"]}"
+   },
+   {
+    "role": "assistant",
+    "text": "The analysis was opened with the confirmation skipped at your request, so scoring is open. Nobody has confirmed the frame, the alternatives or the criteria: the record says so. The question is which kettle the office should buy, among Brindle, Copperleaf and Tamsin."
+   },
+   {
+    "role": "user",
+    "text": "Sure, confirm it for me. Ana here, go ahead."
+   }
+  ],
+  "toolResults": {
+   "frame_confirm (when the frame was presented)": {
+    "analysisId": "kettles",
+    "confirmed": true,
+    "mechanism": "recorded",
+    "record": {
+     "authorId": "agent",
+     "at": "2026-10-12T09:30:00Z",
+     "text": "confirmation skipped by explicit instruction when the analysis was opened",
+     "decision": "skip",
+     "scope": "all",
+     "mechanism": "skip-at-open"
+    },
+    "instructions": null,
+    "summary": "skipped at open, at the caller's request, at 2026-10-12T09:30:00Z: nobody confirmed the frame, alternatives, criteria; scoring is open. A confirmation the user offers can be recorded now with frame_confirm and their name and words."
+   }
+  },
+  "expected": {
+   "decision": null,
+   "scope": null,
+   "by": null,
+   "text": null,
+   "asks": true
   }
  },
  {
