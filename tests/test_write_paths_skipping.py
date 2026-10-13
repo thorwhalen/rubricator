@@ -22,6 +22,10 @@ from rubricator.clock import fixed_clock
 from rubricator.compose import build_runtime
 from rubricator.surface import bind
 
+#: A span every scored cell here cites: since #171 a value with no evidence is refused.
+CITED = [{"id": "e1", "target": "doc:spec", "sourceType": "primary",
+          "selectors": [{"type": "TextQuoteSelector", "exact": "as stated"}]}]
+
 MOMENT = "2026-08-22T12:00:00Z"
 ANCHORS = [{"level": "1", "text": "slow"}, {"level": "3", "text": "fair"}, {"level": "5", "text": "fast"}]
 STRAY = "analyses/a1/contributions/zed.json"
@@ -48,7 +52,7 @@ def runtime():
         analysis_id="a1", contributor_id="ben",
         author={"id": "ben", "displayName": "Ben", "kind": "human"},
         cells=[{"alternativeId": "k1", "criterionId": "speed", "value": 4,
-                "justification": "ninety seconds"}],
+                "justification": "ninety seconds", "evidence": CITED}],
     )
     return rt
 
@@ -62,7 +66,7 @@ def _write(verbs, **cell):
     return verbs["measures_write"](
         analysis_id="a1", contributor_id="ana", author=ANA,
         cells=[{"alternativeId": "k1", "criterionId": "noise", "value": 3,
-                "justification": "a hum", **cell}],
+                "justification": "a hum", "evidence": CITED, **cell}],
     )
 
 

@@ -31,6 +31,10 @@ from rubricator.tools.analysis import (
     measures_write,
 )
 
+#: A span every scored cell here cites: since #171 a value with no evidence is refused.
+CITED = [{"id": "e1", "target": "doc:spec", "sourceType": "primary",
+          "selectors": [{"type": "TextQuoteSelector", "exact": "as stated"}]}]
+
 AT = "2026-10-12T12:00:00Z"
 
 #: alternative -> the values four raters give it on "support". alpha is the
@@ -58,7 +62,7 @@ def runtime():
     }])
     for i, rater in enumerate(("r1", "r2", "r3", "r4")):
         cells = [
-            {"alternativeId": alt, "criterionId": "support", "value": values[i],
+            {"alternativeId": alt, "criterionId": "support", "value": values[i], "evidence": CITED,
              "justification": f"{rater} read the support page", "independence": "independent"}
             for alt, values in SCORES.items() if values[i] is not None
         ]

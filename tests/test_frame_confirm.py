@@ -20,10 +20,15 @@ from rubricator.compose import build_runtime
 from rubricator.surface import bind
 from rubricator.tools.confirm import OUT_OF_BAND_INSTRUCTIONS, SCOPES
 
+#: A span every scored cell here cites: since #171 a value with no evidence is refused.
+CITED = [{"id": "e1", "target": "doc:spec", "sourceType": "primary",
+          "selectors": [{"type": "TextQuoteSelector", "exact": "as stated"}]}]
+
 MOMENT = "2026-08-22T12:00:00Z"
 AUTHOR = {"id": "ana", "displayName": "Ana", "kind": "human"}
 ANCHORS = [{"level": "1", "text": "slow"}, {"level": "3", "text": "fair"}, {"level": "5", "text": "fast"}]
-CELL = {"alternativeId": "k1", "criterionId": "speed", "value": 4, "justification": "spec sheet"}
+CELL = {"alternativeId": "k1", "criterionId": "speed", "value": 4, "justification": "spec sheet",
+        "evidence": CITED}
 
 
 def _verbs(blobs=None):

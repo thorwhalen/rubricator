@@ -44,6 +44,10 @@ from rubricator.surface.frozen import (
     definitions_bytes,
 )
 
+#: A span every scored cell here cites: since #171 a value with no evidence is refused.
+CITED = [{"id": "e1", "target": "doc:spec", "sourceType": "primary",
+          "selectors": [{"type": "TextQuoteSelector", "exact": "as stated"}]}]
+
 ADR = Path(__file__).resolve().parents[1] / "docs" / "adr" / "0026-the-frozen-tool-surface.md"
 MOMENT = "2026-08-22T12:00:00Z"
 
@@ -63,7 +67,8 @@ def _open_scored(verbs) -> None:
     verbs["criteria_set"](analysis_id="a1", criteria=[{"id": "c", "label": "C", "anchors": ANCHORS}])
     verbs["measures_write"](
         analysis_id="a1", contributor_id="ana", author=AUTHOR,
-        cells=[{"alternativeId": "x", "criterionId": "c", "value": 3, "justification": "says so"}],
+        cells=[{"alternativeId": "x", "criterionId": "c", "value": 3, "justification": "says so",
+                "evidence": CITED}],
     )
 
 
@@ -363,7 +368,8 @@ def _write(verbs, cell_extra=None, **cell):
     verbs["criteria_set"](analysis_id="a1", criteria=[{"id": "c", "label": "C", "anchors": ANCHORS}])
     return verbs["measures_write"](
         analysis_id="a1", contributor_id="ana", author=AUTHOR,
-        cells=[{"alternativeId": "x", "criterionId": "c", **cell}],
+        cells=[{"alternativeId": "x", "criterionId": "c",
+               **({"evidence": CITED} if "value" in cell else {}), **cell}],
     )
 
 
@@ -613,7 +619,7 @@ def test_a_moment_that_is_not_rfc3339_is_refused(verbs, moment) -> None:
 def test_an_rfc3339_moment_is_accepted_on_every_supported_python(verbs, moment) -> None:
     _write(verbs, value=3, justification="j")
     verbs["measures_write"](analysis_id="a1", contributor_id="ana", author=AUTHOR, at=moment,
-                            cells=[{"alternativeId": "x", "criterionId": "c", "value": 4,
+                            cells=[{"alternativeId": "x", "criterionId": "c", "value": 4, "evidence": CITED,
                                     "independence": "resampled"}])
 
 
@@ -659,5 +665,5 @@ def test_a_bulk_blank_skips_tombstoned_cells_but_refuses_one_named(verbs) -> Non
 def test_short_fractions_are_padded_for_every_supported_python(verbs, moment) -> None:
     _write(verbs, value=3, justification="j")
     verbs["measures_write"](analysis_id="a1", contributor_id="ana", author=AUTHOR, at=moment,
-                            cells=[{"alternativeId": "x", "criterionId": "c", "value": 4,
+                            cells=[{"alternativeId": "x", "criterionId": "c", "value": 4, "evidence": CITED,
                                     "independence": "resampled"}])

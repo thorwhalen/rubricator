@@ -32,6 +32,7 @@ from typing import Any, Mapping, Sequence
 from rubricator.contributors import sign
 from rubricator.interpret.resolution import Degradation, degradation_of
 from rubricator.locators import profile_problems
+from rubricator.rules import declarations_for
 from rubricator.schema.vocabulary import vocabulary
 from rubricator.store import AnalysisNotFound, AnalysisStore
 
@@ -1014,17 +1015,6 @@ def _is_blank(value: Any) -> bool:
     return value is None or (isinstance(value, str) and not value.strip())
 
 
-def declarations_for(document: Mapping[str, Any], criterion_id: str) -> list[Mapping[str, Any]]:
-    """The missingness declarations in scope for one criterion, nearest first.
-
-    The criterion's own codes come before the analysis's, as in the companion's
-    ``makeVocabulary``: the resolver takes the first match, so a criterion-scoped
-    redefinition wins inside that criterion and nowhere else.
-    """
-    criterion = next((c for c in document.get("criteria", []) if c.get("id") == criterion_id), {})
-    return [*criterion.get("missingCodes", []), *document.get("missingCodes", [])]
-
-
 def _cell_problems(
     cell: Mapping[str, Any],
     rows: Mapping[str, Mapping[str, Any]],
@@ -1227,7 +1217,7 @@ def _refuse_dishonest(
     if problems:
         raise ValueError(
             "refused, nothing was written: "
-            + "; ".join(f"{p.path}: {p.message} Fix: {p.fix}" for p in problems)
+            + "; ".join(str(p) for p in problems)
         )
 
 

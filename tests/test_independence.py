@@ -24,6 +24,10 @@ from rubricator.tools.analysis import (
     report_completeness,
 )
 
+#: A span every scored cell here cites: since #171 a value with no evidence is refused.
+CITED = [{"id": "e1", "target": "doc:spec", "sourceType": "primary",
+          "selectors": [{"type": "TextQuoteSelector", "exact": "as stated"}]}]
+
 AT = "2026-10-12T12:00:00Z"
 ANCHORS = {"1": "none", "3": "some", "5": "all"}
 
@@ -44,7 +48,7 @@ def _score(store, who, value, **extra):
     return measures_write(
         store, analysis_id="a", contributor_id=who["id"], author=who, at=AT,
         cells=[{"alternativeId": "x", "criterionId": "c", "value": value,
-                "justification": "because", **extra}],
+                "justification": "because", "evidence": CITED, **extra}],
     )
 
 
@@ -99,8 +103,8 @@ def test_a_blank_counts_as_a_member_of_the_set(store) -> None:
 
 def test_a_superseded_assertion_is_not_live() -> None:
     doc = {"cells": [{"alternativeId": "x", "criterionId": "c", "measure": "score",
-                      "assertions": [{"id": "s1", "authorId": "a", "value": 1, "supersededBy": "s2"},
-                                     {"id": "s2", "authorId": "a", "value": 2}]}]}
+                      "assertions": [{"id": "s1", "authorId": "a", "value": 1, "evidence": CITED, "supersededBy": "s2"},
+                                     {"id": "s2", "authorId": "a", "value": 2, "evidence": CITED}]}]}
     assert honesty_problems(doc) == []
 
 
@@ -147,7 +151,7 @@ def test_one_flagged_cell_never_locks_a_contributor_out_of_the_rest() -> None:
     _score(s, ana, 4)
     _score(s, ben, 2, independence="independent")
     measures_write(s, analysis_id="a", contributor_id="ana", author=ana, at=AT,
-                   cells=[{"alternativeId": "y", "criterionId": "c", "value": 3,
+                   cells=[{"alternativeId": "y", "criterionId": "c", "value": 3, "evidence": CITED,
                            "justification": "because"}])
     report = report_completeness(s, analysis_id="a")
     assert [p["ruleId"] for p in report["honestyProblems"]] == ["independence-recorded"]
@@ -194,13 +198,13 @@ def test_supersession_must_resolve_or_it_would_switch_an_assertion_off() -> None
     def doc(*assertions):
         return {"cells": [{"alternativeId": "x", "criterionId": "c", "measure": "score",
                            "assertions": list(assertions)}]}
-    ghost = doc({"id": "s1", "authorId": "a", "value": 1, "supersededBy": "ghost"},
-                {"id": "s2", "authorId": "b", "value": 2})
+    ghost = doc({"id": "s1", "authorId": "a", "value": 1, "evidence": CITED, "supersededBy": "ghost"},
+                {"id": "s2", "authorId": "b", "value": 2, "evidence": CITED})
     assert [p.rule_id for p in honesty_problems(ghost)] == ["supersession-resolves"]
-    cycle = doc({"id": "s1", "authorId": "a", "value": 1, "supersededBy": "s2"},
-                {"id": "s2", "authorId": "a", "value": 2, "supersededBy": "s1"})
+    cycle = doc({"id": "s1", "authorId": "a", "value": 1, "evidence": CITED, "supersededBy": "s2"},
+                {"id": "s2", "authorId": "a", "value": 2, "evidence": CITED, "supersededBy": "s1"})
     assert {p.rule_id for p in honesty_problems(cycle)} == {"supersession-acyclic"}
-    dup = doc({"id": "s1", "authorId": "a", "value": 1}, {"id": "s1", "authorId": "a", "value": 2,
+    dup = doc({"id": "s1", "authorId": "a", "value": 1, "evidence": CITED}, {"id": "s1", "authorId": "a", "value": 2, "evidence": CITED,
                                                           "independence": "resampled"})
     assert "unique-ids" in [p.rule_id for p in honesty_problems(dup)]
 
@@ -208,8 +212,8 @@ def test_supersession_must_resolve_or_it_would_switch_an_assertion_off() -> None
 def test_merge_namespaces_supersession_with_the_ids() -> None:
     frame = {"id": "a", "cells": [], "authors": []}
     contrib = {"authors": [], "cells": [{"alternativeId": "x", "criterionId": "c", "measure": "score",
-               "assertions": [{"id": "s1", "authorId": "ana", "value": 1, "supersededBy": "s2"},
-                              {"id": "s2", "authorId": "ana", "value": 2}]}]}
+               "assertions": [{"id": "s1", "authorId": "ana", "value": 1, "evidence": CITED, "supersededBy": "s2"},
+                              {"id": "s2", "authorId": "ana", "value": 2, "evidence": CITED}]}]}
     merged = merge_contributions(frame, [("ana", contrib)])
     assert merged["cells"][0]["assertions"][0]["supersededBy"] == "ana:s2"
     assert honesty_problems(merged) == []
@@ -222,7 +226,7 @@ def test_a_reused_caller_id_in_another_cell_is_not_blamed_for_this_one() -> None
     _score(s, ana, 4, assertionId="s1")
     _score(s, ben, 2, independence="independent")
     measures_write(s, analysis_id="a", contributor_id="ana", author=ana, at=AT,
-                   cells=[{"alternativeId": "y", "criterionId": "c", "value": 3,
+                   cells=[{"alternativeId": "y", "criterionId": "c", "value": 3, "evidence": CITED,
                            "justification": "because", "assertionId": "s1",
                            "independence": "independent"}])
 
