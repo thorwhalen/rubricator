@@ -8,21 +8,26 @@ release, and both runtimes serve the same file.
 **Same file contract, same loader, its own directory.** Each file carries the
 prompt front matter (``id``, ``title``, ``version``, ``updated``,
 ``changelog``) plus ``placeholders``: the ``{name}`` fields a renderer fills
-from the analysis's ``procedure`` record. It is read through
+with what the analysis records -- its procedure record(s), the seeds on the
+plan or on each assertion's perturbation, the independence rungs on the
+assertions -- or with "not recorded". Each is a value on a ``label: value``
+line rather than a word inside a sentence, because the procedures ADR-0018
+prescribes vary per cell (adaptive repeats, one seed per repeat) and no single
+sentence template is true of all of them. It is read through
 :func:`rubricator.prompts.load_bundle`, so the dialect, the BOM handling and
 the duplicate-id refusal are the prompts' own. It lives apart from them because
 a prompt is handed to a model and a disclosure to a person: the prompt suite's
 rules (the honesty clause, the vocabulary check) are about the first.
 
-Rendering is ``disclose_variance``'s job (tool 17 in the frozen surface), which
-fills the placeholders from what the procedure record says actually happened.
+Rendering is ``disclose_variance``'s job (tool 17 in the frozen surface, planned),
+which fills the placeholders from what was actually recorded.
 This module only serves the text.
 
 >>> d = disclosures()['variance']
 >>> d.version >= 1
 True
 >>> sorted(d.extra['placeholders'])
-['independence', 'repeats', 'seed', 'traversal']
+['independence', 'order', 'scorings', 'traversal']
 """
 
 from __future__ import annotations

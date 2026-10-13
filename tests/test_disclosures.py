@@ -38,8 +38,30 @@ def test_every_placeholder_is_declared_and_every_declared_one_is_used() -> None:
 
 
 def test_it_states_the_procedure_as_recorded() -> None:
-    for field in ("{traversal}", "{repeats}", "{seed}", "{independence}"):
+    for field in ("{scorings}", "{traversal}", "{order}", "{independence}"):
         assert field in PROSE
+
+
+#: What a renderer would fill, for the procedures ADR-0018 prescribes and for none.
+RENDERINGS = {
+    "connector, one pass": {
+        "scorings": "1", "traversal": "cell-wise", "order": "shuffled (seed 7)",
+        "independence": "not applicable: one scoring per cell"},
+    "deployed, adaptive": {
+        "scorings": "3 to 9, varying by cell", "traversal": "cell-wise",
+        "order": "shuffled, one seed per repeat", "independence": "resampled"},
+    "nothing recorded": dict.fromkeys(("scorings", "traversal", "order", "independence"),
+                                      "not recorded"),
+}
+
+
+@pytest.mark.parametrize("values", list(RENDERINGS.values()), ids=list(RENDERINGS))
+def test_every_recorded_procedure_renders_as_a_true_record(values) -> None:
+    """Each field is a "label: value" line, so no procedure can make a sentence false."""
+    rendered = BODY.format_map(values)
+    for name, value in values.items():
+        assert f": {value}\n" in rendered, name
+    assert "{" not in rendered
 
 
 def test_it_says_what_each_step_does_not_remove() -> None:
@@ -65,23 +87,44 @@ def test_every_rung_named_is_one_the_stored_ladder_spells() -> None:
     assert named and named <= ladder
 
 
-@pytest.mark.parametrize("effect, marker", [
-    ("halo", "the halo effect"),
-    ("joint versus separate evaluation", "side by side or one at a time"),
-    ("sequential contrast", "the candidate they saw just before"),
+@pytest.mark.parametrize("effect, marker, source", [
+    ("halo", "the halo effect", "pubmed.ncbi.nlm.nih.gov/15641893"),
+    ("joint versus separate evaluation", "side by side or one at a time", "Hsee1996"),
+    ("sequential contrast", "a contrast effect", "sequential-contrast-effects"),
 ])
-def test_the_human_parallel_names_each_effect_with_a_source(effect, marker) -> None:
+def test_the_human_parallel_names_each_effect_with_its_own_source(effect, marker, source) -> None:
     """Required by #101: without it the notice reads as "machines are uniquely bad"."""
     assert "Human panels show the same effects" in PROSE
     sentence = next(s for s in re.split(r"(?<=\.) ", PROSE) if marker in s)
     cited = re.findall(r"\[(\d+)\]", sentence)
     assert cited, f"the {effect} sentence cites nothing"
-    assert all(n in _sources() for n in cited)
+    assert any(source in _sources()[n] for n in cited), f"the {effect} sentence cites the wrong source"
+
+
+def test_it_says_the_machine_is_not_uniquely_unreliable() -> None:
+    """The sentence the human parallel exists for, held verbatim."""
+    assert "This is not a claim that a machine evaluator is uniquely unreliable." in PROSE
+
+
+def test_contrast_is_not_described_as_assimilation() -> None:
+    """A contrast effect pushes a judgement away from the last one; #101's wording had it pulled toward."""
+    sentence = next(s for s in re.split(r"(?<=\.) ", PROSE) if "contrast effect" in s)
+    assert "moves away" in sentence and "toward" not in sentence
 
 
 def test_every_citation_resolves_to_a_linked_source() -> None:
     cited = set(re.findall(r"\[(\d+)\]", PROSE))
     assert cited == set(_sources())
+
+
+#: Words that state a size or a completeness no measurement backs (#96 has measured none).
+SIZE_WORDS = r"\b(half|third|quarter|most|mostly|entirely|fully|completely|largely|substantially|" \
+    r"significantly|greatly|removes|eliminates|prevents|guarantees)\b"
+
+
+def test_the_mitigation_bullets_claim_no_size() -> None:
+    section = PROSE.split("**What that removes, and what it does not.**")[1].split("**Why it matters.**")[0]
+    assert not re.search(SIZE_WORDS, section, re.I), re.search(SIZE_WORDS, section, re.I)
 
 
 def test_it_claims_no_measured_size_for_any_mitigation() -> None:
