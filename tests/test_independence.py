@@ -151,7 +151,7 @@ def test_one_flagged_cell_never_locks_a_contributor_out_of_the_rest() -> None:
     _score(s, ana, 4)
     _score(s, ben, 2, independence="independent")
     measures_write(s, analysis_id="a", contributor_id="ana", author=ana, at=AT,
-                   cells=[{"alternativeId": "y", "criterionId": "c", "value": 3, "evidence": CITED, "justification": "j",
+                   cells=[{"alternativeId": "y", "criterionId": "c", "value": 3, "evidence": CITED,
                            "justification": "because"}])
     report = report_completeness(s, analysis_id="a")
     assert [p["ruleId"] for p in report["honestyProblems"]] == ["independence-recorded"]
@@ -226,7 +226,7 @@ def test_a_reused_caller_id_in_another_cell_is_not_blamed_for_this_one() -> None
     _score(s, ana, 4, assertionId="s1")
     _score(s, ben, 2, independence="independent")
     measures_write(s, analysis_id="a", contributor_id="ana", author=ana, at=AT,
-                   cells=[{"alternativeId": "y", "criterionId": "c", "value": 3, "evidence": CITED, "justification": "j",
+                   cells=[{"alternativeId": "y", "criterionId": "c", "value": 3, "evidence": CITED,
                            "justification": "because", "assertionId": "s1",
                            "independence": "independent"}])
 

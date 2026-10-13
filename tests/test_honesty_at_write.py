@@ -20,7 +20,7 @@ import pytest
 
 from rubricator.clock import fixed_clock
 from rubricator.compose import build_runtime
-from rubricator.rules import EXTERNAL_SOURCE_TYPES, RULE_SOURCES
+from rubricator.rules import EXTERNAL_SOURCE_TYPES, RULE_SOURCES, honesty_problems
 from rubricator.schema.vocabulary import vocabulary
 from rubricator.surface import bind
 from rubricator.tools.analysis import measures_write
@@ -114,6 +114,9 @@ DISHONEST = {
     "a verdict with a blank checkedAt": (
         {**SCORE, "evidence": [{**SPAN, "check": {**CHECK, "checkedAt": " "}}]},
         "check-dated", ".evidence[e1].check.checkedAt"),
+    "a verdict with an empty checkerVersion": (
+        {**SCORE, "evidence": [{**SPAN, "check": {**CHECK, "checkerVersion": ""}}]},
+        "check-attributed", ".evidence[e1].check.checkerVersion"),
     "a verdict with no checkerVersion": (
         {**SCORE, "evidence": [{**SPAN, "check": {k: v for k, v in CHECK.items() if k != "checkerVersion"}}]},
         "check-attributed", ".evidence[e1].check.checkerVersion"),
@@ -122,6 +125,8 @@ DISHONEST = {
         "check-attributed", ".evidence[e1].check.checkerVersion"),
     "a score with no justification": (
         {**UNJUSTIFIED, "evidence": [SPAN]}, "score-has-a-reason", ".justification"),
+    # Stricter than the companion, deliberately, as blank-has-a-note is: JS trim()
+    # keeps a zero-width space, and a justification of one says nothing.
     "a score with a whitespace justification": (
         {**SCORE, "justification": "\u200b ", "evidence": [SPAN]}, "score-has-a-reason", ".justification"),
 }
@@ -291,10 +296,15 @@ NOT_MIRRORED = {
 }
 
 
+#: Every rule id a DISHONEST row shows refused at write -- through ``bind`` and
+#: the verb -- which is a stronger claim than having a citation in RULE_SOURCES.
+REFUSED_AT_WRITE = {rule for _cell, rule, _where in DISHONEST.values()}
+
+
 def _union_members(source: str, name: str) -> set[str]:
-    body = re.search(rf"export type {name} =(.*?);", source, re.S)
+    body = re.search(rf"export type {name} =(.*?);", source, re.DOTALL)
     assert body, f"no `{name}` union in the companion source"
-    return set(re.findall(r"'([a-z-]+)'", body.group(1)))
+    return set(re.findall(r"'([^']+)'", body.group(1)))
 
 
 @pytest.mark.skipif(not _COMPANION.exists(), reason="no sibling comparanda checkout")
@@ -302,13 +312,43 @@ def test_every_rule_validate_evidence_can_return_is_mirrored() -> None:
     """The done-line of #177: each id in the companion's ``EvidenceRuleId`` is a rule here."""
     companion = _union_members((_COMPANION / "evidence.ts").read_text(), "EvidenceRuleId")
     assert companion, "parsed no rule ids: the companion's source moved, fix the parser"
-    assert companion <= set(RULE_SOURCES)
+    assert companion <= REFUSED_AT_WRITE
 
 
 @pytest.mark.skipif(not _COMPANION.exists(), reason="no sibling comparanda checkout")
 def test_every_companion_honesty_rule_is_mirrored_or_listed() -> None:
     source = (_COMPANION / "analysis.ts").read_text()
-    reported = set(re.findall(r"\bhonesty\(\s*'([a-z-]+)'", source))
+    reported = set(re.findall(r"\bhonesty\(\s*'([^']+)'", source))
     assert "score-has-a-reason" in reported, "parsed no honesty calls: fix the parser"
     assert reported - set(NOT_MIRRORED) <= set(RULE_SOURCES)
     assert not set(NOT_MIRRORED) & set(RULE_SOURCES), "mirrored now: drop it from NOT_MIRRORED"
+
+
+@pytest.mark.parametrize("status", sorted(set(vocabulary().closed_enums["citationVerdict"]) - {"unchecked"}))
+def test_every_verdict_but_unchecked_must_be_dated_and_attributed(status) -> None:
+    runtime, verbs = _runtime()
+    undated = {**SCORE, "evidence": [{**SPAN, "check": {"status": status}}]}
+    with pytest.raises(ValueError) as refused:
+        _through_the_verb(runtime, verbs, undated)
+    assert "[rule check-dated;" in str(refused.value)
+    assert "[rule check-attributed;" in str(refused.value)
+
+
+def _stored(*assertions):
+    return {"cells": [{"alternativeId": "a", "criterionId": "c", "measure": "score",
+                       "assertions": list(assertions)}]}
+
+
+def test_a_zero_is_a_value_and_needs_a_reason() -> None:
+    doc = _stored({"id": "s1", "authorId": "ana", "value": 0, "evidence": [SPAN]})
+    assert [p.rule_id for p in honesty_problems(doc)] == ["score-has-a-reason"]
+
+
+def test_a_superseded_assertion_is_still_held_to_the_rules() -> None:
+    """As in the companion: superseding a dishonest claim does not make it honest."""
+    doc = _stored(
+        {"id": "s1", "authorId": "ana", "value": 2, "evidence": [{**SPAN, "check": {"status": "exact"}}],
+         "supersededBy": "s2"},
+        {"id": "s2", "authorId": "ana", "value": 3, "evidence": [SPAN], "justification": "j"})
+    assert sorted(p.rule_id for p in honesty_problems(doc)) == [
+        "check-attributed", "check-dated", "score-has-a-reason"]

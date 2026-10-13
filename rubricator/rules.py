@@ -508,6 +508,7 @@ def score_has_a_reason(document: Mapping[str, Any]) -> Iterable[Problem]:
                 rule_id="score-has-a-reason",
             )
 
+
 def _ids(value: Any, *, keep_blank: bool = False) -> list[Any]:
     """The entries of a ``derivedFrom`` list; anything else is the schema's to report."""
     if not isinstance(value, list):
