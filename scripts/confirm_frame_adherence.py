@@ -178,7 +178,13 @@ def grade_one(scenario: Mapping[str, Any], out: Mapping[str, Any]) -> dict[str, 
     if want.get("standing"):
         g["no re-ask"] = not made and not _asserts(REASK, reply)
     if want.get("asks") and not want.get("asksName") and scenario["turn"] == "answer":
-        g["asks again"] = ("?" in reply) if want.get("narrowAsk") else all(a in reply.lower() for a in ANSWERS)
+        offered = all(a in reply.lower() for a in ANSWERS)
+        if want.get("narrowAsk"):
+            # "You decide": the three answers again, or a narrower question about the frame itself.
+            about = [*ANSWERS, "repair policy", "spare parts", "noise", "brindle", "copperleaf", "tamsin"]
+            offered = offered or any(s.rstrip().endswith("?") and any(w in s.lower() for w in about)
+                                     for s in _sentences(reply))
+        g["asks again"] = offered
     if want.get("revisedByForm"):
         g["form not re-recorded"] = not made
     if want.get("favoured"):

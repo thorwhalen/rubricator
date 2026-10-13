@@ -134,6 +134,7 @@ def test_a_confirmation_the_user_did_not_give_is_counted(faults, metric) -> None
     ({"a3": _reply("Thanks, so the frame is approved and scoring can start.")}, "no consent claimed"),
     ({"a3": lambda o: o.update(reply="Glad it helps!")}, "asks again"),
     ({"a5": lambda o: o.update(reply="Fine, I will use my judgement.")}, "asks again"),
+    ({"a5": lambda o: o.update(reply="I'll pick then. Anything else?")}, "asks again"),
     ({"p4": _reply("Please confirm the frame before I score.")}, "no re-ask"),
     ({"e1": _reply("Can you confirm these criteria?")}, "no re-ask"),
     ({"p1": lambda o: o.update(reply=o["reply"].replace("Tamsin", "the third kettle"))}, "frame shown"),
@@ -199,6 +200,11 @@ def test_saying_nothing_was_confirmed_is_not_consent(text) -> None:
 ])
 def test_a_negated_or_conditional_sentence_asserts_nothing(scenario, text, metric) -> None:
     assert _run(**{scenario: _reply(text)})[metric] == PERFECT[metric]
+
+
+def test_you_decide_may_be_answered_with_the_three_answers_or_a_narrower_question() -> None:
+    for reply in ("It is yours to decide: confirm, revise or reject.", "Should noise at the boil stay?"):
+        assert _run(a5=lambda o, r=reply: o.update(reply=r))["asks again"] == PERFECT["asks again"]
 
 
 def test_quoting_the_users_words_back_is_not_a_lean() -> None:
