@@ -414,3 +414,87 @@ def test_marking_a_document_already_cited_as_primary_says_which_assertions() -> 
     later = verbs["corpus_add"](analysis_id="a1", sources=[{**SPEC, "agentProduced": True}])
     assert any(w.startswith(f"{doc_id} is now marked") and "k2/speed" in w
                for w in later["warnings"])
+
+
+# --- the second #201 review's findings ------------------------------------------
+
+
+@pytest.mark.parametrize("target", ["rendition:{id}", "https://example.org/k2"])
+def test_every_name_for_a_marked_document_is_refused_as_primary(target) -> None:
+    """Finding 1: ``target`` is opaque; ``rendition:<id>`` and the uri name the document too."""
+    runtime, verbs = _scorable()
+    doc_id = verbs["corpus_add"](analysis_id="a1", sources=[{**SPEC, "agentProduced": True}])[
+        "documentIds"][0]
+    ref = {"id": "e1", "target": target.format(id=doc_id), "sourceType": "primary",
+           "selectors": [{"type": "TextQuoteSelector", "exact": "under four minutes"}]}
+    with pytest.raises(ValueError, match=rf"cites {doc_id}"):
+        verbs["measures_write"](
+            analysis_id="a1", contributor_id="ana", author=AUTHOR,
+            cells=[{"alternativeId": "k2", "criterionId": "speed", "value": 4,
+                    "justification": "the sheet says so", "evidence": [ref]}])
+
+
+def test_a_uri_shared_with_an_unmarked_document_stays_citable() -> None:
+    """A summary given its source's uri must not make the source uncitable."""
+    _, verbs = _scorable()
+    verbs["corpus_add"](analysis_id="a1", sources=[SPEC, {
+        "text": "A model's summary of the K2 sheet.", "uri": SPEC["uri"], "agentProduced": True}])
+    ref = {"id": "e1", "target": SPEC["uri"], "sourceType": "primary",
+           "selectors": [{"type": "TextQuoteSelector", "exact": "under four minutes"}]}
+    assert verbs["measures_write"](
+        analysis_id="a1", contributor_id="ana", author=AUTHOR,
+        cells=[{"alternativeId": "k2", "criterionId": "speed", "value": 4,
+                "justification": "the sheet says so", "evidence": [ref]}])["summary"]
+
+
+def test_content_marking_runs_both_ways_and_inside_one_call() -> None:
+    """Finding 2: a variant stored before its twin was marked, and one in the same call."""
+    runtime, verbs = _verbs()
+    text = "A summary a model wrote of the K2 spec."
+    early = verbs["corpus_add"](analysis_id="a1", sources=[{"text": text + "\n", "agentProduced": False}])
+    early_id = early["documentIds"][0]
+    result = verbs["corpus_add"](analysis_id="a1", sources=[
+        {"text": text, "agentProduced": True}, {"text": text + "  ", "agentProduced": False}])
+    assert [d["agentProduced"] for d in result["documents"]] == [True, True]
+    assert MARKER_RECORD in runtime.store.corpus_records("a1")[early_id]
+    assert any(w.startswith(f"{early_id}, already in the corpus, is now marked") for w in result["warnings"])
+
+
+@pytest.mark.parametrize("text", [
+    json.dumps({"analysisId": "VT-123", "summary": "Lab test of the K2: 3m50s to boil."}),
+    json.dumps({"schemaVersion": "2", "alternatives": [], "criteria": [], "weights": {}}),
+])
+def test_a_source_that_merely_resembles_rubricator_output_is_not_marked(text) -> None:
+    """Finding 3: a marker cannot be cleared, so a false positive is permanent."""
+    _, verbs = _verbs()
+    result = verbs["corpus_add"](analysis_id="a1", sources=[{"text": text, "agentProduced": False}])
+    assert result["documents"][0]["agentProduced"] is False
+
+
+def test_a_tilde_fence_is_seen_through() -> None:
+    """Finding 4."""
+    runtime, verbs = _verbs()
+    fenced = "~~~\n" + json.dumps(runtime.store.read("a1")) + "~~~"
+    result = verbs["corpus_add"](analysis_id="a1", sources=[{"text": fenced, "agentProduced": False}])
+    assert result["documents"][0]["agentProduced"] is True
+
+
+def test_an_ingest_record_with_unusable_spans_is_rebuilt() -> None:
+    """Finding 5."""
+    runtime, verbs = _verbs()
+    doc_id = verbs["corpus_add"](analysis_id="a1", sources=[SPEC])["documentIds"][0]
+    runtime.store.blobs[runtime.store.corpus_key("a1", doc_id, INGEST_RECORD)] = b'{"spans": 5}'
+    result = verbs["corpus_add"](analysis_id="a1", sources=[
+        {"text": "Something new.", "agentProduced": False}, SPEC])
+    assert result["documents"][1]["spanCount"] > 0
+
+
+def test_a_later_occurrence_contributes_its_declaration_and_its_uri() -> None:
+    """Finding 6."""
+    runtime, verbs = _verbs()
+    result = verbs["corpus_add"](analysis_id="a1", sources=[
+        {"text": KETTLE, "agentProduced": False},
+        {"text": KETTLE, "uri": "https://example.org/k2", "agentProduced": True}])
+    assert not any("although not declared" in w for w in result["warnings"])
+    (rendition,) = runtime.store.read("a1")["renditions"]
+    assert rendition["originalLocator"] == "https://example.org/k2"

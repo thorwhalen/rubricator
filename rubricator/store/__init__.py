@@ -861,6 +861,15 @@ class AnalysisStore:
             records.setdefault(rendition_id, {})[name] = record
         return records
 
+    def corpus_record_ids(self, analysis_id: str, record: str) -> set[str]:
+        """The renditions holding a ``record`` file, found by key alone: nothing is parsed."""
+        self._require(analysis_id)
+        prefix, suffix = f"analyses/{analysis_id}/corpus/", f"/{record}.json"
+        return {
+            k[len(prefix):-len(suffix)] for k in self.blobs
+            if k.startswith(prefix) and k.endswith(suffix) and "/" not in k[len(prefix):-len(suffix)]
+        }
+
     def put_corpus_record(
         self, analysis_id: str, rendition_id: str, record: str, document: dict[str, Any]
     ) -> None:

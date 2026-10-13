@@ -36,7 +36,7 @@ from rubricator.locators import profile_problems
 from rubricator.rules import declarations_for
 from rubricator.schema.vocabulary import vocabulary
 from rubricator.store import AnalysisNotFound, AnalysisStore
-from rubricator.tools.corpus import MARKER_RECORD
+from rubricator.tools.corpus import agent_produced_names, cited_document
 
 __all__ = [
     "analysis_open",
@@ -586,7 +586,7 @@ def measures_write(
         for cell in cells
         for p in _cell_problems(cell, rows, known, measures, frame)
     ]
-    problems += _primary_into_agent_produced(cells, _agent_produced(store, analysis_id))
+    problems += _primary_into_agent_produced(cells, agent_produced_names(store, analysis_id))
     if problems:
         raise ValueError("refused, nothing was written: " + "; ".join(problems))
     # Judged once, before the writer's own file is read: a colleague's broken
@@ -1069,25 +1069,20 @@ def _cell_problems(
     return out
 
 
-def _agent_produced(store: AnalysisStore, analysis_id: str) -> set[str]:
-    """The renditions ``corpus_add`` marked agent-produced (ADR-0015 constraint 3)."""
-    return {rid for rid, kept in store.corpus_records(analysis_id).items() if MARKER_RECORD in kept}
-
-
 def _primary_into_agent_produced(
-    cells: Sequence[Mapping[str, Any]], marked: set[str]
+    cells: Sequence[Mapping[str, Any]], names: Mapping[str, str]
 ) -> list[str]:
-    """Every ``primary`` reference whose rendition or target a model wrote: secondary at best.
+    """Every ``primary`` reference naming a document a model wrote: secondary at best.
 
     ADR-0015 constraint 3. A summary, an extracted table or a prior analysis
     that re-entered the corpus is someone's reading of a source, never the
     source, however faithfully it quotes one. The marker is set at ingestion
-    only, so this reads it from there.
+    only, so this reads it from there (:func:`agent_produced_names`).
     """
     out = []
     for cell in cells:
         for ref in cell.get("evidence") or []:
-            hit = next((t for t in (ref.get("renditionId"), ref.get("target")) if t in marked), None)
+            hit = cited_document(ref, names)
             if hit and ref.get("sourceType") == "primary":
                 out.append(
                     f'cell {cell["alternativeId"]}/{cell["criterionId"]}: evidence "{ref.get("id")}" '

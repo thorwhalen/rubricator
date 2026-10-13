@@ -43,6 +43,7 @@ import hashlib
 import json
 import math
 import re
+from functools import lru_cache
 from typing import Any, Callable, Mapping, Sequence
 
 from rubricator.normalise import CURRENT, drifted, normalise
@@ -56,6 +57,8 @@ __all__ = [
     "AGENT_PRODUCED_DETECTORS",
     "INGEST_RECORD",
     "MARKER_RECORD",
+    "agent_produced_names",
+    "cited_document",
     "chunk_spans",
     "original_sha256",
     "rendition_id",
@@ -152,30 +155,56 @@ def rendition_id(original_hash: str, *, normaliser_id: str) -> str:
     return _ID_PREFIX + digest[:_ID_HEX]
 
 
-_FENCE = re.compile(r"\A\s*```[\w-]*\s*\n(.*)\n\s*```\s*\Z", re.DOTALL)
+#: One Markdown code fence around the whole text, backticks or tildes.
+_FENCE = re.compile(r"\A\s*(```|~~~)[\w-]*[ \t]*\n(.*?)\s*\1\s*\Z", re.DOTALL)
 
 
 def _as_json(text: str) -> Any:
-    """``text`` parsed as JSON once a BOM and a Markdown code fence are taken off, else ``None``."""
+    """``text`` parsed as JSON once a BOM and one enclosing code fence are taken off, else ``None``."""
     stripped = text.lstrip("\ufeff")
     fenced = _FENCE.match(stripped)
     try:
-        return json.loads(fenced.group(1) if fenced else stripped)
+        return json.loads(fenced.group(2) if fenced else stripped)
     except ValueError:
         return None
 
 
+@lru_cache(maxsize=1)
+def _shapes() -> tuple[tuple[frozenset[str], frozenset[str], str], ...]:
+    """(required keys, allowed keys, what it is) for every object rubricator emits whole.
+
+    Read from the contracts themselves -- the vendored comparanda schema and the
+    frozen output schemas -- so a source is recognised only when its keys fit one
+    of them exactly, never on two common words like ``summary``.
+    """
+    from rubricator.schema.source import VENDORED_PATH
+    from rubricator.surface.frozen import FROZEN_TOOLS
+
+    analysis = json.loads(VENDORED_PATH.read_text(encoding="utf-8"))
+    shapes = [(frozenset(analysis["required"]), frozenset(analysis["properties"]),
+               "a comparanda analysis document")]
+    shapes += [
+        (frozenset(spec.output_schema["required"]), frozenset(spec.output_schema["properties"]),
+         f"a {spec.name} result")
+        for spec in FROZEN_TOOLS
+    ]
+    return tuple(shapes)
+
+
 def _rubricator_output(text: str) -> str | None:
-    """A comparanda analysis, or a rubricator tool's result, is a prior run's output."""
+    """A comparanda analysis or a rubricator tool's result, as the whole text, is a run's output.
+
+    Recognised as JSON, as the entire text, behind at most a BOM and one code
+    fence. Prose around the JSON, or a list of results, is not recognised: the
+    caller's ``agentProduced`` is what marks those (#202 extends this).
+    """
     parsed = _as_json(text)
     if not isinstance(parsed, dict):
         return None
-    if {"alternatives", "criteria"} <= parsed.keys() and (
-        "schemaVersion" in parsed or "cells" in parsed
-    ):
-        return "the text is a comparanda analysis document, which only an analysis run produces"
-    if {"analysisId", "summary"} <= parsed.keys():
-        return "the text is a rubricator tool's result, which only an analysis run produces"
+    keys = frozenset(parsed)
+    for required, allowed, what in _shapes():
+        if required <= keys <= allowed:
+            return f"the text is {what}, which only an analysis run produces"
     return None
 
 
@@ -270,26 +299,23 @@ def corpus_add(
     }
     records = store.corpus_records(analysis_id)
     before = {rid: set(kept) for rid, kept in records.items()}
-    marked_text = {
-        renditions[rid].get("content"): rid
-        for rid in sorted(records, reverse=True)
-        if MARKER_RECORD in records[rid] and rid in renditions
-    }
 
     # One plan per document, every occurrence in this call folded in, before
-    # anything is written: a later occurrence's declaration marks it too.
+    # anything is written: any occurrence's declaration marks it, and the first
+    # uri, title and media type given are the ones kept.
     plans: dict[str, dict[str, Any]] = {}
     for item in prepared:
-        plan = plans.setdefault(item["id"], {**item, "reasons": [], "names": []})
+        plan = plans.setdefault(item["id"], {**item, "source": {}, "reasons": [], "names": []})
         plan["names"].append(_source_name(item["index"], item["source"]))
+        plan["declared"] = plan["declared"] or item["declared"]
         if item["declared"]:
             plan["reasons"].append("the caller declared it agent-produced")
         plan["reasons"] += item["detected"]
-        if item["content"] in marked_text and marked_text[item["content"]] != item["id"]:
-            plan["reasons"].append(
-                f"its normalised text is that of {marked_text[item['content']]}, which is marked"
-            )
+        for key, value in item["source"].items():
+            if value and not plan["source"].get(key):
+                plan["source"][key] = value
     warnings: list[str] = []
+    _mark_by_content(store, analysis_id, plans, renditions, records, warnings)
     rows: dict[str, dict[str, Any]] = {}
     for doc_id, plan in plans.items():
         rows[doc_id] = _add_one(
@@ -297,8 +323,10 @@ def corpus_add(
             stored=records.setdefault(doc_id, {}), chunking=chunking,
             window=window, overlap=overlap, warnings=warnings,
         )
-    newly = {d for d, p in plans.items() if p["reasons"]} - {
-        d for d in plans if MARKER_RECORD in before.get(d, ())}
+    newly = {
+        rid for rid, kept in records.items()
+        if MARKER_RECORD in kept and MARKER_RECORD not in before.get(rid, ())
+    }
     warnings += _cited_as_primary(store, analysis_id, newly)
     for plan in plans.values():
         if len(plan["names"]) > 1:
@@ -345,7 +373,7 @@ def corpus_add(
         "summary": (
             f"{added} document(s) added, {len(rows) - added} already present; {cleaned} cleaned "
             f"by {CURRENT}; {agent} marked agent-produced (measures_write refuses a primary "
-            f"reference into those); {span_count} span(s) by {CHUNKER_ID}; about "
+            f"reference naming those); {span_count} span(s) by {CHUNKER_ID}; about "
             f"{token_estimate} tokens in these, {corpus_tokens} in the corpus (estimated at "
             f"{CHARS_PER_TOKEN} characters a token)"
         ),
@@ -384,7 +412,7 @@ def _add_one(
         store.put_corpus_record(analysis_id, doc_id, MARKER_RECORD, stored[MARKER_RECORD])
 
     ingest = stored.get(INGEST_RECORD)
-    if ingest is None or ingest.get("unreadable"):
+    if not _usable(ingest):
         spans = chunk_spans(content, window_chars=window, overlap_chars=overlap)
         ingest = {
             "renditionId": doc_id,
@@ -442,16 +470,99 @@ def _add_one(
     }
 
 
+def _mark_by_content(
+    store: AnalysisStore,
+    analysis_id: str,
+    plans: dict[str, dict[str, Any]],
+    renditions: Mapping[str, Mapping[str, Any]],
+    records: dict[str, dict[str, Any]],
+    warnings: list[str],
+) -> None:
+    """Spread a marker across every document with the same normalised text, both ways.
+
+    A trailing newline, or a re-ingest under a later normaliser, makes a new
+    document of the same text; it must not make an unmarked one. So a text group
+    is marked when any member is -- stored or in this call -- and every member
+    gets the marker, including a document stored before its twin was marked.
+    """
+    groups: dict[str, set[str]] = {}
+    for rid, rendition in renditions.items():
+        if isinstance(rendition.get("content"), str):
+            groups.setdefault(rendition["content"], set()).add(rid)
+    for rid, plan in plans.items():
+        groups.setdefault(plan["content"], set()).add(rid)
+    for members in groups.values():
+        marked = sorted(
+            rid for rid in members
+            if MARKER_RECORD in records.get(rid, {}) or plans.get(rid, {}).get("reasons")
+        )
+        if not marked:
+            continue
+        for rid in sorted(members - set(marked)):
+            reason = f"its normalised text is that of {marked[0]}, which is marked"
+            if rid in plans:
+                plans[rid]["reasons"].append(reason)
+            else:
+                records.setdefault(rid, {})[MARKER_RECORD] = {"renditionId": rid, "reasons": [reason]}
+                store.put_corpus_record(analysis_id, rid, MARKER_RECORD, records[rid][MARKER_RECORD])
+                warnings.append(f"{rid}, already in the corpus, is now marked agent-produced: {reason}.")
+
+
+def _usable(ingest: Any) -> bool:
+    """Whether a stored ingest record can be read as spans; anything else is rebuilt."""
+    if not isinstance(ingest, dict) or ingest.get("unreadable"):
+        return False
+    spans = ingest.get("spans")
+    return isinstance(spans, list) and all(
+        isinstance(sp, dict) and isinstance(sp.get("start"), int) and isinstance(sp.get("end"), int)
+        for sp in spans
+    )
+
+
+def agent_produced_names(store: AnalysisStore, analysis_id: str) -> dict[str, str]:
+    """Every way an evidence reference can name a marked document, mapped to its id.
+
+    A reference names a document by ``renditionId``, or by ``target``, which
+    comparanda leaves opaque: the bare id, ``rendition:<id>``, or the original's
+    uri. A uri counts only when no unmarked document shares it, so a summary
+    given its source's uri does not make the source itself uncitable.
+    Cheap when nothing is marked: markers are found by key, not by parsing.
+    """
+    marked = store.corpus_record_ids(analysis_id, MARKER_RECORD)
+    if not marked:
+        return {}
+    names = {alias: rid for rid in marked for alias in (rid, f"rendition:{rid}")}
+    frame = store.frame(analysis_id)
+    by_locator: dict[str, set[str]] = {}
+    for r in [*frame.get("renditions", []), *store.renditions(analysis_id)]:
+        if isinstance(r, dict) and isinstance(r.get("originalLocator"), str):
+            by_locator.setdefault(r["originalLocator"], set()).add(r.get("id"))
+    for locator, ids in by_locator.items():
+        if locator != _INLINE_LOCATOR and ids <= marked:
+            names[locator] = min(ids)
+    return names
+
+
+def cited_document(ref: Mapping[str, Any], names: Mapping[str, str]) -> str | None:
+    """The marked document ``ref`` names, by ``renditionId`` or ``target``, or ``None``."""
+    for field in ("renditionId", "target"):
+        value = ref.get(field)
+        if isinstance(value, str) and value in names:
+            return names[value]
+    return None
+
+
 def _cited_as_primary(store: AnalysisStore, analysis_id: str, marked: set[str]) -> list[str]:
     """Assertions already on record that cite a document this call has just marked, as primary."""
     if not marked:
         return []
+    names = {a: rid for a, rid in agent_produced_names(store, analysis_id).items() if rid in marked}
     document, _ = store.read_skipping(analysis_id)
     cited: dict[str, list[str]] = {}
     for cell in document.get("cells", []):
         for assertion in cell.get("assertions", []):
             for ref in assertion.get("evidence") or []:
-                hit = next((t for t in (ref.get("renditionId"), ref.get("target")) if t in marked), None)
+                hit = cited_document(ref, names) if isinstance(ref, dict) else None
                 if hit and ref.get("sourceType") == "primary":
                     cited.setdefault(hit, []).append(
                         f"{cell.get('alternativeId')}/{cell.get('criterionId')}#{assertion.get('id')}")

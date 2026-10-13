@@ -368,8 +368,8 @@ def test_the_adr_records_the_measurement() -> None:
         owed = AWAITING_MEASUREMENT
         assert f"#{owed['issue']}" in text, "the ADR names the measurement owed"
         for key in ("advertised", "wholeSurface"):
-            assert f"{owed[key]['bytes']:,} bytes" in text, (
-                f"the ADR states the unmeasured {key} size; re-pinning is an amendment")
+            assert f"{owed[key]['bytes']:,} bytes, digest `{owed[key]['sha256'][:12]}`" in text, (
+                f"the ADR states the unmeasured {key} size and digest; re-pinning is an amendment")
 
 
 # --- the review's findings, kept failing-able ---------------------------------
