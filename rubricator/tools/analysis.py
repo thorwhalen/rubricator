@@ -564,6 +564,7 @@ def measures_write(
             f'"{expected_criteria_version}", and the set is now at "{criteria_version}". Re-read '
             "the criteria and re-score, so no score is stamped with a version it never saw."
         )
+    _refuse_malformed_cells(cells)
     known = {c["id"]: c for c in frame.get("criteria", [])}
     rows = {a["id"]: a for a in frame.get("alternatives", [])}
     for axis, index, verb in (
@@ -576,8 +577,6 @@ def measures_write(
                 f"refused, nothing was written: {axis} {', '.join(unknown)} are not in this "
                 f"analysis. Declare them with {verb} first."
             )
-    _refuse_unknown_keys(cells, "CELL", root="$.cells")
-    _refuse_malformed_evidence(cells)
     measures = {m["name"] for m in frame.get("measures", [])} or {"score"}
     problems = [
         p
@@ -1378,7 +1377,7 @@ def _unknown_keys(
     if not isinstance(value, Mapping):
         return []
     allowed = shape["properties"]
-    extra = sorted(set(value) - set(allowed))
+    extra = sorted(set(value) - set(allowed), key=repr)
     found = (
         [f"at {path}: {', '.join(repr(k) for k in extra)} "
          f"{'is' if len(extra) == 1 else 'are'} not recorded anywhere. "
@@ -1419,39 +1418,75 @@ def _refuse_unknown_keys(items: Sequence[Any], shape: str, *, root: str) -> None
         raise ValueError("refused, nothing was written: " + "; ".join(problems))
 
 
-def _refuse_malformed_evidence(cells: Sequence[Mapping[str, Any]]) -> None:
-    """Refuse an ``evidence`` that is not a list of objects, before any check walks it (#179).
+def _plain(value: Any) -> Any:
+    """``value`` as JSON would carry it: tuples are lists, read-only mappings are dicts."""
+    if isinstance(value, Mapping):
+        return {k: _plain(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_plain(v) for v in value]
+    return value
 
-    ``bind`` refuses one at its schema, but a direct caller reaches the verb
-    without it, and every check after this one -- the locator profile, the
-    honesty rules, :func:`sign` -- walks evidence as a list of objects: a string
-    or a dict crashed there, and :func:`sign` would have turned a dict into a
-    list of its keys. Only the container is checked here; what is wrong *inside*
-    a reference object is the stored-document check's, which reports it beside
-    the other problems of that stage.
+
+def _as_checked(cell: Any) -> Any:
+    """A cell for the schema: plain, except that an evidence entry stays what the caller passed.
+
+    The reference is stored as JSON, so a read-only mapping as an entry would pass
+    every rule and fail in the store (#179): it must still read as "not an object".
     """
-    problems: list[str] = []
-    for i, cell in enumerate(cells):
-        evidence = cell.get("evidence", [])
-        # A tuple is a Python caller's list, and was always written as one.
-        if not isinstance(evidence, (list, tuple)):
-            problems.append(
-                f"at $.cells[{i}].evidence: {evidence!r} is a {type(evidence).__name__}, not a "
-                "list of evidence references"
-            )
-            continue
-        problems += [
-            f"at $.cells[{i}].evidence[{k}]: {ref!r} is a {type(ref).__name__}, not an evidence "
-            "reference object"
-            # dict, not Mapping: the reference is stored as JSON, and a read-only
-            # mapping would pass every rule and fail in the store.
-            for k, ref in enumerate(evidence) if not isinstance(ref, dict)
-        ]
+    if not isinstance(cell, Mapping):
+        return cell
+    plain = {k: _plain(v) for k, v in cell.items() if k != "evidence"}
+    if "evidence" in cell:
+        evidence = cell["evidence"]
+        plain["evidence"] = list(evidence) if isinstance(evidence, (list, tuple)) else evidence
+    return plain
+
+
+def _refuse_malformed_cells(cells: Any) -> None:
+    """Refuse a cell the frozen surface's CELL shape does not admit, all of them in one pass (#182).
+
+    ``bind`` refuses these at its input schema, but a direct caller reaches the
+    verb without it, and everything after this -- the id lookups, the locator
+    profile, the honesty rules, :func:`sign` -- indexes a cell as an object of
+    typed fields: a string cell, a ``missing`` with no code, a list where an id
+    belongs crashed there (``TypeError``, ``KeyError``) instead of refusing. The
+    check is the surface's own CELL row (ADR-0026), so a Python caller and an MCP
+    caller are refused for the same shapes, each with its path. A tuple is a
+    Python caller's list and was always written as one (#179).
+
+    Two things are left to the later stages, which report them beside the other
+    problems of that stage: unknown keys (they name the keys that *are*
+    allowed), and what is wrong *inside* an evidence reference -- only the
+    evidence container and its entries being objects is checked here, because
+    the verb's locator and honesty checks walk them as such.
+    """
+    from rubricator.schema.source import explain
+    from rubricator.surface.frozen import CELL, arr
+    from rubricator.surface import _validator
+
+    shape = {
+        **CELL,
+        "properties": {
+            **CELL["properties"], "evidence": arr({"type": "object"}),
+        },
+    }
+    errors = _validator(arr(shape)).iter_errors(
+        [_as_checked(c) for c in cells] if isinstance(cells, (list, tuple)) else cells
+    )
+    problems = [
+        explain(e, root="$.cells") for e in sorted(errors, key=lambda e: list(e.path))
+        if e.validator != "additionalProperties"
+    ]
+    problems += [
+        p for i, cell in enumerate(cells) if isinstance(cell, Mapping)
+        for p in _unknown_keys(cell, CELL, f"$.cells[{i}]")
+    ] if isinstance(cells, (list, tuple)) else []
     if problems:
         raise ValueError(
-            "refused, nothing was written: " + "; ".join(problems) + ". Fix: pass evidence as a "
-            "list of reference objects (id, target, sourceType, stance, and a selector or an "
-            "excerpt), or leave the key out (not null) for a blank that cites nothing."
+            "refused, nothing was written: " + "; ".join(problems) + ". Fix: pass each cell as an "
+            "object with alternativeId and criterionId (strings), and value or missing "
+            "({code, note}), justification, and evidence as a list of reference objects (leave "
+            "evidence out, not null, for a blank that cites nothing)."
         )
 
 

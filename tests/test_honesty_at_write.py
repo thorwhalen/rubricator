@@ -352,3 +352,54 @@ def test_a_superseded_assertion_is_still_held_to_the_rules() -> None:
         {"id": "s2", "authorId": "ana", "value": 3, "evidence": [SPAN], "justification": "j"})
     assert sorted(p.rule_id for p in honesty_problems(doc)) == [
         "check-attributed", "check-dated", "score-has-a-reason"]
+
+
+#: Other malformed cells, and where the refusal points (#182). The direct verb used to crash on each.
+MALFORMED_CELLS = {
+    "a string instead of an object": ("k1", "$.cells[0]"),
+    "missing with no code": ({**SCORE, "value": None, "missing": {"note": "n"}}, "$.cells[0].missing"),
+    "missing.code a list": (_blank(["x"]), "$.cells[0].missing.code"),
+    "missing a string": ({**SCORE, "value": None, "missing": "x"}, "$.cells[0].missing"),
+    "measure a list": ({**SCORE, "measure": ["score"]}, "$.cells[0].measure"),
+    "alternativeId a list": ({**SCORE, "alternativeId": ["k1"]}, "$.cells[0].alternativeId"),
+    "no criterionId": ({k: v for k, v in SCORE.items() if k != "criterionId"}, "$.cells[0]"),
+    "justification a number": ({**SCORE, "justification": 3}, "$.cells[0].justification"),
+}
+
+
+@pytest.mark.parametrize("route", list(ROUTES.values()), ids=list(ROUTES))
+@pytest.mark.parametrize("row", list(MALFORMED_CELLS.values()), ids=list(MALFORMED_CELLS))
+def test_a_malformed_cell_is_refused_with_its_path_not_a_crash(route, row) -> None:
+    cell, where = row
+    runtime, verbs = _runtime()
+    before = dict(runtime.store.blobs)
+    with pytest.raises(ValueError) as refused:
+        route(runtime, verbs, cell)
+    assert str(refused.value).startswith("refused")
+    assert f"at {where}:" in str(refused.value)
+    assert dict(runtime.store.blobs) == before
+
+
+def test_the_verb_reports_every_malformed_cell_in_one_pass() -> None:
+    runtime, verbs = _runtime()
+    with pytest.raises(ValueError) as refused:
+        measures_write(runtime.store, analysis_id="a1", contributor_id="scorer", author=AUTHOR,
+                       at=MOMENT, cells=["k1", {**SCORE, "measure": ["score"]},
+                                         {**SCORE, "evidence": "e1", "bogus": 1}])
+    message = str(refused.value)
+    for where in ("$.cells[0]:", "$.cells[1].measure:", "$.cells[2].evidence:", "$.cells[2]: 'bogus'"):
+        assert f"at {where}" in message, message
+
+
+def test_the_verb_refuses_cells_that_are_not_a_list() -> None:
+    runtime, _verbs = _runtime()
+    with pytest.raises(ValueError, match=r"at \$\.cells:"):
+        measures_write(runtime.store, analysis_id="a1", contributor_id="scorer", author=AUTHOR,
+                       at=MOMENT, cells="k1")
+
+
+def test_a_non_string_key_beside_a_string_one_is_refused_not_a_crash() -> None:
+    runtime, _verbs = _runtime()
+    with pytest.raises(ValueError, match=r"at \$\.cells\[0\]:"):
+        measures_write(runtime.store, analysis_id="a1", contributor_id="scorer", author=AUTHOR,
+                       at=MOMENT, cells=[{**SCORE, 1: "x", "bogus": 2}])
