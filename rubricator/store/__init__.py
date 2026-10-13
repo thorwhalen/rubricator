@@ -406,11 +406,14 @@ class AnalysisStore:
     #: comparanda v1, so a tolerant read never serves a document the published
     #: schema refuses (#159).
     contract: Any = None
-    # Each file's contract verdict, by the sha256 of its bytes: a file that has
-    # not changed is not validated again, so a read costs a validation only for
-    # what changed since the last one (#159). Bounded by the number of distinct
-    # file versions this process has seen, and never stored.
-    _verdicts: dict[str, str | None] = field(
+    # Each file's contract verdict, by the sha256 of the fragments checked: a
+    # file that has not changed is not validated again, so a read costs a
+    # validation only for what changed since the last one (#159). Bounded by the
+    # number of distinct file versions this process has seen, and never stored.
+    # Filed under the contract they were given by, which the entry keeps alive:
+    # an id is reused only after its object is collected, so while held it names
+    # that contract and no other (#195).
+    _verdicts: dict[int, tuple[Any, dict[str, str | None]]] = field(
         default_factory=dict, init=False, repr=False, compare=False
     )
 
@@ -539,9 +542,13 @@ class AnalysisStore:
         Enumerable from v1 deliberately: migrating between backends is
         ``for k, v in old.items(): new[k] = v``, and that is only free if the
         store can be walked. Expired analyses are not listed, and are left for
-        :meth:`sweep` or the next request for them to delete.
+        :meth:`sweep` or the next request for them to delete. Nor is an id with
+        files but no frame, which :meth:`frame` would call not found (#195).
         """
-        return sorted(a for a, last in self._last_writes().items() if not self._is_expired(last))
+        return sorted(
+            a for a, last in self._last_writes().items()
+            if self.frame_key(a) in self.blobs and not self._is_expired(last)
+        )
 
     def frame(self, analysis_id: str) -> dict[str, Any]:
         self._require(analysis_id)
@@ -644,7 +651,7 @@ class AnalysisStore:
         def rendition_trial(key: str, document: dict[str, Any]) -> None:
             merge_contributions(frame, [], renditions=[document])
             self._refuse_off_contract(
-                key, [(document, "/properties/renditions/items", "$")], "rendition"
+                [(document, "/properties/renditions/items", "$")], "rendition"
             )
 
         kept = {
@@ -718,7 +725,6 @@ class AnalysisStore:
             # checked is what this file adds, so a frame problem is never blamed
             # on a contribution, and a read costs no full-document validation.
             self._refuse_off_contract(
-                self.contribution_key(analysis_id, contributor_id),
                 [(document.get("authors", []), "/properties/authors", "$.authors"),
                  (document.get("cells", []), "/properties/cells", "$.cells")],
                 "contribution",
@@ -756,13 +762,13 @@ class AnalysisStore:
             return None
         return document
 
-    def _refuse_off_contract(
-        self, key: str, fragments: list[tuple[Any, str, str]], what: str
-    ) -> None:
+    def _refuse_off_contract(self, fragments: list[tuple[Any, str, str]], what: str) -> None:
         """Raise :class:`OffContract` if any ``(value, schema pointer, root)`` breaks the contract.
 
-        The verdict is remembered by the sha256 of the bytes at ``key``, so an
-        unchanged file is validated once per process, not once per read.
+        The verdict is remembered by the sha256 of the fragments themselves, so
+        an unchanged file is validated once per process, not once per read --
+        and what is hashed is what was validated, never a second read of a file
+        that may have changed in between (#195).
         """
         if self.contract is None:
             from rubricator.schema.source import SchemaSource
@@ -770,22 +776,26 @@ class AnalysisStore:
             contract = SchemaSource.vendored()
         else:
             contract = self.contract
-        digest = f"{id(contract)}:{hashlib.sha256(self.blobs[key]).hexdigest()}"
-        if digest not in self._verdicts:
+        _, verdicts = self._verdicts.setdefault(id(contract), (contract, {}))
+        canonical = json.dumps(
+            fragments, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+        ).encode(_ENCODING)
+        digest = f"{what}:{hashlib.sha256(canonical).hexdigest()}"
+        if digest not in verdicts:
             lines = [
                 line
                 for value, pointer, root in fragments
                 for line in contract.refusals(value, pointer=pointer, root=root)
             ]
-            self._verdicts[digest] = (
+            verdicts[digest] = (
                 f"this {what} merges, but breaks the {contract.origin} comparanda schema: "
                 + "; ".join(lines)
                 + ". Repair or remove the file."
                 if lines
                 else None
             )
-        if self._verdicts[digest] is not None:
-            raise OffContract(self._verdicts[digest])
+        if verdicts[digest] is not None:
+            raise OffContract(verdicts[digest])
 
     # -- writing ------------------------------------------------------------
 

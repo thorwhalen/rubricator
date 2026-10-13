@@ -277,7 +277,13 @@ def explain(error: Any, *, root: str = "$") -> str:
 
 @lru_cache(maxsize=1)
 def _vendored() -> SchemaSource:
-    return SchemaSource.published(VENDORED_PATH)
+    from rubricator.schema.pins import read_pinned
+
+    return SchemaSource(
+        schema=json.loads(read_pinned(VENDORED_PATH.name).decode("utf-8")),
+        origin="published",
+        located_at=VENDORED_PATH.name,
+    )
 
 
 def iter_problems(results: Iterable[ValidationResult]) -> list[SchemaProblem]:

@@ -27,6 +27,7 @@ told the path and the keys that are allowed there, and nothing is written.
 from __future__ import annotations
 
 import re
+from collections import Counter
 from typing import Any, Mapping, Sequence
 
 from rubricator.contributors import sign
@@ -1346,17 +1347,20 @@ def _put_frame(store: AnalysisStore, analysis_id: str, frame: dict[str, Any]) ->
     read: ``analysis_get`` leaves them out of its views and names them. A
     problem is recognised by its content, not its index, so a stored one that a
     list reordering moved is still the stored one, and a new value breaking the
-    same rule in the same place is still new.
+    same rule in the same place is still new -- as is a second copy of a stored one.
     """
     try:
         stored = _contract().identified_refusals(_as_stored(store.frame(analysis_id)))
     except (AnalysisNotFound, KeyError, ValueError):
         stored = []
-    before = {identity for _, identity in stored}
-    introduced = [
-        line for line, identity in _contract().identified_refusals(_as_stored(frame))
-        if identity not in before
-    ]
+    # Counted, not collected: a second copy of a stored problem is a new one (#195).
+    before = Counter(identity for _, identity in stored)
+    introduced = []
+    for line, identity in _contract().identified_refusals(_as_stored(frame)):
+        if before[identity]:
+            before[identity] -= 1
+        else:
+            introduced.append(line)
     if introduced:
         raise ValueError(_OFF_CONTRACT + "; ".join(introduced))
     store.put_frame(analysis_id, frame)
