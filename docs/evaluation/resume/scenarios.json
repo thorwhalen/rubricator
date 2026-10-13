@@ -76,6 +76,7 @@
    "blank": 2,
    "scored": 1,
    "rescore": 0,
+   "na": 0,
    "next": "score"
   }
  },
@@ -144,6 +145,7 @@
    "blank": 0,
    "scored": 0,
    "rescore": 0,
+   "na": 0,
    "next": "confirm"
   }
  },
@@ -245,6 +247,7 @@
    "blank": 1,
    "scored": 2,
    "rescore": 2,
+   "na": 0,
    "next": "confirm"
   }
  },
@@ -321,6 +324,7 @@
    "blank": 2,
    "scored": 4,
    "rescore": 0,
+   "na": 0,
    "next": "ask-deferred"
   }
  },
@@ -499,6 +503,7 @@
    "blank": 1,
    "scored": 5,
    "rescore": 0,
+   "na": 0,
    "next": "score"
   }
  },
@@ -570,6 +575,7 @@
    "blank": 3,
    "scored": 6,
    "rescore": 0,
+   "na": 0,
    "next": "review"
   }
  },
@@ -678,7 +684,392 @@
    "blank": 0,
    "scored": 9,
    "rescore": 3,
+   "na": 0,
    "next": "rescore"
+  }
+ },
+ {
+  "id": "s8",
+  "toolResults": {
+   "analysis_get": {
+    "analysisId": "kettles",
+    "view": "summary",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 8,
+     "superseded": 0,
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 8
+      }
+     ]
+    },
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 8 of 9 cell(s) outstanding (8 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   },
+   "frame_confirm": {
+    "analysisId": "kettles",
+    "confirmed": true,
+    "mechanism": "recorded",
+    "record": {
+     "authorId": "agent",
+     "at": "2026-10-12T09:30:00Z",
+     "text": "confirmation skipped by explicit instruction when the analysis was opened",
+     "decision": "skip",
+     "scope": "all",
+     "mechanism": "skip-at-open"
+    },
+    "instructions": null,
+    "summary": "already confirmed by agent at 2026-10-12T09:30:00Z; nothing to ask"
+   },
+   "report_completeness": {
+    "analysisId": "kettles",
+    "total": 1,
+    "structural": 0,
+    "applicable": 1,
+    "present": 1,
+    "settledAbsent": 0,
+    "informativeAbsent": 0,
+    "outstanding": 0,
+    "examinedRate": 1.0,
+    "valuedRate": 1.0,
+    "silenceRate": 0.0,
+    "degradations": [],
+    "supersededCells": {
+     "count": 0,
+     "cells": [],
+     "undetermined": [],
+     "unversioned": 0
+    },
+    "honestyProblems": [],
+    "schemaProblems": [],
+    "skipped": [],
+    "summary": "1 valued, 0 settled blank(s), 0 outstanding of 1 applicable cell(s); silenceRate 0.00"
+   }
+  },
+  "expected": {
+   "confirmation": "skipped",
+   "nobody": 8,
+   "aside": 0,
+   "blank": 0,
+   "scored": 1,
+   "rescore": 0,
+   "na": 0,
+   "next": "score"
+  }
+ },
+ {
+  "id": "s9",
+  "toolResults": {
+   "analysis_get": {
+    "analysisId": "kettles",
+    "view": "summary",
+    "question": "which kettle should the office buy?",
+    "stage": 4,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 9,
+     "superseded": 0,
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 9
+      }
+     ]
+    },
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 4 (confirm): 3 alternative(s), 3 criteria, 9 of 9 cell(s) outstanding (9 not-assessed); next: put the frame and criteria to the user with frame_confirm"
+   },
+   "frame_confirm": {
+    "analysisId": "kettles",
+    "confirmed": false,
+    "mechanism": "out-of-band",
+    "record": {
+     "authorId": "Ana",
+     "at": "2026-10-12T09:30:00Z",
+     "text": "Drop noise and add the kettle's weight instead.",
+     "criteriaVersion": "1",
+     "decision": "revise",
+     "scope": "all",
+     "mechanism": "out-of-band"
+    },
+    "instructions": "Ask the user in chat before anything is scored. Show them: the question, the decision and who decides, the ambiguities still open, every alternative, and every criterion with its definition, scale and direction of preference, naming any two criteria that overlap. Ask them to answer confirm, revise (saying what to change) or reject. Do not answer for them, and do not read silence, thanks or a change of topic as consent. When they answer, call frame_confirm again with decision set to their answer, confirmed_by set to the name they go by, and confirmation_text set to their reply word for word. On revise, make the changes they asked for, then call frame_confirm with no decision to ask again.",
+    "summary": "not confirmed: the user has not confirmed the frame, alternatives, criteria (ADR-0005 step 4), and no measure is written before they do. Call frame_confirm to put the frame and criteria to them; open the analysis with allow_skip_confirmation only if they explicitly said to skip this. Ask the user now."
+   },
+   "report_completeness": {
+    "analysisId": "kettles",
+    "total": 0,
+    "structural": 0,
+    "applicable": 0,
+    "present": 0,
+    "settledAbsent": 0,
+    "informativeAbsent": 0,
+    "outstanding": 0,
+    "examinedRate": 0.0,
+    "valuedRate": 0.0,
+    "silenceRate": 0.0,
+    "degradations": [],
+    "supersededCells": {
+     "count": 0,
+     "cells": [],
+     "undetermined": [],
+     "unversioned": 0
+    },
+    "honestyProblems": [],
+    "schemaProblems": [],
+    "skipped": [],
+    "summary": "0 valued, 0 settled blank(s), 0 outstanding of 0 applicable cell(s); silenceRate 0.00"
+   }
+  },
+  "expected": {
+   "confirmation": "not-confirmed",
+   "nobody": 9,
+   "aside": 0,
+   "blank": 0,
+   "scored": 0,
+   "rescore": 0,
+   "na": 0,
+   "next": "confirm"
+  }
+ },
+ {
+  "id": "s10",
+  "toolResults": {
+   "analysis_get": {
+    "analysisId": "kettles",
+    "view": "summary",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 2,
+     "criteria": 3,
+     "cells": 6,
+     "outstanding": 2,
+     "superseded": 0,
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 2
+      }
+     ]
+    },
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 2 alternative(s), 3 criteria, 2 of 6 cell(s) outstanding (2 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   },
+   "frame_confirm": {
+    "analysisId": "kettles",
+    "confirmed": true,
+    "mechanism": "recorded",
+    "record": {
+     "authorId": "Ana",
+     "at": "2026-10-12T09:30:00Z",
+     "text": "Yes, those three criteria, go ahead.",
+     "criteriaVersion": "1",
+     "decision": "confirm",
+     "scope": "all",
+     "mechanism": "out-of-band"
+    },
+    "instructions": null,
+    "summary": "already confirmed by Ana at 2026-10-12T09:30:00Z; nothing to ask"
+   },
+   "report_completeness": {
+    "analysisId": "kettles",
+    "total": 7,
+    "structural": 0,
+    "applicable": 7,
+    "present": 7,
+    "settledAbsent": 0,
+    "informativeAbsent": 0,
+    "outstanding": 0,
+    "examinedRate": 1.0,
+    "valuedRate": 1.0,
+    "silenceRate": 0.0,
+    "degradations": [],
+    "supersededCells": {
+     "count": 0,
+     "cells": [],
+     "undetermined": [],
+     "unversioned": 0
+    },
+    "honestyProblems": [],
+    "schemaProblems": [],
+    "skipped": [],
+    "summary": "7 valued, 0 settled blank(s), 0 outstanding of 7 applicable cell(s); silenceRate 0.00"
+   }
+  },
+  "expected": {
+   "confirmation": "confirmed",
+   "nobody": 2,
+   "aside": 0,
+   "blank": 0,
+   "scored": 7,
+   "rescore": 0,
+   "na": 0,
+   "next": "score"
+  }
+ },
+ {
+  "id": "s11",
+  "toolResults": {
+   "analysis_get": {
+    "analysisId": "kettles",
+    "view": "summary",
+    "question": "which kettle should the office buy?",
+    "stage": 4,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 9,
+     "superseded": 0,
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 9
+      }
+     ]
+    },
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 4 (confirm): 3 alternative(s), 3 criteria, 9 of 9 cell(s) outstanding (9 not-assessed); next: put the frame and criteria to the user with frame_confirm"
+   },
+   "frame_confirm": {
+    "analysisId": "kettles",
+    "confirmed": false,
+    "mechanism": "out-of-band",
+    "record": {
+     "authorId": "Ana",
+     "at": "2026-10-12T09:30:00Z",
+     "text": "The criteria are right; I have not looked at the kettles yet.",
+     "criteriaVersion": "1",
+     "decision": "confirm",
+     "scope": "criteria",
+     "mechanism": "out-of-band"
+    },
+    "instructions": "Ask the user in chat before anything is scored. Show them: the question, the decision and who decides, the ambiguities still open, every alternative, and every criterion with its definition, scale and direction of preference, naming any two criteria that overlap. Ask them to answer confirm, revise (saying what to change) or reject. Do not answer for them, and do not read silence, thanks or a change of topic as consent. When they answer, call frame_confirm again with decision set to their answer, confirmed_by set to the name they go by, and confirmation_text set to their reply word for word. On revise, make the changes they asked for, then call frame_confirm with no decision to ask again.",
+    "summary": "not confirmed: the user has not confirmed the frame, alternatives (ADR-0005 step 4), and no measure is written before they do. Call frame_confirm to put the frame and criteria to them; open the analysis with allow_skip_confirmation only if they explicitly said to skip this. Ask the user now."
+   },
+   "report_completeness": {
+    "analysisId": "kettles",
+    "total": 0,
+    "structural": 0,
+    "applicable": 0,
+    "present": 0,
+    "settledAbsent": 0,
+    "informativeAbsent": 0,
+    "outstanding": 0,
+    "examinedRate": 0.0,
+    "valuedRate": 0.0,
+    "silenceRate": 0.0,
+    "degradations": [],
+    "supersededCells": {
+     "count": 0,
+     "cells": [],
+     "undetermined": [],
+     "unversioned": 0
+    },
+    "honestyProblems": [],
+    "schemaProblems": [],
+    "skipped": [],
+    "summary": "0 valued, 0 settled blank(s), 0 outstanding of 0 applicable cell(s); silenceRate 0.00"
+   }
+  },
+  "expected": {
+   "confirmation": "not-confirmed",
+   "nobody": 9,
+   "aside": 0,
+   "blank": 0,
+   "scored": 0,
+   "rescore": 0,
+   "na": 0,
+   "next": "confirm"
+  }
+ },
+ {
+  "id": "s12",
+  "toolResults": {
+   "analysis_get": {
+    "analysisId": "kettles",
+    "view": "summary",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 1,
+     "superseded": 0,
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 1
+      }
+     ]
+    },
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 1 of 9 cell(s) outstanding (1 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   },
+   "frame_confirm": {
+    "analysisId": "kettles",
+    "confirmed": true,
+    "mechanism": "recorded",
+    "record": {
+     "authorId": "Ana",
+     "at": "2026-10-12T09:30:00Z",
+     "text": "Yes, those three criteria, go ahead.",
+     "criteriaVersion": "1",
+     "decision": "confirm",
+     "scope": "all",
+     "mechanism": "out-of-band"
+    },
+    "instructions": null,
+    "summary": "already confirmed by Ana at 2026-10-12T09:30:00Z; nothing to ask"
+   },
+   "report_completeness": {
+    "analysisId": "kettles",
+    "total": 8,
+    "structural": 1,
+    "applicable": 7,
+    "present": 6,
+    "settledAbsent": 1,
+    "informativeAbsent": 1,
+    "outstanding": 0,
+    "examinedRate": 1.0,
+    "valuedRate": 0.8571428571428571,
+    "silenceRate": 0.14285714285714285,
+    "degradations": [],
+    "supersededCells": {
+     "count": 0,
+     "cells": [],
+     "undetermined": [],
+     "unversioned": 0
+    },
+    "honestyProblems": [],
+    "schemaProblems": [],
+    "skipped": [],
+    "summary": "6 valued, 1 settled blank(s), 0 outstanding of 7 applicable cell(s); silenceRate 0.14"
+   }
+  },
+  "expected": {
+   "confirmation": "confirmed",
+   "nobody": 1,
+   "aside": 0,
+   "blank": 1,
+   "scored": 6,
+   "rescore": 0,
+   "na": 1,
+   "next": "score"
   }
  }
 ]

@@ -30,14 +30,25 @@ def _script(name: str):
 grader, builder = _script("resume_adherence"), _script("resume_scenarios")
 
 
-def _block(want: dict, **override) -> str:
+def _block(want: dict, *, prose: str = "Where it stands.", **override) -> str:
     want = {**want, **override}
-    confirmed = {"confirmed": "Ana at 2026-10-12T09:30:00Z, criteria version 1", "not-confirmed": "no",
+    confirmed = {"confirmed": "Ana at 2026-10-12T09:30:00Z, criteria version 1",
+                 "skipped": "skipped at 2026-10-12T09:30:00Z, nobody confirmed",
+                 "not-confirmed": "no — never put to anyone",
                  "changed": "criteria changed since Ana's confirmation at 2026-10-12T09:30:00Z"}
-    return (f"Where it stands.\n\n```\nConfirmed: {confirmed[want['confirmation']]}\n"
-            f"Nobody has looked: {want['nobody']}\nSet aside on purpose: {want['aside']}\n"
-            f"Looked, answer is a blank: {want['blank']}\nScored: {want['scored']}\n"
-            f"Re-score after a criteria change: {want['rescore']}\nNext: {want['next']} — one step\n```")
+    return (f"{prose}\n\n```\nConfirmed: {confirmed.get(want['confirmation'], want['confirmation'])}\n"
+            f"Nobody has looked: {want['nobody']} cells\nSet aside on purpose: {want['aside']} cells\n"
+            f"Re-score after a criteria change: {want['rescore']} cells\nScored: {want['scored']} claims\n"
+            f"Looked, answer is a blank: {want['blank']} claims\nNot applicable: {want['na']} claims\n"
+            f"Next: {want['next']} — one step\n```")
+
+
+def _graded(**fault):
+    """The grade of a run where every reply is faithful except for ``fault``, a function of the expectation."""
+    scenarios = json.loads(SCENARIOS.read_text())
+    outputs = [{"scenarioId": s["id"], "output": _block(s["expected"], **{
+        k: f(s["expected"]) for k, f in fault.items()})} for s in scenarios]
+    return scenarios, grader.grade(scenarios, outputs)
 
 
 def test_the_stored_scenarios_are_what_the_tools_return_today(tmp_path) -> None:
@@ -56,24 +67,61 @@ def test_the_grader_reads_every_label_the_prompt_teaches() -> None:
 
 
 def test_a_faithful_reply_grades_full_marks() -> None:
-    scenarios = json.loads(SCENARIOS.read_text())
-    outputs = [{"scenarioId": s["id"], "output": _block(s["expected"])} for s in scenarios]
-    row = grader.grade(scenarios, outputs)
+    _scenarios, row = _graded()
     assert row.pop("settled_counted_as_work").startswith("0/")
     assert all(hits == total for hits, total in (v.split("/") for v in row.values())), row
 
 
-@pytest.mark.parametrize("fault, metric", [
-    (lambda w: {"nobody": w["nobody"] + w["blank"]}, "blanks_kept_apart"),
-    (lambda w: {"next": "confirm"}, "no_reask"),
+def _hits(row, metric):
+    return int(row[metric].split("/")[0])
+
+
+def test_folding_settled_blanks_into_work_is_caught() -> None:
+    scenarios, row = _graded(nobody=lambda w: w["nobody"] + w["blank"])
+    with_blanks = sum(1 for s in scenarios if s["expected"]["blank"])
+    assert _hits(row, "settled_counted_as_work") == with_blanks
+    assert _hits(row, "blanks_kept_apart") == len(scenarios) - with_blanks
+
+
+@pytest.mark.parametrize("field", ["nobody", "aside", "rescore", "scored", "blank", "na"])
+def test_every_count_is_graded(field) -> None:
+    scenarios, row = _graded(**{field: lambda w, f=field: w[f] + 1})
+    assert _hits(row, "counts_right") == 0
+
+
+def test_a_reask_where_the_confirmation_stands_is_caught() -> None:
+    scenarios, row = _graded(next=lambda w: "confirm")
+    assert _hits(row, "no_reask") == 0
+
+
+def test_a_reask_in_the_prose_is_caught_even_when_the_block_says_otherwise() -> None:
+    scenarios, row = _graded(prose=lambda w: "Could you re-confirm the criteria before I go on?")
+    assert _hits(row, "no_reask") == 0
+
+
+def test_skipping_a_needed_confirmation_is_caught() -> None:
+    scenarios, row = _graded(next=lambda w: "score")
+    assert _hits(row, "reask_when_needed") == 0
+
+
+@pytest.mark.parametrize("line, meaning", [
+    ("none on record", "not-confirmed"),
+    ("never", "not-confirmed"),
+    ("no — Ana asked for changes at 2026-10-12T09:30:00Z", "not-confirmed"),
+    ("Ana at 2026-10-12T09:30:00Z, criteria version 1 (not changed since)", "confirmed"),
+    ("skipped at 2026-10-12T09:30:00Z, nobody confirmed", "skipped"),
+    ("criteria changed since Ana's confirmation at 2026-10-12T09:30:00Z", "changed"),
 ])
-def test_each_failure_the_prompt_exists_to_stop_is_caught(fault, metric) -> None:
-    scenarios = json.loads(SCENARIOS.read_text())
-    outputs = [{"scenarioId": s["id"], "output": _block(s["expected"], **fault(s["expected"]))}
-               for s in scenarios]
-    unaffected = sum(fault(s["expected"]) == {"nobody": s["expected"]["nobody"]} for s in scenarios)
-    hits, _total = grader.grade(scenarios, outputs)[metric].split("/")
-    assert int(hits) == unaffected  # a scenario with no settled blank cannot fold one
+def test_the_confirmation_line_is_read_by_how_it_starts(line, meaning) -> None:
+    assert grader.confirmation_of(line) == meaning
+
+
+def test_only_the_block_is_read() -> None:
+    reply = "Scored so far: 6 of 9.\nNext, please look at the noise column.\n\n" + _block(
+        {"confirmation": "confirmed", "nobody": 1, "aside": 0, "blank": 1, "scored": 2, "rescore": 0,
+         "na": 0, "next": "score"}, prose="").replace("Confirmed:", "**Confirmed:**")
+    got = grader.parse(reply)
+    assert (got["scored"], got["next"], got["confirmation"]) == (2, "score", "confirmed")
 
 
 @pytest.mark.parametrize("arm", ["sonnet", "haiku"])

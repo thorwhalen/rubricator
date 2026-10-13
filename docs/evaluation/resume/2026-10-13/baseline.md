@@ -5,13 +5,16 @@ The user is coming back to an analysis started in an earlier session. You have c
 End your reply with this block, one line each:
 
 ```
-Confirmed: <who> at <when>, criteria version <v>   (or `Confirmed: no`, or `Confirmed: criteria changed since <who>'s confirmation at <when>`)
-Nobody has looked: <n>
-Set aside on purpose: <n>
-Looked, answer is a blank: <n>
-Scored: <n>
-Re-score after a criteria change: <n>
+Confirmed: <who> at <when>, criteria version <v>
+Nobody has looked: <n> cells
+Set aside on purpose: <n> cells
+Re-score after a criteria change: <n> cells
+Scored: <n> claims
+Looked, answer is a blank: <n> claims
+Not applicable: <n> claims
 Next: <kind> — <one sentence>
 ```
+
+The first line begins `Confirmed:`. When no person's confirmation stands, write `Confirmed: skipped at <when>, nobody confirmed`, `Confirmed: criteria changed since <who>'s confirmation at <when>`, or `Confirmed: no — <why>`.
 
 `<kind>` is one of `confirm`, `score`, `rescore`, `ask-deferred`, `review`.
