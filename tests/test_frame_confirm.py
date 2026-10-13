@@ -206,6 +206,23 @@ def test_the_skip_is_explicit_at_creation_and_never_a_human_confirmation() -> No
         verbs["analysis_open"](analysis_id="b1", allow_skip_confirmation=True)
 
 
+def test_a_partial_confirm_after_the_skip_does_not_launder_the_rest() -> None:
+    """The frame and alternatives still rest on the skip: the summary says so (#187)."""
+    _, verbs = _verbs()
+    _framed(verbs, allow_skip_confirmation=True)
+    verbs["frame_confirm"](analysis_id="a1", decision="revise", scope="criteria", confirmed_by="ana",
+                           confirmation_text="Tighten the criteria first.")
+    verbs["frame_confirm"](analysis_id="a1")  # put the question again
+    verbs["frame_confirm"](analysis_id="a1", decision="confirm", scope="criteria", confirmed_by="ana",
+                           confirmation_text="Yes, the criteria are right.")
+    got = verbs["frame_confirm"](analysis_id="a1")
+    assert got["confirmed"] is True
+    assert "frame, alternatives: skipped at open" in got["summary"]
+    assert "nobody confirmed the frame, alternatives" in got["summary"]
+    assert "criteria: confirmed by ana" in got["summary"]
+    assert "already confirmed" not in got["summary"]
+
+
 def test_the_gate_and_stage_four_show_on_analysis_get() -> None:
     _, verbs = _verbs()
     _framed(verbs)
