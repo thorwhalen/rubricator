@@ -36,6 +36,7 @@ from rubricator.locators import profile_problems
 from rubricator.rules import declarations_for
 from rubricator.schema.vocabulary import vocabulary
 from rubricator.store import AnalysisNotFound, AnalysisStore
+from rubricator.tools.corpus import agent_produced_names, cited_document
 
 __all__ = [
     "analysis_open",
@@ -585,6 +586,7 @@ def measures_write(
         for cell in cells
         for p in _cell_problems(cell, rows, known, measures, frame)
     ]
+    problems += _primary_into_agent_produced(cells, agent_produced_names(store, analysis_id))
     if problems:
         raise ValueError("refused, nothing was written: " + "; ".join(problems))
     # Judged once, before the writer's own file is read: a colleague's broken
@@ -1064,6 +1066,30 @@ def _cell_problems(
         if problem:
             out.append(problem)
     out += [f"{where}: {p}" for p in profile_problems(cell.get("evidence") or [])]
+    return out
+
+
+def _primary_into_agent_produced(
+    cells: Sequence[Mapping[str, Any]], names: Mapping[str, str]
+) -> list[str]:
+    """Every ``primary`` reference naming a document a model wrote: secondary at best.
+
+    ADR-0015 constraint 3. A summary, an extracted table or a prior analysis
+    that re-entered the corpus is someone's reading of a source, never the
+    source, however faithfully it quotes one. The marker is set at ingestion
+    only, so this reads it from there (:func:`agent_produced_names`).
+    """
+    out = []
+    for cell in cells:
+        for ref in cell.get("evidence") or []:
+            hit = cited_document(ref, names)
+            if hit and ref.get("sourceType") == "primary":
+                out.append(
+                    f'cell {cell["alternativeId"]}/{cell["criterionId"]}: evidence "{ref.get("id")}" '
+                    f'is "primary" but cites {hit}, which corpus_add marked agent-produced -- a '
+                    "model wrote it (ADR-0015). Record it as secondary at best, or cite the "
+                    "original it was made from"
+                )
     return out
 
 

@@ -31,7 +31,7 @@ from rubricator.store import RETENTION_DAYS
 __all__ = [
     "ToolSpec", "FROZEN_TOOLS", "frozen", "advertised", "describe", "definitions",
     "definitions_bytes", "definitions_digest", "definitions_json", "DELIBERATELY_ABSENT", "FORBIDDEN_PARAMETERS", "ERROR_CONVENTION",
-    "MEASURED", "RETENTION_DAYS",
+    "MEASURED", "AWAITING_MEASUREMENT", "RETENTION_DAYS",
 ]
 
 Status = Literal["implemented", "planned", "transitional"]
@@ -320,28 +320,38 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
         ),
     ),
     ToolSpec(
-        name="corpus_add", family="corpus", stage="2, 5", status="planned",
+        name="corpus_add", family="corpus", stage="2, 5", status="implemented",
         minimum_viable=True, cut_rank=None, research_row=3, issue=53,
         contract=(
             "Add source documents to an analysis's corpus. Each is normalised with the "
             "versioned normaliser, given a stable id from its content hash (so adding the same "
-            "text twice is idempotent), and recorded with character offsets into the normalised "
-            "full document. Says which sources were cleaned and keeps the offset map."
+            "text twice is idempotent), and chunked into character offsets into the normalised "
+            "full document, which is what quotes resolve against. Set agentProduced to true for "
+            "text a model wrote (a prior analysis, a summary, an extracted table), and when "
+            "unsure: references into it are then secondary at best. Says which were cleaned."
         ),
         determinism="A fixed chunker and a versioned normaliser over text the caller supplies; no fetch.",
         failure="A source with no text is refused, naming which one; nothing is partially added.",
         input_schema=obj(
             {
                 "analysis_id": S,
-                "sources": arr(obj({"id": S, "title": S, "text": S, "uri": S, "mediaType": S}, ("text",))),
+                "sources": arr(obj({"id": S, "title": S, "text": S, "uri": S, "mediaType": S,
+                                    "agentProduced": B}, ("text", "agentProduced"))),
                 "chunking": obj({"windowChars": I, "overlapChars": I}),
             },
             ("analysis_id", "sources"),
         ),
         output_schema=obj(
-            {"analysisId": S, "documentIds": arr(S), "spanCount": I, "tokenEstimate": I,
+            {"analysisId": S, "documentIds": arr(S),
+             "documents": arr(obj(
+                 {"documentId": S, "sourceId": S, "added": B, "cleaned": B, "agentProduced": B,
+                  "spanCount": I, "tokenEstimate": I},
+                 ("documentId", "added", "cleaned", "agentProduced", "spanCount",
+                  "tokenEstimate"))),
+             "spanCount": I, "tokenEstimate": I, "corpusTokenEstimate": I,
              "warnings": arr(S), "summary": S},
-            ("analysisId", "documentIds", "spanCount", "tokenEstimate", "warnings", "summary"),
+            ("analysisId", "documentIds", "documents", "spanCount", "tokenEstimate",
+             "corpusTokenEstimate", "warnings", "summary"),
         ),
     ),
     ToolSpec(
@@ -982,5 +992,23 @@ MEASURED: Mapping[str, Any] = {
     "wholeSurface": {
         "tools": 22, "tokens": 10792, "bytes": 26207,
         "sha256": "4f0f6e6e5422fea75a253bedd2050f09e89a23820750bebcdeef7ffc204c4b48",
+    },
+}
+
+#: Definitions changed where no provider key was at hand, so they could not be
+#: counted. :data:`MEASURED` stays the last real measurement; this pins the
+#: digest and size of what is served *now* and names the open issue that owes
+#: the count, so a further change still fails the test. It holds no token
+#: count, because an estimate is what ADR-0009 forbids recording as one.
+#: ``None`` once the issue's measurement is pasted into :data:`MEASURED`.
+AWAITING_MEASUREMENT: Mapping[str, Any] | None = {
+    "issue": 199,
+    "advertised": {
+        "tools": 15, "bytes": 20213,
+        "sha256": "15426397a56cc200e90e1abb3f8b9896f036075fa08e40f55ba57a1cc18ebf29",
+    },
+    "wholeSurface": {
+        "tools": 22, "bytes": 26426,
+        "sha256": "dfce0e147ee7e025fb94b1e6e3505229a3788b11cf71d999d5336f42fb0b7cc9",
     },
 }
