@@ -145,3 +145,9 @@ def test_a_file_missing_an_argument_is_told_how_to_call():
     import subprocess
     r = subprocess.run([sys.executable, str(SCRIPT), "neutral=x.json"], capture_output=True, text=True)
     assert r.returncode != 0 and "needs neutral=" in r.stderr
+
+
+def test_a_cell_set_aside_may_say_the_user_set_it_aside():
+    run = _run({"i1": "deferred"}, prose="The user said to set this cell aside until the documentation arrives.")
+    assert prior.mentions(run) == ["i1"]
+    assert prior.mentions(run, exempt=CELLS["instructed"]) == []
