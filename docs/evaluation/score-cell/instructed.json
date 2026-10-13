@@ -1,0 +1,27 @@
+{
+  "domain": "Invented, as borderline.json. Cells where the user said earlier in the conversation to set the cell aside on purpose: an instruction about the analysis, which score-cell must still follow whatever winner the user also named (#205). Expected: the blank `deferred`, with no evidence attached.",
+  "cells": [
+    {
+      "id": "i1",
+      "alternative": "larkpad",
+      "criterion": "data-export",
+      "retrieval": "no retrieval for this cell",
+      "instruction": "Earlier the user told you to set aside Larkpad's data-export cell until they have sent Larkpad's export documentation; do not score it now.",
+      "spans": [],
+      "expected": {
+        "code": "deferred"
+      }
+    },
+    {
+      "id": "i2",
+      "alternative": "mossnote",
+      "criterion": "support-window",
+      "retrieval": "no retrieval for this cell",
+      "instruction": "Earlier the user told you to set aside Mossnote's support-window cell until they have heard back from the vendor; do not score it now.",
+      "spans": [],
+      "expected": {
+        "code": "deferred"
+      }
+    }
+  ]
+}
