@@ -26,6 +26,13 @@ or more occupied levels, separated somewhere by at least ``polarised_gap`` empty
 levels, with no single dominant mode. ``n`` counts the values on the declared
 levels; values off them are ignored, as there.
 
+**Only scores that answer the criterion as it is now asked are reduced**
+(ADR-0016). A score given under an earlier definition -- its ``criteriaVersion``
+older than the criterion's ``definedInVersion`` -- answered another question:
+counted beside the new ones it would make a stale 1 and a fresh 5 look like a
+polarised cell. It is left out, and the summary says how many were, so the
+re-scoring it calls for is visible (#195).
+
 ``contested`` is this tool's verdict about its own reduction -- a marker returned
 to the caller, never a stored measure (ADR-0002 leaves the schema to the
 companion). Today it is exactly ``polarised``; it is a separate field so that a
@@ -59,6 +66,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping, Sequence
 
+from rubricator.criteria_versions import answers_an_older_definition
 from rubricator.rules import live_assertions
 from rubricator.store import AnalysisStore
 
@@ -125,6 +133,7 @@ def aggregate_assertions(
     live_alternatives = {a["id"] for a in document["alternatives"] if not a.get("tombstoned")}
     criteria = {c["id"]: c for c in document["criteria"] if not c.get("tombstoned")}
     rows = []
+    older = 0
     for cell in sorted(
         document["cells"],
         key=lambda c: (c["alternativeId"], c["criterionId"], c.get("measure", "score")),
@@ -132,10 +141,16 @@ def aggregate_assertions(
         criterion = criteria.get(cell["criterionId"])
         if criterion is None or cell["alternativeId"] not in live_alternatives:
             continue
+        defined_in = criterion.get("definedInVersion")
+        older += sum(
+            answers_an_older_definition(a, defined_in)
+            for a in live_assertions(cell) if a.get("value") is not None
+        )
         rows.append(
             _reduce_cell(
                 cell, _measurement_for(criterion, cell.get("measure", "score")),
                 reduction=reduction, allow_contested=allow_contested_reduction, gap=polarised_gap,
+                defined_in=defined_in,
             )
         )
     return {
@@ -143,7 +158,8 @@ def aggregate_assertions(
         "reduction": reduction,
         "cells": rows,
         "skipped": skipped,
-        "summary": _summary(rows, reduction, allow_contested_reduction) + skipped_note(skipped),
+        "summary": _summary(rows, reduction, allow_contested_reduction, older=older)
+        + skipped_note(skipped),
     }
 
 
@@ -171,10 +187,11 @@ def _steps(measurement: Mapping[str, Any]) -> Sequence[Any] | None:
 
 def _reduce_cell(
     cell: Mapping[str, Any], measurement: Mapping[str, Any], *, reduction: str,
-    allow_contested: bool, gap: int,
+    allow_contested: bool, gap: int, defined_in: str | None = None,
 ) -> dict[str, Any]:
     values = [
-        a["value"] for a in live_assertions(cell) if a.get("value") is not None
+        a["value"] for a in live_assertions(cell)
+        if a.get("value") is not None and not answers_an_older_definition(a, defined_in)
     ]
     level = measurement.get("level", "ordinal")
     shape = cell_shape(values, _steps(measurement), gap=gap, ordered=level != "nominal")
@@ -298,7 +315,9 @@ def _mean_refusal(reduction: str, criteria: Sequence[Mapping[str, Any]]) -> str:
     )
 
 
-def _summary(rows: Sequence[Mapping[str, Any]], reduction: str, allow: bool) -> str:
+def _summary(
+    rows: Sequence[Mapping[str, Any]], reduction: str, allow: bool, *, older: int = 0
+) -> str:
     contested = sum(r["contested"] for r in rows)
     empty = sum(r["n"] == 0 for r in rows)
     text = f"{len(rows)} cell(s) reduced by {reduction}"
@@ -312,4 +331,9 @@ def _summary(rows: Sequence[Mapping[str, Any]], reduction: str, allow: bool) -> 
     off = sum(r["offScale"] for r in rows)
     if off:
         text += f"; {off} value(s) off their scale, not counted"
+    if older:
+        text += (
+            f"; {older} score(s) given under an earlier definition of their criterion, not "
+            "counted: re-score those cells against the current one"
+        )
     return text
