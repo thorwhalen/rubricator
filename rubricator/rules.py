@@ -50,6 +50,7 @@ __all__ = [
     "unsearched_blank_cites_nothing",
     "cite_a_span",
     "inference_names_its_sources",
+    "derived_from_resolves",
     "unique_evidence_ids",
     "EXTERNAL_SOURCE_TYPES",
     "declarations_for",
@@ -95,7 +96,7 @@ class Problem:
 #: Where each rule was decided. A bare ``ADR-`` is this repository's; the
 #: companion's are prefixed, because the two number their ADRs independently.
 RULE_SOURCES: Mapping[str, str] = {
-    "unique-ids": "comparanda ADR-0011",
+    "unique-ids": "comparanda ADR-0031",
     "supersession-resolves": "comparanda ADR-0011",
     "supersession-acyclic": "comparanda ADR-0011",
     "independence-recorded": "ADR-0022",
@@ -106,9 +107,11 @@ RULE_SOURCES: Mapping[str, str] = {
     "unsearched-blank-cites-nothing": "ADR-0006",
     "cite-a-span": "ADR-0014",
     "inference-names-its-sources": "ADR-0015",
+    "derived-from-resolves": "ADR-0015",
+    "derived-from-acyclic": "ADR-0015",
     "structural-refines-not-applicable": "comparanda ADR-0009",
     "no-redeclaring-core": "comparanda ADR-0009",
-    "unique-declarations": "comparanda ADR-0009",
+    "unique-declarations": "comparanda ADR-0030",
 }
 
 
@@ -288,6 +291,19 @@ def _spans(assertion: Mapping[str, Any]) -> list[Mapping[str, Any]]:
     return [r for r in evidence if isinstance(r, Mapping)] if isinstance(evidence, list) else []
 
 
+def _is_blank_text(value: Any) -> bool:
+    """Not a string, or one with nothing visible in it.
+
+    ``str.strip`` keeps a zero-width space (a format character), so a note of
+    one would read as written and say nothing.
+    """
+    import unicodedata
+
+    return not isinstance(value, str) or all(
+        ch.isspace() or unicodedata.category(ch) == "Cf" for ch in value
+    )
+
+
 def value_cites_evidence(document: Mapping[str, Any]) -> Iterable[Problem]:
     """A value rests on at least one evidence reference (#59, ADR-0006).
 
@@ -320,8 +336,7 @@ def blank_has_a_note(document: Mapping[str, Any]) -> Iterable[Problem]:
         missing = assertion.get("missing")
         if not isinstance(missing, Mapping):
             continue
-        note = missing.get("note")
-        if not isinstance(note, str) or not note.strip():
+        if _is_blank_text(missing.get("note")):
             yield Problem(
                 path=f"{path}.missing.note",
                 message=f'a "{missing.get("code")}" blank with no note, so nothing says why this cell is blank.',
@@ -369,7 +384,7 @@ def cite_a_span(document: Mapping[str, Any]) -> Iterable[Problem]:
     """
     for _cell, assertion, path in _assertions(document):
         for ref in _spans(assertion):
-            if not ref.get("selectors") and not ref.get("excerpt"):
+            if not ref.get("selectors") and _is_blank_text(ref.get("excerpt")):
                 yield Problem(
                     path=f"{path}.evidence[{ref.get('id')}]",
                     message=(
@@ -405,6 +420,62 @@ def inference_names_its_sources(document: Mapping[str, Any]) -> Iterable[Problem
                 ),
                 rule_id="inference-names-its-sources",
             )
+
+
+def _ids(value: Any, *, keep_blank: bool = False) -> list[Any]:
+    """The entries of a ``derivedFrom`` list; anything else is the schema's to report."""
+    if not isinstance(value, list):
+        return []
+    return [d for d in value if keep_blank or (isinstance(d, str) and not _is_blank_text(d))]
+
+
+def derived_from_resolves(document: Mapping[str, Any]) -> Iterable[Problem]:
+    """``derivedFrom`` names other references of the same assertion, with no cycle (ADR-0015).
+
+    ``inference-names-its-sources`` only asks that the list be non-empty, which
+    ``[""]``, an id naming nothing, or the reference's own id would satisfy.
+    ADR-0015 makes the evidence array a small graph, and an edge to nowhere or
+    back to itself names no source. Stricter than `comparanda`, which checks the
+    length only. A chain that resolves and does not cycle ends at a reference
+    with no ``derivedFrom``, which ``inference-names-its-sources`` holds to be
+    someone else's words.
+    """
+    for _cell, assertion, path in _assertions(document):
+        spans = _spans(assertion)
+        edges = {r.get("id"): _ids(r.get("derivedFrom")) for r in spans}
+        for ref in spans:
+            where = f"{path}.evidence[{ref.get('id')}].derivedFrom"
+            dangling = [d for d in _ids(ref.get("derivedFrom"), keep_blank=True)
+                        if _is_blank_text(d) or d == ref.get("id") or d not in edges]
+            if dangling:
+                yield Problem(
+                    path=where,
+                    message=(
+                        f'evidence "{ref.get("id")}" is derived from '
+                        f'{", ".join(repr(d) for d in dangling)}, which is not another reference '
+                        "of this assertion, so it names no source."
+                    ),
+                    fix="name the ids of the other references in this cell's evidence it was drawn from.",
+                    rule_id="derived-from-resolves",
+                )
+                continue
+            seen, frontier = set(), list(edges.get(ref.get("id"), []))
+            while frontier:
+                nxt = frontier.pop()
+                if nxt == ref.get("id"):
+                    yield Problem(
+                        path=where,
+                        message=(
+                            f'evidence "{ref.get("id")}" is on a derivedFrom cycle, so the '
+                            "chain never reaches a source."
+                        ),
+                        fix="break the cycle: the chain must end at a primary or secondary reference.",
+                        rule_id="derived-from-acyclic",
+                    )
+                    break
+                if nxt not in seen:
+                    seen.add(nxt)
+                    frontier.extend(edges.get(nxt, []))
 
 
 def unique_evidence_ids(document: Mapping[str, Any]) -> Iterable[Problem]:
@@ -568,6 +639,7 @@ HONESTY_RULES: Sequence[Rule] = (
     unsearched_blank_cites_nothing,
     cite_a_span,
     inference_names_its_sources,
+    derived_from_resolves,
 )
 
 

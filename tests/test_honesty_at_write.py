@@ -60,6 +60,26 @@ DISHONEST = {
         {"alternativeId": "k1", "criterionId": "support",
          "missing": {"code": "not-evidenced", "note": "  "}},
         "blank-has-a-note", ".missing.note"),
+    "a blank with a zero-width note": (
+        {"alternativeId": "k1", "criterionId": "support",
+         "missing": {"code": "not-evidenced", "note": "\u200b"}},
+        "blank-has-a-note", ".missing.note"),
+    "derivedFrom naming a blank id": (
+        {**SCORE, "evidence": [SPAN, {**INFERENCE, "derivedFrom": [""]}]},
+        "derived-from-resolves", ".evidence[e2].derivedFrom"),
+    "derivedFrom naming nothing": (
+        {**SCORE, "evidence": [SPAN, {**INFERENCE, "derivedFrom": ["ghost"]}]},
+        "derived-from-resolves", ".evidence[e2].derivedFrom"),
+    "an inference derived from itself": (
+        {**SCORE, "evidence": [SPAN, {**INFERENCE, "derivedFrom": ["e2"]}]},
+        "derived-from-resolves", ".evidence[e2].derivedFrom"),
+    "two inferences derived from each other": (
+        {**SCORE, "evidence": [SPAN, {**INFERENCE, "derivedFrom": ["e3"]},
+                               {**INFERENCE, "id": "e3", "derivedFrom": ["e2"]}]},
+        "derived-from-acyclic", ".evidence[e2].derivedFrom"),
+    "a span whose only locator is a blank excerpt": (
+        {**SCORE, "evidence": [{**SPAN, "selectors": [], "excerpt": "   "}]},
+        "cite-a-span", ".evidence[e1]"),
     "a span with neither stance nor selectors": (
         {**SCORE, "evidence": [{"id": "e1", "target": "doc:policy", "sourceType": "primary"}]},
         "cite-a-span", ".evidence[e1]"),
@@ -71,6 +91,8 @@ DISHONEST = {
 #: The honest cell one edit away from each row: none of these may be refused.
 HONEST = {
     "an inference naming its sources": {**SCORE, "evidence": [SPAN, {**INFERENCE, "derivedFrom": ["e1"]}]},
+    "an inference drawn through another": {**SCORE, "evidence": [
+        SPAN, {**INFERENCE, "derivedFrom": ["e1"]}, {**INFERENCE, "id": "e3", "derivedFrom": ["e2"]}]},
     "a cited score": {**SCORE, "evidence": [SPAN]},
     "an excerpt-only span": {**SCORE, "evidence": [{**SPAN, "selectors": [], "excerpt": "until 2029"}]},
     "a searched blank citing what it read": _blank("indeterminate", evidence=[SPAN]),
