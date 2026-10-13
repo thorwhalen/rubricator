@@ -4,7 +4,7 @@
   "toolResults": {
    "analysis_get": {
     "analysisId": "kettles",
-    "view": "summary",
+    "view": "outstanding",
     "question": "which kettle should the office buy?",
     "stage": 5,
     "counts": {
@@ -13,6 +13,11 @@
      "cells": 9,
      "outstanding": 6,
      "superseded": 0,
+     "byKind": {
+      "scored": 1,
+      "settledBlank": 2,
+      "notApplicable": 0
+     },
      "byCode": [
       {
        "code": "deferred",
@@ -24,6 +29,50 @@
       }
      ]
     },
+    "outstanding": [
+     {
+      "alternativeId": "brindle",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "spare-parts",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "deferred",
+      "recorded": true
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "spare-parts",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "deferred",
+      "recorded": true
+     }
+    ],
     "omitted": [],
     "skipped": [],
     "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 6 of 9 cell(s) outstanding (2 deferred, 4 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
@@ -43,30 +92,6 @@
     },
     "instructions": null,
     "summary": "already confirmed by Ana at 2026-10-12T09:30:00Z; nothing to ask"
-   },
-   "report_completeness": {
-    "analysisId": "kettles",
-    "total": 5,
-    "structural": 0,
-    "applicable": 5,
-    "present": 1,
-    "settledAbsent": 2,
-    "informativeAbsent": 2,
-    "outstanding": 2,
-    "examinedRate": 0.6,
-    "valuedRate": 0.2,
-    "silenceRate": 0.4,
-    "degradations": [],
-    "supersededCells": {
-     "count": 0,
-     "cells": [],
-     "undetermined": [],
-     "unversioned": 0
-    },
-    "honestyProblems": [],
-    "schemaProblems": [],
-    "skipped": [],
-    "summary": "1 valued, 2 settled blank(s), 2 outstanding of 5 applicable cell(s); silenceRate 0.40"
    }
   },
   "expected": {
@@ -77,7 +102,60 @@
    "scored": 1,
    "rescore": 0,
    "na": 0,
-   "next": "score"
+   "next": "score",
+   "cells": 9,
+   "entities": [
+    {
+     "axis": "alternative",
+     "id": "brindle",
+     "aliases": [
+      "brindle"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "alternative",
+     "id": "copperleaf",
+     "aliases": [
+      "copperleaf"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "alternative",
+     "id": "tamsin",
+     "aliases": [
+      "tamsin"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "criterion",
+     "id": "repair-policy",
+     "aliases": [
+      "repair policy",
+      "repair-policy"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "criterion",
+     "id": "spare-parts",
+     "aliases": [
+      "spare parts",
+      "spare-parts"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "criterion",
+     "id": "noise",
+     "aliases": [
+      "noise"
+     ],
+     "outstanding": true
+    }
+   ]
   }
  },
  {
@@ -85,7 +163,7 @@
   "toolResults": {
    "analysis_get": {
     "analysisId": "kettles",
-    "view": "summary",
+    "view": "outstanding",
     "question": "which kettle should the office buy?",
     "stage": 4,
     "counts": {
@@ -94,6 +172,11 @@
      "cells": 9,
      "outstanding": 9,
      "superseded": 0,
+     "byKind": {
+      "scored": 0,
+      "settledBlank": 0,
+      "notApplicable": 0
+     },
      "byCode": [
       {
        "code": "not-assessed",
@@ -101,6 +184,71 @@
       }
      ]
     },
+    "outstanding": [
+     {
+      "alternativeId": "brindle",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "brindle",
+      "criterionId": "spare-parts",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "brindle",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "spare-parts",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "spare-parts",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     }
+    ],
     "omitted": [],
     "skipped": [],
     "summary": "\"kettles\" at stage 4 (confirm): 3 alternative(s), 3 criteria, 9 of 9 cell(s) outstanding (9 not-assessed); next: put the frame and criteria to the user with frame_confirm"
@@ -112,30 +260,6 @@
     "record": null,
     "instructions": "Ask the user in chat before anything is scored. Show them: the question, the decision and who decides, the ambiguities still open, every alternative, and every criterion with its definition, scale and direction of preference, naming any two criteria that overlap. Ask them to answer confirm, revise (saying what to change) or reject. Do not answer for them, and do not read silence, thanks or a change of topic as consent. When they answer, call frame_confirm again with decision set to their answer, confirmed_by set to the name they go by, and confirmation_text set to their reply word for word. On revise, make the changes they asked for, then call frame_confirm with no decision to ask again.",
     "summary": "not confirmed: the user has not confirmed the frame, alternatives, criteria (ADR-0005 step 4), and no measure is written before they do. Call frame_confirm to put the frame and criteria to them; open the analysis with allow_skip_confirmation only if they explicitly said to skip this. Ask the user now."
-   },
-   "report_completeness": {
-    "analysisId": "kettles",
-    "total": 0,
-    "structural": 0,
-    "applicable": 0,
-    "present": 0,
-    "settledAbsent": 0,
-    "informativeAbsent": 0,
-    "outstanding": 0,
-    "examinedRate": 0.0,
-    "valuedRate": 0.0,
-    "silenceRate": 0.0,
-    "degradations": [],
-    "supersededCells": {
-     "count": 0,
-     "cells": [],
-     "undetermined": [],
-     "unversioned": 0
-    },
-    "honestyProblems": [],
-    "schemaProblems": [],
-    "skipped": [],
-    "summary": "0 valued, 0 settled blank(s), 0 outstanding of 0 applicable cell(s); silenceRate 0.00"
    }
   },
   "expected": {
@@ -146,7 +270,60 @@
    "scored": 0,
    "rescore": 0,
    "na": 0,
-   "next": "confirm"
+   "next": "confirm",
+   "cells": 9,
+   "entities": [
+    {
+     "axis": "alternative",
+     "id": "brindle",
+     "aliases": [
+      "brindle"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "alternative",
+     "id": "copperleaf",
+     "aliases": [
+      "copperleaf"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "alternative",
+     "id": "tamsin",
+     "aliases": [
+      "tamsin"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "criterion",
+     "id": "repair-policy",
+     "aliases": [
+      "repair policy",
+      "repair-policy"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "criterion",
+     "id": "spare-parts",
+     "aliases": [
+      "spare parts",
+      "spare-parts"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "criterion",
+     "id": "noise",
+     "aliases": [
+      "noise"
+     ],
+     "outstanding": true
+    }
+   ]
   }
  },
  {
@@ -154,7 +331,7 @@
   "toolResults": {
    "analysis_get": {
     "analysisId": "kettles",
-    "view": "summary",
+    "view": "outstanding",
     "question": "which kettle should the office buy?",
     "stage": 5,
     "counts": {
@@ -163,6 +340,11 @@
      "cells": 9,
      "outstanding": 6,
      "superseded": 2,
+     "byKind": {
+      "scored": 2,
+      "settledBlank": 1,
+      "notApplicable": 0
+     },
      "byCode": [
       {
        "code": "not-assessed",
@@ -170,6 +352,50 @@
       }
      ]
     },
+    "outstanding": [
+     {
+      "alternativeId": "brindle",
+      "criterionId": "spare-parts",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "brindle",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "spare-parts",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     }
+    ],
     "omitted": [],
     "skipped": [],
     "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 6 of 9 cell(s) outstanding (6 not-assessed); 2 cell(s) answer an older criteria definition; next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
@@ -189,55 +415,6 @@
     },
     "instructions": "Ask the user in chat before anything is scored. Show them: the question, the decision and who decides, the ambiguities still open, every alternative, and every criterion with its definition, scale and direction of preference, naming any two criteria that overlap. Ask them to answer confirm, revise (saying what to change) or reject. Do not answer for them, and do not read silence, thanks or a change of topic as consent. When they answer, call frame_confirm again with decision set to their answer, confirmed_by set to the name they go by, and confirmation_text set to their reply word for word. On revise, make the changes they asked for, then call frame_confirm with no decision to ask again.",
     "summary": "confirmed by Ana at version \"1\"; the criteria are now at \"2\", so put them to the user again and record their answer."
-   },
-   "report_completeness": {
-    "analysisId": "kettles",
-    "total": 3,
-    "structural": 0,
-    "applicable": 3,
-    "present": 2,
-    "settledAbsent": 1,
-    "informativeAbsent": 1,
-    "outstanding": 0,
-    "examinedRate": 1.0,
-    "valuedRate": 0.6666666666666666,
-    "silenceRate": 0.3333333333333333,
-    "degradations": [],
-    "supersededCells": {
-     "count": 2,
-     "cells": [
-      {
-       "alternativeId": "brindle",
-       "criterionId": "repair-policy",
-       "measure": "score",
-       "definedInVersion": "2",
-       "assertions": [
-        {
-         "id": "ana:brindle-repair-policy-score",
-         "criteriaVersion": "1"
-        }
-       ]
-      },
-      {
-       "alternativeId": "copperleaf",
-       "criterionId": "repair-policy",
-       "measure": "score",
-       "definedInVersion": "2",
-       "assertions": [
-        {
-         "id": "ana:copperleaf-repair-policy-score",
-         "criteriaVersion": "1"
-        }
-       ]
-      }
-     ],
-     "undetermined": [],
-     "unversioned": 0
-    },
-    "honestyProblems": [],
-    "schemaProblems": [],
-    "skipped": [],
-    "summary": "2 valued, 1 settled blank(s), 0 outstanding of 3 applicable cell(s); silenceRate 0.33"
    }
   },
   "expected": {
@@ -248,7 +425,60 @@
    "scored": 2,
    "rescore": 2,
    "na": 0,
-   "next": "confirm"
+   "next": "confirm",
+   "cells": 9,
+   "entities": [
+    {
+     "axis": "alternative",
+     "id": "brindle",
+     "aliases": [
+      "brindle"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "alternative",
+     "id": "copperleaf",
+     "aliases": [
+      "copperleaf"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "alternative",
+     "id": "tamsin",
+     "aliases": [
+      "tamsin"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "criterion",
+     "id": "repair-policy",
+     "aliases": [
+      "repair policy",
+      "repair-policy"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "criterion",
+     "id": "spare-parts",
+     "aliases": [
+      "spare parts",
+      "spare-parts"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "criterion",
+     "id": "noise",
+     "aliases": [
+      "noise"
+     ],
+     "outstanding": true
+    }
+   ]
   }
  },
  {
@@ -256,7 +486,7 @@
   "toolResults": {
    "analysis_get": {
     "analysisId": "kettles",
-    "view": "summary",
+    "view": "outstanding",
     "question": "which kettle should the office buy?",
     "stage": 5,
     "counts": {
@@ -265,6 +495,11 @@
      "cells": 9,
      "outstanding": 3,
      "superseded": 0,
+     "byKind": {
+      "scored": 4,
+      "settledBlank": 2,
+      "notApplicable": 0
+     },
      "byCode": [
       {
        "code": "deferred",
@@ -272,6 +507,29 @@
       }
      ]
     },
+    "outstanding": [
+     {
+      "alternativeId": "brindle",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "deferred",
+      "recorded": true
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "deferred",
+      "recorded": true
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "deferred",
+      "recorded": true
+     }
+    ],
     "omitted": [],
     "skipped": [],
     "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 3 of 9 cell(s) outstanding (3 deferred); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
@@ -291,30 +549,6 @@
     },
     "instructions": null,
     "summary": "already confirmed by Ana at 2026-10-12T09:30:00Z; nothing to ask"
-   },
-   "report_completeness": {
-    "analysisId": "kettles",
-    "total": 9,
-    "structural": 0,
-    "applicable": 9,
-    "present": 4,
-    "settledAbsent": 2,
-    "informativeAbsent": 1,
-    "outstanding": 3,
-    "examinedRate": 0.6666666666666666,
-    "valuedRate": 0.4444444444444444,
-    "silenceRate": 0.1111111111111111,
-    "degradations": [],
-    "supersededCells": {
-     "count": 0,
-     "cells": [],
-     "undetermined": [],
-     "unversioned": 0
-    },
-    "honestyProblems": [],
-    "schemaProblems": [],
-    "skipped": [],
-    "summary": "4 valued, 2 settled blank(s), 3 outstanding of 9 applicable cell(s); silenceRate 0.11"
    }
   },
   "expected": {
@@ -325,7 +559,60 @@
    "scored": 4,
    "rescore": 0,
    "na": 0,
-   "next": "ask-deferred"
+   "next": "ask-deferred",
+   "cells": 9,
+   "entities": [
+    {
+     "axis": "alternative",
+     "id": "brindle",
+     "aliases": [
+      "brindle"
+     ],
+     "outstanding": false
+    },
+    {
+     "axis": "alternative",
+     "id": "copperleaf",
+     "aliases": [
+      "copperleaf"
+     ],
+     "outstanding": false
+    },
+    {
+     "axis": "alternative",
+     "id": "tamsin",
+     "aliases": [
+      "tamsin"
+     ],
+     "outstanding": false
+    },
+    {
+     "axis": "criterion",
+     "id": "repair-policy",
+     "aliases": [
+      "repair policy",
+      "repair-policy"
+     ],
+     "outstanding": false
+    },
+    {
+     "axis": "criterion",
+     "id": "spare-parts",
+     "aliases": [
+      "spare parts",
+      "spare-parts"
+     ],
+     "outstanding": false
+    },
+    {
+     "axis": "criterion",
+     "id": "noise",
+     "aliases": [
+      "noise"
+     ],
+     "outstanding": false
+    }
+   ]
   }
  },
  {
@@ -333,7 +620,7 @@
   "toolResults": {
    "analysis_get": {
     "analysisId": "kettles",
-    "view": "summary",
+    "view": "outstanding",
     "question": "which kettle should the office buy?",
     "stage": 5,
     "counts": {
@@ -342,6 +629,11 @@
      "cells": 9,
      "outstanding": 3,
      "superseded": 0,
+     "byKind": {
+      "scored": 5,
+      "settledBlank": 1,
+      "notApplicable": 0
+     },
      "byCode": [
       {
        "code": "not-assessed",
@@ -353,6 +645,29 @@
       }
      ]
     },
+    "outstanding": [
+     {
+      "alternativeId": "brindle",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "queued",
+      "recorded": true
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "queued",
+      "recorded": true
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "spare-parts",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     }
+    ],
     "omitted": [],
     "skipped": [],
     "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 3 of 9 cell(s) outstanding (1 not-assessed, 2 queued); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
@@ -373,30 +688,6 @@
     "instructions": null,
     "summary": "already confirmed by Ana at 2026-10-12T09:30:00Z; nothing to ask"
    },
-   "report_completeness": {
-    "analysisId": "kettles",
-    "total": 8,
-    "structural": 0,
-    "applicable": 8,
-    "present": 5,
-    "settledAbsent": 1,
-    "informativeAbsent": 1,
-    "outstanding": 2,
-    "examinedRate": 0.75,
-    "valuedRate": 0.625,
-    "silenceRate": 0.125,
-    "degradations": [],
-    "supersededCells": {
-     "count": 0,
-     "cells": [],
-     "undetermined": [],
-     "unversioned": 0
-    },
-    "honestyProblems": [],
-    "schemaProblems": [],
-    "skipped": [],
-    "summary": "5 valued, 1 settled blank(s), 2 outstanding of 8 applicable cell(s); silenceRate 0.12"
-   },
    "analysis_get (criteria)": {
     "analysisId": "kettles",
     "view": "criteria",
@@ -408,6 +699,11 @@
      "cells": 9,
      "outstanding": 3,
      "superseded": 0,
+     "byKind": {
+      "scored": 5,
+      "settledBlank": 1,
+      "notApplicable": 0
+     },
      "byCode": [
       {
        "code": "not-assessed",
@@ -504,7 +800,60 @@
    "scored": 5,
    "rescore": 0,
    "na": 0,
-   "next": "score"
+   "next": "score",
+   "cells": 9,
+   "entities": [
+    {
+     "axis": "alternative",
+     "id": "brindle",
+     "aliases": [
+      "brindle"
+     ],
+     "outstanding": false
+    },
+    {
+     "axis": "alternative",
+     "id": "copperleaf",
+     "aliases": [
+      "copperleaf"
+     ],
+     "outstanding": false
+    },
+    {
+     "axis": "alternative",
+     "id": "tamsin",
+     "aliases": [
+      "tamsin"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "criterion",
+     "id": "repair-policy",
+     "aliases": [
+      "repair policy",
+      "repair-policy"
+     ],
+     "outstanding": false
+    },
+    {
+     "axis": "criterion",
+     "id": "spare-parts",
+     "aliases": [
+      "spare parts",
+      "spare-parts"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "criterion",
+     "id": "noise",
+     "aliases": [
+      "noise"
+     ],
+     "outstanding": false
+    }
+   ]
   }
  },
  {
@@ -512,7 +861,7 @@
   "toolResults": {
    "analysis_get": {
     "analysisId": "kettles",
-    "view": "summary",
+    "view": "outstanding",
     "question": "which kettle should the office buy?",
     "stage": 6,
     "counts": {
@@ -521,8 +870,14 @@
      "cells": 9,
      "outstanding": 0,
      "superseded": 0,
+     "byKind": {
+      "scored": 6,
+      "settledBlank": 3,
+      "notApplicable": 0
+     },
      "byCode": []
     },
+    "outstanding": [],
     "omitted": [],
     "skipped": [],
     "summary": "\"kettles\" at stage 6 (review): 3 alternative(s), 3 criteria, 0 of 9 cell(s) outstanding; next: every cell is settled; review the weakest scores"
@@ -542,30 +897,6 @@
     },
     "instructions": null,
     "summary": "already confirmed by Ana at 2026-10-12T09:30:00Z; nothing to ask"
-   },
-   "report_completeness": {
-    "analysisId": "kettles",
-    "total": 9,
-    "structural": 0,
-    "applicable": 9,
-    "present": 6,
-    "settledAbsent": 3,
-    "informativeAbsent": 3,
-    "outstanding": 0,
-    "examinedRate": 1.0,
-    "valuedRate": 0.6666666666666666,
-    "silenceRate": 0.3333333333333333,
-    "degradations": [],
-    "supersededCells": {
-     "count": 0,
-     "cells": [],
-     "undetermined": [],
-     "unversioned": 0
-    },
-    "honestyProblems": [],
-    "schemaProblems": [],
-    "skipped": [],
-    "summary": "6 valued, 3 settled blank(s), 0 outstanding of 9 applicable cell(s); silenceRate 0.33"
    }
   },
   "expected": {
@@ -576,7 +907,60 @@
    "scored": 6,
    "rescore": 0,
    "na": 0,
-   "next": "review"
+   "next": "review",
+   "cells": 9,
+   "entities": [
+    {
+     "axis": "alternative",
+     "id": "brindle",
+     "aliases": [
+      "brindle"
+     ],
+     "outstanding": false
+    },
+    {
+     "axis": "alternative",
+     "id": "copperleaf",
+     "aliases": [
+      "copperleaf"
+     ],
+     "outstanding": false
+    },
+    {
+     "axis": "alternative",
+     "id": "tamsin",
+     "aliases": [
+      "tamsin"
+     ],
+     "outstanding": false
+    },
+    {
+     "axis": "criterion",
+     "id": "repair-policy",
+     "aliases": [
+      "repair policy",
+      "repair-policy"
+     ],
+     "outstanding": false
+    },
+    {
+     "axis": "criterion",
+     "id": "spare-parts",
+     "aliases": [
+      "spare parts",
+      "spare-parts"
+     ],
+     "outstanding": false
+    },
+    {
+     "axis": "criterion",
+     "id": "noise",
+     "aliases": [
+      "noise"
+     ],
+     "outstanding": false
+    }
+   ]
   }
  },
  {
@@ -584,7 +968,7 @@
   "toolResults": {
    "analysis_get": {
     "analysisId": "kettles",
-    "view": "summary",
+    "view": "outstanding",
     "question": "which kettle should the office buy?",
     "stage": 5,
     "counts": {
@@ -593,8 +977,14 @@
      "cells": 9,
      "outstanding": 0,
      "superseded": 3,
+     "byKind": {
+      "scored": 9,
+      "settledBlank": 0,
+      "notApplicable": 0
+     },
      "byCode": []
     },
+    "outstanding": [],
     "omitted": [],
     "skipped": [],
     "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 0 of 9 cell(s) outstanding; 3 cell(s) answer an older criteria definition; next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
@@ -614,67 +1004,6 @@
     },
     "instructions": null,
     "summary": "already confirmed by Ana at 2026-10-12T09:30:00Z; nothing to ask"
-   },
-   "report_completeness": {
-    "analysisId": "kettles",
-    "total": 9,
-    "structural": 0,
-    "applicable": 9,
-    "present": 9,
-    "settledAbsent": 0,
-    "informativeAbsent": 0,
-    "outstanding": 0,
-    "examinedRate": 1.0,
-    "valuedRate": 1.0,
-    "silenceRate": 0.0,
-    "degradations": [],
-    "supersededCells": {
-     "count": 3,
-     "cells": [
-      {
-       "alternativeId": "brindle",
-       "criterionId": "noise",
-       "measure": "score",
-       "definedInVersion": "2",
-       "assertions": [
-        {
-         "id": "ana:brindle-noise-score",
-         "criteriaVersion": "1"
-        }
-       ]
-      },
-      {
-       "alternativeId": "copperleaf",
-       "criterionId": "noise",
-       "measure": "score",
-       "definedInVersion": "2",
-       "assertions": [
-        {
-         "id": "ana:copperleaf-noise-score",
-         "criteriaVersion": "1"
-        }
-       ]
-      },
-      {
-       "alternativeId": "tamsin",
-       "criterionId": "noise",
-       "measure": "score",
-       "definedInVersion": "2",
-       "assertions": [
-        {
-         "id": "ana:tamsin-noise-score",
-         "criteriaVersion": "1"
-        }
-       ]
-      }
-     ],
-     "undetermined": [],
-     "unversioned": 0
-    },
-    "honestyProblems": [],
-    "schemaProblems": [],
-    "skipped": [],
-    "summary": "9 valued, 0 settled blank(s), 0 outstanding of 9 applicable cell(s); silenceRate 0.00"
    }
   },
   "expected": {
@@ -685,7 +1014,60 @@
    "scored": 9,
    "rescore": 3,
    "na": 0,
-   "next": "rescore"
+   "next": "rescore",
+   "cells": 9,
+   "entities": [
+    {
+     "axis": "alternative",
+     "id": "brindle",
+     "aliases": [
+      "brindle"
+     ],
+     "outstanding": false
+    },
+    {
+     "axis": "alternative",
+     "id": "copperleaf",
+     "aliases": [
+      "copperleaf"
+     ],
+     "outstanding": false
+    },
+    {
+     "axis": "alternative",
+     "id": "tamsin",
+     "aliases": [
+      "tamsin"
+     ],
+     "outstanding": false
+    },
+    {
+     "axis": "criterion",
+     "id": "repair-policy",
+     "aliases": [
+      "repair policy",
+      "repair-policy"
+     ],
+     "outstanding": false
+    },
+    {
+     "axis": "criterion",
+     "id": "spare-parts",
+     "aliases": [
+      "spare parts",
+      "spare-parts"
+     ],
+     "outstanding": false
+    },
+    {
+     "axis": "criterion",
+     "id": "noise",
+     "aliases": [
+      "noise"
+     ],
+     "outstanding": false
+    }
+   ]
   }
  },
  {
@@ -693,7 +1075,7 @@
   "toolResults": {
    "analysis_get": {
     "analysisId": "kettles",
-    "view": "summary",
+    "view": "outstanding",
     "question": "which kettle should the office buy?",
     "stage": 5,
     "counts": {
@@ -702,6 +1084,11 @@
      "cells": 9,
      "outstanding": 8,
      "superseded": 0,
+     "byKind": {
+      "scored": 1,
+      "settledBlank": 0,
+      "notApplicable": 0
+     },
      "byCode": [
       {
        "code": "not-assessed",
@@ -709,6 +1096,64 @@
       }
      ]
     },
+    "outstanding": [
+     {
+      "alternativeId": "brindle",
+      "criterionId": "spare-parts",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "brindle",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "spare-parts",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "spare-parts",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     }
+    ],
     "omitted": [],
     "skipped": [],
     "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 8 of 9 cell(s) outstanding (8 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
@@ -727,30 +1172,6 @@
     },
     "instructions": null,
     "summary": "skipped at open, at the caller's request, at 2026-10-12T09:30:00Z: nobody confirmed the frame, alternatives, criteria; scoring is open"
-   },
-   "report_completeness": {
-    "analysisId": "kettles",
-    "total": 1,
-    "structural": 0,
-    "applicable": 1,
-    "present": 1,
-    "settledAbsent": 0,
-    "informativeAbsent": 0,
-    "outstanding": 0,
-    "examinedRate": 1.0,
-    "valuedRate": 1.0,
-    "silenceRate": 0.0,
-    "degradations": [],
-    "supersededCells": {
-     "count": 0,
-     "cells": [],
-     "undetermined": [],
-     "unversioned": 0
-    },
-    "honestyProblems": [],
-    "schemaProblems": [],
-    "skipped": [],
-    "summary": "1 valued, 0 settled blank(s), 0 outstanding of 1 applicable cell(s); silenceRate 0.00"
    }
   },
   "expected": {
@@ -761,7 +1182,60 @@
    "scored": 1,
    "rescore": 0,
    "na": 0,
-   "next": "score"
+   "next": "score",
+   "cells": 9,
+   "entities": [
+    {
+     "axis": "alternative",
+     "id": "brindle",
+     "aliases": [
+      "brindle"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "alternative",
+     "id": "copperleaf",
+     "aliases": [
+      "copperleaf"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "alternative",
+     "id": "tamsin",
+     "aliases": [
+      "tamsin"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "criterion",
+     "id": "repair-policy",
+     "aliases": [
+      "repair policy",
+      "repair-policy"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "criterion",
+     "id": "spare-parts",
+     "aliases": [
+      "spare parts",
+      "spare-parts"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "criterion",
+     "id": "noise",
+     "aliases": [
+      "noise"
+     ],
+     "outstanding": true
+    }
+   ]
   }
  },
  {
@@ -769,7 +1243,7 @@
   "toolResults": {
    "analysis_get": {
     "analysisId": "kettles",
-    "view": "summary",
+    "view": "outstanding",
     "question": "which kettle should the office buy?",
     "stage": 4,
     "counts": {
@@ -778,6 +1252,11 @@
      "cells": 9,
      "outstanding": 9,
      "superseded": 0,
+     "byKind": {
+      "scored": 0,
+      "settledBlank": 0,
+      "notApplicable": 0
+     },
      "byCode": [
       {
        "code": "not-assessed",
@@ -785,6 +1264,71 @@
       }
      ]
     },
+    "outstanding": [
+     {
+      "alternativeId": "brindle",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "brindle",
+      "criterionId": "spare-parts",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "brindle",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "spare-parts",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "spare-parts",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     }
+    ],
     "omitted": [],
     "skipped": [],
     "summary": "\"kettles\" at stage 4 (confirm): 3 alternative(s), 3 criteria, 9 of 9 cell(s) outstanding (9 not-assessed); next: put the frame and criteria to the user with frame_confirm"
@@ -804,30 +1348,6 @@
     },
     "instructions": "Ask the user in chat before anything is scored. Show them: the question, the decision and who decides, the ambiguities still open, every alternative, and every criterion with its definition, scale and direction of preference, naming any two criteria that overlap. Ask them to answer confirm, revise (saying what to change) or reject. Do not answer for them, and do not read silence, thanks or a change of topic as consent. When they answer, call frame_confirm again with decision set to their answer, confirmed_by set to the name they go by, and confirmation_text set to their reply word for word. On revise, make the changes they asked for, then call frame_confirm with no decision to ask again.",
     "summary": "not confirmed: the user has not confirmed the frame, alternatives, criteria (ADR-0005 step 4), and no measure is written before they do. Call frame_confirm to put the frame and criteria to them; open the analysis with allow_skip_confirmation only if they explicitly said to skip this. Ask the user now."
-   },
-   "report_completeness": {
-    "analysisId": "kettles",
-    "total": 0,
-    "structural": 0,
-    "applicable": 0,
-    "present": 0,
-    "settledAbsent": 0,
-    "informativeAbsent": 0,
-    "outstanding": 0,
-    "examinedRate": 0.0,
-    "valuedRate": 0.0,
-    "silenceRate": 0.0,
-    "degradations": [],
-    "supersededCells": {
-     "count": 0,
-     "cells": [],
-     "undetermined": [],
-     "unversioned": 0
-    },
-    "honestyProblems": [],
-    "schemaProblems": [],
-    "skipped": [],
-    "summary": "0 valued, 0 settled blank(s), 0 outstanding of 0 applicable cell(s); silenceRate 0.00"
    }
   },
   "expected": {
@@ -838,7 +1358,60 @@
    "scored": 0,
    "rescore": 0,
    "na": 0,
-   "next": "confirm"
+   "next": "confirm",
+   "cells": 9,
+   "entities": [
+    {
+     "axis": "alternative",
+     "id": "brindle",
+     "aliases": [
+      "brindle"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "alternative",
+     "id": "copperleaf",
+     "aliases": [
+      "copperleaf"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "alternative",
+     "id": "tamsin",
+     "aliases": [
+      "tamsin"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "criterion",
+     "id": "repair-policy",
+     "aliases": [
+      "repair policy",
+      "repair-policy"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "criterion",
+     "id": "spare-parts",
+     "aliases": [
+      "spare parts",
+      "spare-parts"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "criterion",
+     "id": "noise",
+     "aliases": [
+      "noise"
+     ],
+     "outstanding": true
+    }
+   ]
   }
  },
  {
@@ -846,7 +1419,7 @@
   "toolResults": {
    "analysis_get": {
     "analysisId": "kettles",
-    "view": "summary",
+    "view": "outstanding",
     "question": "which kettle should the office buy?",
     "stage": 5,
     "counts": {
@@ -855,6 +1428,11 @@
      "cells": 6,
      "outstanding": 2,
      "superseded": 0,
+     "byKind": {
+      "scored": 4,
+      "settledBlank": 0,
+      "notApplicable": 0
+     },
      "byCode": [
       {
        "code": "not-assessed",
@@ -862,6 +1440,22 @@
       }
      ]
     },
+    "outstanding": [
+     {
+      "alternativeId": "brindle",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     }
+    ],
     "omitted": [],
     "skipped": [],
     "summary": "\"kettles\" at stage 5 (populate): 2 alternative(s), 3 criteria, 2 of 6 cell(s) outstanding (2 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
@@ -881,30 +1475,6 @@
     },
     "instructions": null,
     "summary": "already confirmed by Ana at 2026-10-12T09:30:00Z; nothing to ask"
-   },
-   "report_completeness": {
-    "analysisId": "kettles",
-    "total": 7,
-    "structural": 0,
-    "applicable": 7,
-    "present": 7,
-    "settledAbsent": 0,
-    "informativeAbsent": 0,
-    "outstanding": 0,
-    "examinedRate": 1.0,
-    "valuedRate": 1.0,
-    "silenceRate": 0.0,
-    "degradations": [],
-    "supersededCells": {
-     "count": 0,
-     "cells": [],
-     "undetermined": [],
-     "unversioned": 0
-    },
-    "honestyProblems": [],
-    "schemaProblems": [],
-    "skipped": [],
-    "summary": "7 valued, 0 settled blank(s), 0 outstanding of 7 applicable cell(s); silenceRate 0.00"
    }
   },
   "expected": {
@@ -912,10 +1482,63 @@
    "nobody": 2,
    "aside": 0,
    "blank": 0,
-   "scored": 7,
+   "scored": 4,
    "rescore": 0,
    "na": 0,
-   "next": "score"
+   "next": "score",
+   "cells": 6,
+   "entities": [
+    {
+     "axis": "alternative",
+     "id": "brindle",
+     "aliases": [
+      "brindle"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "alternative",
+     "id": "copperleaf",
+     "aliases": [
+      "copperleaf"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "alternative",
+     "id": "tamsin",
+     "aliases": [
+      "tamsin"
+     ],
+     "outstanding": false
+    },
+    {
+     "axis": "criterion",
+     "id": "repair-policy",
+     "aliases": [
+      "repair policy",
+      "repair-policy"
+     ],
+     "outstanding": false
+    },
+    {
+     "axis": "criterion",
+     "id": "spare-parts",
+     "aliases": [
+      "spare parts",
+      "spare-parts"
+     ],
+     "outstanding": false
+    },
+    {
+     "axis": "criterion",
+     "id": "noise",
+     "aliases": [
+      "noise"
+     ],
+     "outstanding": true
+    }
+   ]
   }
  },
  {
@@ -923,7 +1546,7 @@
   "toolResults": {
    "analysis_get": {
     "analysisId": "kettles",
-    "view": "summary",
+    "view": "outstanding",
     "question": "which kettle should the office buy?",
     "stage": 4,
     "counts": {
@@ -932,6 +1555,11 @@
      "cells": 9,
      "outstanding": 9,
      "superseded": 0,
+     "byKind": {
+      "scored": 0,
+      "settledBlank": 0,
+      "notApplicable": 0
+     },
      "byCode": [
       {
        "code": "not-assessed",
@@ -939,6 +1567,71 @@
       }
      ]
     },
+    "outstanding": [
+     {
+      "alternativeId": "brindle",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "brindle",
+      "criterionId": "spare-parts",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "brindle",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "spare-parts",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "spare-parts",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     }
+    ],
     "omitted": [],
     "skipped": [],
     "summary": "\"kettles\" at stage 4 (confirm): 3 alternative(s), 3 criteria, 9 of 9 cell(s) outstanding (9 not-assessed); next: put the frame and criteria to the user with frame_confirm"
@@ -958,30 +1651,6 @@
     },
     "instructions": "Ask the user in chat before anything is scored. Show them: the question, the decision and who decides, the ambiguities still open, every alternative, and every criterion with its definition, scale and direction of preference, naming any two criteria that overlap. Ask them to answer confirm, revise (saying what to change) or reject. Do not answer for them, and do not read silence, thanks or a change of topic as consent. When they answer, call frame_confirm again with decision set to their answer, confirmed_by set to the name they go by, and confirmation_text set to their reply word for word. On revise, make the changes they asked for, then call frame_confirm with no decision to ask again.",
     "summary": "not confirmed: the user has not confirmed the frame, alternatives (ADR-0005 step 4), and no measure is written before they do. Call frame_confirm to put the frame and criteria to them; open the analysis with allow_skip_confirmation only if they explicitly said to skip this. Ask the user now."
-   },
-   "report_completeness": {
-    "analysisId": "kettles",
-    "total": 0,
-    "structural": 0,
-    "applicable": 0,
-    "present": 0,
-    "settledAbsent": 0,
-    "informativeAbsent": 0,
-    "outstanding": 0,
-    "examinedRate": 0.0,
-    "valuedRate": 0.0,
-    "silenceRate": 0.0,
-    "degradations": [],
-    "supersededCells": {
-     "count": 0,
-     "cells": [],
-     "undetermined": [],
-     "unversioned": 0
-    },
-    "honestyProblems": [],
-    "schemaProblems": [],
-    "skipped": [],
-    "summary": "0 valued, 0 settled blank(s), 0 outstanding of 0 applicable cell(s); silenceRate 0.00"
    }
   },
   "expected": {
@@ -992,7 +1661,60 @@
    "scored": 0,
    "rescore": 0,
    "na": 0,
-   "next": "confirm"
+   "next": "confirm",
+   "cells": 9,
+   "entities": [
+    {
+     "axis": "alternative",
+     "id": "brindle",
+     "aliases": [
+      "brindle"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "alternative",
+     "id": "copperleaf",
+     "aliases": [
+      "copperleaf"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "alternative",
+     "id": "tamsin",
+     "aliases": [
+      "tamsin"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "criterion",
+     "id": "repair-policy",
+     "aliases": [
+      "repair policy",
+      "repair-policy"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "criterion",
+     "id": "spare-parts",
+     "aliases": [
+      "spare parts",
+      "spare-parts"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "criterion",
+     "id": "noise",
+     "aliases": [
+      "noise"
+     ],
+     "outstanding": true
+    }
+   ]
   }
  },
  {
@@ -1000,7 +1722,7 @@
   "toolResults": {
    "analysis_get": {
     "analysisId": "kettles",
-    "view": "summary",
+    "view": "outstanding",
     "question": "which kettle should the office buy?",
     "stage": 5,
     "counts": {
@@ -1009,6 +1731,11 @@
      "cells": 9,
      "outstanding": 1,
      "superseded": 0,
+     "byKind": {
+      "scored": 6,
+      "settledBlank": 1,
+      "notApplicable": 1
+     },
      "byCode": [
       {
        "code": "not-assessed",
@@ -1016,6 +1743,15 @@
       }
      ]
     },
+    "outstanding": [
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     }
+    ],
     "omitted": [],
     "skipped": [],
     "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 1 of 9 cell(s) outstanding (1 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
@@ -1035,30 +1771,6 @@
     },
     "instructions": null,
     "summary": "already confirmed by Ana at 2026-10-12T09:30:00Z; nothing to ask"
-   },
-   "report_completeness": {
-    "analysisId": "kettles",
-    "total": 8,
-    "structural": 1,
-    "applicable": 7,
-    "present": 6,
-    "settledAbsent": 1,
-    "informativeAbsent": 1,
-    "outstanding": 0,
-    "examinedRate": 1.0,
-    "valuedRate": 0.8571428571428571,
-    "silenceRate": 0.14285714285714285,
-    "degradations": [],
-    "supersededCells": {
-     "count": 0,
-     "cells": [],
-     "undetermined": [],
-     "unversioned": 0
-    },
-    "honestyProblems": [],
-    "schemaProblems": [],
-    "skipped": [],
-    "summary": "6 valued, 1 settled blank(s), 0 outstanding of 7 applicable cell(s); silenceRate 0.14"
    }
   },
   "expected": {
@@ -1069,7 +1781,60 @@
    "scored": 6,
    "rescore": 0,
    "na": 1,
-   "next": "score"
+   "next": "score",
+   "cells": 9,
+   "entities": [
+    {
+     "axis": "alternative",
+     "id": "brindle",
+     "aliases": [
+      "brindle"
+     ],
+     "outstanding": false
+    },
+    {
+     "axis": "alternative",
+     "id": "copperleaf",
+     "aliases": [
+      "copperleaf"
+     ],
+     "outstanding": false
+    },
+    {
+     "axis": "alternative",
+     "id": "tamsin",
+     "aliases": [
+      "tamsin"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "criterion",
+     "id": "repair-policy",
+     "aliases": [
+      "repair policy",
+      "repair-policy"
+     ],
+     "outstanding": false
+    },
+    {
+     "axis": "criterion",
+     "id": "spare-parts",
+     "aliases": [
+      "spare parts",
+      "spare-parts"
+     ],
+     "outstanding": false
+    },
+    {
+     "axis": "criterion",
+     "id": "noise",
+     "aliases": [
+      "noise"
+     ],
+     "outstanding": true
+    }
+   ]
   }
  }
 ]

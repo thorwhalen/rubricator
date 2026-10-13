@@ -759,7 +759,16 @@ def report_completeness(store: AnalysisStore, *, analysis_id: str) -> dict[str, 
     total = present = structural = settled = informative = outstanding = 0
     degradations: list[Degradation] = []
 
+    # A retired row or column leaves every comparison, so its claims leave the counts
+    # (#186): three scores on a removed alternative are not three valued cells.
+    retired = {
+        (axis, row["id"])
+        for axis, key in (("alt", "alternatives"), ("crit", "criteria"))
+        for row in merged.get(key, []) if row.get("tombstoned")
+    }
     for cell in merged["cells"]:
+        if ("alt", cell["alternativeId"]) in retired or ("crit", cell["criterionId"]) in retired:
+            continue
         for assertion in cell["assertions"]:
             total += 1
             if "value" in assertion:

@@ -36,11 +36,14 @@ def _block(want: dict, *, prose: str = "Where it stands.", **override) -> str:
                  "skipped": "skipped at 2026-10-12T09:30:00Z, nobody confirmed",
                  "not-confirmed": "no — never put to anyone",
                  "changed": "criteria changed since Ana's confirmation at 2026-10-12T09:30:00Z"}
+    step = "one step"
+    if want["next"] == "score" and "entities" in want:
+        step = "start with " + next((e["id"] for e in want["entities"] if e["outstanding"]), "nothing")
     return (f"{prose}\n\n```\nConfirmed: {confirmed.get(want['confirmation'], want['confirmation'])}\n"
             f"Nobody has looked: {want['nobody']} cells\nSet aside on purpose: {want['aside']} cells\n"
-            f"Re-score after a criteria change: {want['rescore']} cells\nScored: {want['scored']} claims\n"
-            f"Looked, answer is a blank: {want['blank']} claims\nNot applicable: {want['na']} claims\n"
-            f"Next: {want['next']} — one step\n```")
+            f"Re-score after a criteria change: {want['rescore']} cells\nScored: {want['scored']} cells\n"
+            f"Looked, answer is a blank: {want['blank']} cells\nNot applicable: {want['na']} cells\n"
+            f"Next: {want['next']} — {step}\n```")
 
 
 def _graded(**fault):
@@ -89,6 +92,27 @@ def test_every_count_is_graded(field) -> None:
     assert _hits(row, "counts_right") == 0
 
 
+def test_lines_that_do_not_add_up_to_the_cells_are_caught() -> None:
+    scenarios, row = _graded(scored=lambda w: w["scored"] + 1)
+    assert _hits(row, "adds_up") == 0
+    # Re-score is a subset: moving it does not break the sum.
+    _, row = _graded(rescore=lambda w: w["rescore"] + 1)
+    assert _hits(row, "adds_up") == len(scenarios)
+
+
+def test_a_step_that_names_a_place_with_nothing_unlooked_at_is_caught() -> None:
+    scenarios = json.loads(SCENARIOS.read_text())
+    score = [s for s in scenarios if s["expected"]["next"] == "score"]
+    assert score
+    for s in score:
+        entities = s["expected"]["entities"]
+        empty = next((e for e in entities if not e["outstanding"]), None)
+        real = next(e for e in entities if e["outstanding"])
+        for step, ok in ((f"start with {real['id']}", True), ("start somewhere", False),
+                         *(((f"start with {empty['aliases'][0]}", False),) if empty else ())):
+            assert grader._names_a_real_place(step, entities) is ok, (s["id"], step)
+
+
 def test_a_reask_where_the_confirmation_stands_is_caught() -> None:
     scenarios, row = _graded(next=lambda w: "confirm")
     assert _hits(row, "no_reask") == 0
@@ -127,8 +151,28 @@ def test_only_the_block_is_read() -> None:
 @pytest.mark.parametrize("arm", ["sonnet", "haiku"])
 def test_the_recorded_evaluation_still_grades_as_recorded(arm) -> None:
     """A grader change that moved the published v1 numbers would otherwise go unnoticed."""
-    scenarios = json.loads(SCENARIOS.read_text())
+    scenarios = json.loads((ROOT / "docs/evaluation/resume/2026-10-13/scenarios-v1.json").read_text())
     outputs = json.loads((ROOT / f"docs/evaluation/resume/2026-10-13/out-v1-{arm}.json").read_text())
     row = grader.grade(scenarios, outputs)
     assert row.pop("settled_counted_as_work").startswith("0/")
     assert all(hits == total for hits, total in (v.split("/") for v in row.values())), row
+
+
+@pytest.mark.parametrize("arm", ["sonnet", "haiku"])
+def test_the_recorded_v2_evaluation_still_grades_as_recorded(arm) -> None:
+    scenarios = json.loads(SCENARIOS.read_text())
+    outputs = json.loads((ROOT / f"docs/evaluation/resume/2026-10-13-v2/out-v2-{arm}.json").read_text())
+    row = grader.grade(scenarios, outputs)
+    assert row.pop("settled_counted_as_work").startswith("0/")
+    assert row["names_a_real_place"] == "5/5" and row["adds_up"] == "12/12"
+    assert all(hits == total for hits, total in (v.split("/") for v in row.values())), row
+
+
+@pytest.mark.parametrize("prose, asks", [
+    ("Could you re-confirm the criteria before I go on?", True),
+    ("Please confirm whether the noise column can wait.", True),
+    ("Ana's confirmation stands, so there is nothing to re-confirm.", False),
+    ("There is no need to re-confirm; we did not ask again.", False),
+])
+def test_the_reask_check_ignores_a_reply_that_says_nothing_needs_confirming(prose, asks) -> None:
+    assert bool(grader.REASK.search(prose)) is asks

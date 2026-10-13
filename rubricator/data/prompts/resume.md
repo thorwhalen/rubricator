@@ -1,6 +1,6 @@
 ---
 id: resume
-version: 1
+version: 2
 title: Pick up a partial analysis
 updated: 2026-10-13
 missing-codes:
@@ -11,6 +11,7 @@ missing-codes:
   - indeterminate
   - withheld
 changelog:
+  - 2 (2026-10-13) — One unit, and the cells named (#186, #188). The block counts cells on every line, from `analysis_get`'s `counts` (`byKind`, `outstanding`, `byCode`, `superseded`), and the lines add up to `counts.cells`; `report_completeness` is no longer read, because it counted claims (two raters on one cell twice, superseded claims, claims on a removed row). The session reads `analysis_get` with `view: "outstanding"` instead of `summary`, so a `score` step names a column or row that really has cells nobody has looked at. Hypothesis: with one unit a reader can check the block against `counts.cells`, and with the cell list the proposed step names a real column or row instead of saying the records do not say.
   - 1 (2026-10-13) — First version (#76). A resumed session restates where an analysis stands from the stored record, in a fixed form that keeps three kinds of unfinished cell apart (nobody has looked; set aside on purpose; looked, and the answer is a blank), takes an earlier confirmation as given unless the tool says the criteria moved since, and proposes one next step instead of starting work. Hypothesis: without the form, a model reports one "incomplete" count that folds settled blanks into work remaining, and re-asks a confirmation the record already holds; with it, both stop, and the step after a criteria revision is a fresh confirmation rather than scoring. Revised once before landing, after an adversarial review found the draft wrong about the tools in common states: a no-decision frame_confirm records that the question was asked, so the reply now asks it; a skipped, revised or partly-scoped confirmation is reported from the record rather than as given or never asked; the block keeps cells and claims in separate, labelled lines; not-applicable has its own line.
 ---
 
@@ -38,16 +39,20 @@ types are the analysis's evidence; your summary of them is your own inference an
 
 ## What to call, in this order
 
-1. `analysis_get` with `view: "summary"`. Counts of cells: all, outstanding, superseded, and the
-   outstanding cells by missingness code.
+1. `analysis_get` with `view: "outstanding"`. `counts` has the live cells (`cells`), how many are
+   scored, settled blanks or not applicable (`byKind`), how many are outstanding, the outstanding
+   ones by missingness code (`byCode`), and the cells that answer an older definition
+   (`superseded`). Beside it, one row per outstanding cell: its alternative, its criterion and its
+   code.
 2. `frame_confirm` with **no decision**. When a confirmation stands, this only reads it. When none
    stands, the same call records that the question is being put to the user and returns
    `instructions` — so in that case you put it, in this reply (below). It never records a
    confirmation on anyone's behalf.
-3. `report_completeness`. The recorded claims (assertions), split into valued, settled blank,
-   not applicable and outstanding.
-4. Only if `analysis_get` reports a code that is not a core code: `analysis_get` with
+3. Only if `analysis_get` reports a code that is not a core code: `analysis_get` with
    `view: "criteria"`, to find that code's declaration and the core code it refines (`broader`).
+
+Do not call `report_completeness` to resume. It counts recorded claims, not cells — two people on one
+cell count twice — so its numbers cannot be set beside these.
 
 If the id is refused, say so in one line, pass on the two ways out the tool names, and stop.
 
@@ -88,20 +93,20 @@ spelled: a code declared on the analysis or a criterion counts as the core code 
   answer is known and deliberately not shown). Settled. Not work remaining.
 
 `not-applicable` is neither: the criterion does not apply to that alternative, so the cell leaves
-every count and comparison. It has its own line.
+every comparison and rate. It is still a cell of the matrix, and has its own line.
 
-Cells that **answer an older criteria definition** (`superseded` in the summary) need re-scoring once
-the new criteria are confirmed. A cell can be on two lines: a settled blank that answers an older
-definition is settled under the old criteria and due a fresh look under the new.
+Cells that **answer an older criteria definition** (`counts.superseded`) need re-scoring once
+the new criteria are confirmed. A cell can be on two lines: a scored or settled-blank cell that
+answers an older definition is settled under the old criteria and due a fresh look under the new.
 
-## Two units: cells and claims
+## One unit: cells
 
-`analysis_get` counts **cells**; `report_completeness` counts **claims** — every recorded assertion.
-They differ when two people assessed one cell, when a claim was superseded, and when a claim sits on
-an alternative or criterion that has since been removed. So the claim lines need not add up to the
-cell count. Do not reconcile them, and do not add, subtract or estimate a number the tools did not
-give: take each from its field and keep its unit in the line. If a tool reports `skipped`
-contributions, say how many could not be read: every count leaves them out.
+Every line of the block counts **cells**, and each number comes from its field in `counts`; do not
+add, subtract or estimate one the tool did not give. Nobody has looked + set aside on purpose +
+scored + looked-and-blank + not applicable add up to `counts.cells`. Re-score is the exception: it is
+a subset, the cells that answer an older definition, and each of them is also on one of the other
+lines. If
+a tool reports `skipped` contributions, say how many could not be read: every count leaves them out.
 
 ## What to write
 
@@ -113,14 +118,14 @@ Confirmed: <who> at <when>, criteria version <v>
 Nobody has looked: <n> cells
 Set aside on purpose: <n> cells
 Re-score after a criteria change: <n> cells
-Scored: <n> claims
-Looked, answer is a blank: <n> claims
-Not applicable: <n> claims
+Scored: <n> cells
+Looked, answer is a blank: <n> cells
+Not applicable: <n> cells
 Next: <kind> — <one sentence>
 ```
 
-The cell lines come from `analysis_get` (`byCode`, `superseded`), the claim lines from
-`report_completeness` (`present`, `settledAbsent`, `structural`).
+The lines come from `analysis_get`: `byCode` and `superseded`, and `byKind` for scored
+(`scored`), looked-and-blank (`settledBlank`) and not applicable (`notApplicable`).
 
 The first line always begins `Confirmed:`. When no person's confirmation stands, it reads
 `Confirmed: skipped at <when>, nobody confirmed`, or
@@ -132,8 +137,8 @@ record says>` (`never put to anyone`, `<who> asked for changes at <when>`, `<who
 
 - `confirm` — `instructions` is present: the frame needs the user's decision. This comes first
   whenever it applies, before any scoring, and the question is asked in this reply.
-- `score` — cells nobody has looked at remain. Name which: a criterion's column, or one
-  alternative's row.
+- `score` — cells nobody has looked at remain. Name which, from the outstanding rows: a criterion's
+  column, or one alternative's row. Name only a column or row that has such a cell.
 - `rescore` — nothing unlooked-at remains, and cells answer an older definition.
 - `ask-deferred` — nothing else remains, and cells were set aside on purpose: ask the user whether
   to take them up now.

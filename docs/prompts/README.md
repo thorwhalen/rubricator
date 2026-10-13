@@ -34,7 +34,7 @@ Ten prompts, mapped to the ADR-0005 stages. "Shipped" means the file exists and 
 | `score-column` | 5 | — | One criterion across all alternatives. **Not the default** — it survives only as arm 2 of the ADR-0008 evaluation harness, awaiting validation (ADR-0011) |
 | `review` | 6 | — | Self-critique: thin evidence, overlapping criteria, what would most change the picture |
 | `run-analysis` | — | — | The whole pipeline, for a caller who wants one instruction |
-| `resume` | — | **yes** | Pick up a durable partial analysis (ADR-0017): read the stored confirmation instead of re-asking it, restate the counts in a fixed block that keeps nobody-has-looked, set-aside-on-purpose and looked-and-blank apart (by what a code means, not its spelling), and propose one next step without starting it. Evaluated by `scripts/resume_adherence.py` over `docs/evaluation/resume/` |
+| `resume` | — | **yes** | Pick up a durable partial analysis (ADR-0017): read the stored confirmation instead of re-asking it, restate the counts, all in cells, in a fixed block that keeps nobody-has-looked, set-aside-on-purpose and looked-and-blank apart (by what a code means, not its spelling), and propose one next step without starting it. Evaluated by `scripts/resume_adherence.py` over `docs/evaluation/resume/` |
 | `audit-existing` | — | — | Given an analysis someone else made, find its weaknesses |
 
 ## The file contract

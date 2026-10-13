@@ -151,3 +151,11 @@ Row 8 is implemented, in `rubricator/tools/confirm.py`, as ADR-0005's out-of-ban
 Re-measured on 2026-10-12 against `claude-sonnet-5-5`:
 - the advertised definitions: 14 tools, 7,917 tokens, 18,897 bytes;
 - the whole surface: 22 tools, 10,792 tokens, 26,207 bytes.
+
+### 2026-10-13 — `analysis_get` counts settled cells by kind, and `report_completeness` leaves removed rows out (#186)
+
+- **Deciders:** Thor Whalen (the second change moves published rates; recorded here so it can be reversed)
+
+`analysis_get`'s `counts` gains `byKind` (required: an output-only addition, like `stage` and `superseded` before it, so an amendment recorded here rather than the optional-field row edit the freeze policy allows by itself): `scored`, `settledBlank` and `notApplicable`, in **cells**. A live cell with a live value is scored whatever else it holds; otherwise a terminal blank makes it a settled blank, otherwise a structural one makes it not applicable; anything else is outstanding. So `byKind` plus `outstanding` adds up to `cells`, which is what a resuming reader needs: one unit, checkable against one total. `rubricator.tools.views.cells_by_kind` owns the rule and `outstanding_cells` is a filter over it. The outstanding rows and their codes are unchanged.
+
+`report_completeness` now leaves out the claims on a tombstoned alternative or criterion. They already left every comparison and every `analysis_get` count, and three scores on a removed row were still counted as `present`. This moves `total`, `present`, `settledAbsent`, `structural`, `applicable`, `informativeAbsent`, `outstanding`, the rates and the degradations found in those claims for an analysis with removed rows; for any other analysis nothing changes. It still counts claims, not cells: two raters on one cell count twice, and a superseded claim still counts, so its numbers are not cells and the resume prompt no longer reads it.
