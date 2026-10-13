@@ -590,7 +590,7 @@ def measures_write(
     # however it is broken -- refuses here, cleanly, instead of failing inside.
     mergeable, skipped = store.mergeable_contributions(analysis_id)
     _refuse_an_unread_own_file(store, analysis_id, contributor_id, skipped)
-    contribution = _existing(store, analysis_id, contributor_id, author)
+    contribution, introduced = _existing(store, analysis_id, contributor_id, author)
     index = {
         (c["alternativeId"], c["criterionId"], c["measure"]): c
         for c in contribution["cells"]
@@ -638,7 +638,8 @@ def measures_write(
 
     contribution["cells"] = [index[k] for k in sorted(index)]
     _refuse_dishonest(
-        store, analysis_id, contributor_id, contribution, added=added, mergeable=mergeable
+        store, analysis_id, contributor_id, contribution, added=added, mergeable=mergeable,
+        introduced=author["id"] if introduced else None,
     )
     store.put_contribution(analysis_id, contributor_id, contribution)
     valued = sum(1 for c in cells if c.get("value") is not None)
@@ -1033,11 +1034,11 @@ def _cell_problems(
 ) -> list[str]:
     """Every reason ``cell`` cannot be written, each naming the cell.
 
-    Four checks the schema cannot make because the answer is data in the frame:
+    Three checks the schema cannot make because the answer is data in the frame:
     the measure is one the analysis declares; the row and the column are not
-    tombstoned; a missingness code is one the vocabulary resolves (the same
-    rule :func:`measures_mark_missing` applies); and a ``score`` value is one
-    its criterion's scale can take (:func:`_off_scale`). And one the schema
+    tombstoned; and a ``score`` value is one its criterion's scale can take
+    (:func:`_off_scale`). (A missingness code the document never defines is the
+    ``blank-is-defined`` rule's, at the honesty stage.) And one the schema
     allows and this repository's profile does not: every evidence reference
     stays inside the ADR-0014 locator profile (:func:`profile_problems`) --
     comparanda v1 accepts ``PathSelector``, and a quote-less position.
@@ -1054,14 +1055,8 @@ def _cell_problems(
                         ("criterion", criteria[cell["criterionId"]])):
         if item.get("tombstoned"):
             out.append(f'{where}: {label} "{item["id"]}" is tombstoned and takes no new assertions')
-    missing = cell.get("missing")
-    if isinstance(missing, Mapping):
-        declarations = declarations_for(frame, cell["criterionId"])
-        if vocabulary().resolve(missing["code"], declarations).source == "undeclared":
-            out.append(
-                f'{where}: missingness code "{missing["code"]}" is not one the core vocabulary, '
-                "the analysis or the criterion declares"
-            )
+    # An undeclared missingness code is the ``blank-is-defined`` rule's, at the
+    # honesty stage, so it is refused with the rule and its source like the others (#184).
     if measure == "score":
         problem = _off_scale(cell, criteria[cell["criterionId"]])
         if problem:
@@ -1177,6 +1172,7 @@ def _refuse_dishonest(
     *,
     added: Sequence[tuple[tuple[str, str, str], str]],
     mergeable: Sequence[tuple[str, Mapping[str, Any]]],
+    introduced: str | None = None,
 ) -> None:
     """The write-time honesty hook (ADR-0024): refuse before the bytes land.
 
@@ -1186,7 +1182,9 @@ def _refuse_dishonest(
     independence.
 
     **Refuses only for the assertions this call adds**, the ones the caller can
-    still change. A problem on an assertion already stored -- this contributor's
+    still change -- and for the author this call introduces (``introduced``), whose
+    record is the caller's own argument: an author already stored is not amended by
+    a later call, so a problem on one is stored, not this call's. A problem on an assertion already stored -- this contributor's
     or anyone's -- does not block: nothing can amend a stored assertion in place,
     so refusing would lock that contributor (or everyone) out of the whole
     analysis over one cell. `comparanda` counts by difference for the same
@@ -1218,11 +1216,18 @@ def _refuse_dishonest(
     # Matched by cell *and* id: a caller's ids need only be unique per cell, so
     # an id alone would pull in another cell's stored problem.
     own = {f"cells[{'/'.join(key)}].assertions[{contributor_id}:{a}]" for key, a in added}
+    # The author this call introduces, and any persona of it: a persona stored
+    # earlier is judged against its principal's kind only once that principal exists.
+    own_authors = set() if introduced is None else {f"authors[{introduced}]", *(
+        f"authors[{a['id']}]" for a in merged.get("authors", []) if a.get("principalId") == introduced
+    )}
     problems = [
         p
         for p in honesty_problems(merged)
         if any(p.path == o or p.path.startswith(f"{o}.") for o in own)
+        or p.path in own_authors
     ]
+    problems += _persona_kinds_that_cannot_both_hold(merged, introduced)
     if problems:
         raise ValueError(
             "refused, nothing was written: "
@@ -1499,12 +1504,47 @@ def _refuse_malformed_cells(cells: Any) -> None:
         )
 
 
+def _persona_kinds_that_cannot_both_hold(
+    merged: Mapping[str, Any], introduced: str | None
+) -> list[Any]:
+    """Refuse a persona whose kind no principal could match beside a stored sibling (#184).
+
+    ``persona-keeps-kind`` compares a persona with its principal, and a principal
+    that is not stored yet gives it nothing to compare with. Two personas of one
+    principal in different kinds would then both be accepted, and whichever kind
+    the principal later took, one of them would break the rule: the contributor
+    would be locked out of their own id. So the second is refused now.
+    """
+    from rubricator.rules import Problem
+
+    authors = [a for a in merged.get("authors", []) if isinstance(a, Mapping)]
+    persona = next((a for a in authors if a.get("id") == introduced), None)
+    principal = persona.get("principalId") if persona else None
+    if principal is None or any(a.get("id") == principal for a in authors):
+        return []
+    return [
+        Problem(
+            path=f"authors[{introduced}]",
+            message=(
+                f'persona "{introduced}" is of kind "{persona.get("kind")}" but another persona of '
+                f'"{principal}", "{other["id"]}", is "{other.get("kind")}"; whichever kind "{principal}" '
+                "takes, one of them would change who made the assertion."
+            ),
+            fix=f'give both personas the one kind their principal "{principal}" has or will have.',
+            rule_id="persona-keeps-kind",
+        )
+        for other in authors
+        if other.get("principalId") == principal and other.get("id") != introduced
+        and other.get("kind") != persona.get("kind")
+    ]
+
+
 def _existing(
     store: AnalysisStore,
     analysis_id: str,
     contributor_id: str,
     author: Mapping[str, Any],
-) -> dict[str, Any]:
+) -> tuple[dict[str, Any], bool]:
     # The caller has already refused a file every read leaves out
     # (:func:`_refuse_an_unread_own_file`), so this one merges.
     try:
@@ -1512,10 +1552,11 @@ def _existing(
     except KeyError:
         contribution = {"contributorId": contributor_id, "authors": [], "cells": []}
     authors = {a["id"]: a for a in contribution.get("authors", [])}
+    introduced = author["id"] not in authors
     authors.setdefault(author["id"], dict(author))
     contribution["authors"] = [authors[k] for k in sorted(authors)]
     contribution.setdefault("cells", [])
-    return contribution
+    return contribution, introduced
 
 
 def _anchor_hash(levels: Mapping[str, str]) -> str:

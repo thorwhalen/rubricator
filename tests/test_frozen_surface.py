@@ -566,7 +566,7 @@ def test_an_unknown_alternative_is_refused_like_an_unknown_criterion(verbs) -> N
 def test_an_undeclared_measure_or_missing_code_is_refused_on_write(verbs) -> None:
     with pytest.raises(ValueError, match='measure "confidence" is not one this analysis declares'):
         _write(verbs, measure="confidence", value=0.8)
-    with pytest.raises(ValueError, match='missingness code "paywalled" is not one'):
+    with pytest.raises(ValueError, match=r'the code "paywalled" is neither a core code nor declared'):
         _write(verbs, missing={"code": "paywalled", "note": "n"})
 
 
