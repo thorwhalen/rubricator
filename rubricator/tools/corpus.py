@@ -155,16 +155,23 @@ def rendition_id(original_hash: str, *, normaliser_id: str) -> str:
     return _ID_PREFIX + digest[:_ID_HEX]
 
 
-#: One Markdown code fence around the whole text, backticks or tildes.
-_FENCE = re.compile(r"\A\s*(```|~~~)[\w-]*[ \t]*\n(.*?)\s*\1\s*\Z", re.DOTALL)
+_FENCES = ("```", "~~~")
+_INFO_STRING = re.compile(r"[\w-]*\Z")
+
+
+def _unfenced(text: str) -> str:
+    """``text`` without one Markdown code fence around the whole of it. Linear: no backtracking."""
+    fence = text[:3]
+    if fence not in _FENCES or len(text) < 6 or not text.endswith(fence):
+        return text
+    info, newline, body = text[3:-3].partition("\n")
+    return body if newline and _INFO_STRING.match(info.strip()) else text
 
 
 def _as_json(text: str) -> Any:
     """``text`` parsed as JSON once a BOM and one enclosing code fence are taken off, else ``None``."""
-    stripped = text.lstrip("\ufeff")
-    fenced = _FENCE.match(stripped)
     try:
-        return json.loads(fenced.group(2) if fenced else stripped)
+        return json.loads(_unfenced(text.lstrip("\ufeff").strip()))
     except ValueError:
         return None
 
@@ -528,13 +535,20 @@ _URI_PARTS = re.compile(r"\A([A-Za-z][\w+.-]*)://([^/?#]*)([^?#]*)(\?[^#]*)?(#.*
 
 
 def _canonical_uri(value: str) -> str:
-    """A uri as two spellings of the same page agree on it: no fragment, no trailing slash, case-folded host."""
+    """A uri as spellings of the same page agree on it.
+
+    Folded away: the fragment, a trailing slash or ``?``, ``http`` against
+    ``https``, the host's case, a leading ``www.``, and a default port.
+    """
     parts = _URI_PARTS.match(value.strip())
     if not parts:
         return value.strip()
     scheme, host, path, query, _ = parts.groups()
     scheme = "https" if scheme.lower() in ("http", "https") else scheme.lower()
-    return f"{scheme}://{host.lower()}{path.rstrip('/')}{query or ''}"
+    host = re.sub(r":(80|443)\Z", "", host.lower())
+    host = host[len("www."):] if host.startswith("www.") else host
+    query = "" if query in (None, "?") else query
+    return f"{scheme}://{host}{path.rstrip('/')}{query}"
 
 
 def agent_produced_names(store: AnalysisStore, analysis_id: str) -> dict[str, str]:
@@ -556,8 +570,11 @@ def agent_produced_names(store: AnalysisStore, analysis_id: str) -> dict[str, st
     frame = store.frame(analysis_id)
     by_locator: dict[str, set[str]] = {}
     for r in [*frame.get("renditions", []), *store.renditions(analysis_id)]:
-        if isinstance(r, dict) and isinstance(r.get("originalLocator"), str):
-            by_locator.setdefault(_canonical_uri(r["originalLocator"]), set()).add(r.get("id"))
+        if not isinstance(r, dict) or not isinstance(r.get("id"), str):
+            continue
+        names.setdefault(r["id"], "")  # known and unmarked: a renditionId naming it decides
+        if isinstance(r.get("originalLocator"), str):
+            by_locator.setdefault(_canonical_uri(r["originalLocator"]), set()).add(r["id"])
     for locator, ids in by_locator.items():
         if locator != _INLINE_LOCATOR and ids <= marked:
             names[_URI + locator] = min(ids)
@@ -569,30 +586,42 @@ _URI = "uri:"
 
 
 def cited_document(ref: Mapping[str, Any], names: Mapping[str, str]) -> str | None:
-    """The marked document ``ref`` names, by ``renditionId`` or ``target``, or ``None``.
+    """The marked document ``ref`` names, or ``None``.
 
-    An id is matched anywhere in the field, case-folded: ids are ``doc-`` and 32
-    hex characters, so no other string contains one by accident.
+    A ``renditionId`` that names any document in the corpus decides alone: a
+    reference into the unmarked original is not refused because its ``target``
+    carries a uri a marked summary was filed under. Otherwise an id is matched
+    anywhere in ``renditionId`` or ``target``, case-folded, with or without its
+    ``doc-`` prefix (ids are 32 hex characters, so nothing contains one by
+    accident), and then ``target`` as a uri in any spelling.
     """
-    ids = sorted(rid for key, rid in names.items() if not key.startswith(_URI))
-    for field in ("renditionId", "target"):
-        value = ref.get(field)
+    ids = sorted(key for key in names if not key.startswith(_URI))
+
+    def named(value: Any) -> str | None:
         if not isinstance(value, str):
-            continue
+            return None
         folded = value.casefold()
-        hit = next((rid for rid in ids if rid.casefold() in folded), None)
-        if hit is None:
-            hit = names.get(_URI + _canonical_uri(value))
-        if hit:
-            return hit
-    return None
+        return next(
+            (rid for rid in ids if rid.casefold() in folded
+             or rid.casefold().removeprefix(_ID_PREFIX) in folded),
+            None,
+        )
+
+    by_rendition = named(ref.get("renditionId"))
+    if by_rendition is not None:
+        return names[by_rendition] or None
+    by_target = named(ref.get("target"))
+    if by_target is not None:
+        return names[by_target] or None
+    target = ref.get("target")
+    return names.get(_URI + _canonical_uri(target)) if isinstance(target, str) else None
 
 
 def _cited_as_primary(store: AnalysisStore, analysis_id: str, marked: set[str]) -> list[str]:
     """Assertions already on record that cite a document this call has just marked, as primary."""
     if not marked:
         return []
-    names = {k: rid for k, rid in agent_produced_names(store, analysis_id).items() if rid in marked}
+    names = {k: (rid if rid in marked else "") for k, rid in agent_produced_names(store, analysis_id).items()}
     document, _ = store.read_skipping(analysis_id)
     cited: dict[str, list[str]] = {}
     for cell in document.get("cells", []):

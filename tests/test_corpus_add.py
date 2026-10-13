@@ -532,3 +532,50 @@ def test_a_ticket_export_with_id_and_subject_is_not_marked(record) -> None:
     result = verbs["corpus_add"](analysis_id="a1",
                                  sources=[{"text": json.dumps(record), "agentProduced": False}])
     assert result["documents"][0]["agentProduced"] is False
+
+
+# --- the fourth #201 review's findings ------------------------------------------
+
+
+def test_a_reference_into_the_unmarked_original_is_decided_by_its_rendition_id() -> None:
+    """Finding 1: the original went in inline; the summary was filed under its uri."""
+    _, verbs = _scorable()
+    original = {"text": KETTLE, "agentProduced": False}
+    summary = {"text": "A model's summary.", "uri": SPEC["uri"], "agentProduced": True}
+    original_id = verbs["corpus_add"](analysis_id="a1", sources=[original, summary])["documentIds"][0]
+    ref = {"id": "e1", "target": SPEC["uri"], "renditionId": original_id, "sourceType": "primary",
+           "selectors": [{"type": "TextQuoteSelector", "exact": "under four minutes"}]}
+    assert verbs["measures_write"](
+        analysis_id="a1", contributor_id="ana", author=AUTHOR,
+        cells=[{"alternativeId": "k2", "criterionId": "speed", "value": 4,
+                "justification": "the sheet says so", "evidence": [ref]}])["summary"]
+
+
+@pytest.mark.parametrize("target", [
+    "https://www.example.org/k2", "https://example.org:443/k2", "https://example.org/k2?",
+    "{hex}",
+])
+def test_more_spellings_of_a_marked_documents_name_are_refused(target) -> None:
+    _, verbs = _scorable()
+    doc_id = verbs["corpus_add"](analysis_id="a1", sources=[{**SPEC, "agentProduced": True}])[
+        "documentIds"][0]
+    ref = {"id": "e1", "target": target.format(hex=doc_id.removeprefix("doc-")),
+           "sourceType": "primary",
+           "selectors": [{"type": "TextQuoteSelector", "exact": "under four minutes"}]}
+    with pytest.raises(ValueError, match=rf"cites {doc_id}"):
+        verbs["measures_write"](
+            analysis_id="a1", contributor_id="ana", author=AUTHOR,
+            cells=[{"alternativeId": "k2", "criterionId": "speed", "value": 4,
+                    "justification": "the sheet says so", "evidence": [ref]}])
+
+
+def test_a_fence_full_of_whitespace_is_linear() -> None:
+    """Finding 3: the fence regex backtracked quadratically on a long whitespace run."""
+    import time
+
+    from rubricator.tools.corpus import _as_json
+
+    text = "```" + " " * 200_000 + "x"
+    started = time.perf_counter()
+    assert _as_json(text) is None
+    assert time.perf_counter() - started < 1.0
