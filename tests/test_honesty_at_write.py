@@ -396,3 +396,10 @@ def test_the_verb_refuses_cells_that_are_not_a_list() -> None:
     with pytest.raises(ValueError, match=r"at \$\.cells:"):
         measures_write(runtime.store, analysis_id="a1", contributor_id="scorer", author=AUTHOR,
                        at=MOMENT, cells="k1")
+
+
+def test_a_non_string_key_beside_a_string_one_is_refused_not_a_crash() -> None:
+    runtime, _verbs = _runtime()
+    with pytest.raises(ValueError, match=r"at \$\.cells\[0\]:"):
+        measures_write(runtime.store, analysis_id="a1", contributor_id="scorer", author=AUTHOR,
+                       at=MOMENT, cells=[{**SCORE, 1: "x", "bogus": 2}])

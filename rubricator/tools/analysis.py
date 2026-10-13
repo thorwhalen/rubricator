@@ -1377,7 +1377,7 @@ def _unknown_keys(
     if not isinstance(value, Mapping):
         return []
     allowed = shape["properties"]
-    extra = sorted(set(value) - set(allowed))
+    extra = sorted(set(value) - set(allowed), key=repr)
     found = (
         [f"at {path}: {', '.join(repr(k) for k in extra)} "
          f"{'is' if len(extra) == 1 else 'are'} not recorded anywhere. "
