@@ -5,7 +5,7 @@
       "cell": {
         "alternativeId": "quillbase",
         "criterionId": "support-window",
-        "justification": "The vendor's own support page states a dated support end for the Team plan (31 March 2030), more than 12 months out, which is the level-5 condition.",
+        "justification": "The vendor's own support page states support for the Team plan until 31 March 2030, a dated commitment more than 12 months out, which is the level-5 condition.",
         "evidence": [
           {"id": "s1", "target": "quillbase-support-page", "sourceType": "primary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "The Team plan is supported until 31 March 2030."}]}
         ],
@@ -23,7 +23,7 @@
         "criterionId": "support-window",
         "missing": {
           "code": "not-evidenced",
-          "note": "Retrieval covered the Larkpad website, changelog and two independent review sites and returned nothing on a support commitment or support end date."
+          "note": "Retrieval covered the Larkpad website, Larkpad changelog and two independent review sites and returned nothing on a support commitment or window."
         }
       },
       "dependsOn": []
@@ -41,7 +41,7 @@
         ],
         "missing": {
           "code": "indeterminate",
-          "note": "Retrieval covered the Mossnote pricing page and a reseller catalogue. The vendor page states support through December 2029 (level-5 condition); the same-quarter reseller entry states end of support in June 2026 (level-1 condition). Nothing dates or supersedes either, and nothing reconciles them."
+          "note": "Vendor pricing page states support through December 2029 (more than 12 months out); the reseller catalogue, same quarter, states end of support in June 2026 (within 12 months or already passed). They meet different anchors and nothing dates or reconciles them. Retrieval covered the Mossnote pricing page and a reseller catalogue."
         }
       },
       "dependsOn": []
@@ -53,7 +53,7 @@
       "cell": {
         "alternativeId": "quillbase",
         "criterionId": "data-export",
-        "justification": "The vendor's help centre states every workspace exports to Markdown and JSON, and its API reference documents the bulk export in the open Notes Interchange schema, which meets the level-5 condition.",
+        "justification": "The vendor's help centre documents export of every workspace to Markdown and JSON, and its API reference documents the bulk export in the open Notes Interchange schema, which is the level-5 condition.",
         "evidence": [
           {"id": "s1", "target": "quillbase-help-export", "sourceType": "primary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "Export every workspace to Markdown and JSON; the JSON schema is published in our API reference."}]},
           {"id": "s2", "target": "quillbase-api-reference", "sourceType": "primary", "stance": "qualifies", "selectors": [{"type": "TextQuoteSelector", "exact": "Exports produced by the bulk endpoint are documented in the open Notes Interchange schema, version 2."}]}
@@ -72,7 +72,7 @@
         "criterionId": "data-export",
         "missing": {
           "code": "not-assessed",
-          "note": "No retrieval record for this cell and no spans were handed over, so nothing shows that this cell's sources were consulted; the work is outstanding."
+          "note": "No retrieval record for this cell; Larkpad's sources have not been consulted for data export, so nothing is known either way. Outstanding: run retrieval for this cell."
         }
       },
       "dependsOn": []
@@ -84,7 +84,7 @@
       "cell": {
         "alternativeId": "mossnote",
         "criterionId": "data-export",
-        "justification": "Sits between the level-3 and level-5 anchors: notes and folders export to plain Markdown, but comments and attachments export only in a proprietary bundle, so not all data is exported in an open format.",
+        "justification": "Sits between anchors 3 and 5: notes and folders export to plain Markdown, but comments and attachments export only in a proprietary bundle, so not all data is exported in an open format.",
         "evidence": [
           {"id": "s1", "target": "mossnote-help-export", "sourceType": "primary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "Notes and folders export to plain Markdown. Comments and attachments export only as a .mossarchive bundle, readable by Mossnote."}]}
         ],
@@ -100,7 +100,7 @@
       "cell": {
         "alternativeId": "quillbase",
         "criterionId": "migration-effort",
-        "justification": "The vendor's help centre states a self-serve move at any time, but says how complete it is depends on the export formats the data supports, so it does not meet the no-stated-limits condition of level 5; this is the level-3 condition, with the limit turning on the data-export criterion.",
+        "justification": "Self-serve migration is stated, but the vendor says how complete the move is depends on the export formats the data supports, so it is not a path with no limits; placed at the level-3 condition, with the dependence on data-export declared rather than folded in.",
         "evidence": [
           {"id": "s1", "target": "quillbase-help-leaving", "sourceType": "primary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "You can move your team off Quillbase yourself at any time. How complete the move is depends on the export formats your data supports; see the export guide."}]}
         ],
@@ -121,7 +121,7 @@
         ],
         "missing": {
           "code": "not-evidenced",
-          "note": "Retrieval covered the Larkpad homepage and press releases and returned only a marketing statement about support, with no commitment and no date for the current plan."
+          "note": "Retrieval covered the Larkpad homepage and press releases; the only span is a generic marketing claim that states no support commitment, term or date, so it places the cell against no anchor."
         }
       },
       "dependsOn": []
@@ -133,7 +133,7 @@
       "cell": {
         "alternativeId": "mossnote",
         "criterionId": "migration-effort",
-        "justification": "The vendor's own help centre states migration is handled by its paid Migration Services team, and a consultancy blog says the same for larger organisations, which is the level-1 condition.",
+        "justification": "The vendor's own help centre says migration is handled by its paid Migration Services team, and a consultancy blog independently states a paid engagement with the vendor's services team is required for organisations over 50 seats; this is the level-1 condition.",
         "evidence": [
           {"id": "s1", "target": "mossnote-help-leaving", "sourceType": "primary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "Moving an organisation off Mossnote is handled by our paid Migration Services team."}]},
           {"id": "s2", "target": "consultancy-blog", "sourceType": "secondary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "Mossnote requires a paid engagement with its own services team to migrate an organisation of more than 50 seats."}]}
@@ -150,7 +150,7 @@
       "cell": {
         "alternativeId": "larkpad",
         "criterionId": "migration-effort",
-        "justification": "The vendor's help centre states a self-serve migration assistant that carries across only what the export tool can produce; that is a stated limit (level 3, not 5), and its extent turns on the data-export criterion.",
+        "justification": "A self-serve migration assistant is stated, but it carries across only what the export tool can produce, a stated limit that turns on the export criterion; level-3 condition, with the dependence on data-export declared.",
         "evidence": [
           {"id": "s1", "target": "larkpad-help-migration", "sourceType": "primary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "Larkpad's migration assistant moves your workspace without any help from us, and it carries across exactly what the export tool can produce, nothing more."}]}
         ],
@@ -166,7 +166,7 @@
       "cell": {
         "alternativeId": "larkpad",
         "criterionId": "data-export",
-        "justification": "The vendor's developer documentation states every workspace, including comments and attachments, exports as JSON following a published schema, which is the level-5 condition.",
+        "justification": "The vendor's developer docs state every workspace, including comments and attachments, exports as JSON following a published schema, which is the level-5 condition.",
         "evidence": [
           {"id": "s1", "target": "larkpad-developer-docs", "sourceType": "primary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "Every workspace, including comments and attachments, exports as JSON that follows the published OpenNotes 1.2 schema."}]}
         ],
@@ -182,14 +182,14 @@
       "cell": {
         "alternativeId": "quillbase",
         "criterionId": "support-window",
-        "justification": "downgraded (superseded): s2 vs s1. The support page gives 31 March 2030 and a later changelog entry extends it to 30 June 2031; both are dated commitments more than 12 months out, so both meet the level-5 condition.",
+        "justification": "Both vendor spans state a dated commitment more than 12 months out (the level-5 condition); the later changelog entry extends the date from 31 March 2030 to 30 June 2031 without contradicting the commitment.",
         "evidence": [
           {"id": "s1", "target": "quillbase-support-page", "sourceType": "primary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "The Team plan is supported until 31 March 2030."}]},
           {"id": "s2", "target": "quillbase-changelog", "sourceType": "primary", "stance": "qualifies", "selectors": [{"type": "TextQuoteSelector", "exact": "Team plan support has been extended to 30 June 2031."}]}
         ],
         "value": 5
       },
-      "confidence": "medium",
+      "confidence": "high",
       "dependsOn": []
     }
   },
@@ -199,7 +199,7 @@
       "cell": {
         "alternativeId": "quillbase",
         "criterionId": "support-window",
-        "justification": "Sits between the level-3 and level-5 anchors: the vendor's own page states a support commitment of at least two more years, which is over 12 months out, but gives a duration rather than a date.",
+        "justification": "Sits between anchors 3 and 5: the vendor states a support commitment of at least two more years, longer than 12 months, but gives a duration rather than a calendar date.",
         "evidence": [
           {"id": "s1", "target": "quillbase-support-page", "sourceType": "primary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "We will support the Team plan for at least two more years."}]}
         ],
@@ -215,11 +215,11 @@
       "cell": {
         "alternativeId": "mossnote",
         "criterionId": "support-window",
-        "justification": "A review site (secondary, not the vendor) reports a company rep's statement of support through 2032, a dated commitment more than 12 months out, which is the level-5 condition; confidence is medium because it is a second-hand relay of a spoken statement.",
+        "justification": "Sits between anchors 3 and 5: a review site (secondary, not the vendor) reports a year, 2032, but as an intention told to some customers rather than a stated commitment for the plan.",
         "evidence": [
-          {"id": "s1", "target": "notes-review-site", "sourceType": "secondary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "Mossnote says it will keep supporting the Business plan through 2032, according to a company rep we spoke to."}]}
+          {"id": "s1", "target": "notes-review-site", "sourceType": "secondary", "stance": "qualifies", "selectors": [{"type": "TextQuoteSelector", "exact": "Mossnote has told some Business customers that it intends to keep supporting the plan through 2032."}]}
         ],
-        "value": 5
+        "value": 4
       },
       "confidence": "medium",
       "dependsOn": []
@@ -231,11 +231,11 @@
       "cell": {
         "alternativeId": "quillbase",
         "criterionId": "data-export",
-        "justification": "Sits between the level-3 and level-5 anchors: the vendor's documentation states a Markdown export for every workspace, an open format, but does not say all data is covered or that the format is documented; the planned JSON export is not yet available and is not counted.",
+        "justification": "Inferred from s1: Markdown export, an open format, is stated as available for every workspace; the planned JSON export is not counted, and the span does not say what, if anything, Markdown leaves out.",
         "evidence": [
-          {"id": "s1", "target": "quillbase-export-docs", "sourceType": "primary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "Markdown export is available for every workspace. A JSON export of the same content is planned."}]}
+          {"id": "s1", "target": "quillbase-export-docs", "sourceType": "primary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "Markdown export is available for every workspace."}]}
         ],
-        "value": 4
+        "value": 5
       },
       "confidence": "medium",
       "dependsOn": []
@@ -247,11 +247,11 @@
       "cell": {
         "alternativeId": "mossnote",
         "criterionId": "data-export",
-        "justification": "Inferred from span s1: the vendor's documentation exports the whole workspace as an archive whose format is described in the developer guide and whose files are plain Markdown, which meets the open, documented condition of level 5.",
+        "justification": "Sits between anchors 3 and 5: export is only as a vendor .mnote archive, but its format is documented in a developer guide and the notes inside are plain Markdown; attachments sit in a binary block, so not all data is shown to be in an open format.",
         "evidence": [
-          {"id": "s1", "target": "mossnote-export-docs", "sourceType": "primary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "Export your workspace as a .mnote archive. The archive format is described in our developer guide and the files inside are plain Markdown."}]}
+          {"id": "s1", "target": "mossnote-export-docs", "sourceType": "primary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "Export your workspace as a .mnote archive. The archive format is described in our developer guide; notes inside are plain Markdown, and attachments are stored in a binary block."}]}
         ],
-        "value": 5
+        "value": 4
       },
       "confidence": "medium",
       "dependsOn": []
@@ -268,7 +268,7 @@
         ],
         "missing": {
           "code": "not-evidenced",
-          "note": "Retrieval covered the Larkpad help centre and one community forum; it returned only an unverified forum post whose author says they have not tried it, and no source documents an export."
+          "note": "Retrieval covered the Larkpad help centre and one community forum; the only span is a forum poster's unverified guess that a Markdown export exists, which documents nothing and places the cell against no anchor."
         }
       },
       "dependsOn": []
@@ -280,9 +280,9 @@
       "cell": {
         "alternativeId": "quillbase",
         "criterionId": "migration-effort",
-        "justification": "The vendor's migration guide states most teams move off on their own with export tools, with a stated limit that workspaces over 50 GB are moved with free staff help; a self-serve path with stated limits and no paid services is the level-3 condition.",
+        "justification": "A self-serve migration path is stated, with a stated caveat that for large workspaces the vendor recommends contacting it first (a recommendation, not a paid-services requirement); level-3 condition.",
         "evidence": [
-          {"id": "s1", "target": "quillbase-migration-guide", "sourceType": "primary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "Most teams move off Quillbase on their own with the export tools. Workspaces over 50 GB are moved with help from our staff, at no charge."}]}
+          {"id": "s1", "target": "quillbase-migration-guide", "sourceType": "primary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "Self-serve migration is possible with the export tools. For large workspaces we recommend contacting us first."}]}
         ],
         "value": 3
       },
@@ -296,11 +296,11 @@
       "cell": {
         "alternativeId": "mossnote",
         "criterionId": "migration-effort",
-        "justification": "The vendor's migration page offers a self-serve export with a stated limit (it does not carry comments); nothing says the Migration Desk is paid, so level 1 is not met, and the stated limit rules out level 5.",
+        "justification": "Sits between anchors 1 and 3: self-serve export is available but no self-serve migration path or its limits are stated, and paid hourly help is described as what most teams use without being stated as required.",
         "evidence": [
-          {"id": "s1", "target": "mossnote-migration-page", "sourceType": "primary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "Our Migration Desk will help you move off Mossnote. Self-serve export is also available, though it does not carry comments."}]}
+          {"id": "s1", "target": "mossnote-migration-page", "sourceType": "primary", "stance": "qualifies", "selectors": [{"type": "TextQuoteSelector", "exact": "Self-serve export is available. Most teams also book our Migration Desk, which is billed by the hour."}]}
         ],
-        "value": 3
+        "value": 2
       },
       "confidence": "medium",
       "dependsOn": []
@@ -312,13 +312,41 @@
       "cell": {
         "alternativeId": "larkpad",
         "criterionId": "migration-effort",
-        "justification": "The vendor's migration page states a self-serve migration assistant with a stated limit (shared links are not moved), which is the level-3 condition.",
+        "justification": "A self-serve migration assistant is stated with a stated limit: shared links and permissions must be recreated by hand; level-3 condition.",
         "evidence": [
-          {"id": "s1", "target": "larkpad-migration-page", "sourceType": "primary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "Our migration assistant moves your workspace in a few clicks. It does not move shared links, which break on leaving."}]}
+          {"id": "s1", "target": "larkpad-migration-page", "sourceType": "primary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "The migration assistant moves your notes and folders. Shared links and permissions have to be recreated by hand after the move."}]}
         ],
         "value": 3
       },
       "confidence": "high",
+      "dependsOn": []
+    }
+  },
+  {
+    "cellId": "i1",
+    "output": {
+      "cell": {
+        "alternativeId": "larkpad",
+        "criterionId": "data-export",
+        "missing": {
+          "code": "deferred",
+          "note": "Set aside on the user's instruction until they have sent Larkpad's export documentation; nothing was searched or scored."
+        }
+      },
+      "dependsOn": []
+    }
+  },
+  {
+    "cellId": "i2",
+    "output": {
+      "cell": {
+        "alternativeId": "mossnote",
+        "criterionId": "support-window",
+        "missing": {
+          "code": "deferred",
+          "note": "Set aside on the user's instruction until they have heard back from the vendor; nothing was searched or scored."
+        }
+      },
       "dependsOn": []
     }
   }

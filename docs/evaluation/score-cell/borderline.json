@@ -7,10 +7,20 @@
       "criterion": "support-window",
       "retrieval": "searched: Quillbase support page",
       "spans": [
-        {"id": "s1", "target": "quillbase-support-page", "source": "the vendor's own support page", "stance": "supports",
-         "text": "We will support the Team plan for at least two more years."}
+        {
+          "id": "s1",
+          "target": "quillbase-support-page",
+          "source": "the vendor's own support page",
+          "stance": "supports",
+          "text": "We will support the Team plan for at least two more years."
+        }
       ],
-      "plausible": {"value": [3, 4]}
+      "plausible": {
+        "value": [
+          3,
+          4
+        ]
+      }
     },
     {
       "id": "b2",
@@ -18,10 +28,21 @@
       "criterion": "support-window",
       "retrieval": "searched: Mossnote support page, one review site",
       "spans": [
-        {"id": "s1", "target": "notes-review-site", "source": "a review site's summary", "stance": "supports",
-         "text": "Mossnote says it will keep supporting the Business plan through 2032, according to a company rep we spoke to."}
+        {
+          "id": "s1",
+          "target": "notes-review-site",
+          "source": "a review site's summary",
+          "stance": "supports",
+          "text": "Mossnote has told some Business customers that it intends to keep supporting the plan through 2032."
+        }
       ],
-      "plausible": {"value": [3, 5]}
+      "plausible": {
+        "value": [
+          3,
+          4,
+          5
+        ]
+      }
     },
     {
       "id": "b3",
@@ -29,10 +50,20 @@
       "criterion": "data-export",
       "retrieval": "searched: Quillbase export documentation",
       "spans": [
-        {"id": "s1", "target": "quillbase-export-docs", "source": "the vendor's export documentation", "stance": "supports",
-         "text": "Markdown export is available for every workspace. A JSON export of the same content is planned."}
+        {
+          "id": "s1",
+          "target": "quillbase-export-docs",
+          "source": "the vendor's export documentation",
+          "stance": "supports",
+          "text": "Markdown export is available for every workspace. A JSON export of the same content is planned."
+        }
       ],
-      "plausible": {"value": [3, 4]}
+      "plausible": {
+        "value": [
+          3,
+          4
+        ]
+      }
     },
     {
       "id": "b4",
@@ -40,10 +71,20 @@
       "criterion": "data-export",
       "retrieval": "searched: Mossnote export documentation",
       "spans": [
-        {"id": "s1", "target": "mossnote-export-docs", "source": "the vendor's export documentation", "stance": "supports",
-         "text": "Export your workspace as a .mnote archive. The archive format is described in our developer guide and the files inside are plain Markdown."}
+        {
+          "id": "s1",
+          "target": "mossnote-export-docs",
+          "source": "the vendor's export documentation",
+          "stance": "supports",
+          "text": "Export your workspace as a .mnote archive. The archive format is described in our developer guide; notes inside are plain Markdown, and attachments are stored in a binary block."
+        }
       ],
-      "plausible": {"value": [3, 4, 5]}
+      "plausible": {
+        "value": [
+          3,
+          4
+        ]
+      }
     },
     {
       "id": "b5",
@@ -51,10 +92,23 @@
       "criterion": "data-export",
       "retrieval": "searched: Larkpad help centre, one community forum",
       "spans": [
-        {"id": "s1", "target": "larkpad-forum-thread", "source": "a post in a community forum", "stance": "supports",
-         "text": "I think you can export to Markdown from the settings page, but I have not tried it myself."}
+        {
+          "id": "s1",
+          "target": "larkpad-forum-thread",
+          "source": "a post in a community forum",
+          "stance": "supports",
+          "text": "I think you can export to Markdown from the settings page, but I have not tried it myself."
+        }
       ],
-      "plausible": {"value": [3, 4], "code": ["not-evidenced"]}
+      "plausible": {
+        "value": [
+          3,
+          4
+        ],
+        "code": [
+          "not-evidenced"
+        ]
+      }
     },
     {
       "id": "b6",
@@ -62,10 +116,20 @@
       "criterion": "migration-effort",
       "retrieval": "searched: Quillbase migration guide",
       "spans": [
-        {"id": "s1", "target": "quillbase-migration-guide", "source": "the vendor's migration guide", "stance": "supports",
-         "text": "Most teams move off Quillbase on their own with the export tools. Workspaces over 50 GB are moved with help from our staff, at no charge."}
+        {
+          "id": "s1",
+          "target": "quillbase-migration-guide",
+          "source": "the vendor's migration guide",
+          "stance": "supports",
+          "text": "Self-serve migration is possible with the export tools. For large workspaces we recommend contacting us first."
+        }
       ],
-      "plausible": {"value": [2, 3, 4]}
+      "plausible": {
+        "value": [
+          3,
+          4
+        ]
+      }
     },
     {
       "id": "b7",
@@ -73,10 +137,21 @@
       "criterion": "migration-effort",
       "retrieval": "searched: Mossnote migration page",
       "spans": [
-        {"id": "s1", "target": "mossnote-migration-page", "source": "the vendor's migration page", "stance": "supports",
-         "text": "Our Migration Desk will help you move off Mossnote. Self-serve export is also available, though it does not carry comments."}
+        {
+          "id": "s1",
+          "target": "mossnote-migration-page",
+          "source": "the vendor's migration page",
+          "stance": "supports",
+          "text": "Self-serve export is available. Most teams also book our Migration Desk, which is billed by the hour."
+        }
       ],
-      "plausible": {"value": [2, 3]}
+      "plausible": {
+        "value": [
+          1,
+          2,
+          3
+        ]
+      }
     },
     {
       "id": "b8",
@@ -84,10 +159,21 @@
       "criterion": "migration-effort",
       "retrieval": "searched: Larkpad migration assistant page",
       "spans": [
-        {"id": "s1", "target": "larkpad-migration-page", "source": "the vendor's migration page", "stance": "supports",
-         "text": "Our migration assistant moves your workspace in a few clicks. It does not move shared links, which break on leaving."}
+        {
+          "id": "s1",
+          "target": "larkpad-migration-page",
+          "source": "the vendor's migration page",
+          "stance": "supports",
+          "text": "The migration assistant moves your notes and folders. Shared links and permissions have to be recreated by hand after the move."
+        }
       ],
-      "plausible": {"value": [3, 4]}
+      "plausible": {
+        "value": [
+          2,
+          3,
+          4
+        ]
+      }
     }
   ]
 }
