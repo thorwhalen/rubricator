@@ -1227,6 +1227,7 @@ def _refuse_dishonest(
         if any(p.path == o or p.path.startswith(f"{o}.") for o in own)
         or p.path in own_authors
     ]
+    problems += _persona_kinds_that_cannot_both_hold(merged, introduced)
     if problems:
         raise ValueError(
             "refused, nothing was written: "
@@ -1501,6 +1502,41 @@ def _refuse_malformed_cells(cells: Any) -> None:
             "({code, note}), justification, and evidence as a list of reference objects (leave "
             "evidence out, not null, for a blank that cites nothing)."
         )
+
+
+def _persona_kinds_that_cannot_both_hold(
+    merged: Mapping[str, Any], introduced: str | None
+) -> list[Any]:
+    """Refuse a persona whose kind no principal could match beside a stored sibling (#184).
+
+    ``persona-keeps-kind`` compares a persona with its principal, and a principal
+    that is not stored yet gives it nothing to compare with. Two personas of one
+    principal in different kinds would then both be accepted, and whichever kind
+    the principal later took, one of them would break the rule: the contributor
+    would be locked out of their own id. So the second is refused now.
+    """
+    from rubricator.rules import Problem
+
+    authors = [a for a in merged.get("authors", []) if isinstance(a, Mapping)]
+    persona = next((a for a in authors if a.get("id") == introduced), None)
+    principal = persona.get("principalId") if persona else None
+    if principal is None or any(a.get("id") == principal for a in authors):
+        return []
+    return [
+        Problem(
+            path=f"authors[{introduced}]",
+            message=(
+                f'persona "{introduced}" is of kind "{persona.get("kind")}" but another persona of '
+                f'"{principal}", "{other["id"]}", is "{other.get("kind")}"; whichever kind "{principal}" '
+                "takes, one of them would change who made the assertion."
+            ),
+            fix=f'give both personas the one kind their principal "{principal}" has or will have.',
+            rule_id="persona-keeps-kind",
+        )
+        for other in authors
+        if other.get("principalId") == principal and other.get("id") != introduced
+        and other.get("kind") != persona.get("kind")
+    ]
 
 
 def _existing(

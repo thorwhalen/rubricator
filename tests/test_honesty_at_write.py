@@ -519,3 +519,16 @@ def test_the_disclosure_flag_counts_a_whitespace_note_as_content_like_the_compan
                {"id": "s1", "authorId": "ana", "disclosure": {"withheldFromReader": True},
                 "missing": {"code": "withheld", "note": "\u200b"}}]}]}
     assert "disclosure-flag-is-projection-only" in {p.rule_id for p in honesty_problems(doc)}
+
+
+def test_two_personas_of_a_principal_not_yet_stored_cannot_disagree_in_kind() -> None:
+    """Otherwise the contributor could never write as the principal, whichever kind they gave it."""
+    runtime, verbs = _runtime()
+    human = {"id": "ana:me", "displayName": "Ana", "kind": "human", "principalId": "ana"}
+    bot = {"id": "ana:bot", "displayName": "Ana's bot", "kind": "agent", "principalId": "ana",
+           "agent": {"name": "ana-bot"}}
+    assert _write_as(verbs, human, contributor="ana")["written"] == 1
+    with pytest.raises(ValueError, match=r"authors\[ana:bot\]: .*another persona of \"ana\".*\[rule persona-keeps-kind"):
+        _write_as(verbs, bot, contributor="ana", cell={**SCORE, "independence": "independent"})
+    same_kind = {**human, "id": "ana:other"}
+    assert _write_as(verbs, same_kind, contributor="ana", cell={**SCORE, "independence": "independent"})["written"] == 1
