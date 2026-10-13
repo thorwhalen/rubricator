@@ -1,0 +1,128 @@
+{
+  "domain": "Invented: three small volunteer-run organisations choosing a service. No real organisation or vendor is named or described.",
+  "frames": [
+    {
+      "id": "f1",
+      "subject": {
+        "question": "Which sheet-music library service should the village choir use?",
+        "decision": "Pick one service for the next three seasons",
+        "decider": "the choir committee"
+      },
+      "alternatives": [
+        {
+          "id": "scorebox",
+          "label": "Scorebox",
+          "brochure": "Cloud sheet-music library. Comes in dark mode. Part-by-part view."
+        },
+        {
+          "id": "chorale-hub",
+          "label": "Chorale Hub",
+          "brochure": "Sheet music for choirs. Dark mode included. Calendar sync."
+        },
+        {
+          "id": "folio-sing",
+          "label": "FolioSing",
+          "brochure": "Digital folders for singers. Light and dark themes. Offline mode."
+        }
+      ],
+      "user": "Singers need to find their parts quickly before rehearsal. It must sync with our rehearsal calendar app. We can't afford anything that needs a volunteer to maintain it every week.",
+      "expected": {
+        "means": "calendar",
+        "trap": "dark"
+      }
+    },
+    {
+      "id": "f2",
+      "subject": {
+        "question": "Which parts supplier should the school robotics team use?",
+        "decision": "Choose a main supplier for this competition season",
+        "decider": "the team's lead mentor"
+      },
+      "alternatives": [
+        {
+          "id": "gearwell",
+          "label": "Gearwell",
+          "brochure": "Robotics parts. Loyalty points programme. Next-day dispatch on stocked items."
+        },
+        {
+          "id": "botparts-direct",
+          "label": "BotParts Direct",
+          "brochure": "Competition kits. Earn loyalty points. School accounts."
+        },
+        {
+          "id": "servo-shed",
+          "label": "Servo Shed",
+          "brochure": "Motors and sensors. Loyalty rewards. Bulk discounts."
+        }
+      ],
+      "user": "We need parts to arrive before competition deadlines. Everything has to be ordered through the school's purchase-order system. Mentors are volunteers and can't spend evenings chasing orders. Forget about branding, we don't care.",
+      "expected": {
+        "means": "purchase",
+        "trap": "loyalty",
+        "userRejected": "brand"
+      }
+    },
+    {
+      "id": "f3",
+      "subject": {
+        "question": "Which tool-lending platform should the allotment society adopt?",
+        "decision": "Adopt one platform for lending the society's shared tools",
+        "decider": "the society's members' meeting"
+      },
+      "alternatives": [
+        {
+          "id": "lendshed",
+          "label": "LendShed",
+          "brochure": "Borrow and lend tools. Supports 14 languages. Mobile app."
+        },
+        {
+          "id": "toolring",
+          "label": "ToolRing",
+          "brochure": "Community tool library. Available in 9 languages. Web only."
+        },
+        {
+          "id": "share-spade",
+          "label": "ShareSpade",
+          "brochure": "Tool sharing for groups. 20 languages. Mobile and web."
+        }
+      ],
+      "user": "Members should be able to borrow a tool without waiting days. It needs a mobile app. We want to know who has which tool so nothing goes missing.",
+      "expected": {
+        "means": "mobile",
+        "trap": "language"
+      }
+    },
+    {
+      "id": "f4",
+      "subject": {
+        "question": "Which route-planning app should the hiking club standardise on?",
+        "decision": "Standardise on one app for walk leaders",
+        "decider": "the club's walk leaders"
+      },
+      "alternatives": [
+        {
+          "id": "trailmark",
+          "label": "TrailMark",
+          "brochure": "Plan and share routes. Badges and achievements. Offline maps."
+        },
+        {
+          "id": "ridgeline",
+          "label": "Ridgeline",
+          "brochure": "Route planner with a social feed. Earn badges. Elevation profiles."
+        },
+        {
+          "id": "pathpost",
+          "label": "PathPost",
+          "brochure": "Group route sharing. Achievement badges. Weather overlay."
+        }
+      ],
+      "user": "Leaders need to share a route with the group the evening before. It has to export GPX files. Nobody cares about the social feed.",
+      "expected": {
+        "means": "gpx",
+        "trap": "badge",
+        "userRejected": "social"
+      },
+      "added": "after the first revision; never seen while revising"
+    }
+  ]
+}

@@ -1,0 +1,621 @@
+[
+ {
+  "frameId": "f1",
+  "output": {
+   "ladder": {
+    "objectives": [
+     {
+      "id": "singers-prepared",
+      "text": "Singers can get to the music they are to sing quickly before rehearsal"
+     },
+     {
+      "id": "low-volunteer-load",
+      "text": "Running the service takes no regular volunteer time"
+     }
+    ],
+    "edges": [
+     {
+      "from": "find-own-part",
+      "to": "singers-prepared"
+     },
+     {
+      "from": "find-piece",
+      "to": "singers-prepared"
+     },
+     {
+      "from": "weekly-upkeep",
+      "to": "low-volunteer-load"
+     }
+    ]
+   },
+   "rejected": [
+    {
+     "label": "Syncs with our rehearsal calendar app",
+     "reason": "means-objective",
+     "serves": [
+      "find-piece"
+     ],
+     "note": "The user said it must; no reason was given. Provisionally treated as a way of getting singers to the pieces for a given rehearsal, judged through find-piece. Whether it is instead a veto is asked in questions."
+    },
+    {
+     "label": "Part-by-part view",
+     "reason": "means-objective",
+     "serves": [
+      "find-own-part"
+     ],
+     "note": "A mechanism for reaching a singer's own part; judge how quickly the part is reached, not whether this feature exists."
+    },
+    {
+     "label": "Dark mode / light and dark themes",
+     "reason": "no-discrimination-expected",
+     "note": "Nobody raised it as a reason for the decision; it appears only because the brochures list it."
+    },
+    {
+     "label": "Offline mode",
+     "reason": "no-discrimination-expected",
+     "note": "Not raised by the user; it appears only in a brochure. Ask if singers lack signal at rehearsal."
+    }
+   ],
+   "criteria": [
+    {
+     "id": "find-own-part",
+     "label": "Reaching your own part",
+     "preference": "increasing",
+     "anchors": [
+      {
+       "level": "1",
+       "text": "A source states that a singer must open the full score of a piece and locate their own voice line by hand."
+      },
+      {
+       "level": "3",
+       "text": "A source states that each piece offers separate part files or views, which the singer picks again every time they open a piece."
+      },
+      {
+       "level": "5",
+       "text": "A source states that a singer can set their voice part once and every piece then opens on that part."
+      }
+     ],
+     "definition": {
+      "objective": "Singers can get to the music they are to sing quickly before rehearsal",
+      "question": "How many steps does a singer take to reach their own part of a piece?",
+      "evidenceRule": "The vendor's documentation or product page describing how a singer opens a part; the number of parts listed or general claims of speed do not count.",
+      "missingRules": [
+       {
+        "when": "No source describes how a singer reaches a part.",
+        "code": "not-evidenced"
+       },
+       {
+        "when": "Sources disagree about whether the part choice is remembered.",
+        "code": "indeterminate"
+       }
+      ],
+      "exclusions": [
+       "Whether the service has a part-by-part view as a feature; judge the outcome, not the mechanism.",
+       "Finding the piece in the library; that is find-piece."
+      ]
+     }
+    },
+    {
+     "id": "find-piece",
+     "label": "Finding the piece for a rehearsal",
+     "preference": "increasing",
+     "anchors": [
+      {
+       "level": "1",
+       "text": "A source states that pieces can only be found by browsing an unsorted list."
+      },
+      {
+       "level": "3",
+       "text": "A source states that pieces can be searched by title or composer."
+      },
+      {
+       "level": "5",
+       "text": "A source states that pieces can be found by title or composer and also by the rehearsal they are assigned to."
+      }
+     ],
+     "definition": {
+      "objective": "Singers can get to the music they are to sing quickly before rehearsal",
+      "question": "How can a singer find the pieces for the next rehearsal?",
+      "evidenceRule": "The vendor's documentation naming the ways a piece can be found; user reviews do not count.",
+      "missingRules": [
+       {
+        "when": "No source describes how pieces are found.",
+        "code": "not-evidenced"
+       },
+       {
+        "when": "Sources disagree about the search options.",
+        "code": "indeterminate"
+       }
+      ],
+      "exclusions": [
+       "Reaching a voice part within a piece; that is find-own-part.",
+       "Whether it syncs with a calendar app: a mechanism, judged only through this outcome."
+      ]
+     }
+    },
+    {
+     "id": "weekly-upkeep",
+     "label": "Freedom from regular volunteer upkeep",
+     "preference": "increasing",
+     "anchors": [
+      {
+       "level": "1",
+       "text": "A source states that the library needs a volunteer's manual action every week or more often to stay usable."
+      },
+      {
+       "level": "3",
+       "text": "A source states that routine upkeep is needed, but no more often than monthly."
+      },
+      {
+       "level": "5",
+       "text": "A source states that normal running needs no volunteer action beyond occasional additions of new music."
+      }
+     ],
+     "definition": {
+      "objective": "Running the service takes no regular volunteer time",
+      "question": "How often must a volunteer act by hand to keep the service working for the choir?",
+      "evidenceRule": "The vendor's documentation of administration tasks and update or maintenance duties; marketing claims of ease do not count.",
+      "missingRules": [
+       {
+        "when": "No source describes the routine administration tasks.",
+        "code": "not-evidenced"
+       },
+       {
+        "when": "Sources disagree about how often upkeep is needed.",
+        "code": "indeterminate"
+       }
+      ],
+      "exclusions": [
+       "The price of the service.",
+       "Adding new pieces to the library, which is the choir's normal use rather than upkeep."
+      ]
+     }
+    }
+   ],
+   "overlaps": [
+    {
+     "criteria": [
+      "find-own-part",
+      "find-piece"
+     ],
+     "via": "singers-prepared",
+     "probe": "Two services are identical except that in one a singer reaches their own part faster. Do you prefer it, or are you indifferent? And: identical except that in one the pieces for a rehearsal are found faster. Prefer it, or indifferent?"
+    }
+   ],
+   "groups": [
+    {
+     "objective": "singers-prepared",
+     "criteria": [
+      "find-own-part",
+      "find-piece"
+     ],
+     "size": 2
+    },
+    {
+     "objective": "low-volunteer-load",
+     "criteria": [
+      "weekly-upkeep"
+     ],
+     "size": 1
+    }
+   ],
+   "provenance": [
+    {
+     "criterionId": "find-own-part",
+     "source": "user-stated",
+     "quote": "Singers need to find their parts quickly before rehearsal"
+    },
+    {
+     "criterionId": "find-piece",
+     "source": "agent-proposed"
+    },
+    {
+     "criterionId": "weekly-upkeep",
+     "source": "user-stated",
+     "quote": "We can't afford anything that needs a volunteer to maintain it every week"
+    }
+   ],
+   "questions": [
+    "You said the service must sync with your rehearsal calendar app. It is treated here as a way of getting singers to the right pieces. Is it instead a hard requirement, so that a service without it is ruled out whatever else it does? And why does it matter to you?",
+    "Cost was not mentioned beyond volunteer time. Is price a criterion, or already settled by a budget?",
+    "find-piece is my proposal, not something you said. Is finding the piece (as opposed to the part) part of what you mean?",
+    "The decision covers three seasons. Does it matter to you how long the service is likely to keep running, or is that not a concern?",
+    "Is offline use at rehearsal something you care about, or not?"
+   ]
+  }
+ },
+ {
+  "frameId": "f2",
+  "output": {
+   "ladder": {
+    "objectives": [
+     {
+      "id": "parts-on-time",
+      "text": "Parts arrive before the competition deadlines"
+     },
+     {
+      "id": "mentor-time",
+      "text": "Mentors do not spend their volunteer evenings on order problems"
+     }
+    ],
+    "edges": [
+     {
+      "from": "delivery-speed",
+      "to": "parts-on-time"
+     },
+     {
+      "from": "delivery-commitment",
+      "to": "parts-on-time"
+     },
+     {
+      "from": "order-visibility",
+      "to": "mentor-time"
+     }
+    ]
+   },
+   "rejected": [
+    {
+     "label": "Ordering through the school's purchase-order system",
+     "reason": "means-objective",
+     "serves": [
+      "order-visibility"
+     ],
+     "note": "The user said everything has to be ordered this way but gave no reason. Provisionally a procedural requirement, not a column; whether it is a veto is asked in questions."
+    },
+    {
+     "label": "Branding",
+     "reason": "user-rejected",
+     "note": "The user said to forget about branding."
+    },
+    {
+     "label": "Loyalty points / loyalty rewards",
+     "reason": "no-discrimination-expected",
+     "note": "Nobody raised it as a reason for the decision; it appears only because the brochures list it."
+    },
+    {
+     "label": "Bulk discounts",
+     "reason": "no-discrimination-expected",
+     "note": "Not raised by the user; it appears only in one brochure. Cost is asked in questions."
+    },
+    {
+     "label": "School accounts",
+     "reason": "merged-into",
+     "mergedInto": "order-visibility",
+     "note": "Brochure feature that may bear on the purchase-order requirement; judged only through the outcomes, and asked in questions."
+    }
+   ],
+   "criteria": [
+    {
+     "id": "delivery-speed",
+     "label": "Time from order to arrival",
+     "preference": "decreasing",
+     "anchors": [
+      {
+       "level": "1",
+       "text": "A source states that standard delivery of in-stock items takes more than a week."
+      },
+      {
+       "level": "3",
+       "text": "A source states that standard delivery of in-stock items takes two to four working days."
+      },
+      {
+       "level": "5",
+       "text": "A source states that in-stock items are dispatched for next-day delivery."
+      }
+     ],
+     "definition": {
+      "objective": "Parts arrive before the competition deadlines",
+      "question": "How long after an order is placed do in-stock parts arrive?",
+      "evidenceRule": "The supplier's delivery terms or shipping page; customer anecdotes do not count.",
+      "missingRules": [
+       {
+        "when": "No source states a delivery time.",
+        "code": "not-evidenced"
+       },
+       {
+        "when": "Sources give conflicting delivery times.",
+        "code": "indeterminate"
+       },
+       {
+        "when": "The supplier does not stock the part category at all.",
+        "code": "not-applicable"
+       }
+      ],
+      "exclusions": [
+       "Delivery of items that are not in stock; that is delivery-commitment.",
+       "The price of delivery."
+      ]
+     }
+    },
+    {
+     "id": "delivery-commitment",
+     "label": "Reliability of stated delivery dates",
+     "preference": "increasing",
+     "anchors": [
+      {
+       "level": "1",
+       "text": "A source states that delivery dates are estimates only and carry no commitment."
+      },
+      {
+       "level": "3",
+       "text": "A source states that a delivery date is given when ordering, with no remedy if missed."
+      },
+      {
+       "level": "5",
+       "text": "A source states that a delivery date is committed when ordering, with a remedy such as a refund or expedited replacement if missed."
+      }
+     ],
+     "definition": {
+      "objective": "Parts arrive before the competition deadlines",
+      "question": "What does the supplier commit to about when an order arrives?",
+      "evidenceRule": "The supplier's terms of sale or delivery policy; reviews of past lateness do not count.",
+      "missingRules": [
+       {
+        "when": "No source states what the supplier commits to on delivery dates.",
+        "code": "not-evidenced"
+       },
+       {
+        "when": "Sources conflict on whether dates are committed.",
+        "code": "indeterminate"
+       }
+      ],
+      "exclusions": [
+       "How fast standard delivery is; that is delivery-speed."
+      ]
+     }
+    },
+    {
+     "id": "order-visibility",
+     "label": "Not having to chase orders",
+     "preference": "increasing",
+     "anchors": [
+      {
+       "level": "1",
+       "text": "A source states that order status can be learned only by contacting the supplier."
+      },
+      {
+       "level": "3",
+       "text": "A source states that an order can be tracked online but the customer must check it themselves."
+      },
+      {
+       "level": "5",
+       "text": "A source states that the customer is notified of dispatch and of any delay without asking."
+      }
+     ],
+     "definition": {
+      "objective": "Mentors do not spend their volunteer evenings on order problems",
+      "question": "How much must a mentor do to learn where an order is?",
+      "evidenceRule": "The supplier's documentation of order tracking and notifications; the supplier's general claims of good service do not count.",
+      "missingRules": [
+       {
+        "when": "No source describes how order status is communicated.",
+        "code": "not-evidenced"
+       },
+       {
+        "when": "Sources disagree about notifications.",
+        "code": "indeterminate"
+       }
+      ],
+      "exclusions": [
+       "Whether orders go through the school's purchase-order system: a mechanism, not the outcome.",
+       "Whether the parcel arrives on time; that is under parts-on-time."
+      ]
+     }
+    }
+   ],
+   "overlaps": [
+    {
+     "criteria": [
+      "delivery-speed",
+      "delivery-commitment"
+     ],
+     "via": "parts-on-time",
+     "probe": "Two suppliers are identical except that one delivers faster. Do you prefer it, or are you indifferent? And: identical except that one commits to the delivery date with a remedy. Prefer it, or indifferent?"
+    },
+    {
+     "criteria": [
+      "delivery-commitment",
+      "order-visibility"
+     ],
+     "via": "order-visibility",
+     "probe": "Two suppliers are identical except that one is more reliable on delivery dates (so less chasing is needed). Do you still prefer it when order tracking is the same? And the other way: identical except for tracking and notifications. Prefer it, or indifferent?"
+    }
+   ],
+   "groups": [
+    {
+     "objective": "parts-on-time",
+     "criteria": [
+      "delivery-speed",
+      "delivery-commitment"
+     ],
+     "size": 2
+    },
+    {
+     "objective": "mentor-time",
+     "criteria": [
+      "order-visibility"
+     ],
+     "size": 1
+    }
+   ],
+   "provenance": [
+    {
+     "criterionId": "delivery-speed",
+     "source": "user-stated",
+     "quote": "We need parts to arrive before competition deadlines"
+    },
+    {
+     "criterionId": "delivery-commitment",
+     "source": "agent-proposed"
+    },
+    {
+     "criterionId": "order-visibility",
+     "source": "user-stated",
+     "quote": "Mentors are volunteers and can't spend evenings chasing orders"
+    }
+   ],
+   "questions": [
+    "You said everything has to be ordered through the school's purchase-order system. Is it a hard requirement, so that a supplier unable to work with it is ruled out whatever else it does? And what does it protect: accounting rules, mentor time, something else?",
+    "How much slack is there between the latest order date and the deadlines? That decides what counts as fast enough, and whether delivery-speed is a threshold rather than 'more is better'.",
+    "Cost was not mentioned. Is price a criterion, or already settled by a budget?",
+    "delivery-commitment is my proposal, not something you said. Do you want the supplier's reliability judged separately from its speed?",
+    "Do you also care about whether the right parts are in stock, as opposed to how fast they ship?"
+   ]
+  }
+ },
+ {
+  "frameId": "f3",
+  "output": {
+   "ladder": {
+    "objectives": [
+     {
+      "id": "quick-borrowing",
+      "text": "Members can borrow a tool without waiting days"
+     },
+     {
+      "id": "tools-not-lost",
+      "text": "The society knows where its tools are, so none goes missing"
+     }
+    ],
+    "edges": [
+     {
+      "from": "borrow-turnaround",
+      "to": "quick-borrowing"
+     },
+     {
+      "from": "who-has-what",
+      "to": "tools-not-lost"
+     }
+    ]
+   },
+   "rejected": [
+    {
+     "label": "Has a mobile app",
+     "reason": "means-objective",
+     "serves": [
+      "borrow-turnaround"
+     ],
+     "note": "The user said it needs one but gave no reason. Provisionally treated as a way of making borrowing quick, judged through borrow-turnaround. Whether it is instead a veto, and why, is asked in questions."
+    },
+    {
+     "label": "Number of languages supported",
+     "reason": "no-discrimination-expected",
+     "note": "Nobody raised it; it appears only because the brochures list it. Ask whether members need a language other than the society's own."
+    }
+   ],
+   "criteria": [
+    {
+     "id": "borrow-turnaround",
+     "label": "Time from request to having the tool",
+     "preference": "decreasing",
+     "anchors": [
+      {
+       "level": "1",
+       "text": "A source states that a borrowing request must be approved by an administrator, which can take days."
+      },
+      {
+       "level": "3",
+       "text": "A source states that a request is confirmed by the lender, with a stated response window of up to a day."
+      },
+      {
+       "level": "5",
+       "text": "A source states that a member can reserve an available tool and collect it with no approval step."
+      }
+     ],
+     "definition": {
+      "objective": "Members can borrow a tool without waiting days",
+      "question": "How long, and through how many approval steps, does a member wait between asking for a tool and being able to take it?",
+      "evidenceRule": "The platform's documentation of the borrowing flow and any approval settings; user reviews do not count.",
+      "missingRules": [
+       {
+        "when": "No source describes the steps between a request and collection.",
+        "code": "not-evidenced"
+       },
+       {
+        "when": "Sources disagree about whether approval is required.",
+        "code": "indeterminate"
+       }
+      ],
+      "exclusions": [
+       "Whether the platform has a mobile app; a mechanism, judged through the outcome.",
+       "How far away the tool is physically."
+      ]
+     }
+    },
+    {
+     "id": "who-has-what",
+     "label": "Knowing who holds which tool",
+     "preference": "increasing",
+     "anchors": [
+      {
+       "level": "1",
+       "text": "A source states that the platform records tools as listed but does not record who currently holds them."
+      },
+      {
+       "level": "3",
+       "text": "A source states that the current holder is recorded, but only when the lender enters it by hand."
+      },
+      {
+       "level": "5",
+       "text": "A source states that the current holder of every loaned tool is recorded automatically when a loan is made and returned, and can be seen by the society."
+      }
+     ],
+     "definition": {
+      "objective": "The society knows where its tools are, so none goes missing",
+      "question": "Can the society see who currently holds each tool?",
+      "evidenceRule": "The platform's documentation describing loan records and who can view them; general claims of tracking do not count.",
+      "missingRules": [
+       {
+        "when": "No source describes whether current holders are recorded.",
+        "code": "not-evidenced"
+       },
+       {
+        "when": "Sources conflict about what is recorded.",
+        "code": "indeterminate"
+       }
+      ],
+      "exclusions": [
+       "Reminders or penalties for late returns; a mechanism, not the outcome.",
+       "How quickly a member can borrow; that is borrow-turnaround."
+      ]
+     }
+    }
+   ],
+   "overlaps": [],
+   "groups": [
+    {
+     "objective": "quick-borrowing",
+     "criteria": [
+      "borrow-turnaround"
+     ],
+     "size": 1
+    },
+    {
+     "objective": "tools-not-lost",
+     "criteria": [
+      "who-has-what"
+     ],
+     "size": 1
+    }
+   ],
+   "provenance": [
+    {
+     "criterionId": "borrow-turnaround",
+     "source": "user-stated",
+     "quote": "Members should be able to borrow a tool without waiting days"
+    },
+    {
+     "criterionId": "who-has-what",
+     "source": "user-stated",
+     "quote": "We want to know who has which tool so nothing goes missing"
+    }
+   ],
+   "questions": [
+    "You said the platform needs a mobile app. It is treated here as a way of making borrowing quick. Is it instead a hard requirement, so that a platform without one is ruled out whatever else it does? And why: do members lack a computer, or is it about borrowing on the plot?",
+    "Cost was not mentioned. Is price a criterion, or already settled by a budget?",
+    "Do members need the platform in a language other than the society's own?",
+    "Is the tools' return and condition (damage, late returns) something you care about, beyond knowing who has which tool?"
+   ]
+  }
+ }
+]

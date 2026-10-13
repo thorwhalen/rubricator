@@ -1,0 +1,693 @@
+[
+ {
+  "frameId": "f1",
+  "output": {
+   "ladder": {
+    "objectives": [
+     {
+      "id": "part-access",
+      "text": "Singers can get to their own part quickly before rehearsal"
+     },
+     {
+      "id": "low-upkeep",
+      "text": "The choir's volunteers spend little time keeping the service running"
+     }
+    ],
+    "edges": [
+     {
+      "from": "part-lookup",
+      "to": "part-access"
+     },
+     {
+      "from": "upkeep-effort",
+      "to": "low-upkeep"
+     }
+    ]
+   },
+   "rejected": [
+    {
+     "label": "Syncs with the rehearsal calendar app",
+     "reason": "means-objective",
+     "serves": [
+      "upkeep-effort"
+     ],
+     "note": "Stated as a must. Treated as a way of avoiding volunteer re-entry of rehearsal dates, which is an assumption of mine; it is judged through upkeep-effort, and whether it is a veto is asked."
+    },
+    {
+     "label": "Dark mode",
+     "reason": "no-discrimination-expected",
+     "note": "Nobody raised it as a reason for the decision; it appears only because the brochures list it."
+    }
+   ],
+   "criteria": [
+    {
+     "id": "part-lookup",
+     "label": "Finding one's own part",
+     "preference": "increasing",
+     "anchors": [
+      {
+       "level": "1",
+       "text": "A source states that a singer must open the full score and locate their own part by hand."
+      },
+      {
+       "level": "3",
+       "text": "A source states that a singer can open a piece and select their voice part from a list."
+      },
+      {
+       "level": "5",
+       "text": "A source states that a singer's own part opens directly from a saved voice-part setting, without selecting it each time."
+      }
+     ],
+     "definition": {
+      "objective": "Singers can get to their own part quickly before rehearsal",
+      "question": "How many steps does a singer take from opening the service to seeing their own part of a piece?",
+      "evidenceRule": "The vendor's documentation or product page describing how a singer reaches a part; general claims such as 'easy to use' do not count.",
+      "missingRules": [
+       {
+        "when": "No source describes how a singer reaches their own part.",
+        "code": "not-evidenced"
+       },
+       {
+        "when": "Sources disagree about how a part is reached.",
+        "code": "indeterminate"
+       }
+      ],
+      "exclusions": [
+       "How the sheet music looks on screen, including dark mode.",
+       "Syncing with the rehearsal calendar app: that is not about finding a part."
+      ]
+     }
+    },
+    {
+     "id": "upkeep-effort",
+     "label": "Weekly volunteer upkeep",
+     "preference": "decreasing",
+     "anchors": [
+      {
+       "level": "1",
+       "text": "A source states that routine upkeep tasks must be done by a volunteer each week."
+      },
+      {
+       "level": "3",
+       "text": "A source states that routine upkeep tasks are needed monthly or less often."
+      },
+      {
+       "level": "5",
+       "text": "A source states that the vendor hosts and updates the service so that no routine volunteer task is required."
+      }
+     ],
+     "definition": {
+      "objective": "The choir's volunteers spend little time keeping the service running",
+      "question": "How often does a volunteer have to do routine upkeep for the service to keep working?",
+      "evidenceRule": "The vendor's administration documentation or hosting description; a reviewer's impression of effort does not count.",
+      "missingRules": [
+       {
+        "when": "No source describes routine upkeep or who hosts the service.",
+        "code": "not-evidenced"
+       },
+       {
+        "when": "Sources disagree about how often upkeep is needed.",
+        "code": "indeterminate"
+       }
+      ],
+      "exclusions": [
+       "Syncs with the rehearsal calendar app: judge the volunteer time, not the mechanism.",
+       "The price of the service.",
+       "The effort of the one-off initial setup."
+      ]
+     }
+    }
+   ],
+   "overlaps": [],
+   "groups": [
+    {
+     "objective": "part-access",
+     "criteria": [
+      "part-lookup"
+     ],
+     "size": 1
+    },
+    {
+     "objective": "low-upkeep",
+     "criteria": [
+      "upkeep-effort"
+     ],
+     "size": 1
+    }
+   ],
+   "provenance": [
+    {
+     "criterionId": "part-lookup",
+     "source": "user-stated",
+     "quote": "Singers need to find their parts quickly before rehearsal."
+    },
+    {
+     "criterionId": "upkeep-effort",
+     "source": "user-stated",
+     "quote": "We can't afford anything that needs a volunteer to maintain it every week."
+    }
+   ],
+   "questions": [
+    "You said the service must sync with your rehearsal calendar app. It is treated here as a way of reducing volunteer upkeep, but I do not know why it matters to you. What does it achieve for the choir? And is it a hard requirement, so that a service without it is ruled out whatever else it does?",
+    "Cost was not mentioned beyond 'can't afford'. Is price a criterion for this decision, or already settled by a budget?",
+    "The choice is for three seasons. Does it matter to you whether the service will still be supported and priced as now in later seasons?",
+    "Are there other things singers or the committee need from the library (for example adding new pieces, or working without internet at rehearsal)? None were stated, so none were added."
+   ]
+  }
+ },
+ {
+  "frameId": "f2",
+  "output": {
+   "ladder": {
+    "objectives": [
+     {
+      "id": "on-time-arrival",
+      "text": "Parts arrive before the competition deadlines"
+     },
+     {
+      "id": "mentor-time",
+      "text": "Mentors do not spend their evenings chasing orders"
+     }
+    ],
+    "edges": [
+     {
+      "from": "dispatch-speed",
+      "to": "on-time-arrival"
+     },
+     {
+      "from": "restock-lead-time",
+      "to": "on-time-arrival"
+     },
+     {
+      "from": "order-chasing",
+      "to": "mentor-time"
+     }
+    ]
+   },
+   "rejected": [
+    {
+     "label": "Orders go through the school's purchase-order system",
+     "reason": "means-objective",
+     "serves": [
+      "order-chasing"
+     ],
+     "note": "Stated as a must. Treated as a way of keeping ordering simple for volunteer mentors, which is an assumption of mine; it is judged through order-chasing, and whether it is a veto is asked."
+    },
+    {
+     "label": "Branding",
+     "reason": "user-rejected",
+     "note": "The user said to forget about branding."
+    },
+    {
+     "label": "Loyalty points and rewards",
+     "reason": "no-discrimination-expected",
+     "note": "Nobody raised it as a reason for the decision; it appears only because the brochures list it."
+    }
+   ],
+   "criteria": [
+    {
+     "id": "dispatch-speed",
+     "label": "Dispatch speed on stocked items",
+     "preference": "increasing",
+     "anchors": [
+      {
+       "level": "1",
+       "text": "A source states that stocked items are dispatched more than five working days after the order."
+      },
+      {
+       "level": "3",
+       "text": "A source states that stocked items are dispatched within two to three working days of the order."
+      },
+      {
+       "level": "5",
+       "text": "A source states that stocked items are dispatched the next working day."
+      }
+     ],
+     "definition": {
+      "objective": "Parts arrive before the competition deadlines",
+      "question": "How soon after an order is a stocked item dispatched?",
+      "evidenceRule": "A dispatch time stated in the supplier's delivery or shipping terms; a general claim of 'fast delivery' does not count.",
+      "missingRules": [
+       {
+        "when": "No source states a dispatch time.",
+        "code": "not-evidenced"
+       },
+       {
+        "when": "Sources give conflicting dispatch times.",
+        "code": "indeterminate"
+       }
+      ],
+      "exclusions": [
+       "Items that are out of stock; that is restock-lead-time.",
+       "Time spent in the carrier's hands after dispatch.",
+       "Delivery charges."
+      ]
+     }
+    },
+    {
+     "id": "restock-lead-time",
+     "label": "Lead time for out-of-stock items",
+     "preference": "increasing",
+     "anchors": [
+      {
+       "level": "1",
+       "text": "A source states that out-of-stock items take several weeks to arrive."
+      },
+      {
+       "level": "3",
+       "text": "A source states that out-of-stock items arrive within one to two weeks."
+      },
+      {
+       "level": "5",
+       "text": "A source states that an out-of-stock item's delivery date is given when ordering and falls within a week."
+      }
+     ],
+     "definition": {
+      "objective": "Parts arrive before the competition deadlines",
+      "question": "How long does an item that is not in stock take to arrive, according to the supplier?",
+      "evidenceRule": "A lead time or restock estimate in the supplier's terms or product pages; forum anecdotes do not count.",
+      "missingRules": [
+       {
+        "when": "No source states a lead time for out-of-stock items.",
+        "code": "not-evidenced"
+       },
+       {
+        "when": "Sources give conflicting lead times.",
+        "code": "indeterminate"
+       },
+       {
+        "when": "The supplier states that every catalogued item is held in stock.",
+        "code": "not-applicable"
+       }
+      ],
+      "exclusions": [
+       "Items that are in stock; that is dispatch-speed.",
+       "How often items are out of stock."
+      ]
+     }
+    },
+    {
+     "id": "order-chasing",
+     "label": "Order chasing by mentors",
+     "preference": "decreasing",
+     "anchors": [
+      {
+       "level": "1",
+       "text": "A source states that order status can only be learned by contacting the supplier directly."
+      },
+      {
+       "level": "3",
+       "text": "A source states that customers can look up order status in an account."
+      },
+      {
+       "level": "5",
+       "text": "A source states that customers get automatic status updates and tracking for each order without contacting the supplier."
+      }
+     ],
+     "definition": {
+      "objective": "Mentors do not spend their evenings chasing orders",
+      "question": "How much must a mentor do to find out where an order is?",
+      "evidenceRule": "The supplier's documentation of order tracking and notifications; a reviewer's general praise of service does not count.",
+      "missingRules": [
+       {
+        "when": "No source describes how order status is communicated.",
+        "code": "not-evidenced"
+       },
+       {
+        "when": "Sources disagree about tracking or notifications.",
+        "code": "indeterminate"
+       }
+      ],
+      "exclusions": [
+       "Orders go through the school's purchase-order system: judge the mentor time, not the mechanism.",
+       "How fast parts are dispatched; that is dispatch-speed."
+      ]
+     }
+    }
+   ],
+   "overlaps": [
+    {
+     "criteria": [
+      "dispatch-speed",
+      "restock-lead-time"
+     ],
+     "via": "on-time-arrival",
+     "probe": "Two options are identical except that one is better on how fast stocked items are dispatched. Do you prefer it, or are you indifferent? And the other way round: identical except that one is better on how fast out-of-stock items arrive. Prefer it, or indifferent?"
+    }
+   ],
+   "groups": [
+    {
+     "objective": "on-time-arrival",
+     "criteria": [
+      "dispatch-speed",
+      "restock-lead-time"
+     ],
+     "size": 2
+    },
+    {
+     "objective": "mentor-time",
+     "criteria": [
+      "order-chasing"
+     ],
+     "size": 1
+    }
+   ],
+   "provenance": [
+    {
+     "criterionId": "dispatch-speed",
+     "source": "user-stated",
+     "quote": "We need parts to arrive before competition deadlines."
+    },
+    {
+     "criterionId": "restock-lead-time",
+     "source": "agent-proposed"
+    },
+    {
+     "criterionId": "order-chasing",
+     "source": "user-stated",
+     "quote": "Mentors are volunteers and can't spend evenings chasing orders."
+    }
+   ],
+   "questions": [
+    "You said everything has to be ordered through the school's purchase-order system. It is treated here as a way of keeping ordering simple for mentors, but I do not know why it matters. What does it achieve? And is it a hard requirement, so that a supplier that cannot be ordered from that way is ruled out whatever else it does?",
+    "Price was not mentioned. Is cost a criterion for this decision, or already settled by a budget?",
+    "Is the lead time for out-of-stock items something you care about, or do you only order stocked items?",
+    "Do you care about product range, quality or compatibility with your kits? None was stated, so none was added."
+   ]
+  }
+ },
+ {
+  "frameId": "f3",
+  "output": {
+   "ladder": {
+    "objectives": [
+     {
+      "id": "prompt-borrowing",
+      "text": "Members can borrow a tool without waiting days"
+     },
+     {
+      "id": "tools-accounted-for",
+      "text": "Every shared tool is accounted for, so nothing goes missing"
+     }
+    ],
+    "edges": [
+     {
+      "from": "borrow-speed",
+      "to": "prompt-borrowing"
+     },
+     {
+      "from": "current-holder-visibility",
+      "to": "tools-accounted-for"
+     },
+     {
+      "from": "overdue-follow-up",
+      "to": "tools-accounted-for"
+     }
+    ]
+   },
+   "rejected": [
+    {
+     "label": "Has a mobile app",
+     "reason": "means-objective",
+     "serves": [
+      "borrow-speed"
+     ],
+     "note": "Stated as a need. Treated as a way of letting members borrow without delay, which is an assumption of mine; it is judged through borrow-speed, and whether it is a veto is asked."
+    },
+    {
+     "label": "Number of languages supported",
+     "reason": "no-discrimination-expected",
+     "note": "Nobody raised it as a reason for the decision; it appears only because the brochures list it."
+    }
+   ],
+   "criteria": [
+    {
+     "id": "borrow-speed",
+     "label": "Speed of borrowing",
+     "preference": "increasing",
+     "anchors": [
+      {
+       "level": "1",
+       "text": "A source states that every borrow needs approval by a society administrator before the member can take the tool."
+      },
+      {
+       "level": "3",
+       "text": "A source states that a member can reserve a tool in advance and the lender confirms the pickup."
+      },
+      {
+       "level": "5",
+       "text": "A source states that a member can borrow an available tool immediately, without anyone approving the request."
+      }
+     ],
+     "definition": {
+      "objective": "Members can borrow a tool without waiting days",
+      "question": "How long does a member wait between asking for an available tool and being able to take it?",
+      "evidenceRule": "The platform's documentation of the borrowing flow and any approval step; general claims of 'quick' do not count.",
+      "missingRules": [
+       {
+        "when": "No source describes the borrowing flow.",
+        "code": "not-evidenced"
+       },
+       {
+        "when": "Sources disagree about whether approval is needed.",
+        "code": "indeterminate"
+       }
+      ],
+      "exclusions": [
+       "Has a mobile app: judge the waiting time, not the mechanism.",
+       "Whether the tool is physically available; that depends on the society's stock."
+      ]
+     }
+    },
+    {
+     "id": "current-holder-visibility",
+     "label": "Seeing who holds each tool",
+     "preference": "increasing",
+     "anchors": [
+      {
+       "level": "1",
+       "text": "A source states that the platform does not record who has a borrowed tool, and members must ask around."
+      },
+      {
+       "level": "3",
+       "text": "A source states that the lender can see who borrowed each of their tools."
+      },
+      {
+       "level": "5",
+       "text": "A source states that every member can see, for each tool, who currently holds it and since when."
+      }
+     ],
+     "definition": {
+      "objective": "Every shared tool is accounted for, so nothing goes missing",
+      "question": "At any moment, can the society see who currently holds a given tool?",
+      "evidenceRule": "The platform's documentation of loan records and what each user role can see.",
+      "missingRules": [
+       {
+        "when": "No source describes whether current holders are recorded or visible.",
+        "code": "not-evidenced"
+       },
+       {
+        "when": "Sources disagree about what is visible.",
+        "code": "indeterminate"
+       }
+      ],
+      "exclusions": [
+       "Reminders and chasing of late returns; that is overdue-follow-up.",
+       "How quickly a tool can be borrowed; that is borrow-speed."
+      ]
+     }
+    },
+    {
+     "id": "overdue-follow-up",
+     "label": "Follow-up on unreturned tools",
+     "preference": "increasing",
+     "anchors": [
+      {
+       "level": "1",
+       "text": "A source states that loans have no due date."
+      },
+      {
+       "level": "3",
+       "text": "A source states that loans have a due date and overdue loans are listed for the lender to see."
+      },
+      {
+       "level": "5",
+       "text": "A source states that borrowers are reminded automatically before the due date and overdue loans are flagged to the society."
+      }
+     ],
+     "definition": {
+      "objective": "Every shared tool is accounted for, so nothing goes missing",
+      "question": "What does the platform do when a tool is not returned by its due date?",
+      "evidenceRule": "The platform's documentation of due dates, reminders and overdue handling.",
+      "missingRules": [
+       {
+        "when": "No source describes due dates or overdue handling.",
+        "code": "not-evidenced"
+       },
+       {
+        "when": "Sources disagree about reminders or overdue handling.",
+        "code": "indeterminate"
+       }
+      ],
+      "exclusions": [
+       "Seeing who holds a tool right now; that is current-holder-visibility.",
+       "Charging fees or penalties."
+      ]
+     }
+    }
+   ],
+   "overlaps": [
+    {
+     "criteria": [
+      "current-holder-visibility",
+      "overdue-follow-up"
+     ],
+     "via": "tools-accounted-for",
+     "probe": "Two options are identical except that one is better on showing who holds each tool. Do you prefer it, or are you indifferent? And the other way round: identical except that one is better on following up on overdue tools. Prefer it, or indifferent?"
+    }
+   ],
+   "groups": [
+    {
+     "objective": "prompt-borrowing",
+     "criteria": [
+      "borrow-speed"
+     ],
+     "size": 1
+    },
+    {
+     "objective": "tools-accounted-for",
+     "criteria": [
+      "current-holder-visibility",
+      "overdue-follow-up"
+     ],
+     "size": 2
+    }
+   ],
+   "provenance": [
+    {
+     "criterionId": "borrow-speed",
+     "source": "user-stated",
+     "quote": "Members should be able to borrow a tool without waiting days."
+    },
+    {
+     "criterionId": "current-holder-visibility",
+     "source": "user-stated",
+     "quote": "We want to know who has which tool so nothing goes missing."
+    },
+    {
+     "criterionId": "overdue-follow-up",
+     "source": "agent-proposed"
+    }
+   ],
+   "questions": [
+    "You said the platform needs a mobile app. It is treated here as a way of letting members borrow quickly, but I do not know why it matters. What does it achieve? And is it a hard requirement, so that a platform without it is ruled out whatever else it does?",
+    "Cost was not mentioned. Is price a criterion for this decision, or already settled by a budget or free tier?",
+    "Is following up on overdue tools something the society wants, or is knowing who holds each tool enough?",
+    "What does 'waiting days' mean in practice: approval by an administrator, finding the tool's owner, or something else?"
+   ]
+  }
+ },
+ {
+  "frameId": "f4",
+  "output": {
+   "ladder": {
+    "objectives": [
+     {
+      "id": "group-has-route",
+      "text": "The group has the route the evening before the walk"
+     }
+    ],
+    "edges": [
+     {
+      "from": "share-with-group",
+      "to": "group-has-route"
+     }
+    ]
+   },
+   "rejected": [
+    {
+     "label": "Exports GPX files",
+     "reason": "means-objective",
+     "serves": [
+      "share-with-group"
+     ],
+     "note": "Stated as a must. Treated as a way of getting a route to the group and into their devices or other apps, which is an assumption of mine; it is judged through share-with-group, and whether it is a veto is asked."
+    },
+    {
+     "label": "Social feed",
+     "reason": "user-rejected",
+     "note": "The user said nobody cares about the social feed."
+    },
+    {
+     "label": "Badges and achievements",
+     "reason": "no-discrimination-expected",
+     "note": "Nobody raised it as a reason for the decision; it appears only because the brochures list it."
+    }
+   ],
+   "criteria": [
+    {
+     "id": "share-with-group",
+     "label": "Sharing a route with the group",
+     "preference": "increasing",
+     "anchors": [
+      {
+       "level": "1",
+       "text": "A source states that a shared route can only be opened in the app by people who have an account."
+      },
+      {
+       "level": "3",
+       "text": "A source states that a leader can send a route to the group as a link that opens in a browser, but sending to many people means repeating the step for each."
+      },
+      {
+       "level": "5",
+       "text": "A source states that a leader can send a route to the whole group at once, and recipients can open it without an account or installing the app."
+      }
+     ],
+     "definition": {
+      "objective": "The group has the route the evening before the walk",
+      "question": "How can a leader get a planned route to every member of the group, and what must members have to open it?",
+      "evidenceRule": "The app's documentation of sharing and what recipients need; marketing phrases such as 'easy sharing' do not count.",
+      "missingRules": [
+       {
+        "when": "No source describes how a route is shared or what recipients need.",
+        "code": "not-evidenced"
+       },
+       {
+        "when": "Sources disagree about what recipients need.",
+        "code": "indeterminate"
+       }
+      ],
+      "exclusions": [
+       "Exports GPX files: judge whether the group can get the route, not the file format.",
+       "The social feed or any public posting of routes.",
+       "How the route was planned."
+      ]
+     }
+    }
+   ],
+   "overlaps": [],
+   "groups": [
+    {
+     "objective": "group-has-route",
+     "criteria": [
+      "share-with-group"
+     ],
+     "size": 1
+    }
+   ],
+   "provenance": [
+    {
+     "criterionId": "share-with-group",
+     "source": "user-stated",
+     "quote": "Leaders need to share a route with the group the evening before."
+    }
+   ],
+   "questions": [
+    "You said the app has to export GPX files. It is treated here as a way of getting a route to the group, but I do not know why it matters. What does it achieve (for example loading routes on members' own devices)? And is it a hard requirement, so that an app without it is ruled out whatever else it does?",
+    "What do group members have: smartphones, a particular app, or only email? That decides what counts as sharing well.",
+    "Walk leaders also plan routes in the app. Is planning quality (for example maps, elevation, offline use) something you care about? Nothing was stated, so no criterion was added.",
+    "Cost was not mentioned. Is price a criterion, or already settled?"
+   ]
+  }
+ }
+]
