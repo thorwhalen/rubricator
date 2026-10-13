@@ -81,3 +81,12 @@ def test_a_vendored_file_is_read_only_if_it_matches_its_pin(tmp_path) -> None:
     (tmp_path / "stray.json").write_bytes(b"{}")
     with pytest.raises(ValueError, match="has no pin"):
         read_pinned("stray.json", directory=tmp_path)
+
+
+def test_the_last_guard_against_nan_still_refuses() -> None:
+    """Every route a NaN once took to it is now refused earlier (a page region by the
+    locator profile); the guard stays, as the line behind them, and is held here."""
+    from rubricator.tools.analysis import _as_stored
+
+    with pytest.raises(ValueError, match="NaN or infinite"):
+        _as_stored({"rect": {"x": float("nan")}})
