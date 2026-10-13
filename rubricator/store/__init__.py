@@ -17,6 +17,7 @@ port would be a method on something that is already a Mapping.
     analyses/{analysis_id}/contributions/{contributor_id}.json
     analyses/{analysis_id}/renditions/{rendition_id}.json
     analyses/{analysis_id}/confirmations/{sequence}-{digest}.json
+    analyses/{analysis_id}/corpus/{rendition_id}/{record}.json
 
 **One file per contributor.** That is not a filing convention; it is what makes
 a shared git repository a viable backend without a locking protocol. Two people
@@ -40,6 +41,13 @@ caller-supplied moment, which a model could set in the future to outrank a
 later human ``revise`` -- and two branches that wrote the same sequence keep
 both. The store does not judge between them; the gate resolves such a tie
 toward caution (:func:`rubricator.tools.confirm.ordered`).
+
+The corpus records (#53) sit beside the renditions for the same reason: what
+``corpus_add`` keeps about a document beyond the rendition -- its chunk spans,
+whether normalisation cleaned it, and the ADR-0015 agent-produced marker --
+has no slot in comparanda v1 (#200). Each kind is its own file, so the marker is
+a file whose *presence* is the fact: two branches that disagree about it merge
+to "marked", and nothing can clear it by overwriting a field.
 
 ## Where it lives
 
@@ -457,6 +465,10 @@ class AnalysisStore:
         return f"analyses/{analysis_id}/confirmations/{name}.json"
 
     @staticmethod
+    def corpus_key(analysis_id: str, rendition_id: str, record: str) -> str:
+        return f"analyses/{analysis_id}/corpus/{rendition_id}/{record}.json"
+
+    @staticmethod
     def stamp_prefix(key: str) -> str:
         """The directory holding the stamps that date ``key``'s last write."""
         _, analysis_id, rest = key.split("/", 2)
@@ -827,6 +839,34 @@ class AnalysisStore:
         check_id(rendition["id"])
         self._require(analysis_id)
         self._write(self.rendition_key(analysis_id, rendition["id"]), rendition)
+
+    def corpus_records(self, analysis_id: str) -> dict[str, dict[str, Any]]:
+        """Every corpus record, by rendition id and then by record name.
+
+        A file that does not parse is kept as ``{"unreadable": True}`` rather than
+        skipped: for the agent-produced marker, presence is the fact, and a damaged
+        marker must still mark.
+        """
+        self._require(analysis_id)
+        prefix = f"analyses/{analysis_id}/corpus/"
+        records: dict[str, dict[str, Any]] = {}
+        for key in sorted(k for k in self.blobs if k.startswith(prefix) and k.endswith(".json")):
+            rendition_id, _, name = key[len(prefix):-len(".json")].partition("/")
+            try:
+                record = self._read(key)
+            except (ValueError, UnicodeDecodeError):
+                record = {"unreadable": True}
+            records.setdefault(rendition_id, {})[name] = record
+        return records
+
+    def put_corpus_record(
+        self, analysis_id: str, rendition_id: str, record: str, document: dict[str, Any]
+    ) -> None:
+        check_id(analysis_id)
+        check_id(rendition_id)
+        check_id(record)
+        self._require(analysis_id)
+        self._write(self.corpus_key(analysis_id, rendition_id, record), document)
 
     def _confirmation_keys(self, analysis_id: str) -> list[str]:
         prefix = f"analyses/{analysis_id}/confirmations/"

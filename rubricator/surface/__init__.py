@@ -64,6 +64,7 @@ __all__ = [
 TOOL_REFS: tuple[str, ...] = (
     "rubricator.tools.analysis:analysis_open",
     "rubricator.tools.views:analysis_get",
+    "rubricator.tools.corpus:corpus_add",
     "rubricator.tools.analysis:frame_set",
     "rubricator.tools.analysis:alternatives_set",
     "rubricator.tools.analysis:criteria_set",
@@ -96,6 +97,7 @@ NEEDS_ID: frozenset[str] = frozenset({"analysis_open"})
 _NEEDS_STORE: frozenset[str] = frozenset({
     "analysis_open", "analysis_get", "frame_set", "alternatives_set", "frame_confirm", "criteria_set",
     "measures_write", "measures_mark_missing", "report_completeness", "aggregate_assertions",
+    "corpus_add",
 })
 
 

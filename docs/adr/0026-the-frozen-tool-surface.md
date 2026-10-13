@@ -19,7 +19,7 @@ One more force. The closed comparanda v1 schema refuses unknown keys, and the wr
 |---|---|---|---|---|---|---|---|
 | 1 | `analysis_open` | analysis | 1, resume | implemented | yes | — | 1 |
 | 2 | `analysis_get` | analysis | all | implemented (#52) | yes | — | 2 |
-| 3 | `corpus_add` | corpus | 2, 5 | planned (#53) | yes | — | 3 |
+| 3 | `corpus_add` | corpus | 2, 5 | implemented (#53) | yes | — | 3 |
 | 4 | `corpus_search` | corpus | 2, 3, 5 | planned (#54) | yes | — | 4 |
 | 5 | `frame_set` | frame | 1 | implemented | yes | — | 5 |
 | 6 | `alternatives_set` | alternatives | 2 | implemented (checks: #55) | yes | — | 6 |
@@ -159,3 +159,17 @@ Re-measured on 2026-10-12 against `claude-sonnet-5-5`:
 `analysis_get`'s `counts` gains `byKind` (required: an output-only addition, like `stage` and `superseded` before it, so an amendment recorded here rather than the optional-field row edit the freeze policy allows by itself): `scored`, `settledBlank` and `notApplicable`, in **cells**. A live cell with a live value is scored whatever else it holds; otherwise a terminal blank makes it a settled blank, otherwise a structural one makes it not applicable; anything else is outstanding. So `byKind` plus `outstanding` adds up to `cells`, which is what a resuming reader needs: one unit, checkable against one total. `rubricator.tools.views.cells_by_kind` owns the rule and `outstanding_cells` is a filter over it. The outstanding rows and their codes are unchanged.
 
 `report_completeness` now leaves out the claims on a tombstoned alternative or criterion. They already left every comparison and every `analysis_get` count, and three scores on a removed row were still counted as `present`. This moves `total`, `present`, `settledAbsent`, `structural`, `applicable`, `informativeAbsent`, `outstanding`, the rates and the degradations found in those claims for an analysis with removed rows; for any other analysis nothing changes. It still counts claims, not cells: two raters on one cell count twice, and a superseded claim still counts, so its numbers are not cells and the resume prompt no longer reads it.
+
+### 2026-10-13 — `corpus_add` lands, and every source says whether a model wrote it (#53)
+
+- **Deciders:** Thor Whalen (the input amendment and the unmeasured definitions are recorded here so they can be reversed; the measurement is owed in #199)
+
+Row 3 is implemented, in `rubricator/tools/corpus.py`. A source's text is normalised once under the current normaliser (`nfc-v1`) and stored as a comparanda `Rendition` whose `content` is exactly that normalised text: no title or preamble is prepended, because it is what quotes resolve against. Its id is derived from the normaliser and the hash of the text as supplied, so the same text twice is one document, and the same text under a later normaliser is a second document rather than a rewrite of the first's offsets. A normaliser whose output no longer matches its pin refuses the call. The chunker is versioned too (`chunk-v1`): it records `[start, end)` offsets into `content` and never re-chunks a stored document.
+
+**One input amendment.** Each source gains `agentProduced`, required. ADR-0015 says the marker is applied at ingestion and that no path leaves it unset; a required boolean is how a caller cannot leave it unset. The description asks for `true` when unsure. The verb also marks, whatever the caller says, any text it recognises as rubricator's own output (a comparanda analysis document, for now). It never clears a marker: re-adding a marked document undeclared keeps it marked and says so.
+
+**Outputs added.** `documents` (one row per source, in order: the id, whether it was added or already present, whether normalisation changed it, whether it is marked, its span count and token estimate) and `corpusTokenEstimate`, the estimate for the whole corpus, which is the number the inline-or-retrieve threshold reads. Token figures are estimates at four characters a token and are called estimates in the summary.
+
+**Where what v1 has no slot for lives.** The spans, `cleaned`, and the marker sit beside the rendition as corpus records, `analyses/{id}/corpus/{renditionId}/{ingest,agent-produced}.json`, as the step-4 confirmations did (#152). The marker is a file whose presence is the fact, so two branches merge to "marked". #200 asks whether to request a slot for the marker on comparanda's `Rendition`. Turning the marker into "secondary at best" at the write path is a separate change, because that is `measures_write`'s refusal to make.
+
+**Not re-measured.** These definitions were changed on a machine with no provider key. `MEASURED` below is still the 2026-10-12 count; `AWAITING_MEASUREMENT` in `frozen.py` pins the digest and byte size of what is now served (15 advertised tools, 20,213 bytes; the whole surface, 22 tools, 26,426 bytes) and names #199, which owes the count. The test accepts that pin only while #199 is named here, and any further definitions change still fails it. No estimate is recorded as a count.
