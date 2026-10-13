@@ -20,7 +20,11 @@ allows by explicit instruction and never by default. A later ``revise`` or
 ``reject`` closes the gate again until a new ``confirm``. A criteria revision
 does not: ADR-0005 says the gate opens both ways and ADR-0016 owns what a
 revision costs, so the record keeps the version it was given against and the
-tool reports when the set has moved since (#152 records the choice).
+tool reports when the set has moved since (#152 records the choice). Rows,
+columns and the frame's wording move without a version, so each record also
+keeps what each part held when it was given (:func:`covered`), and anything new
+since is put to the user again the same way (#195): retiring every confirmed criterion and alternative
+and declaring new ones is not something an earlier "confirm" answered.
 
 The records live beside the document, not in it: comparanda v1 has no slot
 for one (#152).
@@ -28,13 +32,15 @@ for one (#152).
 
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Any, Mapping, Sequence
 
 from rubricator.store import AnalysisStore
 
 __all__ = [
     "frame_confirm", "record_decision", "gate", "ordered", "refuse_unconfirmed", "skip_record",
-    "PARTS", "SCOPES", "DECISIONS", "OUT_OF_BAND_INSTRUCTIONS",
+    "PARTS", "SCOPES", "DECISIONS", "OUT_OF_BAND_INSTRUCTIONS", "covered",
 ]
 
 #: The parts of an analysis a confirmation can cover; ``all`` covers every one.
@@ -60,6 +66,64 @@ OUT_OF_BAND_INSTRUCTIONS = (
     "they go by, and confirmation_text set to their reply word for word. On revise, make the "
     "changes they asked for, then call frame_confirm with no decision to ask again."
 )
+
+
+def covered(frame: Mapping[str, Any]) -> dict[str, Any]:
+    """What each part shows the user, kept on a confirmation so a later read can tell it moved.
+
+    The frame is a digest of its question, decision, decider and open
+    ambiguities; the alternatives are the live rows as ``[id, label]``; the
+    criteria are the live column ids -- their meaning is ``criteriaVersion``'s
+    to track. Read tolerantly: a damaged list is kept as what it holds.
+
+    >>> covered({"subject": {"question": "which?"}, "criteria": [{"id": "c"}, {"id": "d", "tombstoned": True}],
+    ...          "alternatives": [{"id": "k0", "label": "K"}]})["criteria"]
+    ['c']
+    """
+    def live(key: str) -> list[Mapping[str, Any]]:
+        rows = frame.get(key)
+        return [r for r in rows if isinstance(r, Mapping) and not r.get("tombstoned")] \
+            if isinstance(rows, list) else []
+
+    subject = frame.get("subject") if isinstance(frame.get("subject"), Mapping) else {}
+    wording = {k: subject.get(k) for k in ("question", "decision", "decider", "ambiguities")}
+    canonical = json.dumps(wording, sort_keys=True, separators=(",", ":"), ensure_ascii=False,
+                           default=str)
+    return {
+        "frame": "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+        "alternatives": sorted([str(a.get("id")), str(a.get("label"))] for a in live("alternatives")),
+        "criteria": sorted(str(c.get("id")) for c in live("criteria")),
+    }
+
+
+def _moved(state: Mapping[str, Any], frame: Mapping[str, Any]) -> list[str]:
+    """How each part moved past the confirmation that decides it, in words; empty when none did.
+
+    The frame moved when its wording did. A row or column moved in when it is
+    live now and was not then; one retired since was confirmed, and narrowing
+    asks nothing new. A skip confirmed nothing, so it has nothing to move from.
+    A record that kept nothing (written before records did) cannot say, so its
+    part is put to the user again: asking is the cheap side of not knowing.
+    """
+    now = covered(frame)
+    out = []
+    for part in PARTS:
+        record = state["deciding"][part]
+        if record is None or record.get("mechanism") == "skip-at-open":
+            continue
+        kept = record.get("covered")
+        then = kept.get(part) if isinstance(kept, Mapping) else None
+        if part == "frame":
+            if then != now[part]:
+                out.append("the frame's question, decision, decider or ambiguities changed")
+            continue
+        seen = {json.dumps(x, default=str) for x in then} if isinstance(then, list) else None
+        new = [x for x in now[part] if seen is None or json.dumps(x) not in seen]
+        if new:
+            names = ", ".join(x[0] if isinstance(x, list) else x for x in new)
+            out.append(f"alternatives added or relabelled: {names}" if part == "alternatives"
+                       else f"criteria added: {names}")
+    return out
 
 
 def _kind(record: Mapping[str, Any]) -> str:
@@ -206,6 +270,7 @@ def record_decision(
     record = {
         "decision": decision, "scope": scope, "authorId": author_id, "at": at, "text": text,
         "criteriaVersion": effective_version(frame.get("criteriaVersion")),
+        "covered": covered(frame),
         "mechanism": mechanism,
     }
     store.add_confirmation(analysis_id, record)
@@ -271,20 +336,25 @@ def frame_confirm(
         if state["open"]:
             deciding = state["deciding"]["criteria"]
             version = deciding.get("criteriaVersion")
-            if version in (None, current):
+            moved = _moved(state, frame)
+            if version in (None, current) and not moved:
                 standing, skipped = _standing(state)
                 return result(
                     True, "recorded", deciding, None,
                     f"{standing}; scoring is open" if skipped else f"already {standing}; nothing to ask",
                 )
-            # The set has moved since: scoring stays open (ADR-0005's gate opens
-            # both ways), but the question is put again so a fresh confirm of
-            # the new version can be recorded.
+            # Something moved since: scoring stays open (ADR-0005's gate opens
+            # both ways, #152), but the question is put again so a fresh confirm
+            # of what is there now can be recorded.
             ask()
+            by = deciding.get("authorId", "agent")
             return result(
                 True, "recorded", deciding, OUT_OF_BAND_INSTRUCTIONS,
-                f'confirmed by {deciding.get("authorId", "agent")} at version "{version}"; the criteria are '
-                f'now at "{current}", so put them to the user again and record their answer.',
+                f'confirmed by {by} at version "{version}"; the criteria are now at "{current}", so '
+                "put them to the user again and record their answer."
+                if version not in (None, current) else
+                f"confirmed by {by}; since then, {'; '.join(moved)}. Put the frame and criteria "
+                "to the user again and record their answer.",
             )
         ask()
         last = next((r for r in reversed(records) if _kind(r) != "request"), None)
