@@ -123,6 +123,38 @@
         "userRejected": "social"
       },
       "added": "after the first revision; never seen while revising"
+    },
+    {
+      "id": "f5",
+      "subject": {
+        "question": "Which ticketing service should the youth theatre use for its shows?",
+        "decision": "Choose one ticketing service for the coming year",
+        "decider": "the theatre's trustees"
+      },
+      "alternatives": [
+        {
+          "id": "curtaincall",
+          "label": "CurtainCall",
+          "brochure": "Online tickets for small venues. Customisable colour themes. Seat maps."
+        },
+        {
+          "id": "boxoffice-lite",
+          "label": "BoxOffice Lite",
+          "brochure": "Simple ticketing. Pick your colour theme. Door scanning app."
+        },
+        {
+          "id": "stagedoor",
+          "label": "StageDoor",
+          "brochure": "Ticketing and merchandise. Themes to match your brand. Allocated seating."
+        }
+      ],
+      "user": "Parents should be able to buy tickets in under a minute. It has to take card payments at the door. We are sick of double-booked seats. Don't bother with merchandise sales.",
+      "expected": {
+        "means": "card",
+        "trap": "theme",
+        "userRejected": "merchandise"
+      },
+      "added": "after the adversarial review's revision; never seen while revising"
     }
   ]
 }

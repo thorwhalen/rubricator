@@ -113,10 +113,21 @@ def _mutated(change):
      "loops back on itself"),
     (lambda p: p["overlaps"].clear(), "mobile-booking and short-notice-booking both refine member-access"),
     (lambda p: p["overlaps"][0].update(probe=""), "carries no indifference question"),
-    (lambda p: p["rejected"][1].update(reason="too-many"), "'too-many' is not one of"),
-    (lambda p: p["rejected"][1].update(reason="merged-into", mergedInto="ghost"), "names no proposed criterion"),
+    (lambda p: p["rejected"].append({"label": "x", "reason": "too-many"}), "'too-many' is not one of"),
+    (lambda p: p["rejected"].append({"label": "x", "reason": "merged-into", "mergedInto": "ghost"}),
+     "names no proposed criterion"),
     (lambda p: p["criteria"][2]["definition"].update(exclusions=["The price."]),
-     "is not named in the exclusions of admin-time"),
+     "no exclusion of admin-time begins with the means objective's label"),
+    (lambda p: p["rejected"][0].update(label="the"), "no exclusion of admin-time begins"),
+    (lambda p: p["rejected"][0].update(label=" "), "rejected[0]: has no label"),
+    (lambda p: p["ladder"]["objectives"].append({"id": "safety", "text": "s"}) or
+     p["ladder"]["edges"].append({"from": "mobile-booking", "to": "safety"}),
+     "mobile-booking refines member-access, safety"),
+    (lambda p: p["ladder"]["objectives"].append({"id": "admin-time", "text": "t"}),
+     "admin-time is declared both as an objective and as a criterion"),
+    (lambda p: p["criteria"][0]["definition"].update(exclusions=[]), "mobile-booking has no exclusions"),
+    (lambda p: p["criteria"][0]["definition"].update(missingRules=[]), "mobile-booking has no missingRules"),
+    (lambda p: p["criteria"].append(dict(p["criteria"][0])), "mobile-booking is proposed twice"),
     (lambda p: p["groups"][0].update(size=3), "member-access has 2 criteria under it"),
     (lambda p: p["groups"].pop(), "committee-workload is not reported with its size"),
     (lambda p: p["provenance"][0].pop("quote"), "quotes nothing the user said"),
@@ -125,3 +136,34 @@ def _mutated(change):
 def test_each_broken_proposal_is_named(change, says) -> None:
     problems = _mutated(change)
     assert any(says in p for p in problems), problems
+
+
+@pytest.mark.parametrize("change", [
+    lambda p: p["ladder"]["objectives"].append({"text": "no id"}),
+    lambda p: p["ladder"].update(edges=None),
+    lambda p: p.update(criteria=None, rejected=None, groups=None),
+    lambda p: p["criteria"][0]["definition"].update(exclusions=None),
+    lambda p: p["overlaps"].append("not an object"),
+    lambda p: p["overlaps"].append({"criteria": ["mobile-booking", None], "via": "member-access"}),
+    lambda p: p["ladder"]["edges"].append({"to": "member-access"}),
+    lambda p: p.update(ladder="not a ladder"),
+])
+def test_a_malformed_proposal_is_reported_never_raised(change) -> None:
+    """A model's output is read here; one bad answer must not stop a whole grading run."""
+    assert isinstance(_mutated(change), list)
+
+
+def test_the_recorded_evaluation_still_grades_as_recorded() -> None:
+    """A change to the checker that moved the published numbers would otherwise go unnoticed."""
+    import importlib.util
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    spec = importlib.util.spec_from_file_location("grader", root / "scripts/propose_criteria_adherence.py")
+    grader = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(grader)
+    frames = json.loads((root / "docs/evaluation/propose-criteria/frames.json").read_text())
+    for arm in ("sonnet", "haiku"):
+        path = root / f"docs/evaluation/propose-criteria/2026-10-13/out-v1-{arm}.json"
+        row = grader.grade(frames, json.loads(path.read_text()))
+        assert all(hits == total for hits, total in (v.split("/") for v in row.values())), (arm, row)

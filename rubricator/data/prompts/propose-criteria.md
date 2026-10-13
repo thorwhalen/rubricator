@@ -9,7 +9,7 @@ missing-codes:
   - indeterminate
   - not-applicable
 changelog:
-  - 1 (2026-10-13) — First version. Revised once before landing against a blind run in which one model only asked about a requirement the user stated with "must" (or made it a column) instead of rejecting it as a means objective, mislabelled a brochure feature as user-rejected while the thing the user dismissed went unrecorded, and hid absences inside anchor clauses ("states X but does not state Y"); the second model paraphrased means objectives in exclusions where a checker needs the label. Generates criteria by value-focused thinking (why is that important, up; what do you mean by that, down) and emits the objective ladder itself, so double-counting candidates are found by walking a graph with no model call rather than by correlating scores afterwards. Rejected candidates leave with a closed reason code, means objectives become the exclusions of the criteria they serve, overlapping siblings go to the user as indifference questions, and too many criteria are grouped with their sizes reported, never cut. Hypothesis: every proposal is accepted by criteria_set with no repair and no definition gaps, its ladder's leaves are exactly its criteria, and a means objective the user states is rejected as one rather than promoted to a column.
+  - 1 (2026-10-13) — First version. Revised once before landing against a blind run in which one model only asked about a requirement the user stated with "must" (or made it a column) instead of rejecting it as a means objective, mislabelled a brochure feature as user-rejected while the thing the user dismissed went unrecorded, and hid absences inside anchor clauses ("states X but does not state Y"); the second model paraphrased means objectives in exclusions where a checker needs the label. Revised again after an adversarial review: a feature only the alternatives' descriptions raise is not a candidate and is asked about rather than rejected (the worked example had taught the wrong reason code for it, #175); a means objective's exclusion begins with its label and the criterion's anchors describe the outcome, not the means; target and anchor levels are stated on the 1-5 scale; group imbalance is raised. Generates criteria by value-focused thinking (why is that important, up; what do you mean by that, down) and emits the objective ladder itself, so double-counting candidates are found by walking a graph with no model call rather than by correlating scores afterwards. Rejected candidates leave with a closed reason code, means objectives become the exclusions of the criteria they serve, overlapping siblings go to the user as indifference questions, and too many criteria are grouped with their sizes reported, never cut. Hypothesis: every proposal is accepted by criteria_set with no repair and no definition gaps, its ladder's leaves are exactly its criteria, and a means objective the user states is rejected as one rather than promoted to a column.
 ---
 
 # Propose the criteria
@@ -51,7 +51,11 @@ product. So:
 
 Criteria come from the decider's **objectives**: what they want this decision to achieve. They do
 not come from the alternatives. If every candidate's brochure lists its colour options, that is a
-fact about brochures, not a reason to make colour a column. A criterion that exists because the
+fact about brochures, not a reason to make colour a column. A feature that appears only in the
+alternatives' descriptions is **not a candidate at all**: do not list it in `rejected`, because no
+objective proposed it. If you think the decider might care about it, ask in `questions` ("all three
+advertise colour options; does that matter to you?"), and their answer makes it a candidate or
+settles it. A criterion that exists because the
 alternatives happen to differ on it, rather than because the decider cares, is the most common way a
 matrix fills up with columns that answer nothing.
 
@@ -69,9 +73,11 @@ Stop. Chains are usually one to four steps.
 
 **A means objective is never promoted to a criterion** — not even when the user says it "must"
 happen or "has to" be there. It is listed in `rejected`, with reason `means-objective`, naming the
-criteria it serves; and each of those criteria names it in its `exclusions`, using the rejected
-`label` word for word ("Integrates with the membership list: judge the committee time, not the
-mechanism"). It is not discarded: it tells a scorer what that criterion is *not* about.
+criteria it serves; and each of those criteria names it in its `exclusions`, as an entry that
+begins with the rejected `label` word for word and a colon ("Integrates with the membership list:
+judge the committee time, not the mechanism"). Its anchors then describe the outcome the means
+would deliver, never the means itself — otherwise the column rejects the label and keeps the
+substance. It is not discarded: it tells a scorer what that criterion is *not* about.
 
 When the user's "must" might mean a hard requirement — a system without it is ruled out whatever
 else it does — do both: reject it as a means objective **and** ask in `questions` whether it is a
@@ -90,12 +96,13 @@ refines. The edges point upwards, from the refinement to what it refines.
 
 Each criterion has to be scoreable by someone who was not here. So each carries:
 
-- `id` (short, kebab-case) and `label`.
+- `id` (short, kebab-case, unique) and `label`.
+- No `scale`: every criterion here uses the analysis's default, the anchored 1-5 ordinal scale.
 - `preference` — the direction: `increasing` (more is better), `decreasing`, `target` (with a numeric
-  `target`), `ordered` or `none`. State it; never leave it to a default. If the direction would flip
+  `target` that is a level on the 1-5 scale), `ordered` or `none`. State it; never leave it to a default. If the direction would flip
   somewhere along the range — a percentage whose base differs between alternatives is the usual
   trap — the criterion is not well defined yet: split it, or ask.
-- `anchors` at levels `1`, `3` and `5`, each written as an **evidence condition** — "a source states
+- `anchors` at levels `"1"`, `"3"` and `"5"` (the level is a string), each written as an **evidence condition** — "a source states
   X" — never as an adjective. "Good mobile support" is a taste; "a source states every booking
   action is available in the mobile app" is something a scorer can check against a quoted span.
   Write each anchor as something a source can state, **never as an absence** ("no source mentions
@@ -126,7 +133,7 @@ Every candidate you considered and did not propose is listed in `rejected`, with
 | `means-objective` | it is a way of achieving another criterion; name them in `serves` |
 | `merged-into` | it meant the same as another criterion; name it in `mergedInto` |
 | `not-controllable` | the choice among these alternatives does not affect it; it belongs in the frame as an assumption |
-| `no-discrimination-expected` | the decider cares, but nothing suggests the alternatives could differ on it |
+| `no-discrimination-expected` | the decider cares, but nothing suggests the alternatives could differ on it — never for something only the alternatives' descriptions raised |
 | `user-rejected` | the user dismissed it ("forget about X", "we don't care about Y") — and every such thing appears here, with this code and no other |
 
 A criteria set with no visible rejects is a criteria set nobody interrogated.
@@ -148,9 +155,10 @@ consequence of the other, with `via` naming either one.
 Do not drop a criterion because the list is long. Splitting one objective into many columns
 silently gives it more weight, and cutting hides that the split happened. The fundamental objectives
 are the groups: report each in `groups` with its criteria and their **count**, every time, so an
-uneven tree is visible. Above seven criteria, say in `questions` that the user should look at the
-grouping; above fifteen, say that scoring should not start until the user has confirmed the set is
-meant to be that large.
+uneven tree is visible. If one group holds three or more times as many criteria as another, say so in
+`questions`: that objective will weigh more unless someone chose it. Above seven criteria, say in
+`questions` that the user should look at the grouping; above fifteen, say that scoring should not
+start until the user has confirmed the set is meant to be that large.
 
 ## Check before you emit
 
@@ -202,9 +210,7 @@ up to a fundamental objective, members getting on the water, and down to two lea
   },
   "rejected": [
     {"label": "Integrates with the membership list", "reason": "means-objective", "serves": ["admin-time"],
-     "note": "Important because it saves re-keying members and stops lapsed members booking; a way of reducing admin, judged through admin-time."},
-    {"label": "Available in the club colours", "reason": "no-discrimination-expected",
-     "note": "Nobody raised it as a reason for the decision; it appears only because the brochures list it."}
+     "note": "Important because it saves re-keying members and stops lapsed members booking; a way of reducing admin, judged through admin-time."}
   ],
   "criteria": [
     {
@@ -251,14 +257,14 @@ up to a fundamental objective, members getting on the water, and down to two lea
       "label": "Committee admin time",
       "preference": "decreasing",
       "anchors": [
-        {"level": "1", "text": "A source states that member records must be entered and maintained by hand."},
-        {"level": "3", "text": "A source states that member records can be imported, but changes must be repeated by hand."},
-        {"level": "5", "text": "A source states that member records and their changes reach the system without committee action."}
+        {"level": "1", "text": "A source states that the committee must add each new member and record each renewal and lapse itself."},
+        {"level": "3", "text": "A source states that members can register themselves, but the committee must record renewals and lapses."},
+        {"level": "5", "text": "A source states that joining, renewing and lapsing take effect in the system with no committee step."}
       ],
       "definition": {
         "objective": "Running bookings takes little committee time",
-        "question": "How much of the member-record upkeep does the committee have to do by hand?",
-        "evidenceRule": "The vendor's documentation of how member records are created and kept up to date.",
+        "question": "Which steps of keeping booking rights in line with membership does the committee have to do itself?",
+        "evidenceRule": "The vendor's documentation of what happens when a member joins, renews or lapses; the mechanism behind it is not evidence either way.",
         "missingRules": [
           {"when": "No source describes how member records are maintained.", "code": "not-evidenced"},
           {"when": "The club does not keep member records at all.", "code": "not-applicable"}
@@ -282,13 +288,16 @@ up to a fundamental objective, members getting on the water, and down to two lea
   ],
   "questions": [
     "Cost was not mentioned. Is it a criterion for this decision, or already settled by a budget?",
+    "All three systems advertise a choice of colour themes. Does that matter to you?",
     "You said the system has to integrate with the membership list. It is treated here as a way of reducing admin time. Is it instead a hard requirement, so that a system without it is ruled out whatever else it does?"
   ]
 }
 ```
 
 Note what the example does not do: it does not turn "integrates with our membership list" into a
-column, though the user said it "has to"; it does not add the colour column the brochures suggest;
+column, though the user said it "has to", and admin-time's anchors describe the committee's work,
+not the integration; it does not add, or list as a reject, the colour themes the brochures
+advertise — it asks;
 it asks about cost rather than assuming it; and because the user said "has to", it asks whether integration is a hard requirement (a veto) rather than deciding that for them.
 
 Then stop. The user confirms, revises or rejects the set at the next step; nothing is scored before

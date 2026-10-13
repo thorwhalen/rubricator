@@ -9,8 +9,10 @@ call. The checks are #68's done-when, made mechanical:
 - the proposal keeps its own ladder (:func:`rubricator.ladder.proposal_problems`:
   leaves are exactly the criteria, closed reject codes, every sibling pair
   flagged, group sizes, provenance);
-- the means objective the user stated as a requirement is rejected as one;
-- no criterion is taken from the alternatives' brochures (the trap word);
+- the means objective the user stated as a requirement is rejected as one, and
+  is not a column under another name (its keyword is in no criterion);
+- a feature only the alternatives' brochures raise (the trap word) is neither a
+  criterion nor a reject -- it is not a candidate at all (#175);
 - every user-stated quote is the user's words, verbatim;
 - no anchor is worded as an absence, which a scorer could never meet.
 
@@ -44,9 +46,13 @@ def _accepted(frame: Mapping[str, Any], proposal: Mapping[str, Any]) -> bool:
     return not result["definitionGaps"] and not result["defaultedPreference"]
 
 
+def _maps(value: Any) -> list[Mapping[str, Any]]:
+    return [v for v in value if isinstance(v, Mapping)] if isinstance(value, list) else []
+
+
 def _criterion_text(proposal: Mapping[str, Any]) -> str:
     return " ".join(f"{c.get('id')} {c.get('label')} {(c.get('definition') or {}).get('question')}"
-                    for c in proposal.get("criteria", [])).lower()
+                    for c in _maps(proposal.get("criteria"))).lower()
 
 
 def grade(spec: Mapping[str, Any], outputs: list[Mapping[str, Any]]) -> dict[str, str]:
@@ -60,13 +66,16 @@ def grade(spec: Mapping[str, Any], outputs: list[Mapping[str, Any]]) -> dict[str
 
     def rejected_as(f, o, reason, word):
         return any(r.get("reason") == reason and word in str(r.get("label", "")).lower()
-                   for r in o.get("rejected", []))
+                   for r in _maps(o.get("rejected")))
 
     return {
         "criteria_set_no_repair": rate(frames, _accepted),
         "ladder_kept": rate(frames, lambda f, o: proposal_problems(o) == []),
-        "means_rejected": rate(frames, lambda f, o: rejected_as(f, o, "means-objective", f["expected"]["means"])),
-        "brochure_trap_avoided": rate(frames, lambda f, o: f["expected"]["trap"] not in _criterion_text(o)),
+        "means_rejected": rate(frames, lambda f, o: rejected_as(f, o, "means-objective", f["expected"]["means"])
+                               and f["expected"]["means"] not in _criterion_text(o)),
+        "brochure_trap_avoided": rate(frames, lambda f, o: f["expected"]["trap"] not in _criterion_text(o)
+                                      and not any(f["expected"]["trap"] in str(r.get("label", "")).lower()
+                                                  for r in _maps(o.get("rejected")))),
         "user_rejected_honoured": rate([f for f in frames if "userRejected" in f["expected"]],
                                        lambda f, o: rejected_as(f, o, "user-rejected", f["expected"]["userRejected"])),
         "quotes_verbatim": rate(frames, lambda f, o: all(
