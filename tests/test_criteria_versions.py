@@ -21,6 +21,10 @@ from rubricator.tools.analysis import (
     measures_write,
 )
 
+#: A span every scored cell here cites: since #171 a value with no evidence is refused.
+CITED = [{"id": "e1", "target": "doc:spec", "sourceType": "primary",
+          "selectors": [{"type": "TextQuoteSelector", "exact": "as stated"}]}]
+
 AT = "2026-10-12T00:00:00Z"
 ANCHORS = {"1": "none", "3": "some", "5": "all"}
 ANA = human("ana", "Ana")
@@ -44,7 +48,8 @@ def _criteria(rt, label="Support", *, extra=(), **kw):
 def _score(rt, crit="c", value=4):
     measures_write(rt.store, analysis_id="a", contributor_id="ana", author=ANA, at=AT,
                    cells=[{"alternativeId": "x", "criterionId": crit, "value": value,
-                           "justification": "because", "independence": "shared-context"}])
+                           "justification": "because", "independence": "shared-context",
+                           "evidence": CITED}])
 
 
 def _doc(rt):

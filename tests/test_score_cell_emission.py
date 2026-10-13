@@ -94,8 +94,12 @@ def _section(heading: str) -> str:
 
 
 @pytest.mark.parametrize("example", EXAMPLES)
-def test_each_example_obeys_the_rules_the_verb_does_not_yet_enforce(example) -> None:
-    """``measures_write`` accepts all of these today; the examples a model copies must not."""
+def test_each_example_obeys_the_scorers_own_rules(example) -> None:
+    """The honesty rules ``measures_write`` enforces (#171), plus score-cell's stricter own.
+
+    The verb refuses an uncited value, a blank with no note and evidence on an
+    unsearched blank; score-cell further cites only spans it was handed.
+    """
     cell = example["cell"]
     evidence = cell.get("evidence", [])
     assert all(span["sourceType"] in {"primary", "secondary"} for span in evidence), \

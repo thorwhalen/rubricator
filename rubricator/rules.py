@@ -20,9 +20,10 @@ Each rule is a plain function ``(document) -> Iterable[Problem]`` over a
 **merged** analysis. A rule that needed a model, a clock or the network would
 break the connector runtime (ADR-0003), so none does.
 
+>>> cited = [{'id': 'e1', 'sourceType': 'primary', 'excerpt': 'as stated'}]
 >>> doc = {'cells': [{'alternativeId': 'a', 'criterionId': 'c', 'measure': 'score',
-...         'assertions': [{'id': 's1', 'authorId': 'ana', 'value': 4},
-...                        {'id': 's2', 'authorId': 'ben', 'value': 2,
+...         'assertions': [{'id': 's1', 'authorId': 'ana', 'value': 4, 'evidence': cited},
+...                        {'id': 's2', 'authorId': 'ben', 'value': 2, 'evidence': cited,
 ...                         'independence': 'independent'}]}]}
 >>> [p.rule_id for p in honesty_problems(doc)]
 ['independence-recorded']
@@ -38,11 +39,21 @@ from typing import Any, Callable, Iterable, Literal, Mapping, Sequence
 __all__ = [
     "Problem",
     "Rule",
+    "RULE_SOURCES",
     "HONESTY_RULES",
     "honesty_problems",
     "independence_recorded",
     "unique_ids",
     "missing_rule_code_defined",
+    "value_cites_evidence",
+    "blank_has_a_note",
+    "unsearched_blank_cites_nothing",
+    "cite_a_span",
+    "inference_names_its_sources",
+    "derived_from_resolves",
+    "unique_evidence_ids",
+    "EXTERNAL_SOURCE_TYPES",
+    "declarations_for",
     "supersession_resolves",
     "live_assertions",
     "SCHEMA_RULES",
@@ -72,8 +83,36 @@ class Problem:
         """Derived from the family, never chosen by a rule: both families here reject."""
         return "error"
 
-    def __str__(self) -> str:  # pragma: no cover - display only
-        return f"{self.path}: {self.message} Fix: {self.fix} [{self.rule_id}]"
+    @property
+    def citation(self) -> str:
+        """The rule and the decision it comes from, as every refusal ends (#171)."""
+        source = RULE_SOURCES.get(self.rule_id)
+        return f"[rule {self.rule_id}" + (f"; {source}]" if source else "]")
+
+    def __str__(self) -> str:
+        return f"{self.path}: {self.message} Fix: {self.fix} {self.citation}"
+
+
+#: Where each rule was decided. A bare ``ADR-`` is this repository's; the
+#: companion's are prefixed, because the two number their ADRs independently.
+RULE_SOURCES: Mapping[str, str] = {
+    "unique-ids": "comparanda ADR-0031",
+    "supersession-resolves": "comparanda ADR-0011",
+    "supersession-acyclic": "comparanda ADR-0011",
+    "independence-recorded": "ADR-0022",
+    "missing-rule-code-defined": "comparanda ADR-0030",
+    "unique-evidence-ids": "ADR-0015",
+    "value-cites-evidence": "ADR-0006",
+    "blank-has-a-note": "ADR-0006",
+    "unsearched-blank-cites-nothing": "ADR-0006",
+    "cite-a-span": "ADR-0014",
+    "inference-names-its-sources": "ADR-0015",
+    "derived-from-resolves": "ADR-0015",
+    "derived-from-acyclic": "ADR-0015",
+    "structural-refines-not-applicable": "comparanda ADR-0009",
+    "no-redeclaring-core": "comparanda ADR-0009",
+    "unique-declarations": "comparanda ADR-0030",
+}
 
 
 Rule = Callable[[Mapping[str, Any]], Iterable[Problem]]
@@ -219,6 +258,246 @@ def missing_rule_code_defined(document: Mapping[str, Any]) -> Iterable[Problem]:
             )
 
 
+def declarations_for(document: Mapping[str, Any], criterion_id: str) -> list[Mapping[str, Any]]:
+    """The missingness declarations in scope for one criterion, nearest first.
+
+    The criterion's own codes come before the analysis's, as in the companion's
+    ``makeVocabulary``: the resolver takes the first match, so a criterion-scoped
+    redefinition wins inside that criterion and nowhere else.
+    """
+    criterion = next((c for c in document.get("criteria", []) if c.get("id") == criterion_id), {})
+    return [*criterion.get("missingCodes", []), *document.get("missingCodes", [])]
+
+
+#: The source types that are someone else's words rather than the agent's own
+#: output. Mirrors `comparanda`'s ``isExternalSupport``: the manifest publishes
+#: the closed ``sourceType`` enum but not this fact about its members, so it is
+#: stated once here and a parity test holds it to the enum.
+EXTERNAL_SOURCE_TYPES = frozenset({"primary", "secondary"})
+
+
+def _assertions(
+    document: Mapping[str, Any],
+) -> Iterable[tuple[Mapping[str, Any], Mapping[str, Any], str]]:
+    """Every assertion of every cell, with its cell and its path."""
+    for cell in document.get("cells", []):
+        for assertion in cell.get("assertions", []):
+            yield cell, assertion, f"{_cell_path(cell)}.assertions[{assertion.get('id')}]"
+
+
+def _spans(assertion: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    """The evidence references of an assertion that are objects (the schema reports the rest)."""
+    evidence = assertion.get("evidence")
+    return [r for r in evidence if isinstance(r, Mapping)] if isinstance(evidence, list) else []
+
+
+def _is_blank_text(value: Any) -> bool:
+    """Not a string, or one with nothing visible in it.
+
+    ``str.strip`` keeps a zero-width space (a format character), so a note of
+    one would read as written and say nothing.
+    """
+    import unicodedata
+
+    return not isinstance(value, str) or all(
+        ch.isspace() or unicodedata.category(ch) == "Cf" for ch in value
+    )
+
+
+def value_cites_evidence(document: Mapping[str, Any]) -> Iterable[Problem]:
+    """A value rests on at least one evidence reference (#59, ADR-0006).
+
+    The honesty-family twin of `comparanda`'s completeness rule
+    ``value-has-evidence``: that one tolerates a considered human judgement with
+    nothing cited, and a renderer may. A producer whose claim is "cite spans,
+    not documents" may not -- a value with nothing under it is the confident
+    guess ADR-0006 replaces with a qualified blank.
+    """
+    for _cell, assertion, path in _assertions(document):
+        if assertion.get("value") is not None and not _spans(assertion):
+            yield Problem(
+                path=f"{path}.evidence",
+                message="a value with no evidence reference, so nothing a reader can check supports it.",
+                fix=(
+                    "cite the span the value rests on, or record a qualified blank instead "
+                    '("not-evidenced" if the sources are silent, "indeterminate" if they conflict).'
+                ),
+                rule_id="value-cites-evidence",
+            )
+
+
+def blank_has_a_note(document: Mapping[str, Any]) -> Iterable[Problem]:
+    """Every qualified blank says, in its ``note``, why this cell is blank (ADR-0006).
+
+    The code classifies the blank; the note is what makes it checkable -- which
+    sources were read, what they said, what was left for later.
+    """
+    for _cell, assertion, path in _assertions(document):
+        missing = assertion.get("missing")
+        if not isinstance(missing, Mapping):
+            continue
+        if _is_blank_text(missing.get("note")):
+            yield Problem(
+                path=f"{path}.missing.note",
+                message=f'a "{missing.get("code")}" blank with no note, so nothing says why this cell is blank.',
+                fix="write one line in missing.note: what was searched and what it showed, or why it was left.",
+                rule_id="blank-has-a-note",
+            )
+
+
+def unsearched_blank_cites_nothing(document: Mapping[str, Any]) -> Iterable[Problem]:
+    """A blank whose code is not terminal carries no evidence (ADR-0006).
+
+    A non-terminal code (``not-assessed``, ``deferred``, and any declared code
+    that refines one) says nobody has looked yet. A span beside it reads as
+    proof that someone searched. Found by the code's ``terminal`` fact, never
+    its spelling; an undeclared code is ``missing-rule-code-defined``'s to report.
+    """
+    from rubricator.schema.vocabulary import vocabulary
+
+    for cell, assertion, path in _assertions(document):
+        missing = assertion.get("missing")
+        if not isinstance(missing, Mapping) or not _spans(assertion):
+            continue
+        code = missing.get("code")
+        resolved = vocabulary().resolve(code, declarations_for(document, cell.get("criterionId")))
+        if resolved.facts is not None and not resolved.facts.terminal:
+            yield Problem(
+                path=f"{path}.evidence",
+                message=(
+                    f'a "{code}" blank says nobody has looked yet, but it carries evidence, which '
+                    "reads as proof that someone searched."
+                ),
+                fix=(
+                    "drop the evidence, or, if the sources were read, record the blank the search "
+                    'supports ("not-evidenced" if silent, "indeterminate" if they conflict) or a value.'
+                ),
+                rule_id="unsearched-blank-cites-nothing",
+            )
+
+
+def cite_a_span(document: Mapping[str, Any]) -> Iterable[Problem]:
+    """An evidence reference locates a span: a selector or an excerpt (ADR-0014).
+
+    Mirrors `comparanda`'s ``cite-a-span``. A reference with nothing to locate
+    is a citation of a whole document, which nobody can check.
+    """
+    for _cell, assertion, path in _assertions(document):
+        for ref in _spans(assertion):
+            if not ref.get("selectors") and _is_blank_text(ref.get("excerpt")):
+                yield Problem(
+                    path=f"{path}.evidence[{ref.get('id')}]",
+                    message=(
+                        f'evidence "{ref.get("id")}" names a source but no span in it: no selector '
+                        "and no excerpt. Pointing at a whole document is not evidence."
+                    ),
+                    fix="add a TextQuoteSelector with the quoted words, or an excerpt.",
+                    rule_id="cite-a-span",
+                )
+
+
+def inference_names_its_sources(document: Mapping[str, Any]) -> Iterable[Problem]:
+    """The agent's own summary or inference names what it was derived from (ADR-0015).
+
+    Mirrors `comparanda`'s ``inference-names-its-sources``. An inference citing
+    nothing is the agent's output filed as a citation -- the failure ADR-0006
+    names.
+    """
+    for _cell, assertion, path in _assertions(document):
+        for ref in _spans(assertion):
+            if ref.get("sourceType") in EXTERNAL_SOURCE_TYPES or ref.get("derivedFrom"):
+                continue
+            yield Problem(
+                path=f"{path}.evidence[{ref.get('id')}].derivedFrom",
+                message=(
+                    f'evidence "{ref.get("id")}" has sourceType "{ref.get("sourceType")}", the '
+                    "agent's own output, and names no reference it was derived from. An inference "
+                    "citing nothing is not a citation."
+                ),
+                fix=(
+                    "list in derivedFrom the ids of the references this was derived from, or "
+                    "record the cell as a qualified blank instead."
+                ),
+                rule_id="inference-names-its-sources",
+            )
+
+
+def _ids(value: Any, *, keep_blank: bool = False) -> list[Any]:
+    """The entries of a ``derivedFrom`` list; anything else is the schema's to report."""
+    if not isinstance(value, list):
+        return []
+    return [d for d in value if keep_blank or (isinstance(d, str) and not _is_blank_text(d))]
+
+
+def derived_from_resolves(document: Mapping[str, Any]) -> Iterable[Problem]:
+    """``derivedFrom`` names other references of the same assertion, with no cycle (ADR-0015).
+
+    ``inference-names-its-sources`` only asks that the list be non-empty, which
+    ``[""]``, an id naming nothing, or the reference's own id would satisfy.
+    ADR-0015 makes the evidence array a small graph, and an edge to nowhere or
+    back to itself names no source. Stricter than `comparanda`, which checks the
+    length only. A chain that resolves and does not cycle ends at a reference
+    with no ``derivedFrom``, which ``inference-names-its-sources`` holds to be
+    someone else's words.
+    """
+    for _cell, assertion, path in _assertions(document):
+        spans = _spans(assertion)
+        edges = {r.get("id"): _ids(r.get("derivedFrom")) for r in spans}
+        for ref in spans:
+            where = f"{path}.evidence[{ref.get('id')}].derivedFrom"
+            dangling = [d for d in _ids(ref.get("derivedFrom"), keep_blank=True)
+                        if _is_blank_text(d) or d == ref.get("id") or d not in edges]
+            if dangling:
+                yield Problem(
+                    path=where,
+                    message=(
+                        f'evidence "{ref.get("id")}" is derived from '
+                        f'{", ".join(repr(d) for d in dangling)}, which is not another reference '
+                        "of this assertion, so it names no source."
+                    ),
+                    fix="name the ids of the other references in this cell's evidence it was drawn from.",
+                    rule_id="derived-from-resolves",
+                )
+                continue
+            seen, frontier = set(), list(edges.get(ref.get("id"), []))
+            while frontier:
+                nxt = frontier.pop()
+                if nxt == ref.get("id"):
+                    yield Problem(
+                        path=where,
+                        message=(
+                            f'evidence "{ref.get("id")}" is on a derivedFrom cycle, so the '
+                            "chain never reaches a source."
+                        ),
+                        fix="break the cycle: the chain must end at a primary or secondary reference.",
+                        rule_id="derived-from-acyclic",
+                    )
+                    break
+                if nxt not in seen:
+                    seen.add(nxt)
+                    frontier.extend(edges.get(nxt, []))
+
+
+def unique_evidence_ids(document: Mapping[str, Any]) -> Iterable[Problem]:
+    """No two evidence references of one assertion share an id.
+
+    A duplicate makes every ``derivedFrom`` naming that id ambiguous. Scoped to
+    the assertion, not the cell: two contributors' references to the same
+    passage may well both be called ``e1``.
+    """
+    for _cell, assertion, path in _assertions(document):
+        seen: set[Any] = set()
+        for ref in _spans(assertion):
+            if ref.get("id") in seen:
+                yield Problem(
+                    path=f"{path}.evidence[{ref.get('id')}]",
+                    message=f'duplicate evidence id "{ref.get("id")}" in this assertion.',
+                    fix="give one of the references a different id, and point derivedFrom at the one meant.",
+                    rule_id="unique-evidence-ids",
+                )
+            seen.add(ref.get("id"))
+
+
 def _declaration_lists(
     document: Mapping[str, Any],
 ) -> Iterable[tuple[Sequence[tuple[int, Mapping[str, Any]]], str, Mapping[str, Any], str]]:
@@ -354,6 +633,13 @@ HONESTY_RULES: Sequence[Rule] = (
     supersession_resolves,
     independence_recorded,
     missing_rule_code_defined,
+    unique_evidence_ids,
+    value_cites_evidence,
+    blank_has_a_note,
+    unsearched_blank_cites_nothing,
+    cite_a_span,
+    inference_names_its_sources,
+    derived_from_resolves,
 )
 
 

@@ -16,6 +16,9 @@ import pytest
 from rubricator.compose import build_runtime
 from rubricator.surface import NEEDS_CLOCK, TOOL_REFS, bind
 
+#: A span every scored cell here cites: since #171 a value with no evidence is refused.
+CITED = [{"id": "e1", "target": "doc:spec", "sourceType": "primary",
+          "selectors": [{"type": "TextQuoteSelector", "exact": "as stated"}]}]
 
 @pytest.fixture()
 def verbs():
@@ -60,7 +63,7 @@ def test_a_bound_verb_runs_without_a_moment(verbs) -> None:
         analysis_id="a1", contributor_id="ana",
         author={"id": "ana", "displayName": "Ana", "kind": "human"},
         cells=[{"alternativeId": "x", "criterionId": "c", "value": 3,
-                "justification": "the filing says so"}],
+                "justification": "the filing says so", "evidence": CITED}],
     )
     assert result["written"] == 1
 

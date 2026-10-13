@@ -20,6 +20,10 @@ from rubricator.store import AnalysisNotFound, RETENTION_DAYS
 from rubricator.surface import bind, frozen
 from rubricator.tools.views import VIEWS, analysis_uri
 
+#: A span every scored cell here cites: since #171 a value with no evidence is refused.
+CITED = [{"id": "e1", "target": "doc:spec", "sourceType": "primary",
+          "selectors": [{"type": "TextQuoteSelector", "exact": "as stated"}]}]
+
 MOMENT = "2026-08-22T12:00:00Z"
 AUTHOR = {"id": "ana", "displayName": "Ana", "kind": "human"}
 ANCHORS = [{"level": "1", "text": "slow"}, {"level": "3", "text": "fair"}, {"level": "5", "text": "fast"}]
@@ -61,7 +65,7 @@ def _confirm(verbs, analysis_id="a1") -> None:
 def _write(verbs, contributor="ana", **cell):
     return verbs["measures_write"](
         analysis_id="a1", contributor_id=contributor, author={**AUTHOR, "id": contributor},
-        cells=[cell])
+        cells=[{**({"evidence": CITED} if "value" in cell else {}), **cell}])
 
 
 # --- analysis_open ------------------------------------------------------------
