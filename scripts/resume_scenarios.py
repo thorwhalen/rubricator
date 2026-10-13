@@ -2,8 +2,8 @@
 
 Each scenario drives a fresh in-memory analysis through the frozen surface to a
 partial state, then records exactly what a resuming session's reads return
-(``analysis_get`` summary, ``frame_confirm`` with no decision,
-``report_completeness``, and the criteria view where a declared code needs it).
+(``analysis_get`` outstanding view, ``frame_confirm`` with no decision, and the
+criteria view where a declared code needs it).
 The expectations are stated by hand and checked against those results here, so
 a tool whose output drifts fails the build of the fixture rather than silently
 changing what the subject is graded against. Nothing here calls a model.
@@ -72,9 +72,8 @@ def _write(verbs, cells, author=ANA):
 def _reads(verbs, clock, *, criteria_view=False) -> dict[str, Any]:
     clock["now"] = WEDNESDAY
     out = {
-        "analysis_get": verbs["analysis_get"](analysis_id="kettles", view="summary"),
+        "analysis_get": verbs["analysis_get"](analysis_id="kettles", view="outstanding"),
         "frame_confirm": verbs["frame_confirm"](analysis_id="kettles"),
-        "report_completeness": verbs["report_completeness"](analysis_id="kettles"),
     }
     if criteria_view:
         out["analysis_get (criteria)"] = verbs["analysis_get"](analysis_id="kettles", view="criteria")
@@ -183,7 +182,7 @@ def s10_two_raters_and_a_removed_row():
     verbs["alternatives_set"](analysis_id="kettles", alternatives=[
         {"id": i, "label": label, **({"tombstoned": True} if i == "tamsin" else {})}
         for i, label in KETTLES])
-    return _reads(verbs, clock), dict(confirmation="confirmed", nobody=2, aside=0, blank=0, scored=7,
+    return _reads(verbs, clock), dict(confirmation="confirmed", nobody=2, aside=0, blank=0, scored=4,
                                       rescore=0, na=0, next="score")
 
 
@@ -212,7 +211,9 @@ SCENARIOS = {f.__name__.split("_", 1)[0]: f for f in (
 
 def _check(sid: str, reads: dict, want: dict) -> None:
     """The expectations agree with the fields the prompt tells the subject to read, read as it says."""
-    summary, done, confirm = reads["analysis_get"], reads["report_completeness"], reads["frame_confirm"]
+    summary, confirm = reads["analysis_get"], reads["frame_confirm"]
+    counts = summary["counts"]
+    kinds = counts["byKind"]
     declared = {d["id"]: d["broader"] for c in reads.get("analysis_get (criteria)", {}).get("criteria", [])
                 for d in c.get("missingCodes", [])}
     by: dict[str, int] = {}
@@ -226,11 +227,32 @@ def _check(sid: str, reads: dict, want: dict) -> None:
                       and record.get("scope") == "all"
                       else "not-confirmed" if confirm["instructions"]
                       else "skipped" if record.get("decision") == "skip" else "confirmed"),
-        nobody=by.get("not-assessed", 0), aside=by.get("deferred", 0), blank=done["settledAbsent"],
-        scored=done["present"], rescore=summary["counts"]["superseded"], na=done["structural"],
+        nobody=by.get("not-assessed", 0), aside=by.get("deferred", 0), blank=kinds["settledBlank"],
+        scored=kinds["scored"], rescore=counts["superseded"], na=kinds["notApplicable"],
     )
+    # One unit: the lines add up to the matrix (re-score is a subset, not a line of its own).
+    assert counts["cells"] == sum(got[k] for k in ("nobody", "aside", "blank", "scored", "na")), sid
     mismatch = {k: (v, want[k]) for k, v in got.items() if v != want[k]}
     assert not mismatch, f"{sid}: tool output and expectation disagree: {mismatch}"
+
+
+def _entities(summary: dict) -> list[dict[str, Any]]:
+    """Every column and row, with the names a reply may call it and whether a cell nobody has looked at sits in it.
+
+    What a ``score`` step may name: the grader checks the step names at least one of these and
+    none that has no such cell (#188). ``deferred`` and ``queued`` cells are set aside, not unlooked-at,
+    so a column holding only those is not a place to start.
+    """
+    unlooked = [r for r in summary["outstanding"] if r["code"] == "not-assessed"]
+    rows = {i: label for i, label in KETTLES}
+    return [
+        {"axis": axis, "id": i, "aliases": sorted({i, label.lower()}),
+         "outstanding": any(r[key] == i for r in unlooked)}
+        for axis, key, pairs in (
+            ("alternative", "alternativeId", rows.items()),
+            ("criterion", "criterionId", ((c, c.replace("-", " ")) for c in CRITERIA)))
+        for i, label in pairs
+    ]
 
 
 def main(out: str) -> None:
@@ -238,6 +260,8 @@ def main(out: str) -> None:
     for sid, build in SCENARIOS.items():
         reads, want = build()
         _check(sid, reads, want)
+        want["cells"] = reads["analysis_get"]["counts"]["cells"]
+        want["entities"] = _entities(reads["analysis_get"])
         scenarios.append({"id": sid, "toolResults": reads, "expected": want})
     with open(out, "w") as f:
         json.dump(scenarios, f, indent=1)

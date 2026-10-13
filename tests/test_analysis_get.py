@@ -361,3 +361,45 @@ def test_a_non_string_code_is_left_out_and_named_rather_than_crashing(runtime, v
     assert [s["file"] for s in result["skipped"]] == [key]
     assert {"alternativeId": "k1", "criterionId": "speed", "measure": "score",
             "code": "not-assessed", "recorded": False} in result["outstanding"]
+
+
+# --- the settled cells by kind (#186) -----------------------------------------
+
+
+def test_the_counts_by_kind_add_up_to_the_cells(verbs) -> None:
+    _matrix(verbs)
+    _write(verbs, alternativeId="k1", criterionId="speed", value=4, justification="spec sheet")
+    _write(verbs, alternativeId="k1", criterionId="cost", missing={"code": "not-evidenced", "note": "no price"})
+    _write(verbs, alternativeId="k2", criterionId="speed", missing={"code": "not-applicable", "note": "no motor"})
+    _write(verbs, alternativeId="k2", criterionId="cost", missing={"code": "deferred", "note": "later"})
+    counts = verbs["analysis_get"](analysis_id="a1")["counts"]
+    assert counts["byKind"] == {"scored": 1, "settledBlank": 1, "notApplicable": 1}
+    assert sum(counts["byKind"].values()) + counts["outstanding"] == counts["cells"] == 4
+
+
+def test_a_cell_with_a_value_and_a_blank_is_scored_once(verbs) -> None:
+    _matrix(verbs)
+    _write(verbs, alternativeId="k1", criterionId="speed", value=4, justification="spec sheet",
+           independence="independent")
+    _write(verbs, "ben", alternativeId="k1", criterionId="speed",
+           missing={"code": "not-evidenced", "note": "no spec"}, independence="independent")
+    counts = verbs["analysis_get"](analysis_id="a1")["counts"]
+    assert counts["byKind"] == {"scored": 1, "settledBlank": 0, "notApplicable": 0}
+    assert counts["outstanding"] == 3
+
+
+def test_claims_on_a_removed_row_leave_the_completeness_counts(verbs) -> None:
+    verbs["analysis_open"](analysis_id="a1", question="which kettle?")
+    verbs["frame_set"](analysis_id="a1", ambiguities=[])
+    verbs["alternatives_set"](analysis_id="a1", alternatives=[
+        {"id": "k1", "label": "Kettle one"}, {"id": "k2", "label": "Kettle two"}])
+    verbs["criteria_set"](analysis_id="a1", criteria=[{"id": "speed", "label": "S", "anchors": ANCHORS}])
+    _confirm(verbs)
+    _write(verbs, alternativeId="k1", criterionId="speed", value=4, justification="spec sheet")
+    _write(verbs, alternativeId="k2", criterionId="speed", value=2, justification="spec sheet")
+    assert verbs["report_completeness"](analysis_id="a1")["present"] == 2
+    verbs["alternatives_set"](analysis_id="a1", alternatives=[
+        {"id": "k1", "label": "Kettle one"}, {"id": "k2", "label": "Kettle two", "tombstoned": True}])
+    done = verbs["report_completeness"](analysis_id="a1")
+    assert (done["total"], done["present"]) == (1, 1)
+    assert verbs["analysis_get"](analysis_id="a1")["counts"]["byKind"]["scored"] == 1

@@ -66,16 +66,24 @@ def _live(rows: Sequence[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
     return [r for r in rows if not r.get("tombstoned")]
 
 
-def outstanding_cells(document: Mapping[str, Any]) -> list[dict[str, Any]]:
-    """The cells of the live matrix that no live assertion settles, in frame order.
+#: How a live cell stands, for a resuming reader: ``scored`` (a live value), ``settled-blank``
+#: (a terminal blank: we looked and the answer is a blank), ``not-applicable`` (a structural
+#: blank), or ``outstanding`` (nothing settles it).
+KINDS: tuple[str, ...] = ("scored", "settled-blank", "not-applicable", "outstanding")
 
-    A cell is **settled** when a live assertion carries a value, or a blank
-    whose code is terminal or structural. It is outstanding otherwise, and its
-    ``code`` is the latest open blank's (by instant, then id; an unreadable
-    moment sorts first), or
-    ``not-assessed`` with ``recorded: false`` when nothing was ever written. A
-    code this build cannot resolve counts as outstanding: over-reporting work
-    remaining is the safe direction, as in ``report_completeness``.
+
+def cells_by_kind(document: Mapping[str, Any]) -> list[dict[str, Any]]:
+    """Every cell of the live matrix, in frame order, with the kind it stands as.
+
+    One row per live alternative x live criterion x measure, so the kinds add up
+    to the matrix's cell count and a retired row or column is in none of them.
+    A cell with a live value is ``scored`` whatever else it holds; otherwise a
+    terminal blank makes it ``settled-blank``, otherwise a structural one
+    ``not-applicable``. A code this build cannot resolve counts as outstanding:
+    over-reporting work remaining is the safe direction, as in
+    ``report_completeness``. An outstanding row also carries the latest open
+    blank's ``code`` (by instant, then id; an unreadable moment sorts first), or
+    ``not-assessed`` with ``recorded: false`` when nothing was ever written.
     """
     from rubricator.tools.analysis import declarations_for
 
@@ -93,26 +101,47 @@ def outstanding_cells(document: Mapping[str, Any]) -> list[dict[str, Any]]:
                 cell = by_key.get((alt["id"], crit["id"], measure))
                 live = live_assertions(cell) if cell else []
                 open_codes: list[tuple[Any, str, str]] = []
-                settled = False
+                valued = terminal = structural = False
                 for a in live:
                     if "value" in a:
-                        settled = True
+                        valued = True
                         break
                     missing = a.get("missing")
                     code = str((missing if isinstance(missing, Mapping) else {}).get("code", ""))
                     facts = vocab.resolve(code, declarations).facts
-                    if facts is not None and (facts.terminal or facts.structural):
-                        settled = True
-                        break
-                    open_codes.append((_moment(a.get("at")), str(a.get("id", "")), code))
-                if settled:
-                    continue
-                code = max(open_codes)[2] if open_codes else "not-assessed"
+                    if facts is not None and facts.structural:
+                        structural = True
+                    elif facts is not None and facts.terminal:
+                        terminal = True
+                    else:
+                        open_codes.append((_moment(a.get("at")), str(a.get("id", "")), code))
+                kind = (
+                    "scored" if valued else "settled-blank" if terminal
+                    else "not-applicable" if structural else "outstanding"
+                )
                 out.append({
                     "alternativeId": alt["id"], "criterionId": crit["id"], "measure": measure,
-                    "code": code, "recorded": bool(open_codes),
+                    "kind": kind,
+                    "code": max(open_codes)[2] if open_codes else "not-assessed",
+                    "recorded": bool(open_codes),
                 })
     return out
+
+
+def outstanding_cells(
+    document: Mapping[str, Any], *, standing: Sequence[Mapping[str, Any]] | None = None
+) -> list[dict[str, Any]]:
+    """The cells of the live matrix that no live assertion settles, in frame order.
+
+    A cell is **settled** when a live assertion carries a value, or a blank
+    whose code is terminal or structural (see :func:`cells_by_kind`, which owns
+    the rule). Each row carries ``code`` and ``recorded``.
+    """
+    return [
+        {k: row[k] for k in ("alternativeId", "criterionId", "measure", "code", "recorded")}
+        for row in (cells_by_kind(document) if standing is None else standing)
+        if row["kind"] == "outstanding"
+    ]
 
 
 def _moment(value: Any) -> tuple[int, Any]:
@@ -296,7 +325,9 @@ def analysis_get(
     if view not in VIEWS:
         raise ValueError(f'unknown view "{view}"; the views are {", ".join(VIEWS)}.')
     document, skipped = store.read_skipping(analysis_id)
-    outstanding = outstanding_cells(document)
+    standing = cells_by_kind(document)
+    outstanding = outstanding_cells(document, standing=standing)
+    by_kind = Counter(r["kind"] for r in standing)
     superseded = _superseded(document)
     alternatives = _live(document.get("alternatives", []))
     criteria = _live(document.get("criteria", []))
@@ -322,6 +353,10 @@ def analysis_get(
             "cells": cells,
             "outstanding": len(outstanding),
             "superseded": superseded,
+            "byKind": {
+                "scored": by_kind["scored"], "settledBlank": by_kind["settled-blank"],
+                "notApplicable": by_kind["not-applicable"],
+            },
             "byCode": [{"code": k, "count": by_code[k]} for k in sorted(by_code)],
         },
     }

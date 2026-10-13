@@ -3,7 +3,9 @@
 Twelve partial analyses on an invented domain (three fictional kettles, one office deciding), each built by driving the real verbs to a state and recording what a resuming session's reads return: `analysis_get` (summary), `frame_confirm` with no decision, `report_completeness`, and the criteria view where a declared code needs it. A subject following the prompt sees only those tool results and writes its reply; `scripts/resume_adherence.py` grades the block the prompt asks for, with no model call. This is the evidence the `rubricator-dev-prompt-change` skill requires before a prompt lands, until the ADR-0008 suite can run a prompt arm itself ([#148](https://github.com/thorwhalen/rubricator/issues/148)).
 
     python scripts/resume_scenarios.py docs/evaluation/resume/scenarios.json
-    python scripts/resume_adherence.py docs/evaluation/resume/scenarios.json docs/evaluation/resume/2026-10-13/out-*.json
+    python scripts/resume_adherence.py docs/evaluation/resume/scenarios.json docs/evaluation/resume/2026-10-13-v2/out-*.json
+
+The v1 runs were graded against `2026-10-13/scenarios-v1.json` (what the tools returned then: the summary view and `report_completeness`); `scenarios.json` is what they return now, for v2.
 
 `scenarios.json` is generated, and `tests/test_resume.py` fails if the tools stop returning it, so the subjects are never graded against a state the tools no longer produce. The expectations are stated by hand in the generator and checked there against the fields the prompt names.
 
@@ -18,9 +20,22 @@ Twelve partial analyses on an invented domain (three fictional kettles, one offi
 | s7 | revised and confirmed again; every cell answers the older definition | `rescore` |
 | s8 | the checkpoint was skipped at open: `confirmed: true`, `record.decision: skip`, and a summary that says it was skipped at open and nobody confirmed (fixed in [#187](https://github.com/thorwhalen/rubricator/issues/187); the recorded runs saw the old "already confirmed by agent" wording) | `score` |
 | s9 | the user answered `revise`, and the changes were never put back | `confirm` |
-| s10 | two raters on one cell, and an alternative removed after it was scored: claims outnumber live cells | `score` |
+| s10 | two raters on one cell, and an alternative removed after it was scored: claims outnumber live cells (v1's units; v2 counts only the six live cells) | `score` |
 | s11 | only the criteria were confirmed (`scope: criteria`) | `confirm` |
 | s12 | a `not-applicable` cell beside scores and a silent blank | `score` |
+
+## 2026-10-13 — v2, one unit and the cells named ([#186](https://github.com/thorwhalen/rubricator/issues/186), [#188](https://github.com/thorwhalen/rubricator/issues/188))
+
+The same twelve states, re-read through the tools as they are now: `analysis_get` in its outstanding view (with `counts.byKind`) and `frame_confirm`; `report_completeness` is no longer read. Two metrics are new: **adds up** (nobody + set aside + scored + blank + not applicable equals `counts.cells`; re-score is a subset) and **names a real place** (a `score` step names a column or row that has a cell nobody has looked at, and none that has not; checked in the five `score` scenarios, and only s5, s10 and s12 can tell a right name from a wrong one, since in the others every column and row has such a cell).
+
+| arm | blanks kept apart | settled counted as work | block complete | confirmation read right | no re-ask | re-ask when needed | counts right | adds up | next right | names a real place |
+|---|---|---|---|---|---|---|---|---|---|---|
+| **v2, Sonnet** | 12/12 | 0/6 | 12/12 | 12/12 | 8/8 | 4/4 | 12/12 | 12/12 | 12/12 | 5/5 |
+| **v2, Haiku** | 12/12 | 0/6 | 12/12 | 12/12 | 8/8 | 4/4 | 12/12 | 12/12 | 12/12 | 5/5 |
+
+- **Blanks kept apart, read first: 12/12 in both arms.** The before is v1's 12/12 on the older fixtures; the rest of the table cannot be compared cell by cell, because the units and the reads changed (v1's `counts right` was in claims for three lines).
+- **What changed against v1:** s10 now reads 4 scored cells and 2 outstanding, not 7 claims; both arms name the column that holds the unlooked-at cells where v1 said the records did not say.
+- **Not established:** one run per arm; all twelve scenarios in one context per arm; the scenarios are the prompt author's; a baseline without the prompt was not re-run for v2 (the form-only baseline in `2026-10-13/baseline.md` is v1's form and reads claims).
 
 ## 2026-10-13 — v1 ([#76](https://github.com/thorwhalen/rubricator/issues/76))
 

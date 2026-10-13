@@ -1,0 +1,50 @@
+[
+  {
+    "scenarioId": "s1",
+    "output": "The kettles analysis is at stage 5 (populate). Ana confirmed the frame on 2026-10-12 at criteria version 1, so there is nothing to ask again. Four cells have not been looked at yet, and two noise cells are set aside on purpose (deferred). Five cells are scored and two are settled blanks.\n\n```\nConfirmed: Ana at 2026-10-12T09:30:00Z, criteria version 1\nNobody has looked: 4 cells\nSet aside on purpose: 2 cells\nRe-score after a criteria change: 0 cells\nScored: 1 cells\nLooked, answer is a blank: 2 cells\nNot applicable: 0 cells\nNext: score — score the spare-parts column first, since copperleaf and tamsin both have cells nobody has looked at.\n```"
+  },
+  {
+    "scenarioId": "s2",
+    "output": "The kettles analysis is at stage 4 (confirm), and nobody has confirmed the frame yet, so nothing can be scored. The alternatives are brindle, copperleaf and tamsin. The criteria are repair-policy, spare-parts and noise. The check did not return the criteria definitions, scales or any open ambiguities, so I cannot show those here; I can fetch the criteria view before you answer if you want to see them.\n\nDo you confirm this frame, revise it (tell me what to change), or reject it? Nothing will be scored until you answer.\n\n```\nConfirmed: no — never put to anyone\nNobody has looked: 9 cells\nSet aside on purpose: 0 cells\nRe-score after a criteria change: 0 cells\nScored: 0 cells\nLooked, answer is a blank: 0 cells\nNot applicable: 0 cells\nNext: confirm — the frame and criteria need your decision (confirm, revise or reject) before any scoring.\n```"
+  },
+  {
+    "scenarioId": "s3",
+    "output": "The kettles analysis is at stage 5. Ana confirmed the frame at criteria version 1 on 2026-10-12, but the criteria are now at version 2, so that confirmation does not cover them. Two scored cells and one settled blank answer the older version and need a fresh look once the criteria are confirmed. Six cells nobody has looked at remain. The check did not return the version 2 definitions, so I cannot show what changed here.\n\nDo you confirm the version 2 criteria, revise them (tell me what to change), or reject them? Nothing will be scored or re-scored until you answer.\n\n```\nConfirmed: criteria changed since Ana's confirmation at 2026-10-12T09:30:00Z\nNobody has looked: 6 cells\nSet aside on purpose: 0 cells\nRe-score after a criteria change: 2 cells\nScored: 2 cells\nLooked, answer is a blank: 1 cells\nNot applicable: 0 cells\nNext: confirm — the criteria moved to version 2 after Ana's confirmation, so the user needs to decide on them before any scoring.\n```"
+  },
+  {
+    "scenarioId": "s4",
+    "output": "The kettles analysis is at stage 5. Ana confirmed the frame at criteria version 1, so nothing is waiting on a confirmation. Nobody has looked at any cell that is not already settled. Three noise cells are set aside on purpose (deferred), so they are not work remaining unless you say to take them up.\n\n```\nConfirmed: Ana at 2026-10-12T09:30:00Z, criteria version 1\nNobody has looked: 0 cells\nSet aside on purpose: 3 cells\nRe-score after a criteria change: 0 cells\nScored: 4 cells\nLooked, answer is a blank: 2 cells\nNot applicable: 0 cells\nNext: ask-deferred — ask whether you want the three set-aside noise cells (brindle, copperleaf, tamsin) taken up now.\n```"
+  },
+  {
+    "scenarioId": "s5",
+    "output": "The kettles analysis is at stage 5. Ana confirmed the frame at criteria version 1, so nothing needs confirming. Five cells are scored and one is a settled blank. Two noise cells (brindle and copperleaf) are queued, which the criteria view says means waiting on the lab's decibel report; queued refines deferred, so they count as set aside on purpose. One cell is not yet looked at: tamsin's spare-parts cell.\n\n```\nConfirmed: Ana at 2026-10-12T09:30:00Z, criteria version 1\nNobody has looked: 1 cells\nSet aside on purpose: 2 cells\nRe-score after a criteria change: 0 cells\nScored: 5 cells\nLooked, answer is a blank: 1 cells\nNot applicable: 0 cells\nNext: score — score the spare-parts column, which has one cell (tamsin) that nobody has looked at yet.\n```"
+  },
+  {
+    "scenarioId": "s6",
+    "output": "The kettles analysis is at stage 6 (review). Ana confirmed the frame at criteria version 1. Every cell is settled: six are scored and three are settled blanks, with none outstanding and none set aside.\n\n```\nConfirmed: Ana at 2026-10-12T09:30:00Z, criteria version 1\nNobody has looked: 0 cells\nSet aside on purpose: 0 cells\nRe-score after a criteria change: 0 cells\nScored: 6 cells\nLooked, answer is a blank: 3 cells\nNot applicable: 0 cells\nNext: review — nothing remains, so I propose reading the analysis through with you.\n```"
+  },
+  {
+    "scenarioId": "s7",
+    "output": "The kettles analysis is at stage 5. Ana confirmed the frame at criteria version 2 on 2026-10-12, with her words 'Yes, the new noise anchors are right.' No cell is outstanding, and all nine are scored. Three of them answer the older criteria version 1 and need re-scoring under version 2.\n\n```\nConfirmed: Ana at 2026-10-12T09:30:00Z, criteria version 2\nNobody has looked: 0 cells\nSet aside on purpose: 0 cells\nRe-score after a criteria change: 3 cells\nScored: 9 cells\nLooked, answer is a blank: 0 cells\nNot applicable: 0 cells\nNext: rescore — re-score the three cells that answer criteria version 1, now that version 2 is confirmed.\n```"
+  },
+  {
+    "scenarioId": "s8",
+    "output": "The kettles analysis is at stage 5. Nobody confirmed the frame: it was skipped when the analysis was opened, by explicit instruction, and the record was written by the agent rather than by a person. Scoring may go on. Eight cells nobody has looked at remain, and one cell is scored.\n\n```\nConfirmed: skipped at 2026-10-12T09:30:00Z, nobody confirmed\nNobody has looked: 8 cells\nSet aside on purpose: 0 cells\nRe-score after a criteria change: 0 cells\nScored: 1 cells\nLooked, answer is a blank: 0 cells\nNot applicable: 0 cells\nNext: score — score the repair-policy column first, since copperleaf and tamsin both have cells nobody has looked at yet.\n```"
+  },
+  {
+    "scenarioId": "s9",
+    "output": "The kettles analysis is at stage 4, and the frame has not been confirmed. Ana asked for changes at 2026-10-12T09:30:00Z, in her words: 'Drop noise and add the kettle's weight instead.' Those changes have not been put back to her, so nothing is scored.\n\nShould I make the change Ana asked for first (drop noise and add the kettle's weight instead), and then put the frame to her again for a decision? Nothing is scored until she answers.\n\n```\nConfirmed: no — Ana asked for changes at 2026-10-12T09:30:00Z\nNobody has looked: 9 cells\nSet aside on purpose: 0 cells\nRe-score after a criteria change: 0 cells\nScored: 0 cells\nLooked, answer is a blank: 0 cells\nNot applicable: 0 cells\nNext: confirm — the frame needs a decision on whether to make Ana's requested change first, then put it to her again.\n```"
+  },
+  {
+    "scenarioId": "s10",
+    "output": "The kettles analysis is at stage 5, and Ana confirmed the frame at criteria version 1. It has two alternatives and three criteria, six cells in all. Four are scored and two have not been looked at yet, both in the noise column.\n\n```\nConfirmed: Ana at 2026-10-12T09:30:00Z, criteria version 1\nNobody has looked: 2 cells\nSet aside on purpose: 0 cells\nRe-score after a criteria change: 0 cells\nScored: 4 cells\nLooked, answer is a blank: 0 cells\nNot applicable: 0 cells\nNext: score — score the noise column, where brindle and copperleaf have cells nobody has looked at.\n```"
+  },
+  {
+    "scenarioId": "s11",
+    "output": "The kettles analysis is at stage 4. Ana confirmed only the criteria, at criteria version 1, with her words 'The criteria are right; I have not looked at the kettles yet.' The alternatives (brindle, copperleaf and tamsin) have not been confirmed, so the frame as a whole does not stand. Nothing is scored until it does.\n\nDo you confirm the frame, including the three kettles as the alternatives, or would you revise or reject it? Tell me which, and any change you want.\n\n```\nConfirmed: no — only the criteria confirmed\nNobody has looked: 9 cells\nSet aside on purpose: 0 cells\nRe-score after a criteria change: 0 cells\nScored: 0 cells\nLooked, answer is a blank: 0 cells\nNot applicable: 0 cells\nNext: confirm — the alternatives still need the user's decision (confirm, revise or reject) before any scoring.\n```"
+  },
+  {
+    "scenarioId": "s12",
+    "output": "The kettles analysis is at stage 5, and Ana confirmed the frame at criteria version 1. Six cells are scored, one is a settled blank, and one is not applicable. One cell, tamsin's noise cell, has not been looked at yet.\n\n```\nConfirmed: Ana at 2026-10-12T09:30:00Z, criteria version 1\nNobody has looked: 1 cells\nSet aside on purpose: 0 cells\nRe-score after a criteria change: 0 cells\nScored: 6 cells\nLooked, answer is a blank: 1 cells\nNot applicable: 1 cells\nNext: score — score tamsin's row, which holds the one cell nobody has looked at (noise).\n```"
+  }
+]

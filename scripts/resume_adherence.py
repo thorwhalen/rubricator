@@ -70,17 +70,24 @@ def parse(output: str) -> dict[str, Any]:
         elif key == "next":
             kind = re.match(r"([a-z-]+)", value)
             found[key] = kind.group(1) if kind and kind.group(1) in KINDS else value
+            found["next_text"] = value
         else:
             n = re.match(r"(\d+)\b", value)
             found[key] = int(n.group(1)) if n else value
     return found
 
 
+def _names_a_real_place(text: str, entities: list[Mapping[str, Any]]) -> bool:
+    """A ``score`` step names a column or row with a cell nobody has looked at, and none without one (#188)."""
+    named = [e for e in entities if any(re.search(rf"\b{re.escape(a)}\b", text, re.I) for a in e["aliases"])]
+    return bool(named) and all(e["outstanding"] for e in named)
+
+
 def grade(scenarios: list[Mapping[str, Any]], outputs: list[Mapping[str, Any]]) -> dict[str, str]:
     by_id = {o["scenarioId"]: o["output"] for o in outputs}
     tally: dict[str, list[bool]] = {k: [] for k in (
         "blanks_kept_apart", "settled_counted_as_work", "block_complete", "confirmation_read_right",
-        "no_reask", "reask_when_needed", "counts_right", "next_right")}
+        "no_reask", "reask_when_needed", "counts_right", "adds_up", "next_right", "names_a_real_place")}
     for s in scenarios:
         want, got = s["expected"], parse(by_id.get(s["id"], ""))
         tally["block_complete"].append(all(k in got for k in LINES.values()))
@@ -94,7 +101,13 @@ def grade(scenarios: list[Mapping[str, Any]], outputs: list[Mapping[str, Any]]) 
         else:
             tally["no_reask"].append(got.get("next") != "confirm" and not REASK.search(got["prose"]))
         tally["counts_right"].append(all(got.get(k) == want[k] for k in COUNTS))
+        if "cells" in want:
+            tally["adds_up"].append(
+                all(isinstance(got.get(k), int) for k in ("nobody", "aside", "blank", "scored", "na"))
+                and sum(got[k] for k in ("nobody", "aside", "blank", "scored", "na")) == want["cells"])
         tally["next_right"].append(got.get("next") == want["next"])
+        if want["next"] == "score" and "entities" in want:
+            tally["names_a_real_place"].append(_names_a_real_place(got.get("next_text", ""), want["entities"]))
     return {k: f"{sum(v)}/{len(v)}" for k, v in tally.items()}
 
 
