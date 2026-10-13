@@ -1,0 +1,255 @@
+[
+ {
+  "frameId": "f1",
+  "output": {
+   "ladder": {
+    "objectives": [
+     {"id": "singers-ready", "text": "Singers arrive at rehearsal with their parts to hand"},
+     {"id": "low-upkeep", "text": "The choir runs the library without a volunteer's weekly effort"}
+    ],
+    "edges": [
+     {"from": "find-own-part", "to": "singers-ready"},
+     {"from": "volunteer-upkeep", "to": "low-upkeep"}
+    ]
+   },
+   "rejected": [
+    {"label": "Dark mode", "reason": "no-discrimination-expected", "note": "Nobody raised it as a reason for the decision; it appears only because the brochures list dark or light themes."}
+   ],
+   "criteria": [
+    {
+     "id": "find-own-part",
+     "label": "Finding own part quickly",
+     "preference": "increasing",
+     "anchors": [
+      {"level": "1", "text": "A source states that a singer must browse the whole list of pieces or files to locate their own part."},
+      {"level": "3", "text": "A source states that parts can be filtered or sorted by voice, but a singer must still pick their part on each piece."},
+      {"level": "5", "text": "A source states that a singer can open their own voice's part directly from the piece in one step."}
+     ],
+     "definition": {
+      "objective": "Singers arrive at rehearsal with their parts to hand",
+      "question": "How directly can a singer reach their own part for a piece before a rehearsal?",
+      "evidenceRule": "The vendor's documentation or product page describing how a singer navigates to a part; a reviewer's general praise of the app does not count.",
+      "missingRules": [
+       {"when": "No source describes how a singer reaches a part.", "code": "not-evidenced"},
+       {"when": "Sources disagree about how a singer reaches a part.", "code": "indeterminate"}
+      ],
+      "exclusions": ["How fast or attractive the app looks or loads; judge only how the singer reaches the part.", "Whether a part can be opened without a connection; not raised by the user, see questions."]
+     }
+    },
+    {
+     "id": "volunteer-upkeep",
+     "label": "Recurring volunteer upkeep",
+     "preference": "decreasing",
+     "anchors": [
+      {"level": "1", "text": "A source states that a volunteer must maintain the library every week by hand."},
+      {"level": "3", "text": "A source states that a volunteer must do some upkeep by hand, but only occasionally, such as for some tasks or each new season."},
+      {"level": "5", "text": "A source states that the service stays current without any volunteer upkeep."}
+     ],
+     "definition": {
+      "objective": "The choir runs the library without a volunteer's weekly effort",
+      "question": "How much recurring upkeep must a volunteer do by hand to keep the library working?",
+      "evidenceRule": "The vendor's documentation of the upkeep its admins must do and how often; a remark that the service is easy to run counts only if it names the upkeep.",
+      "missingRules": [
+       {"when": "No source describes what ongoing upkeep the service needs.", "code": "not-evidenced"},
+       {"when": "Sources disagree about how much upkeep the service needs.", "code": "indeterminate"}
+      ],
+      "exclusions": ["The price or subscription fee; cost is not part of this criterion, see questions.", "Singers' own use of the library, such as finding parts; that is find-own-part."]
+     }
+    }
+   ],
+   "overlaps": [],
+   "groups": [
+    {"objective": "singers-ready", "criteria": ["find-own-part"], "size": 1},
+    {"objective": "low-upkeep", "criteria": ["volunteer-upkeep"], "size": 1}
+   ],
+   "provenance": [
+    {"criterionId": "find-own-part", "source": "user-stated", "quote": "Singers need to find their parts quickly before rehearsal."},
+    {"criterionId": "volunteer-upkeep", "source": "user-stated", "quote": "We can't afford anything that needs a volunteer to maintain it every week."}
+   ],
+   "questions": [
+    "It must sync with our rehearsal calendar app. Is that a hard requirement, so that a service without calendar sync is ruled out whatever else it does, or is it something to weigh? And what is it for: so that singers see the right music for each rehearsal, or something else? It is not a criterion yet, because a reason I supplied would be a guess.",
+    "You said we can't afford anything that needs a volunteer to maintain it every week. Is that a veto, so that a service needing weekly upkeep is ruled out, or a preference weighed against the others?",
+    "Cost was not mentioned. Is cost a criterion for this decision, or already settled by a budget or an existing subscription?",
+    "Offline access was not mentioned, though one of the services offers it. Does it matter, for example at a rehearsal venue with poor signal?"
+   ]
+  }
+ },
+ {
+  "frameId": "f2",
+  "output": {
+   "ladder": {
+    "objectives": [
+     {"id": "parts-on-time", "text": "Parts arrive before competition deadlines"},
+     {"id": "mentor-time", "text": "Mentors do not spend evenings chasing orders"},
+     {"id": "po-process", "text": "Orders go through the school's purchase-order system"}
+    ],
+    "edges": [
+     {"from": "delivery-speed", "to": "parts-on-time"},
+     {"from": "order-follow-up", "to": "mentor-time"},
+     {"from": "po-compatibility", "to": "po-process"}
+    ]
+   },
+   "rejected": [
+    {"label": "Loyalty points and rewards", "reason": "user-rejected", "note": "The user said 'Forget about branding, we don't care.' Loyalty schemes are the brand-facing feature the brochures advertise, so they are treated as dropped; confirmed in questions."}
+   ],
+   "criteria": [
+    {
+     "id": "delivery-speed",
+     "label": "Time for parts to arrive",
+     "preference": "decreasing",
+     "anchors": [
+      {"level": "1", "text": "A source states that the parts the team needs take longer to dispatch than the lead time the team sets before a competition."},
+      {"level": "3", "text": "A source states next-day dispatch only for stocked items."},
+      {"level": "5", "text": "A source states next-day dispatch for the parts the team orders, including items that are not stocked."}
+     ],
+     "definition": {
+      "objective": "Parts arrive before competition deadlines",
+      "question": "How soon after ordering can the team receive the parts it needs?",
+      "evidenceRule": "A stated dispatch or delivery time in the supplier's own shipping or ordering pages; a time quoted for stocked items does not settle the time for other items.",
+      "missingRules": [
+       {"when": "No source states a dispatch or delivery time.", "code": "not-evidenced"},
+       {"when": "Sources give different dispatch or delivery times for the same service.", "code": "indeterminate"}
+      ],
+      "exclusions": ["Shipping price; cost is not part of this criterion, see questions.", "Whether the order can be placed through the school's purchase-order system; that is po-compatibility."]
+     }
+    },
+    {
+     "id": "po-compatibility",
+     "label": "Accepts school purchase orders",
+     "preference": "increasing",
+     "anchors": [
+      {"level": "1", "text": "A source states that the supplier takes payment only by card or personal account at checkout."},
+      {"level": "3", "text": "A source states that the supplier offers invoiced or school accounts, but does not state that it accepts purchase orders."},
+      {"level": "5", "text": "A source states that the supplier accepts school purchase orders."}
+     ],
+     "definition": {
+      "objective": "Orders go through the school's purchase-order system",
+      "question": "Can the team pay for its orders by school purchase order?",
+      "evidenceRule": "The supplier's ordering, payment or school-account documentation; a school account alone does not settle it unless the source says how orders are paid.",
+      "missingRules": [
+       {"when": "No source states how a school pays for an order.", "code": "not-evidenced"},
+       {"when": "Sources disagree on whether purchase orders are accepted.", "code": "indeterminate"}
+      ],
+      "exclusions": ["Whether the price is good; cost is not part of this criterion.", "How fast the order arrives; that is delivery-speed."]
+     }
+    },
+    {
+     "id": "order-follow-up",
+     "label": "Follow-up needed per order",
+     "preference": "decreasing",
+     "anchors": [
+      {"level": "1", "text": "A source states that order status can be learned only by contacting the supplier."},
+      {"level": "3", "text": "A source states that order status is visible online, but a delay has to be chased by phone or email."},
+      {"level": "5", "text": "A source states that order status and delay notices reach the team without contacting the supplier."}
+     ],
+     "definition": {
+      "objective": "Mentors do not spend evenings chasing orders",
+      "question": "How much follow-up must a mentor do to know where an order is and to get it delivered?",
+      "evidenceRule": "The supplier's documentation of order tracking and delay notices; a general remark that the service is reliable does not count.",
+      "missingRules": [
+       {"when": "No source describes how order status or delays are communicated.", "code": "not-evidenced"},
+       {"when": "Sources disagree on how order status or delays are communicated.", "code": "indeterminate"}
+      ],
+      "exclusions": ["How late the delivery is; that is delivery-speed.", "Whether the order goes through purchase orders; that is po-compatibility."]
+     }
+    }
+   ],
+   "overlaps": [
+    {"criteria": ["delivery-speed", "order-follow-up"], "via": "delivery-speed",
+     "probe": "Two suppliers are identical except that one dispatches next day and the other takes a week. Do you prefer the faster one, or are you indifferent? And: two suppliers are identical except that one needs no chasing and the other needs chasing. Do you prefer the one that needs no chasing, or are you indifferent?"}
+   ],
+   "groups": [
+    {"objective": "parts-on-time", "criteria": ["delivery-speed"], "size": 1},
+    {"objective": "mentor-time", "criteria": ["order-follow-up"], "size": 1},
+    {"objective": "po-process", "criteria": ["po-compatibility"], "size": 1}
+   ],
+   "provenance": [
+    {"criterionId": "delivery-speed", "source": "user-stated", "quote": "We need parts to arrive before competition deadlines."},
+    {"criterionId": "po-compatibility", "source": "user-stated", "quote": "Everything has to be ordered through the school's purchase-order system."},
+    {"criterionId": "order-follow-up", "source": "user-stated", "quote": "Mentors are volunteers and can't spend evenings chasing orders."}
+   ],
+   "questions": [
+    "How long before each competition must parts arrive? The delivery anchors depend on this lead time, which was not given, so no supplier can be scored on delivery yet.",
+    "Is the purchase-order rule a veto, so that a supplier which cannot take a school purchase order is ruled out whatever else it does, or is it weighed against the others?",
+    "Cost was not mentioned, and prices and bulk discounts are not criteria here. Is cost a criterion for this season, or already set by a budget?",
+    "I read 'Forget about branding, we don't care' as dropping the loyalty points and rewards. Is that what you meant, and does it also mean setting aside bulk discounts, or only the loyalty scheme?",
+    "Which parts does the team need? A supplier that does not stock them cannot meet a deadline whatever its dispatch times, so each supplier's range must be checked against that list."
+   ]
+  }
+ },
+ {
+  "frameId": "f3",
+  "output": {
+   "ladder": {
+    "objectives": [
+     {"id": "prompt-borrowing", "text": "Members can borrow a tool when they need it, not days later"},
+     {"id": "tools-not-lost", "text": "Shared tools are not lost or left unaccounted for"}
+    ],
+    "edges": [
+     {"from": "borrow-wait", "to": "prompt-borrowing"},
+     {"from": "tool-custody", "to": "tools-not-lost"}
+    ]
+   },
+   "rejected": [
+    {"label": "Number of languages supported", "reason": "no-discrimination-expected", "note": "Nobody raised it as a reason for the decision; it appears only because the brochures list how many languages each service supports."}
+   ],
+   "criteria": [
+    {
+     "id": "borrow-wait",
+     "label": "Wait to borrow an available tool",
+     "preference": "decreasing",
+     "anchors": [
+      {"level": "1", "text": "A source states that a borrow request waits days for an approval or a handover."},
+      {"level": "3", "text": "A source states that borrow requests are approved the same day, but the pickup has to be arranged separately."},
+      {"level": "5", "text": "A source states that a member can borrow an available tool at once, without approval."}
+     ],
+     "definition": {
+      "objective": "Members can borrow a tool when they need it, not days later",
+      "question": "How soon after deciding to borrow an available tool can a member take it?",
+      "evidenceRule": "The vendor's documentation of the borrow flow, including any approval or handover step; a reviewer's remark that it is quick does not count.",
+      "missingRules": [
+       {"when": "No source describes how a borrow is approved or handed over.", "code": "not-evidenced"},
+       {"when": "Sources disagree on whether a borrow needs approval or a handover.", "code": "indeterminate"}
+      ],
+      "exclusions": ["How long a tool may be kept; that is loan length, not waiting.", "Whether the service has a mobile app; not yet a criterion, see questions."]
+     }
+    },
+    {
+     "id": "tool-custody",
+     "label": "Tracing a tool to its holder",
+     "preference": "increasing",
+     "anchors": [
+      {"level": "1", "text": "A source states that the system does not record which member borrowed a tool."},
+      {"level": "3", "text": "A source states that each loan is recorded with the member's name, but does not state that the record shows who holds a tool now."},
+      {"level": "5", "text": "A source states that for any tool, the system shows the member who holds it now and the member who last held it."}
+     ],
+     "definition": {
+      "objective": "Shared tools are not lost or left unaccounted for",
+      "question": "For a tool that is missing, can the society tell which member has it or had it last?",
+      "evidenceRule": "The vendor's documentation of how loans are recorded and shown; a general claim that the service prevents losses does not count.",
+      "missingRules": [
+       {"when": "No source describes how loans are recorded or shown.", "code": "not-evidenced"},
+       {"when": "Sources disagree on whether loans are recorded per member.", "code": "indeterminate"}
+      ],
+      "exclusions": ["Whether a tool is returned on time; that is not custody.", "Whether a member can see a tool before borrowing; that is availability, not custody."]
+     }
+    }
+   ],
+   "overlaps": [],
+   "groups": [
+    {"objective": "prompt-borrowing", "criteria": ["borrow-wait"], "size": 1},
+    {"objective": "tools-not-lost", "criteria": ["tool-custody"], "size": 1}
+   ],
+   "provenance": [
+    {"criterionId": "borrow-wait", "source": "user-stated", "quote": "Members should be able to borrow a tool without waiting days."},
+    {"criterionId": "tool-custody", "source": "user-stated", "quote": "We want to know who has which tool so nothing goes missing."}
+   ],
+   "questions": [
+    "It needs a mobile app. What is that for? If it is so that a member can borrow on the spot, it bears on the wait to borrow rather than being a separate criterion. If it is a hard requirement, a service without a mobile app is ruled out whatever else it does. It is not a criterion yet, because the reason was not given.",
+    "Do you want a live view of who holds each tool now, or only the ability to trace a missing tool to its last borrower? tool-custody is written for tracing; a live view is a stricter reading and would change the anchors.",
+    "Cost was not mentioned. Is cost a criterion for this decision, or already set by a budget or a fee limit?",
+    "Are the languages a concern for your members? I left them out because you did not raise them."
+   ]
+  }
+ }
+]

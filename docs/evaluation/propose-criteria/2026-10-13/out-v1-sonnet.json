@@ -1,0 +1,742 @@
+[
+  {
+    "frameId": "f1",
+    "output": {
+      "ladder": {
+        "objectives": [
+          {"id": "singers-find-parts", "text": "Singers can find their parts quickly before rehearsal"},
+          {"id": "low-volunteer-upkeep", "text": "The service does not need a volunteer to maintain it every week"}
+        ],
+        "edges": [
+          {"from": "own-part-access", "to": "singers-find-parts"},
+          {"from": "piece-finding", "to": "singers-find-parts"},
+          {"from": "weekly-upkeep-freedom", "to": "low-volunteer-upkeep"},
+          {"from": "new-music-effort", "to": "low-volunteer-upkeep"}
+        ]
+      },
+      "rejected": [
+        {
+          "label": "Sync with the rehearsal calendar app",
+          "reason": "means-objective",
+          "serves": ["piece-finding", "weekly-upkeep-freedom"],
+          "note": "The user said it must sync but did not say why. It is treated as a way of getting singers to the pieces for the next rehearsal and of sparing a volunteer from re-entering the rehearsal schedule; a way of achieving those, judged through them. Whether it is a veto is asked in questions."
+        }
+      ],
+      "criteria": [
+        {
+          "id": "own-part-access",
+          "label": "Reaching your own voice part",
+          "preference": "increasing",
+          "anchors": [
+            {"level": "1", "text": "A source states that a singer must open the full score and find their own voice part within it themselves."},
+            {"level": "3", "text": "A source states that each voice part is a separate file, found by browsing the piece's folder."},
+            {"level": "5", "text": "A source states that a singer can open their own voice part directly from the piece's entry, in one step, without the other parts."}
+          ],
+          "definition": {
+            "objective": "Singers can find their parts quickly before rehearsal",
+            "question": "How many steps does a singer take to get from a piece to their own voice part?",
+            "evidenceRule": "The vendor's documentation or product page describing how a singer opens a part; a reviewer's general remark that the app is fast does not count.",
+            "missingRules": [
+              {"when": "No source describes how a singer reaches their voice part.", "code": "not-evidenced"},
+              {"when": "Sources disagree about how parts are opened.", "code": "indeterminate"}
+            ],
+            "exclusions": [
+              "Sync with the rehearsal calendar app: judge how quickly a singer reaches their part, not the mechanism that brings the schedule in.",
+              "Finding the piece itself; that is piece-finding."
+            ]
+          }
+        },
+        {
+          "id": "piece-finding",
+          "label": "Finding the pieces for the next rehearsal",
+          "preference": "increasing",
+          "anchors": [
+            {"level": "1", "text": "A source states that pieces can only be found by scrolling a single unsorted list."},
+            {"level": "3", "text": "A source states that pieces can be found by searching on title or composer."},
+            {"level": "5", "text": "A source states that pieces can be found by title or composer and can be gathered into a set for an upcoming rehearsal that singers open as one list."}
+          ],
+          "definition": {
+            "objective": "Singers can find their parts quickly before rehearsal",
+            "question": "How does a singer get to the pieces to be rehearsed next?",
+            "evidenceRule": "The vendor's documentation or product page describing search, lists or sets; screenshots with visible search or list controls described in the text count; general praise does not.",
+            "missingRules": [
+              {"when": "No source describes how pieces are found.", "code": "not-evidenced"},
+              {"when": "Sources disagree about what search or lists exist.", "code": "indeterminate"}
+            ],
+            "exclusions": [
+              "Sync with the rehearsal calendar app: judge whether singers reach the right pieces, not the mechanism that brings the schedule in.",
+              "Reaching a voice part inside a piece; that is own-part-access."
+            ]
+          }
+        },
+        {
+          "id": "weekly-upkeep-freedom",
+          "label": "Freedom from weekly volunteer upkeep",
+          "preference": "increasing",
+          "anchors": [
+            {"level": "1", "text": "A source states that a named person must carry out a recurring task at least weekly to keep the library working or current."},
+            {"level": "3", "text": "A source states that routine upkeep by the choir is needed, but only monthly or less often."},
+            {"level": "5", "text": "A source states that the provider carries out all routine upkeep, and that the library runs and updates itself."}
+          ],
+          "definition": {
+            "objective": "The service does not need a volunteer to maintain it every week",
+            "question": "How often must someone from the choir do routine work to keep the service running and current?",
+            "evidenceRule": "The vendor's documentation of administration tasks and their frequency; the effort of adding new music is not evidence here, it is new-music-effort.",
+            "missingRules": [
+              {"when": "No source describes what administration the choir must do.", "code": "not-evidenced"},
+              {"when": "Sources disagree about how often upkeep is needed.", "code": "indeterminate"}
+            ],
+            "exclusions": [
+              "Sync with the rehearsal calendar app: judge the volunteer time spent, not the mechanism that saves or costs it.",
+              "The work of putting a new piece into the library; that is new-music-effort.",
+              "The price of the service."
+            ]
+          }
+        },
+        {
+          "id": "new-music-effort",
+          "label": "Effort to add new music",
+          "preference": "increasing",
+          "anchors": [
+            {"level": "1", "text": "A source states that each new piece must be converted or re-entered by hand before singers can use it."},
+            {"level": "3", "text": "A source states that a PDF can be uploaded, and that its voice parts must then be split or assigned by hand."},
+            {"level": "5", "text": "A source states that an uploaded score becomes available to singers by voice part without further handling."}
+          ],
+          "definition": {
+            "objective": "The service does not need a volunteer to maintain it every week",
+            "question": "What must a volunteer do to make a new piece available to singers once they have the score?",
+            "evidenceRule": "The vendor's documentation of the upload and set-up steps for a new piece.",
+            "missingRules": [
+              {"when": "No source describes how a new piece is added.", "code": "not-evidenced"},
+              {"when": "Sources disagree about the steps needed.", "code": "indeterminate"}
+            ],
+            "exclusions": [
+              "Recurring weekly upkeep that is not about new pieces; that is weekly-upkeep-freedom.",
+              "How singers then find the piece; that is piece-finding."
+            ]
+          }
+        }
+      ],
+      "overlaps": [
+        {
+          "criteria": ["own-part-access", "piece-finding"],
+          "via": "singers-find-parts",
+          "probe": "Two services are identical except that one gets a singer to their own part in fewer steps. Do you prefer it, or are you indifferent? And: identical except that one makes the pieces for the next rehearsal easier to find. Prefer it, or indifferent?"
+        },
+        {
+          "criteria": ["weekly-upkeep-freedom", "new-music-effort"],
+          "via": "low-volunteer-upkeep",
+          "probe": "Two services are identical except that one needs less routine upkeep. Do you prefer it, or are you indifferent? And: identical except that one makes adding a new piece easier. Prefer it, or indifferent?"
+        }
+      ],
+      "groups": [
+        {"objective": "singers-find-parts", "criteria": ["own-part-access", "piece-finding"], "size": 2},
+        {"objective": "low-volunteer-upkeep", "criteria": ["weekly-upkeep-freedom", "new-music-effort"], "size": 2}
+      ],
+      "provenance": [
+        {"criterionId": "own-part-access", "source": "user-stated", "quote": "Singers need to find their parts quickly before rehearsal."},
+        {"criterionId": "piece-finding", "source": "agent-proposed"},
+        {"criterionId": "weekly-upkeep-freedom", "source": "user-stated", "quote": "We can't afford anything that needs a volunteer to maintain it every week."},
+        {"criterionId": "new-music-effort", "source": "agent-proposed"}
+      ],
+      "questions": [
+        "You said the service must sync with your rehearsal calendar app. It is treated here as a way of getting singers to the right pieces and of sparing volunteers from re-entering the schedule. Is that why it matters, and is it instead a hard requirement, so that a service without it is ruled out whatever else it does?",
+        "Cost was not mentioned. 'We can't afford' could mean money or volunteer time; the criteria above treat it as volunteer time. Is the price of the service a criterion, or already settled by a budget?",
+        "All three services advertise a dark mode. Does that matter to you?",
+        "You said 'maintain it every week'. Does that include putting new music into the library, or only keeping the service itself running? It is split into two criteria here.",
+        "Your choice is for three seasons. Does it matter to you how long the service is likely to keep running or keep its current terms? Nothing about this has been assumed.",
+        "Finding parts 'before rehearsal': on what device and where do singers do this (at home on a phone, on paper printouts, at the rehearsal itself)? This decides whether further criteria are needed."
+      ]
+    }
+  },
+  {
+    "frameId": "f2",
+    "output": {
+      "ladder": {
+        "objectives": [
+          {"id": "parts-in-time", "text": "Parts arrive before the competition deadlines"},
+          {"id": "mentor-time-protected", "text": "Volunteer mentors do not spend their evenings chasing orders"}
+        ],
+        "edges": [
+          {"from": "stocked-delivery-time", "to": "parts-in-time"},
+          {"from": "unstocked-lead-time", "to": "parts-in-time"},
+          {"from": "order-status-visibility", "to": "mentor-time-protected"},
+          {"from": "problem-follow-up", "to": "mentor-time-protected"}
+        ]
+      },
+      "rejected": [
+        {
+          "label": "Ordering through the school's purchase-order system",
+          "reason": "means-objective",
+          "serves": ["order-status-visibility", "problem-follow-up"],
+          "note": "The user said everything has to be ordered through it but not why. It is treated here as a way of keeping mentors out of order administration, which is judged through those two criteria. Whether it is instead a veto is asked in questions."
+        },
+        {
+          "label": "Branding",
+          "reason": "user-rejected",
+          "note": "The user said: Forget about branding, we don't care."
+        }
+      ],
+      "criteria": [
+        {
+          "id": "stocked-delivery-time",
+          "label": "Delivery time for stocked items",
+          "preference": "increasing",
+          "anchors": [
+            {"level": "1", "text": "A source states that stocked items arrive in six or more working days."},
+            {"level": "3", "text": "A source states that stocked items arrive within two to five working days."},
+            {"level": "5", "text": "A source states that stocked items arrive the next working day."}
+          ],
+          "definition": {
+            "objective": "Parts arrive before the competition deadlines",
+            "question": "How long after ordering does an item the supplier has in stock arrive at the school?",
+            "evidenceRule": "The supplier's delivery or shipping policy giving an arrival time; a dispatch time alone does not state arrival and is not enough, and customer reviews of single orders do not count.",
+            "missingRules": [
+              {"when": "No source states how long delivery takes for stocked items.", "code": "not-evidenced"},
+              {"when": "Sources give conflicting delivery times, or only a dispatch time that leaves the arrival level unsettled.", "code": "indeterminate"}
+            ],
+            "exclusions": [
+              "Items that are not in stock; that is unstocked-lead-time.",
+              "Whether the order can be tracked; that is order-status-visibility.",
+              "Loyalty points or discounts."
+            ]
+          }
+        },
+        {
+          "id": "unstocked-lead-time",
+          "label": "Lead time for items not in stock",
+          "preference": "increasing",
+          "anchors": [
+            {"level": "1", "text": "A source states that items not in stock can take a month or longer to arrive."},
+            {"level": "3", "text": "A source states that items not in stock arrive within two to four weeks."},
+            {"level": "5", "text": "A source states that items not in stock are supplied within one week."}
+          ],
+          "definition": {
+            "objective": "Parts arrive before the competition deadlines",
+            "question": "How long does an item the supplier does not have in stock take to arrive?",
+            "evidenceRule": "The supplier's stated lead time or backorder policy; the delivery time for stocked items is not evidence.",
+            "missingRules": [
+              {"when": "No source states a lead time for out-of-stock items.", "code": "not-evidenced"},
+              {"when": "Sources give conflicting lead times for out-of-stock items.", "code": "indeterminate"},
+              {"when": "The supplier makes no item to order and holds no backorders, so the question does not arise.", "code": "not-applicable"}
+            ],
+            "exclusions": [
+              "Items that are in stock; that is stocked-delivery-time.",
+              "Whether the supplier tells the customer when an item will arrive; that is order-status-visibility."
+            ]
+          }
+        },
+        {
+          "id": "order-status-visibility",
+          "label": "Seeing where an order is without chasing",
+          "preference": "increasing",
+          "anchors": [
+            {"level": "1", "text": "A source states that order status is only available by contacting the supplier by phone or email."},
+            {"level": "3", "text": "A source states that a customer receives a dispatch notification with tracking details."},
+            {"level": "5", "text": "A source states that a customer can view the live status of every order in an online account, including the expected delivery date."}
+          ],
+          "definition": {
+            "objective": "Volunteer mentors do not spend their evenings chasing orders",
+            "question": "How can a mentor find out where an order is, without asking the supplier?",
+            "evidenceRule": "The supplier's account, tracking or order-confirmation documentation; a review saying a past order arrived on time does not count.",
+            "missingRules": [
+              {"when": "No source describes how order status can be checked.", "code": "not-evidenced"},
+              {"when": "Sources disagree about what tracking is offered.", "code": "indeterminate"}
+            ],
+            "exclusions": [
+              "Ordering through the school's purchase-order system: judge how much chasing a mentor must do, not the mechanism by which the order is placed or paid.",
+              "How fast the order arrives; that is stocked-delivery-time and unstocked-lead-time.",
+              "How a problem with an order is resolved; that is problem-follow-up."
+            ]
+          }
+        },
+        {
+          "id": "problem-follow-up",
+          "label": "Getting late or wrong orders sorted out",
+          "preference": "increasing",
+          "anchors": [
+            {"level": "1", "text": "A source states that problems with an order are handled through a contact form, with replies taking five working days or more."},
+            {"level": "3", "text": "A source states that problems are handled by email or phone, with a reply promised within two working days."},
+            {"level": "5", "text": "A source states that every account has a named contact who replies to order problems the same working day."}
+          ],
+          "definition": {
+            "objective": "Volunteer mentors do not spend their evenings chasing orders",
+            "question": "When an order is late, wrong or damaged, what response does the supplier promise a mentor?",
+            "evidenceRule": "The supplier's stated support or returns policy with a promised response time; reviews describing one person's experience do not count.",
+            "missingRules": [
+              {"when": "No source states how order problems are handled or how fast the supplier responds.", "code": "not-evidenced"},
+              {"when": "Sources promise different response times.", "code": "indeterminate"}
+            ],
+            "exclusions": [
+              "Ordering through the school's purchase-order system: judge the support a mentor gets, not the mechanism by which the order is placed or paid.",
+              "Seeing order status without contacting anyone; that is order-status-visibility."
+            ]
+          }
+        }
+      ],
+      "overlaps": [
+        {
+          "criteria": ["stocked-delivery-time", "unstocked-lead-time"],
+          "via": "parts-in-time",
+          "probe": "Two suppliers are identical except that one delivers stocked items faster. Do you prefer it, or are you indifferent? And: identical except that one supplies out-of-stock items faster. Prefer it, or indifferent?"
+        },
+        {
+          "criteria": ["order-status-visibility", "problem-follow-up"],
+          "via": "mentor-time-protected",
+          "probe": "Two suppliers are identical except that one lets you see order status yourself. Do you prefer it, or are you indifferent? And: identical except that one sorts out late or wrong orders faster. Prefer it, or indifferent?"
+        }
+      ],
+      "groups": [
+        {"objective": "parts-in-time", "criteria": ["stocked-delivery-time", "unstocked-lead-time"], "size": 2},
+        {"objective": "mentor-time-protected", "criteria": ["order-status-visibility", "problem-follow-up"], "size": 2}
+      ],
+      "provenance": [
+        {"criterionId": "stocked-delivery-time", "source": "user-stated", "quote": "We need parts to arrive before competition deadlines."},
+        {"criterionId": "unstocked-lead-time", "source": "agent-proposed"},
+        {"criterionId": "order-status-visibility", "source": "user-stated", "quote": "Mentors are volunteers and can't spend evenings chasing orders."},
+        {"criterionId": "problem-follow-up", "source": "agent-proposed"}
+      ],
+      "questions": [
+        "You said everything has to be ordered through the school's purchase-order system. Why does that matter (school rule, avoiding mentors paying out of pocket, something else)? Is it a hard requirement, so that a supplier that cannot be used with it is ruled out whatever else it does?",
+        "Cost was not mentioned. Are prices or delivery charges a criterion, or already settled by the purchase-order budget?",
+        "All three suppliers advertise loyalty points or rewards. Does that matter to you?",
+        "How far ahead of a competition deadline are orders usually placed? If it is a few days, lead time for out-of-stock items may rarely matter, and delivery time for stocked items matters most.",
+        "unstocked-lead-time and problem-follow-up may come out mostly blank, since suppliers' pages often say little on them. Do you want to keep them?",
+        "Is there anything about the parts themselves (range, compatibility with your kits, quality) that matters to you? Nothing about it was said, so no criterion covers it."
+      ]
+    }
+  },
+  {
+    "frameId": "f3",
+    "output": {
+      "ladder": {
+        "objectives": [
+          {"id": "quick-borrowing", "text": "Members can borrow a tool without waiting days"},
+          {"id": "tools-accounted-for", "text": "The society knows who has which tool, so nothing goes missing"}
+        ],
+        "edges": [
+          {"from": "instant-booking", "to": "quick-borrowing"},
+          {"from": "availability-visibility", "to": "quick-borrowing"},
+          {"from": "holder-record", "to": "tools-accounted-for"},
+          {"from": "return-tracking", "to": "tools-accounted-for"}
+        ]
+      },
+      "rejected": [
+        {
+          "label": "Having a mobile app",
+          "reason": "means-objective",
+          "serves": ["instant-booking", "availability-visibility"],
+          "note": "The user said it needs a mobile app but not why. It is treated as a way of letting members borrow quickly, from wherever they are, which is judged through those two criteria. Whether it is instead a veto is asked in questions."
+        }
+      ],
+      "criteria": [
+        {
+          "id": "instant-booking",
+          "label": "Borrowing without waiting for approval",
+          "preference": "increasing",
+          "anchors": [
+            {"level": "1", "text": "A source states that a borrow request is sent to an administrator, who approves it by hand outside the system."},
+            {"level": "3", "text": "A source states that each borrow request goes to an approver, who is notified at once and approves it in the system."},
+            {"level": "5", "text": "A source states that a member can confirm a borrow of an available tool immediately, with no approval step."}
+          ],
+          "definition": {
+            "objective": "Members can borrow a tool without waiting days",
+            "question": "How long must a member wait between asking to borrow an available tool and having the borrow confirmed?",
+            "evidenceRule": "The vendor's documentation of how borrow requests are confirmed; the number of languages or the look of the interface is not evidence.",
+            "missingRules": [
+              {"when": "No source describes how a borrow request is confirmed.", "code": "not-evidenced"},
+              {"when": "Sources disagree about whether approval is needed.", "code": "indeterminate"}
+            ],
+            "exclusions": [
+              "Having a mobile app: judge how long a member waits to borrow, not the device or app they use.",
+              "Whether members can see which tools are free; that is availability-visibility."
+            ]
+          }
+        },
+        {
+          "id": "availability-visibility",
+          "label": "Seeing which tools are free",
+          "preference": "increasing",
+          "anchors": [
+            {"level": "1", "text": "A source states that members must ask an administrator which tools are available."},
+            {"level": "3", "text": "A source states that members can browse the tool list and see which tools are currently on loan."},
+            {"level": "5", "text": "A source states that members can see which tools are available now and when each tool on loan is due back."}
+          ],
+          "definition": {
+            "objective": "Members can borrow a tool without waiting days",
+            "question": "What can a member see about which tools are free to borrow, without asking anyone?",
+            "evidenceRule": "The vendor's documentation or product page describing the tool list and its status display.",
+            "missingRules": [
+              {"when": "No source describes what a member can see about tool availability.", "code": "not-evidenced"},
+              {"when": "Sources disagree about what availability information is shown.", "code": "indeterminate"}
+            ],
+            "exclusions": [
+              "Having a mobile app: judge what a member can see, not the device they see it on.",
+              "Whether the borrow then needs approval; that is instant-booking."
+            ]
+          }
+        },
+        {
+          "id": "holder-record",
+          "label": "Record of who holds each tool",
+          "preference": "increasing",
+          "anchors": [
+            {"level": "1", "text": "A source states that loans are recorded only in a paper log or spreadsheet kept by an administrator."},
+            {"level": "3", "text": "A source states that the system records which member currently has each tool."},
+            {"level": "5", "text": "A source states that the system records which member currently has each tool and keeps a history of past borrowers for each tool."}
+          ],
+          "definition": {
+            "objective": "The society knows who has which tool, so nothing goes missing",
+            "question": "What does the system record about who has each tool, now and in the past?",
+            "evidenceRule": "The vendor's documentation of loan records; a reviewer's remark that tools are tracked does not count.",
+            "missingRules": [
+              {"when": "No source describes what loan records the system keeps.", "code": "not-evidenced"},
+              {"when": "Sources disagree about what is recorded.", "code": "indeterminate"}
+            ],
+            "exclusions": [
+              "Whether overdue tools are flagged; that is return-tracking.",
+              "Who is allowed to see the records."
+            ]
+          }
+        },
+        {
+          "id": "return-tracking",
+          "label": "Noticing tools that are not returned",
+          "preference": "increasing",
+          "anchors": [
+            {"level": "1", "text": "A source states that returns are marked by an administrator by hand."},
+            {"level": "3", "text": "A source states that returns are recorded in the system by the borrower or the lender."},
+            {"level": "5", "text": "A source states that returns are recorded in the system and that overdue tools are flagged automatically to the borrower and to administrators."}
+          ],
+          "definition": {
+            "objective": "The society knows who has which tool, so nothing goes missing",
+            "question": "How does the system record a tool coming back, and how does it surface a tool that has not?",
+            "evidenceRule": "The vendor's documentation of returns, due dates and reminders.",
+            "missingRules": [
+              {"when": "No source describes how returns or overdue tools are handled.", "code": "not-evidenced"},
+              {"when": "Sources disagree about whether overdue tools are flagged.", "code": "indeterminate"}
+            ],
+            "exclusions": [
+              "Having a mobile app: judge whether missing tools are noticed, not the device used to record returns.",
+              "Which member holds a tool at present; that is holder-record."
+            ]
+          }
+        }
+      ],
+      "overlaps": [
+        {
+          "criteria": ["instant-booking", "availability-visibility"],
+          "via": "quick-borrowing",
+          "probe": "Two platforms are identical except that one confirms borrows without approval. Do you prefer it, or are you indifferent? And: identical except that one shows members which tools are free. Prefer it, or indifferent?"
+        },
+        {
+          "criteria": ["holder-record", "return-tracking"],
+          "via": "tools-accounted-for",
+          "probe": "Two platforms are identical except that one keeps a fuller record of who holds each tool. Do you prefer it, or are you indifferent? And: identical except that one flags overdue tools automatically. Prefer it, or indifferent?"
+        }
+      ],
+      "groups": [
+        {"objective": "quick-borrowing", "criteria": ["instant-booking", "availability-visibility"], "size": 2},
+        {"objective": "tools-accounted-for", "criteria": ["holder-record", "return-tracking"], "size": 2}
+      ],
+      "provenance": [
+        {"criterionId": "instant-booking", "source": "user-stated", "quote": "Members should be able to borrow a tool without waiting days."},
+        {"criterionId": "availability-visibility", "source": "agent-proposed"},
+        {"criterionId": "holder-record", "source": "user-stated", "quote": "We want to know who has which tool so nothing goes missing."},
+        {"criterionId": "return-tracking", "source": "agent-proposed"}
+      ],
+      "questions": [
+        "You said the platform needs a mobile app. It is treated here as a way of letting members borrow quickly. Is that why it matters, and is it instead a hard requirement, so that a platform without it is ruled out whatever else it does? Is it for members, for whoever hands out tools, or both?",
+        "Cost was not mentioned. Is the price of the platform a criterion, or already settled by a budget?",
+        "All three platforms advertise a number of supported languages. Does that matter to you?",
+        "'Without waiting days': is same-day enough, or do you mean borrowing within minutes? This affects where the anchors of instant-booking should sit.",
+        "Should every member be able to see who holds a tool, or only the people running the society? Nothing about this has been assumed."
+      ]
+    }
+  },
+  {
+    "frameId": "f4",
+    "output": {
+      "ladder": {
+        "objectives": [
+          {"id": "group-has-route", "text": "Leaders can get a route to the whole group the evening before"}
+        ],
+        "edges": [
+          {"from": "group-send", "to": "group-has-route"},
+          {"from": "recipient-access", "to": "group-has-route"}
+        ]
+      },
+      "rejected": [
+        {
+          "label": "Exporting GPX files",
+          "reason": "means-objective",
+          "serves": ["recipient-access"],
+          "note": "The user said it has to export GPX but not why. It is treated as a way of letting group members open the route on whatever device or app they use, which is judged through recipient-access. Whether it is instead a veto is asked in questions."
+        },
+        {
+          "label": "Social feed",
+          "reason": "user-rejected",
+          "note": "The user said: Nobody cares about the social feed."
+        }
+      ],
+      "criteria": [
+        {
+          "id": "group-send",
+          "label": "Sending a route to the whole group",
+          "preference": "increasing",
+          "anchors": [
+            {"level": "1", "text": "A source states that a route can only be shared with one person at a time."},
+            {"level": "3", "text": "A source states that a route can be shared by a link that the leader sends to the group through their own messaging."},
+            {"level": "5", "text": "A source states that a leader can create a group, add its members, and send a route to the whole group in one action, with members notified."}
+          ],
+          "definition": {
+            "objective": "Leaders can get a route to the whole group the evening before",
+            "question": "How does a leader get one route to every member of a walking group?",
+            "evidenceRule": "The vendor's documentation or product page describing how routes are shared; a social feed or public profile does not count as sending to a group.",
+            "missingRules": [
+              {"when": "No source describes how a route is shared with others.", "code": "not-evidenced"},
+              {"when": "Sources disagree about how routes can be shared.", "code": "indeterminate"}
+            ],
+            "exclusions": [
+              "Exporting GPX files: judge how the route reaches the group, not the file format.",
+              "What a recipient needs to open the route; that is recipient-access."
+            ]
+          }
+        },
+        {
+          "id": "recipient-access",
+          "label": "Group members opening the shared route",
+          "preference": "increasing",
+          "anchors": [
+            {"level": "1", "text": "A source states that recipients must install the app and create an account to view a shared route."},
+            {"level": "3", "text": "A source states that recipients can view a shared route in a web browser once they have signed in to an account."},
+            {"level": "5", "text": "A source states that anyone with the link can view the shared route in a browser or in the app, with no account."}
+          ],
+          "definition": {
+            "objective": "Leaders can get a route to the whole group the evening before",
+            "question": "What does a group member need to do to open a route the leader has shared?",
+            "evidenceRule": "The vendor's documentation or product page on viewing shared routes; the leader's own experience of the planner does not count.",
+            "missingRules": [
+              {"when": "No source describes what a recipient needs in order to view a shared route.", "code": "not-evidenced"},
+              {"when": "Sources disagree about whether recipients need an account.", "code": "indeterminate"}
+            ],
+            "exclusions": [
+              "Exporting GPX files: judge whether members can open the route easily, not the file format.",
+              "How the leader sends the route; that is group-send."
+            ]
+          }
+        }
+      ],
+      "overlaps": [
+        {
+          "criteria": ["group-send", "recipient-access"],
+          "via": "group-has-route",
+          "probe": "Two apps are identical except that with one a leader can send a route to the whole group in one action. Do you prefer it, or are you indifferent? And: identical except that with one, members can open the route without an account. Prefer it, or indifferent?"
+        }
+      ],
+      "groups": [
+        {"objective": "group-has-route", "criteria": ["group-send", "recipient-access"], "size": 2}
+      ],
+      "provenance": [
+        {"criterionId": "group-send", "source": "user-stated", "quote": "Leaders need to share a route with the group the evening before."},
+        {"criterionId": "recipient-access", "source": "agent-proposed"}
+      ],
+      "questions": [
+        "You said the app has to export GPX files. It is treated here as a way of letting group members open the route on their own devices. Is that why it matters, and is it instead a hard requirement, so that an app without it is ruled out whatever else it does?",
+        "Only sharing was raised. Does planning the route itself matter to you (map quality, terrain or elevation information, ease of drawing a route)? No criterion covers it yet, so the set is probably incomplete.",
+        "Cost was not mentioned. Is the price of the app, for the club or for each leader, a criterion, or already settled?",
+        "All three apps advertise badges or achievements. Does that matter to you?",
+        "Sharing 'the evening before': what if the leader changes the route after sharing it? Should members see the change, and does it matter if the app works at the leader's home but not out on a walk? Nothing has been assumed.",
+        "Is there anything the group should receive besides the route line (distance, elevation, meeting point)? Nothing was said, so no criterion covers it."
+      ]
+    }
+  },
+  {
+    "frameId": "f5",
+    "output": {
+      "ladder": {
+        "objectives": [
+          {"id": "parents-buy-quickly", "text": "Parents can buy tickets in under a minute"},
+          {"id": "no-double-booking", "text": "No seat is sold twice"},
+          {"id": "walk-up-sales", "text": "A person who arrives at the door without a ticket can still get one"}
+        ],
+        "edges": [
+          {"from": "guest-checkout", "to": "parents-buy-quickly"},
+          {"from": "checkout-length", "to": "parents-buy-quickly"},
+          {"from": "seat-hold", "to": "no-double-booking"},
+          {"from": "cross-channel-seats", "to": "no-double-booking"},
+          {"from": "door-ticket-issue", "to": "walk-up-sales"}
+        ]
+      },
+      "rejected": [
+        {
+          "label": "Taking card payments at the door",
+          "reason": "means-objective",
+          "serves": ["door-ticket-issue"],
+          "note": "The user said it has to take card payments at the door but not why. It is treated as a way of selling tickets to people who arrive without one, which is judged through door-ticket-issue; that objective is my inference and is asked about in questions, as is whether this is a veto."
+        },
+        {
+          "label": "Merchandise sales",
+          "reason": "user-rejected",
+          "note": "The user said: Don't bother with merchandise sales."
+        }
+      ],
+      "criteria": [
+        {
+          "id": "guest-checkout",
+          "label": "Buying without an account",
+          "preference": "increasing",
+          "anchors": [
+            {"level": "1", "text": "A source states that buyers must create an account and verify it before they can buy."},
+            {"level": "3", "text": "A source states that buyers create an account during checkout, with no separate verification step."},
+            {"level": "5", "text": "A source states that buyers can complete a purchase as a guest, giving only their name, email and payment details."}
+          ],
+          "definition": {
+            "objective": "Parents can buy tickets in under a minute",
+            "question": "What must a parent set up before they can pay for tickets?",
+            "evidenceRule": "The vendor's documentation or product page on the buying flow; a demo described in text counts, a reviewer's general remark that checkout is easy does not.",
+            "missingRules": [
+              {"when": "No source describes whether buyers need an account.", "code": "not-evidenced"},
+              {"when": "Sources disagree about whether an account is needed.", "code": "indeterminate"}
+            ],
+            "exclusions": [
+              "The number of screens in checkout once the buyer is ready to pay; that is checkout-length.",
+              "Colour themes or look of the ticket page."
+            ]
+          }
+        },
+        {
+          "id": "checkout-length",
+          "label": "Length of the checkout",
+          "preference": "increasing",
+          "anchors": [
+            {"level": "1", "text": "A source states that checkout takes five or more screens from choosing seats to a paid ticket."},
+            {"level": "3", "text": "A source states that checkout takes three or four screens from choosing seats to a paid ticket."},
+            {"level": "5", "text": "A source states that a buyer can go from choosing seats to a paid ticket in two screens or fewer, or in under a minute."}
+          ],
+          "definition": {
+            "objective": "Parents can buy tickets in under a minute",
+            "question": "How many screens or how much time does a buyer need from choosing seats to holding a paid ticket?",
+            "evidenceRule": "A stated number of steps or a stated time in the vendor's documentation, or a described walkthrough that can be counted; an adjective such as 'quick' is not evidence.",
+            "missingRules": [
+              {"when": "No source states or shows the length of the buying flow.", "code": "not-evidenced"},
+              {"when": "Sources give conflicting step counts or times.", "code": "indeterminate"}
+            ],
+            "exclusions": [
+              "Whether an account is needed; that is guest-checkout.",
+              "Card payments taken at the door."
+            ]
+          }
+        },
+        {
+          "id": "seat-hold",
+          "label": "Seats held during checkout",
+          "preference": "increasing",
+          "anchors": [
+            {"level": "1", "text": "A source states that seats are marked sold only after payment completes."},
+            {"level": "3", "text": "A source states that a seat is held for the buyer during checkout."},
+            {"level": "5", "text": "A source states that a seat is held for the buyer from selection until payment completes or a time limit passes, and that the system refuses a second sale of the same seat."}
+          ],
+          "definition": {
+            "objective": "No seat is sold twice",
+            "question": "What stops two online buyers being sold the same seat at the same time?",
+            "evidenceRule": "The vendor's documentation of how seats are reserved while a buyer pays; a general claim of 'real-time seat maps' is not enough to set the level.",
+            "missingRules": [
+              {"when": "No source describes how seats are reserved during a purchase.", "code": "not-evidenced"},
+              {"when": "Sources disagree about whether seats are held.", "code": "indeterminate"},
+              {"when": "The service sells only unallocated tickets with no seats.", "code": "not-applicable"}
+            ],
+            "exclusions": [
+              "Sales made at the door or the box office; that is cross-channel-seats.",
+              "Merchandise or any non-ticket sale."
+            ]
+          }
+        },
+        {
+          "id": "cross-channel-seats",
+          "label": "One seat list across online and door sales",
+          "preference": "increasing",
+          "anchors": [
+            {"level": "1", "text": "A source states that online sales and door sales are kept in separate seat lists that must be reconciled by hand."},
+            {"level": "3", "text": "A source states that online and door sales share one seat list, which is updated when sales are synced at intervals."},
+            {"level": "5", "text": "A source states that online and door sales share one seat list, which is updated at the moment of each sale."}
+          ],
+          "definition": {
+            "objective": "No seat is sold twice",
+            "question": "Do sales made online and sales made in person draw on one seat list, and how soon does it update?",
+            "evidenceRule": "The vendor's documentation of how door, box-office and online sales are recorded; a mention that a door app exists does not settle the level.",
+            "missingRules": [
+              {"when": "No source describes how in-person and online sales are combined.", "code": "not-evidenced"},
+              {"when": "Sources disagree about how often the seat list is updated.", "code": "indeterminate"},
+              {"when": "The service has no in-person sales at all.", "code": "not-applicable"}
+            ],
+            "exclusions": [
+              "Two online buyers choosing the same seat at once; that is seat-hold.",
+              "Whether a walk-up customer can be sold a ticket at all; that is door-ticket-issue."
+            ]
+          }
+        },
+        {
+          "id": "door-ticket-issue",
+          "label": "Selling a ticket to someone at the door",
+          "preference": "increasing",
+          "anchors": [
+            {"level": "1", "text": "A source states that tickets can only be bought online in advance."},
+            {"level": "3", "text": "A source states that door sales are entered into the system by hand, after the sale has been made."},
+            {"level": "5", "text": "A source states that a person who arrives at the door can be sold a ticket for a free seat, and that the seat is marked sold in the system immediately."}
+          ],
+          "definition": {
+            "objective": "A person who arrives at the door without a ticket can still get one",
+            "question": "Can a person who arrives at the door without a ticket leave with a ticket for a free seat, and how is the sale recorded?",
+            "evidenceRule": "The vendor's documentation of door or box-office sales; what it says about payment is evidence only for whether the sale is completed and recorded.",
+            "missingRules": [
+              {"when": "No source describes selling tickets at the door.", "code": "not-evidenced"},
+              {"when": "Sources disagree about whether door sales are supported.", "code": "indeterminate"}
+            ],
+            "exclusions": [
+              "Taking card payments at the door: judge whether a walk-up customer can leave with a ticket and whether the seat is recorded, not the payment method.",
+              "Whether online and door sales share a seat list; that is cross-channel-seats."
+            ]
+          }
+        }
+      ],
+      "overlaps": [
+        {
+          "criteria": ["guest-checkout", "checkout-length"],
+          "via": "parents-buy-quickly",
+          "probe": "Two services are identical except that one lets parents buy without an account. Do you prefer it, or are you indifferent? And: identical except that one has a shorter checkout. Prefer it, or indifferent?"
+        },
+        {
+          "criteria": ["seat-hold", "cross-channel-seats"],
+          "via": "no-double-booking",
+          "probe": "Two services are identical except that one holds a seat while a buyer pays. Do you prefer it, or are you indifferent? And: identical except that one keeps online and door sales on one live seat list. Prefer it, or indifferent?"
+        },
+        {
+          "criteria": ["cross-channel-seats", "door-ticket-issue"],
+          "via": "cross-channel-seats",
+          "probe": "Two services are identical except that one sells to walk-ups at the door. Do you prefer it, or are you indifferent? And: identical except that one keeps door and online sales on one live seat list. Prefer it, or indifferent? Door sales into a shared list are a component of both."
+        }
+      ],
+      "groups": [
+        {"objective": "parents-buy-quickly", "criteria": ["guest-checkout", "checkout-length"], "size": 2},
+        {"objective": "no-double-booking", "criteria": ["seat-hold", "cross-channel-seats"], "size": 2},
+        {"objective": "walk-up-sales", "criteria": ["door-ticket-issue"], "size": 1}
+      ],
+      "provenance": [
+        {"criterionId": "guest-checkout", "source": "agent-proposed"},
+        {"criterionId": "checkout-length", "source": "user-stated", "quote": "Parents should be able to buy tickets in under a minute."},
+        {"criterionId": "seat-hold", "source": "user-stated", "quote": "We are sick of double-booked seats."},
+        {"criterionId": "cross-channel-seats", "source": "agent-proposed"},
+        {"criterionId": "door-ticket-issue", "source": "agent-proposed"}
+      ],
+      "questions": [
+        "You said the service has to take card payments at the door. Why does that matter? It is treated here as a way of selling tickets to people who arrive without one (the objective 'walk-up-sales' is my inference, not yours). Is that right, and is card payment at the door instead a hard requirement, so that a service without it is ruled out whatever else it does?",
+        "Cost was not mentioned. Are booking fees, card charges or the service's price a criterion, or already settled?",
+        "All three services advertise colour themes or branding options. Does that matter to you?",
+        "Do parents mostly buy on a phone or on a computer? This may need a criterion of its own; nothing has been assumed.",
+        "Is 'under a minute' a hard limit or a way of saying 'quick'? Anchors for checkout-length are set on screens counted rather than time, which sources rarely state.",
+        "The three groups hold 2, 2 and 1 criteria. No objective outweighs another by three times, but 'walk-up-sales' has only one column; confirm that is the weight you mean."
+      ]
+    }
+  }
+]

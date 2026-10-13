@@ -27,7 +27,7 @@ Ten prompts, mapped to the ADR-0005 stages. "Shipped" means the file exists and 
 |---|---|---|---|
 | `frame` | 1 | — | Establish subject, decision, decider; surface ambiguity instead of resolving it silently |
 | `enumerate-alternatives` | 2 | — | Extract candidates from context; flag omissions and near-duplicates |
-| `propose-criteria` | 3 | — | Criteria with definitions, polarity, level of measurement, veto status; flag overlaps |
+| `propose-criteria` | 3 | **yes** | Criteria with every definition field, anchors as evidence conditions and a stated direction of preference, plus the objective ladder that produced them, rejects with a closed reason code, overlaps flagged from the ladder, and group sizes. The criteria go to `criteria_set` as they stand; the rest is checked by `rubricator.ladder` |
 | `confirm-frame` | 4 | — | The checkpoint, run as an MCP elicitation where the client declares the capability |
 | `extract-evidence` | 5 | — | Which returned span bears on this claim. Runs *before* `score-cell`, which never sees the corpus |
 | `score-cell` | 5 | **yes** | **The default** (ADR-0011). One cell: score, confidence, one-line justification, evidence spans — and which blank, when there is no score to give. Emits the `measures_write` cell as it stands, with `confidence` and `dependsOn` beside it until the contract has slots for them (#126, #170) |
