@@ -5,7 +5,7 @@ title: Confirm the frame with the user
 stage: 4
 updated: 2026-10-13
 changelog:
-  - 1 (2026-10-13) — First version (#71). Runs the step-4 discussion in chat (the question, the decider, every alternative, every criterion with its definition, scale, anchors and direction, the overlap probes put to the user in both directions) and records the user's answer through `frame_confirm` in their own words, in both paths: elicitation, where the form is the record and nothing is asked twice, and out-of-band, where the reply is. Carries a precautionary countermeasure for the sycophancy risk of #40 before that test exists: a stated expectation about which alternative wins changes nothing in the frame and is neither agreed with nor predicted, and a criterion asked for because of an alternative is a revise that gets the value question, never an anchor tuned to that alternative. Hypothesis: without it, a model reads thanks or "you decide" as consent, records a summary instead of the user's words, invents a name to record under, and leans the frame toward whichever winner the user named; with it, no confirmation is recorded that the user's reply did not give, and two users expecting opposite winners get the same calls.
+  - 1 (2026-10-13) — First version (#71). Runs the step-4 discussion in chat (the question, the decider, every alternative, every criterion with its definition, scale, anchors and direction, the overlap probes put to the user in both directions) and records the user's answer through `frame_confirm` in their own words, in both paths: elicitation, where the form is the record and nothing is asked twice, and out-of-band, where the reply is. Carries a precautionary countermeasure for the sycophancy risk of #40 before that test exists: a stated expectation about the winner changes nothing in the frame and is neither agreed with nor predicted, and a criterion asked for because of an alternative gets the value question before anything is written. Hypothesis, as first stated: without the prompt a model reads thanks or "you decide" as consent, records a summary, invents a name and leans toward the named winner. The no-prompt baseline did none of those (frame_confirm's own instructions carry them); what it did do is write a criterion for an alternative the user favoured without asking why it mattered, which the prompt stops. Revised once before landing, after an adversarial review found it wrong about the tool in three states: a decision seen in a later read is history and is not applied again; a change after a confirmation does not close the gate in the tool, so it is recorded as a revise first; and a second confirm needs a fresh no-decision call.
 ---
 
 # Confirm the frame with the user
@@ -61,6 +61,10 @@ When the stage is `4`, write the discussion first and make the `frame_confirm` c
 the turn: where the client supports a form, the call is what shows it, and the user should have read
 the discussion by then.
 
+A decision you see in `record` on a read is history, not a new answer. Act on a decision once: when
+the user gives it — in their reply, or on the result that carried a form (below). If its changes were
+made in this conversation, put the changed frame to them; do not make them again.
+
 ## What to show
 
 Plain prose and short lists, in this order. Every part present; say "not recorded" rather than
@@ -81,8 +85,8 @@ filling a gap.
 - **The ask**, last: "Answer confirm, revise (and say what to change), or reject." If you do not know
   the name the user goes by, ask for it here too: the decision is recorded under it.
 
-Then call `frame_confirm` with no decision, if you have not already, and stop for their answer. Do not
-call a writing tool in this turn, and do not begin scoring.
+End the turn with a `frame_confirm` call with no decision, unless you already made one in this turn,
+and stop for their answer. Do not call a writing tool in this turn, and do not begin scoring.
 
 ## Reading the answer
 
@@ -99,7 +103,13 @@ Read the user's whole reply before choosing, and choose by what it says, not by 
   If they hand the decision to you, say plainly that it is theirs, and ask the one or two questions
   that matter most rather than the whole list.
 - **Part of it** — "the criteria are right, but I need to check the alternatives with Ben": record a
-  `confirm` with `scope` set to the part they confirmed, and say what is still open.
+  `confirm` with `scope` set to the part they confirmed, and say what is still open. If they
+  confirmed two of the three parts, record each in turn.
+
+**Every decision you record answers the question once.** The tool records a `confirm` only in answer
+to a question asked since the last decision, so before recording another one — the next part of a
+partial confirmation, or a fresh answer after a `revise` — call `frame_confirm` with no decision
+first; it records that the question is put again.
 
 When there is a decision, call `frame_confirm` with:
 
@@ -107,27 +117,37 @@ When there is a decision, call `frame_confirm` with:
 - `confirmed_by` — the name the user gave for themselves. Never invent one, never guess one from
   context, and never write a placeholder such as "user". If you do not have it, ask for it and record
   nothing until you do;
-- `confirmation_text` — their reply, word for word, all of it. Not a summary, not a cleaned-up
-  version, not the part you agreed with;
+- `confirmation_text` — the reply that gave the decision, word for word, all of it. Not a summary,
+  not a cleaned-up version, not the part you agreed with. If their name came in a later message,
+  the decision is still the earlier reply;
 - `scope` — `all`, unless they answered for only part.
 
 Then read the result the same way as above. No `instructions`: the gate is open; say so, and that
 scoring is the next step. `instructions` present: follow them.
 
+A change to the frame after a confirmation does **not** close the gate in the tool: scoring stays
+open, and the next read puts the changed part to the user again. So never make a change silently,
+and never score against one the user has not answered. A change they ask for is a `revise`, recorded
+first; that is what closes the gate.
+
 ## When the form was the record
 
-Where the client supports it, the `frame_confirm` call shows the user a form and its answer comes back
-as the call's result, with `mechanism: "elicitation"` on the result or on its `record`. The form is the
-record. Do not ask the same question again in chat, and do not call `frame_confirm` with a decision
-for an answer the form already carried.
+Where the client supports it, the `frame_confirm` call shows the user a form, and the result that comes
+back carries `mechanism: "elicitation"`. On that result, the form is the record: the user answered
+there. Do not ask the same question again in chat, and do not call `frame_confirm` with a decision for
+the answer the form carried. Read the result as above:
 
-- A `confirm` in the record: the gate is open. If the record's text asks for a change, point to it and
-  ask whether to make it before scoring; making it closes the gate again.
-- A `revise` in the record: its text is the change asked for. Make it, then call `frame_confirm` with
-  no decision to put the changed frame to them.
-- `confirmed: false` and no decision in the record — the form was declined or dismissed: nothing was
-  confirmed. Do not read a closed form as consent. Ask in chat what they would like to change, or
-  whether to leave it for now.
+- **No `instructions`**: the gate is open. If the form's notes ask for a change, point to them and ask
+  whether to make it; making it is a `revise`, which closes the gate again.
+- **A `revise` in the record**: its text — and any criteria the user chose to drop — is the change
+  asked for. Make exactly that, then call `frame_confirm` with no decision and put the changed frame
+  to them. Only on this result: a later read showing the same `revise` is history.
+- **No decision in the record** — the form was declined or dismissed: nothing was confirmed. Do not
+  read a closed form as consent, and do not start scoring. Ask in chat what they would like to change,
+  or whether to leave it for now.
+
+How the form's fields map onto the record is the connector's to settle (#81); read the result, not a
+guess about the form.
 
 ## What the user hopes will win
 

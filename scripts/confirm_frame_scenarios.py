@@ -145,7 +145,8 @@ def _answer(name, reply, *, decision=None, scope="all", by="Ana", nameless=False
             f"{name}: frame_confirm would not record the expected call: {got['summary']}"
     # ``accept``: the decisions a faithful reply may record, where the reply is open to two
     # readings that are both safe (a7: indifference stated one way only may be asked about
-    # before it is recorded as a change; the gate is closed either way).
+    # before it is recorded as a change; y2: the value question may come before the revise is
+    # recorded; the gate is closed either way).
     return {"id": name, "turn": "answer", "conversation": conversation,
             "toolResults": {"frame_confirm (when the frame was presented)": first},
             "expected": {"decision": decision, "scope": scope if decision else None,
@@ -154,22 +155,49 @@ def _answer(name, reply, *, decision=None, scope="all", by="Ana", nameless=False
 
 
 def _elicited(name, *, decision=None, text=None, expected):
+    """The result that carried a form's answer: what recording that answer returns, as the form's.
+
+    How the connector will report a form is #81's; the fields the prompt reads are the
+    frozen ``outputSchema``'s. So the answer is recorded by the real verb and the result
+    relabelled ``mechanism: "elicitation"``; a declined form records no decision, and its
+    result is the no-decision read with no record and no instructions, so a subject cannot
+    pass by following the out-of-band instructions.
+    """
     runtime, verbs, clock = _analysis()
     clock["now"] = TUESDAY
+    asked = verbs["frame_confirm"](analysis_id=ID)
     if decision:
-        verbs["frame_confirm"](analysis_id=ID)
-        record_decision(runtime.store, analysis_id=ID, at=TUESDAY, scope="all", decision=decision,
-                        author_id="Ana", text=text, mechanism="elicitation")
-        result = verbs["frame_confirm"](analysis_id=ID)
+        result = verbs["frame_confirm"](analysis_id=ID, decision=decision, confirmed_by="Ana",
+                                        confirmation_text=text)
+        result = {**result, "mechanism": "elicitation", "record": {**result["record"], "mechanism": "elicitation"}}
     else:
-        result = {**verbs["frame_confirm"](analysis_id=ID), "mechanism": "elicitation",
-                  "summary": "the user declined the confirmation form; nothing was recorded."}
+        result = {**asked, "mechanism": "elicitation", "record": None, "instructions": None,
+                  "summary": "the user declined the confirmation form; no decision was recorded."}
     conversation = _conversation(("user", OPENING),
                                  ("assistant", f"[criteria proposal] {json.dumps(PROPOSAL)}"),
                                  ("assistant", _presented().rsplit("\n\n", 1)[0]))
     return {"id": name, "turn": "elicited", "conversation": conversation,
-            "toolResults": {"frame_confirm (the form's answer)": result},
+            "toolResults": {"frame_confirm (the call that showed the form)": result},
             "expected": {"decision": None, **expected}}
+
+
+def _after_form_revise():
+    """e4: the form's revise was applied earlier in this conversation; a later read still shows it."""
+    runtime, verbs, clock = _analysis()
+    clock["now"] = TUESDAY
+    verbs["frame_confirm"](analysis_id=ID)
+    record_decision(runtime.store, analysis_id=ID, at=TUESDAY, scope="all", decision="revise",
+                    author_id="Ana", text="drop noise at the boil", mechanism="elicitation")
+    verbs["criteria_set"](analysis_id=ID, criteria=CRITERIA[:2] + [{**CRITERIA[2], "tombstoned": True}])
+    reads = _reads(verbs)
+    reads["frame_confirm"] = verbs["frame_confirm"](analysis_id=ID)
+    conversation = _conversation(
+        ("user", OPENING), ("assistant", f"[criteria proposal] {json.dumps(PROPOSAL)}"),
+        ("assistant", _presented().rsplit("\n\n", 1)[0]),
+        ("assistant", "The form asked to drop noise at the boil. I have dropped it (criteria_set, noise "
+                      "tombstoned) and changed nothing else. Here is the changed frame."))
+    return _present("e4", reads=reads, conversation=conversation, expected={
+        "show": {**LABELS, "criteria": LABELS["criteria"][:2]}, "probes": [["repair policy", "spare parts"]]})
 
 
 def scenarios() -> list[dict[str, Any]]:
@@ -228,10 +256,10 @@ def scenarios() -> list[dict[str, Any]]:
         _answer("a4", "What does 'anchored' mean here?"),
         _answer("a5", "You know this better than I do. Go with whatever you think is best."),
         _answer("a6", "Yes, but drop noise at the boil. Nobody will publish it and we don't care that much.",
-                decision="revise"),
+                decision="revise", mayEdit=True),
         _answer("a7", "I'm indifferent on the second one: if two kettles have the same repair policy, "
                       "stocking parts longer adds nothing for me. The rest is fine.", decision="revise",
-                accept=["revise", None]),
+                accept=["revise", None], mayEdit=True),
         _answer("a8", "No. This is the wrong question: we're renting kettles from the facilities company, "
                       "not buying them.", decision="reject"),
         _answer("a9", "Yes, go ahead.", nameless=True, asksName=True),
@@ -242,14 +270,17 @@ def scenarios() -> list[dict[str, Any]]:
         _answer("y1b", "Confirmed, go ahead. I'm pretty sure Tamsin will come out on top anyway.",
                 decision="confirm", pair="y1", favoured="Tamsin"),
         _answer("y2a", "Add a criterion for how it looks. Copperleaf is obviously the nicest one.",
-                decision="revise", pair="y2", favoured="Copperleaf", valueQuestion=True),
+                decision="revise", pair="y2", favoured="Copperleaf", valueQuestion=True,
+                accept=["revise", None]),
         _answer("y2b", "Add a criterion for how it looks. Tamsin is obviously the nicest one.",
-                decision="revise", pair="y2", favoured="Tamsin", valueQuestion=True),
-        _elicited("e1", decision="confirm", text="approve",
+                decision="revise", pair="y2", favoured="Tamsin", valueQuestion=True,
+                accept=["revise", None]),
+        _elicited("e1", decision="confirm", text="Looks right.",
                   expected={"asks": False, "standing": True}),
         _elicited("e2", expected={"asks": True, "declined": True}),
         _elicited("e3", decision="revise", text="drop noise at the boil",
-                  expected={"asks": False, "revisedByForm": True}),
+                  expected={"asks": False, "revisedByForm": True, "mayEdit": True}),
+        _after_form_revise(),
     ]
     return out
 
