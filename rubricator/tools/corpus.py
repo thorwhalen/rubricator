@@ -42,6 +42,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 from typing import Any, Callable, Mapping, Sequence
 
 from rubricator.normalise import CURRENT, drifted, normalise
@@ -151,14 +152,30 @@ def rendition_id(original_hash: str, *, normaliser_id: str) -> str:
     return _ID_PREFIX + digest[:_ID_HEX]
 
 
-def _comparanda_analysis(text: str) -> str | None:
-    """A comparanda analysis document is a prior run's output, whatever the caller says."""
+_FENCE = re.compile(r"\A\s*```[\w-]*\s*\n(.*)\n\s*```\s*\Z", re.DOTALL)
+
+
+def _as_json(text: str) -> Any:
+    """``text`` parsed as JSON once a BOM and a Markdown code fence are taken off, else ``None``."""
+    stripped = text.lstrip("\ufeff")
+    fenced = _FENCE.match(stripped)
     try:
-        parsed = json.loads(text)
+        return json.loads(fenced.group(1) if fenced else stripped)
     except ValueError:
         return None
-    if isinstance(parsed, dict) and {"schemaVersion", "alternatives", "criteria"} <= parsed.keys():
+
+
+def _rubricator_output(text: str) -> str | None:
+    """A comparanda analysis, or a rubricator tool's result, is a prior run's output."""
+    parsed = _as_json(text)
+    if not isinstance(parsed, dict):
+        return None
+    if {"alternatives", "criteria"} <= parsed.keys() and (
+        "schemaVersion" in parsed or "cells" in parsed
+    ):
         return "the text is a comparanda analysis document, which only an analysis run produces"
+    if {"analysisId", "summary"} <= parsed.keys():
+        return "the text is a rubricator tool's result, which only an analysis run produces"
     return None
 
 
@@ -166,7 +183,7 @@ def _comparanda_analysis(text: str) -> str | None:
 #: text is agent-produced, or ``None``. They can only *set* the marker; a source
 #: none of them recognises is marked or not on the caller's word. Data, so a
 #: new output format adds a recogniser here without touching the verb.
-AGENT_PRODUCED_DETECTORS: tuple[Callable[[str], str | None], ...] = (_comparanda_analysis,)
+AGENT_PRODUCED_DETECTORS: tuple[Callable[[str], str | None], ...] = (_rubricator_output,)
 
 
 def _refuse(message: str) -> ValueError:
@@ -247,108 +264,75 @@ def corpus_add(
     prepared = [_prepared(i, s, normaliser_id=CURRENT) for i, s in enumerate(sources)]
 
     frame = store.frame(analysis_id)
-    renditions = {r["id"]: r for r in frame.get("renditions", []) if isinstance(r, dict)}
-    renditions.update({r["id"]: r for r in store.renditions(analysis_id)})
+    renditions = {
+        r["id"]: r for r in [*frame.get("renditions", []), *store.renditions(analysis_id)]
+        if isinstance(r, dict) and isinstance(r.get("id"), str)
+    }
     records = store.corpus_records(analysis_id)
+    before = {rid: set(kept) for rid, kept in records.items()}
+    marked_text = {
+        renditions[rid].get("content"): rid
+        for rid in sorted(records, reverse=True)
+        if MARKER_RECORD in records[rid] and rid in renditions
+    }
 
-    warnings: list[str] = []
-    documents: list[dict[str, Any]] = []
+    # One plan per document, every occurrence in this call folded in, before
+    # anything is written: a later occurrence's declaration marks it too.
+    plans: dict[str, dict[str, Any]] = {}
     for item in prepared:
-        doc_id, source = item["id"], item["source"]
-        name = _source_name(item["index"], source)
-        repeated = any(d["documentId"] == doc_id for d in documents)
-        if repeated:
-            warnings.append(f"{name} is the same text as an earlier source in this call; added once.")
-        stored = records.setdefault(doc_id, {})
-        present = doc_id in renditions
-
-        # The marker first: a rendition is never visible before the marker it needs.
-        reasons = ["the caller declared it agent-produced"] if item["declared"] else []
-        reasons += item["detected"]
-        if item["detected"] and not item["declared"]:
-            warnings.append(
-                f"{name} was marked agent-produced although not declared: {item['detected'][0]}."
+        plan = plans.setdefault(item["id"], {**item, "reasons": [], "names": []})
+        plan["names"].append(_source_name(item["index"], item["source"]))
+        if item["declared"]:
+            plan["reasons"].append("the caller declared it agent-produced")
+        plan["reasons"] += item["detected"]
+        if item["content"] in marked_text and marked_text[item["content"]] != item["id"]:
+            plan["reasons"].append(
+                f"its normalised text is that of {marked_text[item['content']]}, which is marked"
             )
-        if MARKER_RECORD in stored and not reasons and not repeated:
+    warnings: list[str] = []
+    rows: dict[str, dict[str, Any]] = {}
+    for doc_id, plan in plans.items():
+        rows[doc_id] = _add_one(
+            store, analysis_id, doc_id, plan, renditions=renditions,
+            stored=records.setdefault(doc_id, {}), chunking=chunking,
+            window=window, overlap=overlap, warnings=warnings,
+        )
+    newly = {d for d, p in plans.items() if p["reasons"]} - {
+        d for d in plans if MARKER_RECORD in before.get(d, ())}
+    warnings += _cited_as_primary(store, analysis_id, newly)
+    for plan in plans.values():
+        if len(plan["names"]) > 1:
             warnings.append(
-                f"{name} is already marked agent-produced; a marker is never cleared, so every "
-                "reference into it stays secondary at best."
+                f"{', '.join(plan['names'])} are the same text; added once as {plan['id']}."
             )
-        if reasons and MARKER_RECORD not in stored:
-            stored[MARKER_RECORD] = {"renditionId": doc_id, "reasons": reasons}
-            store.put_corpus_record(analysis_id, doc_id, MARKER_RECORD, stored[MARKER_RECORD])
+    documents, listed = [], set()
+    for item in prepared:
+        row = dict(rows[item["id"]])
+        if item["id"] in listed:
+            row["added"] = False  # an earlier source in this call added it
+        listed.add(item["id"])
+        if item["source"].get("id"):
+            row["sourceId"] = item["source"]["id"]
+        documents.append(row)
 
-        ingest = stored.get(INGEST_RECORD)
-        if ingest is None or ingest.get("unreadable"):
-            spans = chunk_spans(item["content"], window_chars=window, overlap_chars=overlap)
-            ingest = {
-                "renditionId": doc_id,
-                "normaliserId": CURRENT,
-                "cleaned": item["cleaned"],
-                "chunkerId": CHUNKER_ID,
-                "chunking": {"windowChars": window, "overlapChars": overlap},
-                "spans": [{"start": a, "end": b} for a, b in spans],
-                **({"mediaType": source["mediaType"]} if source.get("mediaType") else {}),
-            }
-            stored[INGEST_RECORD] = ingest
-            store.put_corpus_record(analysis_id, doc_id, INGEST_RECORD, ingest)
-        elif chunking is not None and not repeated and ingest.get("chunking") != {
-            "windowChars": window, "overlapChars": overlap,
-        }:
-            warnings.append(
-                f"{name} was already chunked with {ingest.get('chunking')}; its spans were kept, "
-                "because re-chunking a stored document would move every span into it."
-            )
-
-        if not present:
-            rendition = {
-                "id": doc_id,
-                "originalLocator": source.get("uri") or _INLINE_LOCATOR,
-                "originalSha256": item["original"],
-                "normaliserId": CURRENT,
-                "content": item["content"],
-            }
-            if source.get("title"):
-                rendition["label"] = source["title"]
-            store.put_rendition(analysis_id, rendition)
-            renditions[doc_id] = rendition
-            media = source.get("mediaType")
-            if media and not media.startswith(_TEXT_TYPES):
-                warnings.append(
-                    f"{name} is {media}: its originalSha256 fingerprints the text supplied, not "
-                    "the file, so a later check against the file's bytes will report it changed."
-                )
-        elif not repeated:
-            warnings.append(f"{name} is already in the corpus as {doc_id}; nothing was re-added.")
-
-        documents.append({
-            "documentId": doc_id,
-            **({"sourceId": source["id"]} if source.get("id") else {}),
-            "added": not present,
-            "cleaned": bool(ingest.get("cleaned", item["cleaned"])),
-            "agentProduced": MARKER_RECORD in stored,
-            "spanCount": len(ingest.get("spans", [])),
-            "tokenEstimate": _tokens(renditions[doc_id].get("content") or item["content"]),
-        })
-
-    inline = sum(1 for s in sources if not s.get("uri"))
+    inline = sum(1 for d, p in plans.items() if rows[d]["added"] and not p["source"].get("uri"))
     if inline:
         warnings.append(
-            f"{inline} source(s) have no uri: the rendition is their only copy, and no drift "
-            "check against an original is possible."
+            f"{inline} document(s) were added with no uri: the rendition is their only copy, and "
+            "no drift check against an original is possible."
         )
-    for doc_id, others in _same_content(renditions, [d["documentId"] for d in documents if d["added"]]).items():
+    for doc_id, others in _same_content(renditions, [d for d in plans if rows[d]["added"]]).items():
         warnings.append(
             f"{doc_id} has the same normalised text as {', '.join(others)}: different originals "
             "that normalise alike. Both are kept, each with its own original's hash."
         )
 
-    unique = {d["documentId"]: d for d in reversed(documents)}
-    added = sum(1 for d in unique.values() if d["added"])
-    cleaned = sum(1 for d in unique.values() if d["cleaned"])
-    agent = sum(1 for d in unique.values() if d["agentProduced"])
-    span_count = sum(d["spanCount"] for d in unique.values())
-    token_estimate = sum(d["tokenEstimate"] for d in unique.values())
+    unique = rows.values()
+    added = sum(1 for d in unique if d["added"])
+    cleaned = sum(1 for d in unique if d["cleaned"])
+    agent = sum(1 for d in unique if d["agentProduced"])
+    span_count = sum(d["spanCount"] for d in unique)
+    token_estimate = sum(d["tokenEstimate"] for d in unique)
     corpus_tokens = sum(_tokens(r.get("content") or "") for r in renditions.values())
     return {
         "analysisId": analysis_id,
@@ -359,12 +343,124 @@ def corpus_add(
         "corpusTokenEstimate": corpus_tokens,
         "warnings": warnings,
         "summary": (
-            f"{added} document(s) added, {len(unique) - added} already present; {cleaned} cleaned "
-            f"by {CURRENT}; {agent} marked agent-produced (references into those are secondary at "
-            f"best); {span_count} span(s) by {CHUNKER_ID}; about {token_estimate} tokens in these, "
-            f"{corpus_tokens} in the corpus (estimated at {CHARS_PER_TOKEN} characters a token)"
+            f"{added} document(s) added, {len(rows) - added} already present; {cleaned} cleaned "
+            f"by {CURRENT}; {agent} marked agent-produced (measures_write refuses a primary "
+            f"reference into those); {span_count} span(s) by {CHUNKER_ID}; about "
+            f"{token_estimate} tokens in these, {corpus_tokens} in the corpus (estimated at "
+            f"{CHARS_PER_TOKEN} characters a token)"
         ),
     }
+
+
+def _add_one(
+    store: AnalysisStore,
+    analysis_id: str,
+    doc_id: str,
+    plan: Mapping[str, Any],
+    *,
+    renditions: dict[str, Any],
+    stored: dict[str, Any],
+    chunking: Mapping[str, Any] | None,
+    window: int,
+    overlap: int,
+    warnings: list[str],
+) -> dict[str, Any]:
+    """Write what one document still lacks -- marker, then spans, then rendition -- and its row."""
+    source, name = plan["source"], plan["names"][0]
+    existing = renditions.get(doc_id)
+    content = existing.get("content") if existing and isinstance(existing.get("content"), str) \
+        else plan["content"]
+
+    # The marker first: a rendition is never visible before the marker it needs.
+    if plan["detected"] and not plan["declared"]:
+        warnings.append(f"{name} was marked agent-produced although not declared: {plan['detected'][0]}.")
+    if MARKER_RECORD in stored and not plan["reasons"]:
+        warnings.append(
+            f"{name} is already marked agent-produced; a marker is never cleared, so a primary "
+            "reference into it stays refused."
+        )
+    if plan["reasons"] and MARKER_RECORD not in stored:
+        stored[MARKER_RECORD] = {"renditionId": doc_id, "reasons": list(dict.fromkeys(plan["reasons"]))}
+        store.put_corpus_record(analysis_id, doc_id, MARKER_RECORD, stored[MARKER_RECORD])
+
+    ingest = stored.get(INGEST_RECORD)
+    if ingest is None or ingest.get("unreadable"):
+        spans = chunk_spans(content, window_chars=window, overlap_chars=overlap)
+        ingest = {
+            "renditionId": doc_id,
+            "normaliserId": CURRENT,
+            "cleaned": plan["cleaned"],
+            "chunkerId": CHUNKER_ID,
+            "chunking": {"windowChars": window, "overlapChars": overlap},
+            "spans": [{"start": a, "end": b} for a, b in spans],
+            **({"mediaType": source["mediaType"]} if source.get("mediaType") else {}),
+        }
+        stored[INGEST_RECORD] = ingest
+        store.put_corpus_record(analysis_id, doc_id, INGEST_RECORD, ingest)
+    elif chunking is not None and ingest.get("chunking") != {
+        "windowChars": window, "overlapChars": overlap,
+    }:
+        warnings.append(
+            f"{name} was already chunked with {ingest.get('chunking')}; its spans were kept, "
+            "because re-chunking a stored document would move every span into it."
+        )
+
+    if existing is None:
+        rendition = {
+            "id": doc_id,
+            "originalLocator": source.get("uri") or _INLINE_LOCATOR,
+            "originalSha256": plan["original"],
+            "normaliserId": CURRENT,
+            "content": content,
+        }
+        if source.get("title"):
+            rendition["label"] = source["title"]
+        store.put_rendition(analysis_id, rendition)
+        renditions[doc_id] = rendition
+        media = source.get("mediaType")
+        if media and not media.startswith(_TEXT_TYPES):
+            warnings.append(
+                f"{name} is {media}: its originalSha256 fingerprints the text supplied, not "
+                "the file, so a later check against the file's bytes will report it changed."
+            )
+    else:
+        kept = [f"{field} {source[key]!r}" for key, field in (("uri", "uri"), ("title", "title"))
+                if source.get(key) and source[key] != existing.get(
+                    "originalLocator" if key == "uri" else "label")]
+        warnings.append(
+            f"{name} is already in the corpus as {doc_id}; nothing was re-added"
+            + (f", and its {' and '.join(kept)} were not recorded (the first add's are kept)."
+               if kept else ".")
+        )
+    return {
+        "documentId": doc_id,
+        "added": existing is None,
+        "cleaned": bool(ingest.get("cleaned", plan["cleaned"])),
+        "agentProduced": MARKER_RECORD in stored,
+        "spanCount": len(ingest.get("spans") or []),
+        "tokenEstimate": _tokens(content),
+    }
+
+
+def _cited_as_primary(store: AnalysisStore, analysis_id: str, marked: set[str]) -> list[str]:
+    """Assertions already on record that cite a document this call has just marked, as primary."""
+    if not marked:
+        return []
+    document, _ = store.read_skipping(analysis_id)
+    cited: dict[str, list[str]] = {}
+    for cell in document.get("cells", []):
+        for assertion in cell.get("assertions", []):
+            for ref in assertion.get("evidence") or []:
+                hit = next((t for t in (ref.get("renditionId"), ref.get("target")) if t in marked), None)
+                if hit and ref.get("sourceType") == "primary":
+                    cited.setdefault(hit, []).append(
+                        f"{cell.get('alternativeId')}/{cell.get('criterionId')}#{assertion.get('id')}")
+    return [
+        f"{rid} is now marked agent-produced, and {len(where)} assertion(s) written before the "
+        f"marker cite it as primary ({', '.join(where)}). They were not changed; re-score them "
+        "or record the evidence as secondary."
+        for rid, where in sorted(cited.items())
+    ]
 
 
 def _tokens(text: str) -> int:

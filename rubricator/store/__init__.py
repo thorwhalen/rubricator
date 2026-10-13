@@ -855,6 +855,8 @@ class AnalysisStore:
             try:
                 record = self._read(key)
             except (ValueError, UnicodeDecodeError):
+                record = None
+            if not isinstance(record, dict):
                 record = {"unreadable": True}
             records.setdefault(rendition_id, {})[name] = record
         return records

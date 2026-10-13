@@ -260,7 +260,7 @@ def test_cleaning_an_inline_source_and_a_pdf_are_all_said() -> None:
     result = verbs["corpus_add"](analysis_id="a1", sources=[SPEC, pdf, plain])
     assert [d["cleaned"] for d in result["documents"]] == [True, False, False]
     assert any("application/pdf" in w and "not the file" in w for w in result["warnings"])
-    assert any("1 source(s) have no uri" in w for w in result["warnings"])
+    assert any("1 document(s) were added with no uri" in w for w in result["warnings"])
     assert "1 cleaned by nfc-v1" in result["summary"]
 
 
@@ -281,3 +281,136 @@ def test_same_calls_give_byte_identical_results_and_stores() -> None:
         return json.dumps(out, sort_keys=True), _snapshot(runtime)
 
     assert run() == run()
+
+
+# --- the #201 review's findings, kept failing-able ------------------------------
+
+
+def test_a_variant_of_a_marked_text_is_marked_too() -> None:
+    """Finding 1: a trailing newline made a second, unmarked copy of a marked summary."""
+    runtime, verbs = _verbs()
+    summary = "A summary a model wrote of the K2 spec."
+    verbs["corpus_add"](analysis_id="a1", sources=[{"text": summary, "agentProduced": True}])
+    variant = verbs["corpus_add"](analysis_id="a1",
+                                  sources=[{"text": summary + "\n", "agentProduced": False}])
+    assert variant["documents"][0]["added"] is True
+    assert variant["documents"][0]["agentProduced"] is True
+    marker = runtime.store.corpus_records("a1")[variant["documentIds"][0]][MARKER_RECORD]
+    assert "which is marked" in marker["reasons"][0]
+
+
+def test_a_later_declaration_in_the_same_call_marks_before_anything_is_visible() -> None:
+    """Finding 2: rows for one id agreed with each other and with the summary."""
+    runtime, verbs = _verbs()
+    result = verbs["corpus_add"](analysis_id="a1", sources=[
+        {"text": "hello world", "agentProduced": False},
+        {"text": "hello world", "agentProduced": True},
+    ])
+    assert [d["agentProduced"] for d in result["documents"]] == [True, True]
+    assert "1 marked agent-produced" in result["summary"]
+
+
+@pytest.mark.parametrize("damage", [b"[]", b"null", b"not json"])
+def test_a_damaged_record_neither_crashes_nor_half_adds(damage) -> None:
+    """Finding 3: a record that parses to a non-object crashed after earlier writes."""
+    runtime, verbs = _verbs()
+    doc_id = verbs["corpus_add"](analysis_id="a1", sources=[SPEC])["documentIds"][0]
+    runtime.store.blobs[runtime.store.corpus_key("a1", doc_id, INGEST_RECORD)] = damage
+    result = verbs["corpus_add"](analysis_id="a1", sources=[
+        {"text": "Something new.", "agentProduced": False}, SPEC,
+    ])
+    assert result["documents"][1]["spanCount"] > 0, "the damaged spans are rebuilt"
+
+
+@pytest.mark.parametrize("wrap", [
+    lambda t: "﻿" + t,
+    lambda t: "```json\n" + t + "\n```",
+])
+def test_rubricator_output_is_recognised_through_a_bom_or_a_fence(wrap) -> None:
+    """Finding 6."""
+    runtime, verbs = _verbs()
+    exported = wrap(json.dumps(runtime.store.read("a1")))
+    result = verbs["corpus_add"](analysis_id="a1", sources=[{"text": exported, "agentProduced": False}])
+    assert result["documents"][0]["agentProduced"] is True
+
+
+def test_a_tool_result_pasted_back_is_marked() -> None:
+    """Finding 6: analysis_get's own JSON is the likeliest thing an agent re-ingests."""
+    _, verbs = _verbs()
+    pasted = json.dumps(verbs["analysis_get"](analysis_id="a1", view="frame"))
+    result = verbs["corpus_add"](analysis_id="a1", sources=[{"text": pasted, "agentProduced": False}])
+    assert result["documents"][0]["agentProduced"] is True
+
+
+def test_a_uri_offered_on_a_re_add_is_said_not_to_be_recorded() -> None:
+    """Finding 7."""
+    _, verbs = _verbs()
+    inline = {"text": KETTLE, "agentProduced": False}
+    verbs["corpus_add"](analysis_id="a1", sources=[inline])
+    again = verbs["corpus_add"](analysis_id="a1", sources=[{**inline, "uri": "https://example.org/k"}])
+    assert any("were not recorded" in w and "example.org/k" in w for w in again["warnings"])
+
+
+def test_the_no_uri_warning_counts_documents_not_sources() -> None:
+    """Finding 8."""
+    _, verbs = _verbs()
+    inline = {"text": KETTLE, "agentProduced": False}
+    result = verbs["corpus_add"](analysis_id="a1", sources=[inline, inline, inline])
+    assert any(w.startswith("1 document(s) were added with no uri") for w in result["warnings"])
+
+
+# --- ADR-0015 constraint 3 at the write path: secondary at best ------------------
+
+AUTHOR = {"id": "ana", "displayName": "Ana", "kind": "human"}
+ANCHORS = [{"level": "1", "text": "slow"}, {"level": "3", "text": "fair"},
+           {"level": "5", "text": "fast"}]
+
+
+def _scorable():
+    runtime = build_runtime(blobs={}, now=fixed_clock(MOMENT), new_id=sequential_ids("a"))
+    verbs = bind(runtime)
+    verbs["analysis_open"](analysis_id="a1", question="which kettle?", allow_skip_confirmation=True)
+    verbs["frame_set"](analysis_id="a1", ambiguities=[])
+    verbs["alternatives_set"](analysis_id="a1", alternatives=[{"id": "k2", "label": "K2"}])
+    verbs["criteria_set"](analysis_id="a1", criteria=[{"id": "speed", "label": "Speed",
+                                                       "anchors": ANCHORS}])
+    return runtime, verbs
+
+
+def _score(verbs, doc_id, source_type, *, by="renditionId"):
+    ref = {"id": "e1", "target": doc_id if by == "target" else "doc:k2", "sourceType": source_type,
+           "selectors": [{"type": "TextQuoteSelector", "exact": "under four minutes"}]}
+    if by == "renditionId":
+        ref["renditionId"] = doc_id
+    return verbs["measures_write"](
+        analysis_id="a1", contributor_id="ana", author=AUTHOR,
+        cells=[{"alternativeId": "k2", "criterionId": "speed", "value": 4,
+                "justification": "the sheet says under four minutes", "evidence": [ref]}],
+    )
+
+
+@pytest.mark.parametrize("by", ["renditionId", "target"])
+def test_a_primary_reference_into_an_agent_produced_document_is_refused(by) -> None:
+    runtime, verbs = _scorable()
+    doc_id = verbs["corpus_add"](analysis_id="a1", sources=[{**SPEC, "agentProduced": True}])[
+        "documentIds"][0]
+    before = _snapshot(runtime)
+    with pytest.raises(ValueError, match=rf"nothing was written.*{doc_id}.*agent-produced"):
+        _score(verbs, doc_id, "primary", by=by)
+    assert _snapshot(runtime) == before
+    assert _score(verbs, doc_id, "secondary", by=by)["summary"]
+
+
+def test_a_primary_reference_into_a_fetched_document_is_written() -> None:
+    _, verbs = _scorable()
+    doc_id = verbs["corpus_add"](analysis_id="a1", sources=[SPEC])["documentIds"][0]
+    assert _score(verbs, doc_id, "primary")["summary"]
+
+
+def test_marking_a_document_already_cited_as_primary_says_which_assertions() -> None:
+    _, verbs = _scorable()
+    doc_id = verbs["corpus_add"](analysis_id="a1", sources=[SPEC])["documentIds"][0]
+    _score(verbs, doc_id, "primary")
+    later = verbs["corpus_add"](analysis_id="a1", sources=[{**SPEC, "agentProduced": True}])
+    assert any(w.startswith(f"{doc_id} is now marked") and "k2/speed" in w
+               for w in later["warnings"])

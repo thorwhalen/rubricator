@@ -347,7 +347,8 @@ def test_the_token_measurement_is_current() -> None:
         # Not a pass for an unmeasured surface: the pin still holds the live
         # definitions, and the debt is an open issue the ADR names (#199).
         hint = (f"definitions changed again while #{AWAITING_MEASUREMENT['issue']} still owes a "
-                f"measurement; re-pin AWAITING_MEASUREMENT or, better, measure ({hint})")
+                f"measurement; measure ({hint}), or re-pin AWAITING_MEASUREMENT in an ADR-0026 "
+                "amendment that states the new sizes")
         assert "tokens" not in AWAITING_MEASUREMENT["advertised"], "an estimate is not a count"
         assert "tokens" not in AWAITING_MEASUREMENT["wholeSurface"], "an estimate is not a count"
     for key, specs in (("advertised", advertised()), ("wholeSurface", FROZEN_TOOLS)):
@@ -362,7 +363,13 @@ def test_the_adr_records_the_measurement() -> None:
     assert f"{MEASURED['advertised']['tokens']:,}" in text
     assert f"{MEASURED['wholeSurface']['tokens']:,}" in text
     if AWAITING_MEASUREMENT is not None:
-        assert f"#{AWAITING_MEASUREMENT['issue']}" in text, "the ADR names the measurement owed"
+        # Re-pinning is an ADR amendment, not a one-line edit: the pinned sizes
+        # must be stated there beside the issue that owes the count (#201 review).
+        owed = AWAITING_MEASUREMENT
+        assert f"#{owed['issue']}" in text, "the ADR names the measurement owed"
+        for key in ("advertised", "wholeSurface"):
+            assert f"{owed[key]['bytes']:,} bytes" in text, (
+                f"the ADR states the unmeasured {key} size; re-pinning is an amendment")
 
 
 # --- the review's findings, kept failing-able ---------------------------------
