@@ -56,6 +56,12 @@ DISHONEST = {
         "inference-names-its-sources", ".evidence[e2].derivedFrom"),
     "a score with no evidence": (SCORE, "value-cites-evidence", ".evidence"),
     "a score with empty evidence": ({**SCORE, "evidence": []}, "value-cites-evidence", ".evidence"),
+    # #195 (from #178): cited, and nothing cited says it is so.
+    "a score whose only evidence contradicts it": (
+        {**SCORE, "evidence": [{**SPAN, "stance": "contradicts"}]}, "value-cites-evidence", ".evidence"),
+    "a score whose only evidence is context": (
+        {**SCORE, "evidence": [{**SPAN, "stance": "context"}, {**SPAN, "id": "e3", "stance": "qualifies"}]},
+        "value-cites-evidence", ".evidence"),
     "not-assessed carrying evidence": (
         _blank("not-assessed", evidence=[SPAN]), "unsearched-blank-cites-nothing", ".evidence"),
     "deferred carrying evidence": (
@@ -139,6 +145,10 @@ HONEST = {
     "an inference drawn through another": {**SCORE, "evidence": [
         SPAN, {**INFERENCE, "derivedFrom": ["e1"]}, {**INFERENCE, "id": "e3", "derivedFrom": ["e2"]}]},
     "a cited score": {**SCORE, "evidence": [SPAN]},
+    "a score cited for and against": {**SCORE, "evidence": [{**SPAN, "stance": "contradicts"},
+                                                             {**SPAN, "id": "e3", "stance": "supports"}]},
+    "a score whose span's stance defaults to supports": {
+        **SCORE, "evidence": [{k: v for k, v in SPAN.items() if k != "stance"}]},
     "an excerpt-only span": {**SCORE, "evidence": [{**SPAN, "selectors": [], "excerpt": "until 2029"}]},
     "a searched blank citing what it read": _blank("indeterminate", evidence=[SPAN]),
     "a withheld blank citing what it read": _blank("withheld", evidence=[SPAN]),
@@ -532,3 +542,15 @@ def test_two_personas_of_a_principal_not_yet_stored_cannot_disagree_in_kind() ->
         _write_as(verbs, bot, contributor="ana", cell={**SCORE, "independence": "independent"})
     same_kind = {**human, "id": "ana:other"}
     assert _write_as(verbs, same_kind, contributor="ana", cell={**SCORE, "independence": "independent"})["written"] == 1
+
+
+@pytest.mark.parametrize("author", [{"displayName": "No id", "kind": "agent"}, "scorer", None,
+                                    {"id": 3, "displayName": "N", "kind": "agent"}])
+def test_a_malformed_author_is_refused_with_its_path_not_a_crash(author) -> None:
+    """#195 (from #178): a direct caller once got a bare ``KeyError: 'id'``."""
+    runtime, _ = _runtime()
+    before = dict(runtime.store.blobs)
+    with pytest.raises(ValueError, match=r"refused, nothing was written: at \$\.author"):
+        measures_write(runtime.store, analysis_id="a1", contributor_id="scorer", author=author,
+                       at=MOMENT, cells=[{**SCORE, "evidence": [SPAN]}])
+    assert dict(runtime.store.blobs) == before

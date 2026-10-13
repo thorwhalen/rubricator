@@ -231,3 +231,40 @@ def test_values_off_the_scale_are_counted_not_silently_dropped() -> None:
     shape = cell_shape([2, 7, 7], [1, 2, 3, 4, 5])
     assert shape["n"] == 1 and shape["offScale"] == 2
     assert cell_shape([2, 3], [])["n"] == 0, "declared empty levels admit nothing"
+
+
+# -- scores under an earlier definition (#195, from #149) ----------------------
+
+
+def _redefine(s) -> None:
+    criteria_set(s, analysis_id="a", criteria=[{
+        "id": "support", "label": "Vendor support, dated and published",
+        "anchors": {"1": "none", "3": "undated", "5": "dated"},
+    }])
+
+
+def _rescore(s, rater: str, value: int) -> None:
+    measures_write(s, analysis_id="a", contributor_id=f"{rater}2", author=human(f"{rater}2", rater),
+                   at=AT, cells=[{"alternativeId": "gamma", "criterionId": "support",
+                                  "value": value, "evidence": CITED, "independence": "independent",
+                                  "justification": f"{rater} re-read the support page"}])
+
+
+def test_a_stale_score_beside_a_new_one_is_not_a_polarised_cell(runtime) -> None:
+    """gamma's 5 was given under v1; a 1 under v2 must not read as a 1-and-5 split."""
+    s = runtime.store
+    _redefine(s)
+    _rescore(s, "r9", 1)
+    result = aggregate_assertions(s, analysis_id="a")
+    gamma = _cells(result)["gamma"]
+    assert (gamma["n"], gamma["reduced"], gamma["polarised"]) == (1, 1, False)
+    assert "under an earlier definition" in result["summary"]
+
+
+def test_two_new_scores_count_two_not_three(runtime) -> None:
+    s = runtime.store
+    _redefine(s)
+    _rescore(s, "r8", 1)
+    _rescore(s, "r9", 1)
+    gamma = _cells(aggregate_assertions(s, analysis_id="a"))["gamma"]
+    assert (gamma["n"], gamma["span"]) == (2, 0)

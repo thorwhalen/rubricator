@@ -75,18 +75,22 @@ def test_a_frame_author_cannot_be_redeclared_differently() -> None:
 
 
 def test_a_frame_author_may_be_signed_only_by_its_principal() -> None:
-    cfo = _human("cfo", "The CFO", principalId="ana")
+    # Prefixed since #195: a frame persona carries its principal, as a contribution's does.
+    cfo = _human("ana:cfo", "The CFO", principalId="ana")
     frame = {**FRAME, "authors": [cfo]}
-    merge_contributions(frame, [("ana", _contribution([], "cfo"))])
+    merge_contributions(frame, [("ana", _contribution([], "ana:cfo"))])
     with pytest.raises(MergeProblem, match="may not speak for"):
-        merge_contributions(frame, [("zed", _contribution([], "cfo"))])
+        merge_contributions(frame, [("zed", _contribution([], "ana:cfo"))])
 
 
 def test_a_file_named_after_a_frame_persona_cannot_sign_as_it() -> None:
-    """Review finding F1: ``cfo.json`` signing ``cfo`` displayed as Ana's persona."""
-    frame = {**FRAME, "authors": [_human("cfo", "The CFO (Ana)", principalId="ana")]}
+    """Review finding F1: ``cfo.json`` signing ``cfo`` displayed as Ana's persona.
+
+    Since #195 the persona is ``ana:cfo``, so only a hand-made file name can match it.
+    """
+    frame = {**FRAME, "authors": [_human("ana:cfo", "The CFO (Ana)", principalId="ana")]}
     with pytest.raises(MergeProblem, match="may not speak for"):
-        merge_contributions(frame, [("cfo", _contribution([], "cfo"))])
+        merge_contributions(frame, [("ana:cfo", _contribution([], "ana:cfo"))])
 
 
 def test_honest_contributions_still_merge() -> None:
@@ -164,3 +168,42 @@ def test_a_broken_file_still_reserves_its_contributor_s_id(store) -> None:
         [forged, store.contribution_key("a1", "ben")]
     )
     assert document["authors"] == []
+
+
+# -- the frame is a hand-editable file too (#195) ------------------------------
+
+
+def test_a_frame_cell_carrying_an_assertion_is_the_frame_s_problem(store) -> None:
+    """A frame cell with ``{"authorId": "ben"}`` was served by both readers, unchecked."""
+    frame = {**FRAME, "cells": [{"alternativeId": "k1", "criterionId": "speed",
+                                 "measure": "score",
+                                 "assertions": [{"id": "x", "authorId": "ben", "value": 1}]}]}
+    with pytest.raises(MergeProblem, match="the frame holds assertions in cell"):
+        merge_contributions(frame, [("ben", BEN)])
+    store.blobs[store.frame_key("a1")] = json.dumps({**frame, "id": "a1"}).encode()
+    for read in (store.read, store.read_skipping):
+        with pytest.raises(MergeProblem, match="repair the frame file"):
+            read("a1")
+
+
+@pytest.mark.parametrize("persona", [
+    _human("ben", "Ben", principalId="ana"),          # a colleague's id, before or after they join
+    _human("cfo", "CFO", principalId="ana"),          # free today, a contributor's name tomorrow
+    _human("cara:cfo", "CFO", principalId="ben"),     # reads as cara's persona, signed by ben
+    _human("ana", "Ana", principalId=["ana"]),         # a principal that is not an id
+])
+def test_a_frame_persona_without_its_principal_s_prefix_is_the_frame_s_problem(store, persona) -> None:
+    """The review of #196: an unprefixed frame persona let its principal sign as a colleague."""
+    frame = {**FRAME, "authors": [persona]}
+    with pytest.raises(MergeProblem, match="whose id does not start with its principal"):
+        merge_contributions(frame, [("ana", _contribution([], "ana"))])
+    store.blobs[store.frame_key("a1")] = json.dumps({**frame, "id": "a1"}).encode()
+    for read in (store.read, store.read_skipping):
+        with pytest.raises(MergeProblem, match="repair the frame file"):
+            read("a1")
+
+
+def test_a_frame_persona_carrying_its_principal_signs_beside_other_contributors() -> None:
+    frame = {**FRAME, "authors": [_human("ana:cfo", "CFO", principalId="ana")]}
+    merged = merge_contributions(frame, [("ana", _contribution([], "ana:cfo")), ("ben", BEN)])
+    assert [a["authorId"] for a in merged["cells"][0]["assertions"]] == ["ana:cfo", "ben"]

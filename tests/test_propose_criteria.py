@@ -113,6 +113,8 @@ def _mutated(change):
      "loops back on itself"),
     (lambda p: p["overlaps"].clear(), "mobile-booking and short-notice-booking both refine member-access"),
     (lambda p: p["overlaps"][0].update(probe=""), "carries no indifference question"),
+    (lambda p: p["overlaps"][0].update(criteria=["mobile-booking", "mobile-booking"]),
+     "is not a pair of criteria on the ladder"),
     (lambda p: p["rejected"].append({"label": "x", "reason": "too-many"}), "'too-many' is not one of"),
     (lambda p: p["rejected"].append({"label": "x", "reason": "merged-into", "mergedInto": "ghost"}),
      "names no proposed criterion"),

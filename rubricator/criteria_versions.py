@@ -37,6 +37,7 @@ __all__ = [
     "next_version",
     "meaning_changed",
     "superseded_cells",
+    "answers_an_older_definition",
 ]
 
 #: The criterion fields whose change is a change of meaning (the companion's
@@ -112,6 +113,26 @@ def meaning_changed(before: Mapping[str, Any], after: Mapping[str, Any]) -> list
         return _canonical(defaults.get(f) if v is None and f in defaults else v)
 
     return [f for f in MEANING_FIELDS if norm(before, f) != norm(after, f)]
+
+
+def answers_an_older_definition(assertion: Mapping[str, Any], defined_in: str | None) -> bool:
+    """Whether ``assertion`` was scored against a definition strictly older than ``defined_in``.
+
+    The per-assertion test :func:`superseded_cells` applies. An assertion that
+    records no version, or one that cannot be ordered against ``defined_in``,
+    is not known to be older, and a criterion with no ``definedInVersion``
+    supersedes nothing.
+
+    >>> answers_an_older_definition({"criteriaVersion": "1"}, "2")
+    True
+    >>> answers_an_older_definition({"criteriaVersion": "2"}, "2"), answers_an_older_definition({}, "2")
+    (False, False)
+    """
+    version = assertion.get("criteriaVersion")
+    return (
+        defined_in is not None and isinstance(version, str) and isinstance(defined_in, str)
+        and compare_versions(version, defined_in) == -1
+    )
 
 
 def superseded_cells(document: Mapping[str, Any]) -> dict[str, Any]:

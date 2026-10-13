@@ -243,8 +243,9 @@ def proposal_problems(proposal: Mapping[str, Any]) -> list[str]:
     flagged = set()
     for o in overlaps:
         pair = o.get("criteria") if isinstance(o.get("criteria"), list) else []
+        # Two *different* criteria: one named twice overlaps with nothing (#195).
         if len(pair) != 2 or not all(isinstance(c, str) and c in by_id for c in pair) \
-                or o.get("via") not in _nodes(ladder):
+                or pair[0] == pair[1] or o.get("via") not in _nodes(ladder):
             out.append(f"overlaps: {pair!r} via {o.get('via')!r} is not a pair of criteria on the ladder")
             continue
         flagged.add((*sorted(pair), o.get("via")))

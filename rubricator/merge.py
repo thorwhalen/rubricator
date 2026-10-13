@@ -37,6 +37,13 @@ The two places where it is more than that:
   3. every assertion's ``authorId`` is one the file may speak for: its own id,
      an author it introduced, or a frame author whose principal it is.
 
+  The frame is a file a person can edit like any other, so it is held to the
+  same line (#195). It carries no assertions -- it has no contributor to speak
+  for them -- and a persona it declares carries its principal in its id, as a
+  contribution's must (``ana:the-cfo``), so no frame can hand one contributor
+  an id that is, or would read as, another's. Either broken is the frame's
+  problem, raised once.
+
 ## Order
 
 Contributions merge in contributor-id order and assertions keep their within-file
@@ -205,11 +212,32 @@ def _index_frame(
             f"({type(error).__name__}: {error}). Every read of this analysis needs the frame, so "
             "repair the frame file."
         ) from None
+    signed = sorted("/".join(key) for key, c in cells.items() if c["assertions"])
+    if signed:
+        raise MergeProblem(
+            f"the frame holds assertions in cell(s) {', '.join(signed)}. An assertion belongs in "
+            "the contribution of whoever made it, where the merge checks who may sign it; the "
+            "frame speaks for nobody. Move them into that person's contribution file, or remove "
+            "them. Every read of this analysis needs the frame, so repair the frame file."
+        )
     ids = [*authors, *(v for key in cells for v in key), *renditions]
     if not all(isinstance(v, str) for v in ids):
         raise MergeProblem(
             f"the frame gives ids as {[v for v in ids if not isinstance(v, str)]!r}; every id is "
             "a string. Every read of this analysis needs the frame, so repair the frame file."
+        )
+    unprefixed = sorted(
+        f'"{a}" (principalId {record.get("principalId")!r})' for a, record in authors.items()
+        if record.get("principalId") not in (None, a)
+        and not (isinstance(record.get("principalId"), str) and a.startswith(f'{record["principalId"]}:'))
+    )
+    if unprefixed:
+        raise MergeProblem(
+            f"the frame declares persona(s) {', '.join(unprefixed)} whose id does not start with "
+            "its principal's id and a colon. A persona id carries its principal, as in a "
+            "contribution, so that no frame can hand one contributor an id that is, or reads as, "
+            "another's. Rename each to \"<principalId>:<name>\". Every read of this analysis needs "
+            "the frame, so repair the frame file."
         )
     return authors, cells
 

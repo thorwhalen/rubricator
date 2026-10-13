@@ -8,7 +8,10 @@ hand-edit, or a re-copy from a moving branch, would leave a file that still says
 pre-freeze artifact and the frozen one both called themselves v1.
 
 So each file is pinned by the sha256 of its bytes, together with the URL it was
-copied from. :func:`pin_problems` compares the two, and a test runs it.
+copied from. :func:`pin_problems` compares the two, and a test runs it; and
+:func:`read_pinned` is how the package itself reads one, so a build whose copy
+moved refuses to validate against it rather than validating against the wrong
+contract (#195, from #135).
 
 Re-vendoring is therefore three steps, and none is optional: download from the
 tag URL, replace the file, update its pin here. A changed hash without a changed
@@ -29,7 +32,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping
 
-__all__ = ["Pin", "PINS", "SCHEMA_TAG", "pin_problems"]
+__all__ = ["Pin", "PINS", "SCHEMA_TAG", "pin_problems", "read_pinned"]
 
 #: The companion repository's tag the vendored artifacts were copied from.
 SCHEMA_TAG = "schema-v1"
@@ -60,6 +63,34 @@ PINS: Mapping[str, Pin] = {
 }
 
 
+def _sha256(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def read_pinned(
+    name: str, *, pins: Mapping[str, Pin] = PINS, directory: Path = _VENDORED_DIR
+) -> bytes:
+    """The bytes of vendored file ``name``, refused unless they hash to its pin.
+
+    >>> read_pinned("vocabularies.v1.json")[:1]
+    b'{'
+    """
+    data = (directory / name).read_bytes()
+    pin = pins.get(name)
+    if pin is None:
+        raise ValueError(
+            f"{name} is vendored but has no pin, so nothing says which contract it is. Pin it in "
+            "rubricator/schema/pins.py with the tag URL it was copied from."
+        )
+    if (actual := _sha256(data)) != pin.sha256:
+        raise ValueError(
+            f"{name} hashes to {actual}, not its pin {pin.sha256}: this copy is not the contract "
+            f"it claims to be. Re-copy it from {pin.source}, or update the pin if the source moved "
+            "on purpose."
+        )
+    return data
+
+
 def pin_problems(
     pins: Mapping[str, Pin] = PINS, *, directory: Path = _VENDORED_DIR
 ) -> list[str]:
@@ -69,15 +100,12 @@ def pin_problems(
     and a ``.json`` file that is vendored but pinned by nobody.
     """
 
-    def sha256_of(path: Path) -> str:
-        return hashlib.sha256(path.read_bytes()).hexdigest()
-
     problems: list[str] = []
     for name, pin in pins.items():
         path = directory / name
         if not path.exists():
             problems.append(f"{name} is pinned but not vendored")
-        elif (actual := sha256_of(path)) != pin.sha256:
+        elif (actual := _sha256(path.read_bytes())) != pin.sha256:
             problems.append(
                 f"{name} hashes to {actual}, not its pin {pin.sha256}. Re-copy it from "
                 f"{pin.source}, or update the pin if the source moved on purpose."

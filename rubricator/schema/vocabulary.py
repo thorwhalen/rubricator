@@ -117,7 +117,9 @@ def vocabulary(version: int = VOCABULARY_VERSION) -> Vocabulary:
     path = _MANIFEST if version == VOCABULARY_VERSION else _MANIFEST.with_name(
         f"vocabularies.v{version}.json"
     )
-    raw = json.loads(path.read_text(encoding="utf-8"))
+    from rubricator.schema.pins import read_pinned
+
+    raw = json.loads(read_pinned(path.name, directory=path.parent).decode("utf-8"))
     vocabs = raw["vocabularies"]
     return Vocabulary(
         version=raw["schemaVersion"],

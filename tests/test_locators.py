@@ -24,6 +24,7 @@ from rubricator.locators import (
     to_fragment,
     to_stored,
 )
+from rubricator.normalise import excerpt_hash
 
 #: Every typed selector, including the shapes that break a naive serialisation:
 #: the characters that are syntax in a text directive, non-ASCII, an empty
@@ -215,3 +216,69 @@ def test_a_selector_type_that_is_not_a_string_is_not_a_crash() -> None:
     """The frozen input schema refuses it first; the profile check must not raise on it either."""
     problems = profile_problems([{"id": "e1", "selectors": [{"type": ["x"]}]}])
     assert problems == []
+
+
+# -- the gaps #195 found (from #174) -------------------------------------------
+
+
+def _quoted(**extra) -> dict:
+    return {"id": "e1", "selectors": [{"type": "TextQuoteSelector", "exact": "until 2029"}], **extra}
+
+
+def test_a_quote_of_only_a_zero_width_space_is_blank() -> None:
+    (problem,) = profile_problems([{"id": "e1", "selectors": [
+        {"type": "TextQuoteSelector", "exact": "​"}]}])
+    assert "must not be blank" in problem
+
+
+@pytest.mark.parametrize("region, why", [
+    ({"page": -1}, "whole, non-negative"),
+    ({"page": 2.5}, "whole, non-negative"),
+    ({"page": "4"}, "whole, non-negative"),
+    ({"page": 1, "rect": {"x": 0, "y": 0, "w": 0, "h": 1}}, "no area"),
+    ({"page": 1, "rect": {"x": -0.1, "y": 0, "w": 1, "h": 1}}, "non-negative"),
+    ({"page": 1, "rect": {"x": 0, "y": 0, "w": float("inf"), "h": 1}}, "NaN or infinite"),
+])
+def test_a_page_region_is_checked(region, why) -> None:
+    (problem,) = profile_problems([_quoted(selectors=[
+        {"type": "TextQuoteSelector", "exact": "until 2029"}, {"type": "PageRegionSelector", **region}])])
+    assert "PageRegionSelector" in problem and why in problem
+
+
+def test_a_page_region_in_page_fractions_or_pixels_is_in_the_profile() -> None:
+    for rect in ({"x": 0.1, "y": 0.2, "w": 0.5, "h": 0.1}, {"x": 0, "y": 0, "w": 100, "h": 20}):
+        assert profile_problems([_quoted(selectors=[
+            {"type": "PageRegionSelector", "page": 3, "rect": rect}])]) == []
+
+
+@pytest.mark.parametrize("extra, why", [
+    ({"normaliserId": "bogus"}, "not one this package can reproduce"),
+    ({"excerpt": "until 2029", "excerptHash": excerpt_hash("until 2029")}, "without the normaliserId"),
+    ({"excerpt": "until 2030", "excerptHash": excerpt_hash("until 2029"), "normaliserId": "nfc-v1"},
+     "does not match its excerpt"),
+    ({"excerptHash": excerpt_hash("until 2029"), "normaliserId": "nfc-v1"}, "no excerpt"),
+])
+def test_a_hash_names_a_known_normaliser_and_matches_its_excerpt(extra, why) -> None:
+    (problem,) = profile_problems([_quoted(**extra)])
+    assert why in problem
+
+
+def test_a_hash_made_by_the_normaliser_it_names_is_accepted() -> None:
+    ref = _quoted(excerpt="until 2029", excerptHash=excerpt_hash("until 2029"),
+                  normaliserId="nfc-v1")
+    assert profile_problems([ref]) == []
+
+
+
+@pytest.mark.parametrize("exact", ["\u200b", "\ufe0f", "\u0301\u0301", "\u3164", "\u2800 "])
+def test_a_quote_of_nothing_visible_is_blank(exact) -> None:
+    """The review of #196: marks alone and filler characters passed as a quote."""
+    (problem,) = profile_problems([{"id": "e1", "selectors": [
+        {"type": "TextQuoteSelector", "exact": exact}]}])
+    assert "must not be blank" in problem
+
+
+@pytest.mark.parametrize("extra", [{"normaliserId": ["nfc-v1"]}, {"excerptHash": 7, "excerpt": "x"}])
+def test_a_hash_field_of_the_wrong_type_is_refused_not_a_crash(extra) -> None:
+    (problem,) = profile_problems([_quoted(**extra)])
+    assert "must be a string" in problem
