@@ -1034,11 +1034,11 @@ def _cell_problems(
 ) -> list[str]:
     """Every reason ``cell`` cannot be written, each naming the cell.
 
-    Four checks the schema cannot make because the answer is data in the frame:
+    Three checks the schema cannot make because the answer is data in the frame:
     the measure is one the analysis declares; the row and the column are not
-    tombstoned; a missingness code is one the vocabulary resolves (the same
-    rule :func:`measures_mark_missing` applies); and a ``score`` value is one
-    its criterion's scale can take (:func:`_off_scale`). And one the schema
+    tombstoned; and a ``score`` value is one its criterion's scale can take
+    (:func:`_off_scale`). (A missingness code the document never defines is the
+    ``blank-is-defined`` rule's, at the honesty stage.) And one the schema
     allows and this repository's profile does not: every evidence reference
     stays inside the ADR-0014 locator profile (:func:`profile_problems`) --
     comparanda v1 accepts ``PathSelector``, and a quote-less position.
@@ -1216,11 +1216,16 @@ def _refuse_dishonest(
     # Matched by cell *and* id: a caller's ids need only be unique per cell, so
     # an id alone would pull in another cell's stored problem.
     own = {f"cells[{'/'.join(key)}].assertions[{contributor_id}:{a}]" for key, a in added}
+    # The author this call introduces, and any persona of it: a persona stored
+    # earlier is judged against its principal's kind only once that principal exists.
+    own_authors = set() if introduced is None else {f"authors[{introduced}]", *(
+        f"authors[{a['id']}]" for a in merged.get("authors", []) if a.get("principalId") == introduced
+    )}
     problems = [
         p
         for p in honesty_problems(merged)
         if any(p.path == o or p.path.startswith(f"{o}.") for o in own)
-        or (introduced is not None and p.path == f"authors[{introduced}]")
+        or p.path in own_authors
     ]
     if problems:
         raise ValueError(

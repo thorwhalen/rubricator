@@ -22,7 +22,9 @@ break the connector runtime (ADR-0003), so none does.
 
 >>> cited = [{'id': 'e1', 'sourceType': 'primary', 'excerpt': 'as stated'}]
 >>> why = 'the manual states it'
->>> doc = {'cells': [{'alternativeId': 'a', 'criterionId': 'c', 'measure': 'score',
+>>> people = [{'id': 'ana', 'displayName': 'Ana', 'kind': 'human'},
+...           {'id': 'ben', 'displayName': 'Ben', 'kind': 'human'}]
+>>> doc = {'authors': people, 'cells': [{'alternativeId': 'a', 'criterionId': 'c', 'measure': 'score',
 ...         'assertions': [{'id': 's1', 'authorId': 'ana', 'value': 4, 'evidence': cited,
 ...                         'justification': why},
 ...                        {'id': 's2', 'authorId': 'ben', 'value': 2, 'evidence': cited,
@@ -390,11 +392,17 @@ def disclosure_flag_is_projection_only(document: Mapping[str, Any]) -> Iterable[
         if not (isinstance(disclosure, Mapping) and disclosure.get("withheldFromReader") is True):
             continue
         missing = assertion.get("missing")
+        # The companion's own test of content (``trim()`` truthiness): looser than
+        # _is_blank_text on purpose. A flag that is true of anything but an emptied
+        # assertion is a lie, so a zero-width note still counts as content here.
+        def said(value: Any) -> bool:
+            return isinstance(value, str) and bool(value.strip())
+
         has_content = (
             assertion.get("value") is not None
-            or not _is_blank_text(assertion.get("justification"))
+            or said(assertion.get("justification"))
             or bool(assertion.get("evidence"))
-            or (isinstance(missing, Mapping) and not _is_blank_text(missing.get("note")))
+            or (isinstance(missing, Mapping) and said(missing.get("note")))
         )
         if not has_content:
             continue

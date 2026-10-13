@@ -499,3 +499,23 @@ def test_a_projected_out_assertion_may_carry_the_flag() -> None:
                {"id": "s1", "authorId": "ana", "disclosure": {"withheldFromReader": True},
                 "missing": {"code": "withheld"}}]}]}
     assert "disclosure-flag-is-projection-only" not in {p.rule_id for p in honesty_problems(doc)}
+
+
+def test_introducing_a_principal_whose_kind_contradicts_a_stored_persona_is_refused() -> None:
+    """A persona is judged against its principal once the principal exists: the call that introduces it answers for it."""
+    runtime, verbs = _runtime()
+    persona = {"id": "ana:bot", "displayName": "Ana's bot", "kind": "human", "principalId": "ana"}
+    assert _write_as(verbs, persona, contributor="ana")["written"] == 1
+    ana_as_agent = {"id": "ana", "displayName": "Ana", "kind": "agent", "agent": {"name": "ana-bot"}}
+    with pytest.raises(ValueError, match=r"authors\[ana:bot\]: .*\[rule persona-keeps-kind"):
+        _write_as(verbs, ana_as_agent, contributor="ana", cell={**SCORE, "independence": "independent"})
+    assert _write_as(verbs, {"id": "ana", "displayName": "Ana", "kind": "human"}, contributor="ana",
+                     cell={**SCORE, "independence": "independent"})["written"] == 1
+
+
+def test_the_disclosure_flag_counts_a_whitespace_note_as_content_like_the_companion() -> None:
+    doc = {"authors": [{"id": "ana", "displayName": "Ana", "kind": "human"}],
+           "cells": [{"alternativeId": "a", "criterionId": "c", "measure": "score", "assertions": [
+               {"id": "s1", "authorId": "ana", "disclosure": {"withheldFromReader": True},
+                "missing": {"code": "withheld", "note": "\u200b"}}]}]}
+    assert "disclosure-flag-is-projection-only" in {p.rule_id for p in honesty_problems(doc)}
