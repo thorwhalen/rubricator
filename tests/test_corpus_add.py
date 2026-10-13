@@ -638,6 +638,17 @@ def test_a_case_variant_of_a_lone_marked_uri_is_refused() -> None:
         _primary_ref_refused_or_written(verbs, "https://example.org/k2")
 
 
+def test_file_names_differing_only_in_case_are_not_one_host() -> None:
+    """Second review of #203: `Report.pdf` is not a host to lowercase."""
+    _, verbs = _scorable()
+    marked = {"text": "A model's summary.", "uri": "Report.pdf", "agentProduced": True}
+    unmarked = {"text": KETTLE, "uri": "report.pdf", "agentProduced": False}
+    ids = verbs["corpus_add"](analysis_id="a1", sources=[marked, unmarked])["documentIds"]
+    with pytest.raises(ValueError, match=rf"cites {ids[0]}"):
+        _primary_ref_refused_or_written(verbs, "Report.pdf")
+    assert _primary_ref_refused_or_written(verbs, "report.pdf")["summary"]
+
+
 def test_a_hostile_target_of_hex_words_is_checked_in_linear_time() -> None:
     import time
 

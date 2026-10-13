@@ -563,23 +563,28 @@ def _canonical_uri(value: str, *, fold_case: bool = False) -> str:
     ``http`` against ``https``, ``user@`` in the authority, the host's case, a
     leading ``www.``, a default port, a trailing dot on the host, and
     percent-escapes of characters that need none. The case of path and query is
-    kept unless ``fold_case``: uris are case-sensitive there, so two documents
+    kept unless ``fold_case`` (as is the host's, when the scheme was missing and
+    the "host" may be a file name): uris are case-sensitive there, so two documents
     at ``/K2`` and ``/k2`` are two uris, but a reference that spells a marked
     document's path in another case is still refused (see
     :func:`agent_produced_names`).
     """
     text = value.strip()
+    guessed = "://" not in text  # no scheme, so only a guess that this is a host
     if text.startswith("//"):
         text = "https:" + text
-    elif "://" not in text and _SCHEMELESS.match(text):
+    elif guessed and _SCHEMELESS.match(text):
         text = "https://" + text
     parts = _URI_PARTS.match(text)
     if not parts:
         return text
     scheme, host, path, query, _ = parts.groups()
     scheme = "https" if scheme.lower() in ("http", "https") else scheme.lower()
-    host = re.sub(r":(80|443)\Z", "", host.rpartition("@")[2].lower()).rstrip(".")
-    host = host[len("www."):] if host.startswith("www.") else host
+    host = host.rpartition("@")[2]
+    if fold_case or not guessed:  # `Report.pdf` and `report.pdf` are file names, not one host
+        host = host.lower()
+    host = re.sub(r":(80|443)\Z", "", host).rstrip(".")
+    host = host[len("www."):] if host.casefold().startswith("www.") else host
     query = "" if query in (None, "?") else query
     canonical = f"{scheme}://{host}{_unescaped(path).rstrip('/')}{_unescaped(query)}"
     return canonical.casefold() if fold_case else canonical
@@ -595,7 +600,12 @@ def agent_produced_names(store: AnalysisStore, analysis_id: str) -> dict[str, st
     while no unmarked document shares it, so a summary filed under its source's
     uri leaves the source citable -- at the price that adding an unmarked
     document under a marked one's uri makes that uri ambiguous, and it stops
-    naming the marked one. Cheap when nothing is marked: markers are found by key.
+    naming the marked one. Case is kept in the ``uri:`` keys (``/K2`` and ``/k2`` are
+    two uris, the unmarked one deciding for itself); a ``uri~:`` key holds the
+    case-folded uri and is there only when every document at it is marked, so a
+    reference spelled in another case is still refused unless some unmarked
+    document's uri differs from it only in case. Cheap when nothing is marked:
+    markers are found by key.
     """
     marked = store.corpus_record_ids(analysis_id, MARKER_RECORD)
     if not marked:
