@@ -67,6 +67,7 @@ from __future__ import annotations
 from typing import Any, Mapping, Sequence
 
 from rubricator.criteria_versions import answers_an_older_definition
+from rubricator.independence import agreement
 from rubricator.rules import live_assertions
 from rubricator.store import AnalysisStore
 
@@ -132,6 +133,7 @@ def aggregate_assertions(
     document, skipped = store.read_skipping(analysis_id)
     live_alternatives = {a["id"] for a in document["alternatives"] if not a.get("tombstoned")}
     criteria = {c["id"]: c for c in document["criteria"] if not c.get("tombstoned")}
+    authors = {a["id"]: a for a in document.get("authors", [])}
     rows = []
     older = 0
     for cell in sorted(
@@ -146,13 +148,14 @@ def aggregate_assertions(
             answers_an_older_definition(a, defined_in)
             for a in live_assertions(cell) if a.get("value") is not None
         )
-        rows.append(
-            _reduce_cell(
-                cell, _measurement_for(criterion, cell.get("measure", "score")),
-                reduction=reduction, allow_contested=allow_contested_reduction, gap=polarised_gap,
-                defined_in=defined_in,
-            )
+        row = _reduce_cell(
+            cell, _measurement_for(criterion, cell.get("measure", "score")),
+            reduction=reduction, allow_contested=allow_contested_reduction, gap=polarised_gap,
+            defined_in=defined_in,
         )
+        # What the cell's agreement may be called, by its lowest rung (ADR-0018, #99).
+        row["agreement"] = agreement(live_assertions(cell), authors)
+        rows.append(row)
     return {
         "analysisId": analysis_id,
         "reduction": reduction,

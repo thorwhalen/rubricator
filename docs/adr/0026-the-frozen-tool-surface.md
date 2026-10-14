@@ -189,3 +189,13 @@ Row 3 is implemented, in `rubricator/tools/corpus.py`. A source's text is normal
 `confirm-frame` is revised to v2 for both (docs/evaluation/confirm-frame/README.md). Tests: `tests/test_frame_confirm.py`.
 
 **Not re-measured.** The definitions changed again on a machine with no provider key (the `scope` enum, the contract's sentence about it, and the `determinism` sentence). `MEASURED` below is still the 2026-10-12 count; `AWAITING_MEASUREMENT` in `frozen.py` pins the digest and byte size of what is now served (15 advertised tools, 20,456 bytes, digest `68efa50f5509`; the whole surface, 22 tools, 26,669 bytes, digest `cec02afdd236`) and still names #199, which owes the count. No estimate is recorded as a count.
+
+### 2026-10-14 — `measures_write` takes a `procedure`, and `aggregate_assertions` labels each cell's agreement (#99)
+
+- **Deciders:** Thor Whalen (additive and reversible; recorded here so it can be)
+
+**One input amendment.** `measures_write` gains an optional `procedure`, a closed object of six facts about the pass the cells belong to: `traversal` (the plan's order), `reduction`, `seed` (the plan's), `round` (the pass number, 1 or more), `session` (`same` or `fresh`) and `prior` (`withheld` or `shown`). Nothing in it is a count or a model id: the tools count the repeats and times from the stored draws and read the model, prompt version, run id and seeds off the author and the perturbations, so the model is never asked to author the record the disclosure is rendered from (ADR-0018). Everything the contract can say in comparanda v1 goes in its existing slots (`procedures[]`, `rounds[]`, `procedureId`, `roundId`), so this needs no schema request.
+
+**One output addition.** Each `aggregate_assertions` cell gains `agreement`: its lowest independence rung and the wording that rung allows, or null for a cell with fewer than two draws. An output field is additive and needs no amendment; it is recorded here beside the input change.
+
+**Not re-measured.** The definitions changed on a machine with no provider key. `MEASURED` below is still the 2026-10-12 count; `AWAITING_MEASUREMENT` in `frozen.py` pins the digest and byte size of what is now served (15 advertised tools, 21,343 bytes, digest `97059d639c47`; the whole surface, 22 tools, 27,556 bytes, digest `929c95cef20f`) and still names #199, which owes the count. No estimate is recorded as a count.

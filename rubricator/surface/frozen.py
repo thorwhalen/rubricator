@@ -210,6 +210,26 @@ CELL = obj(
     },
     ("alternativeId", "criterionId"),
 )
+#: The facts a caller states about a scoring pass (ADR-0018, #99). Everything else
+#: in the procedure record -- the repeats, the times, the model, the prompt version,
+#: the seeds -- the tools count or read, so none of it is a field here.
+PROCEDURE = obj(
+    {
+        "traversal": TRAVERSAL_ORDER,
+        "reduction": enum("lower-median", "median", "min", "max"),
+        "seed": {"anyOf": [S, N]},
+        "round": I,
+        "session": enum("same", "fresh"),
+        "prior": enum("withheld", "shown"),
+    },
+)
+#: How a cell's agreement may be described: its lowest independence rung and the
+#: wording that goes with it (ADR-0018). Null for a cell with fewer than two draws.
+AGREEMENT = obj(
+    {"rung": enum("unrecorded", "in-session", "fresh-session", "distinct-model", "distinct-human"),
+     "label": S, "counts": arr(obj({"rung": S, "count": I}, ("rung", "count")))},
+    ("rung", "label", "counts"),
+)
 #: A stored file a read left out because it cannot be merged (#151): never
 #: dropped silently, so every reading tool returns the list, empty when whole.
 SKIPPED = obj({"file": S, "because": S}, ("file", "because"))
@@ -534,8 +554,11 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
             "evidence, or a qualified blank naming its missingness code. Writes only that "
             "contributor's file and never echoes a previously written score. Each assertion "
             "is stamped with the criteria-set version; pass expected_criteria_version to be "
-            "refused if the set moved since you read it. Honesty rules run before the bytes "
-            "land (ADR-0024)."
+            "refused if the set moved since you read it. For a repeated or re-scoring pass an "
+            "agent passes procedure (traversal, reduction, plan seed, round number, same or "
+            "fresh session, whether the prior was withheld or shown): the tools record the "
+            "procedure, count its repeats and derive each draw's independence rung, and refuse "
+            "a rung the pass contradicts. Honesty rules run before the bytes land (ADR-0024)."
         ),
         determinism="Schema validation and the honesty rules over the merged document; the moment is supplied, never read from a clock.",
         failure=(
@@ -547,7 +570,7 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
         input_schema=obj(
             {"analysis_id": S, "contributor_id": S, "author": AUTHOR,
              "at": DATE_TIME, "cells": arr(CELL),
-             "expected_criteria_version": S},
+             "expected_criteria_version": S, "procedure": PROCEDURE},
             ("analysis_id", "contributor_id", "author", "cells"),
         ),
         output_schema=obj(WRITE_RESULT, tuple(WRITE_RESULT)),
@@ -632,7 +655,9 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
             "median by default. A polarised cell (two or more occupied levels separated by at "
             "least polarised_gap empty levels, with no single dominant mode) yields no value "
             "unless allow_contested_reduction is set, and is flagged contested. A mean is "
-            "refused, naming the level of measurement; a nominal criterion gets modes only."
+            "refused, naming the level of measurement; a nominal criterion gets modes only. "
+            "Each cell carries agreement: its lowest independence rung and what that lets you "
+            "call it (self-consistency, test-retest, never inter-rater)."
         ),
         determinism="Order statistics over stored values.",
         failure="reduction=mean is refused naming the level of measurement; a polarised cell reduces to null, flagged.",
@@ -649,7 +674,8 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
                      "reduced": opt(SCALAR), "min": opt(SCALAR), "max": opt(SCALAR),
                      "span": opt(N), "modes": arr(SCALAR),
                      "levels": arr(obj({"level": SCALAR, "count": I}, ("level", "count"))),
-                     "offScale": I, "polarised": B, "contested": B},
+                     "offScale": I, "polarised": B, "contested": B,
+                     "agreement": opt(AGREEMENT)},
                     ("alternativeId", "criterionId", "measure", "n", "reduced", "polarised",
                      "contested"))),
                 "skipped": arr(SKIPPED),
@@ -1008,11 +1034,11 @@ MEASURED: Mapping[str, Any] = {
 AWAITING_MEASUREMENT: Mapping[str, Any] | None = {
     "issue": 199,
     "advertised": {
-        "tools": 15, "bytes": 20456,
-        "sha256": "68efa50f5509c15dd8984a9ccdb28c8a361cd24cfb48fa5ff34a00712bdfc8a9",
+        "tools": 15, "bytes": 21343,
+        "sha256": "97059d639c477397f90a61a691284a1ac82322fa620cecb0fffdca5bafd19fe1",
     },
     "wholeSurface": {
-        "tools": 22, "bytes": 26669,
-        "sha256": "cec02afdd23686e86f391122bbf3677a4628a7994919aad7d40e843f7d53dfed",
+        "tools": 22, "bytes": 27556,
+        "sha256": "929c95cef20f2d659f255561db517b6fc44084b0b3c55bfbdc8d29556fce9e88",
     },
 }

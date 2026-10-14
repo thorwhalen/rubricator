@@ -47,6 +47,8 @@ __all__ = [
     "HONESTY_RULES",
     "honesty_problems",
     "independence_recorded",
+    "independent_agent_is_distinct",
+    "procedure_and_round_resolve",
     "unique_ids",
     "missing_rule_code_defined",
     "value_cites_evidence",
@@ -112,6 +114,8 @@ RULE_SOURCES: Mapping[str, str] = {
     "supersession-resolves": "comparanda ADR-0011",
     "supersession-acyclic": "comparanda ADR-0011",
     "independence-recorded": "ADR-0022",
+    "independent-agent-is-distinct": "ADR-0018",
+    "procedure-and-round-resolve": "ADR-0018",
     "missing-rule-code-defined": "comparanda ADR-0030",
     "unique-evidence-ids": "ADR-0015",
     "value-cites-evidence": "ADR-0006",
@@ -183,6 +187,62 @@ def independence_recorded(document: Mapping[str, Any]) -> Iterable[Problem]:
                 ),
                 rule_id="independence-recorded",
             )
+
+
+def independent_agent_is_distinct(document: Mapping[str, Any]) -> Iterable[Problem]:
+    """An agent that records ``independent`` differs, by a recorded model, from every other agent beside it.
+
+    This repository's own rule (ADR-0018), not a mirror: the companion stores the
+    rung and cannot see whether two agents were one model. A fresh session of the
+    same model is ``resampled``; labelling it ``independent`` is how five draws
+    of one model come to read as five raters. Only a cell holding two or more
+    live assertions can fail, as for ``independence-recorded``.
+    """
+    from rubricator.independence import distinct_model_problem
+
+    authors = {a.get("id"): a for a in document.get("authors", []) if isinstance(a, Mapping)}
+    for cell in document.get("cells", []):
+        live = live_assertions(cell)
+        if len(live) < 2:
+            continue
+        for assertion in live:
+            why = distinct_model_problem(assertion, live, authors)
+            if why is None:
+                continue
+            yield Problem(
+                path=f"{_cell_path(cell)}.assertions[{assertion['id']}].independence",
+                message=f'assertion "{assertion["id"]}" claims "independent", but {why}.',
+                fix=(
+                    'record "resampled" (or "perturbed" with a perturbation record) for another '
+                    'draw of the same model, or record the distinct model on the author.'
+                ),
+                rule_id="independent-agent-is-distinct",
+            )
+
+
+def procedure_and_round_resolve(document: Mapping[str, Any]) -> Iterable[Problem]:
+    """An assertion's ``procedureId`` and ``roundId`` name entries the document has (ADR-0018, #99).
+
+    A reference to a procedure or round the document lacks would send a reader of
+    the disclosure to a record that is not there.
+    """
+    known = {
+        "procedureId": {p.get("id") for p in document.get("procedures", []) if isinstance(p, Mapping)},
+        "roundId": {r.get("id") for r in document.get("rounds", []) if isinstance(r, Mapping)},
+    }
+    where = {"procedureId": "procedures", "roundId": "rounds"}
+    for cell in document.get("cells", []):
+        for assertion in cell.get("assertions", []):
+            for field, ids in known.items():
+                ref = assertion.get(field)
+                if ref is None or ref in ids:
+                    continue
+                yield Problem(
+                    path=f"{_cell_path(cell)}.assertions[{assertion['id']}].{field}",
+                    message=f'assertion "{assertion["id"]}" names {field} "{ref}", which {where[field]}[] does not hold.',
+                    fix=f"write the pass through measures_write's procedure argument, which records the {field[:-2]} it names.",
+                    rule_id="procedure-and-round-resolve",
+                )
 
 
 def unique_ids(document: Mapping[str, Any]) -> Iterable[Problem]:
@@ -890,6 +950,8 @@ HONESTY_RULES: Sequence[Rule] = (
     unique_ids,
     supersession_resolves,
     independence_recorded,
+    independent_agent_is_distinct,
+    procedure_and_round_resolve,
     missing_rule_code_defined,
     unique_evidence_ids,
     value_cites_evidence,
