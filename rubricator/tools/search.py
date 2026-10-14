@@ -41,7 +41,14 @@ from __future__ import annotations
 import math
 from typing import Any, Mapping, Sequence
 
-from rubricator.lexical import STOPWORDS_ID, TOKENIZER_ID, contains_phrase, terms, tokens
+from rubricator.lexical import (
+    STOPWORDS_ID,
+    TOKENIZER_ID,
+    UNICODE_VERSION,
+    contains_phrase,
+    terms,
+    tokens,
+)
 from rubricator.store import AnalysisStore
 from rubricator.tools.corpus import CHARS_PER_TOKEN, CHUNKER_ID, INGEST_RECORD, MARKER_RECORD
 from rubricator.tools.views import skipped_note
@@ -128,6 +135,9 @@ def corpus_search(
     documentId, start)``; nothing is fetched and nothing is written.
     ``must_include`` keeps only spans holding every one of its phrases.
     """
+    # JSON Schema's integer admits 2.0; a slice does not (review of #226).
+    k, window_chars = (int(v) if isinstance(v, float) and v.is_integer() else v
+                       for v in (k, window_chars))
     for name, value in (("k", k), ("window_chars", window_chars)):
         if value < 1:
             raise _refuse(f"{name} must be at least 1; it was {value}.")
@@ -153,6 +163,10 @@ def corpus_search(
     records = store.corpus_records(analysis_id)
     marked = {rid for rid in contents if MARKER_RECORD in records.get(rid, {})}
     chosen = sorted(contents)
+    if document_ids is not None and not document_ids:
+        raise _refuse(
+            "document_ids is empty, which would search nothing. Omit it to search the whole corpus."
+        )
     if document_ids is not None:
         unknown = sorted(set(document_ids) - set(contents))
         if unknown:
@@ -164,7 +178,7 @@ def corpus_search(
 
     base = {"analysisId": analysis_id, "query": query, "skipped": skipped}
     if not query.strip():
-        inline = _inline(contents, chosen, marked, required)
+        inline = _inline(contents, chosen, marked, required, corpus_size=len(contents))
         return {**base, **inline, "warnings": [], "summary": inline["summary"] + skipped_note(skipped)}
     if not tokens(query):
         raise _refuse(
@@ -179,8 +193,10 @@ def corpus_search(
         if found is None:
             if rid in chosen:
                 warnings.append(
-                    f"{rid} has no readable spans (its ingest record is missing or damaged), so it "
-                    "was not searched; add its text again with corpus_add, which rebuilds them."
+                    f"{rid} has no readable spans (an imported or hand-made rendition, or a "
+                    "damaged ingest record), so it was not searched. An empty query still inlines "
+                    "its text; corpus_add of its original text adds it as a searchable document "
+                    "under a content-derived id."
                 )
             continue
         for start, end in found:
@@ -189,6 +205,13 @@ def corpus_search(
 
     hits = _ranked(query, spans, chosen=set(chosen), required=required)
     searched = [s for s in spans if s[0] in set(chosen)]
+    if not searched:
+        # Nothing was looked at: an empty list here would read as "looked, found nothing".
+        raise _refuse(
+            f"no chosen document has readable spans ({', '.join(chosen)}), so nothing could be "
+            "searched. An empty query inlines their text; corpus_add of the original text adds a "
+            "searchable document."
+        )
     shown = []
     for score, rid, start, end in hits[:k]:
         left, right = _widened(start, end, window=window_chars, length=len(contents[rid]))
@@ -198,10 +221,13 @@ def corpus_search(
         })
     n_docs = len({s[0] for s in searched})
     where = f"{len(searched)} span(s) in {n_docs} document(s)"
+    if n_docs < len(contents):
+        where += f" of the {len(contents)} in the corpus"
     if shown:
         summary = (
             f'{len(shown)} hit(s) of {len(hits)} matching "{query}" among {where}, ranked by BM25 '
-            f"over {TOKENIZER_ID} terms less {STOPWORDS_ID}, the whole query as a phrase first, "
+            f"over {TOKENIZER_ID} (Unicode {UNICODE_VERSION}) terms less {STOPWORDS_ID}, the whole "
+            "query as a phrase first, "
             f"ties by documentId then start; each widened to {window_chars} characters around its "
             f"{CHUNKER_ID} span"
         )
@@ -215,8 +241,11 @@ def corpus_search(
         summary = (
             f'no span matched "{query}"'
             + (f" holding every must_include phrase ({'; '.join(required)})" if required else "")
-            + f": searched {where}. Try other words; there is no stemming, so try other inflections"
+            + f": searched {where} with {TOKENIZER_ID} (Unicode {UNICODE_VERSION}). Try other "
+            "words; there is no stemming, so try other inflections"
         )
+    if warnings:
+        summary += f"; {len(warnings)} document(s) could not be searched (see warnings)"
     return {
         **base, "hits": shown, "inlined": False, "warnings": warnings,
         "summary": summary + skipped_note(skipped),
@@ -261,9 +290,14 @@ def _ranked(
 
 
 def _inline(
-    contents: Mapping[str, str], chosen: Sequence[str], marked: set[str], required: Sequence[str]
+    contents: Mapping[str, str], chosen: Sequence[str], marked: set[str], required: Sequence[str],
+    *, corpus_size: int,
 ) -> dict[str, Any]:
-    """The whole (chosen) corpus as hits, one per document, or the refusal ADR-0010 names."""
+    """The whole (chosen) corpus as hits, one per document, or the refusal ADR-0010 names.
+
+    The summary says how many of the corpus's documents were inlined and why any
+    were not, so a narrowed or filtered read never passes for the whole corpus.
+    """
     kept = [rid for rid in chosen if all(contains_phrase(contents[rid], p) for p in required)]
     size = sum(_estimate(contents[rid]) for rid in kept)
     if size > INLINE_THRESHOLD_TOKENS:
@@ -280,11 +314,22 @@ def _inline(
         for rid in kept
     ]
     agent = sum(1 for h in hits if h["agentProduced"])
+    if len(kept) == corpus_size:
+        what = f"the whole corpus inlined, {len(hits)} document(s)"
+    else:
+        left_out = []
+        if len(chosen) < corpus_size:
+            left_out.append(f"{corpus_size - len(chosen)} not in document_ids")
+        if len(kept) < len(chosen):
+            left_out.append(f"{len(chosen) - len(kept)} without every must_include phrase "
+                            f"({'; '.join(required)})")
+        what = (f"{len(kept)} of the corpus's {corpus_size} document(s) inlined ("
+                f"{', '.join(left_out)} left out)")
     return {
         "hits": hits, "inlined": True,
         "summary": (
-            f"the whole corpus inlined, {len(hits)} document(s) and about {size:,} tokens, under "
-            f"the {INLINE_THRESHOLD_TOKENS:,}-token threshold; k does not apply to an empty query"
+            f"{what}, about {size:,} tokens, under the {INLINE_THRESHOLD_TOKENS:,}-token "
+            "threshold; k does not apply to an empty query"
             + (f"; {agent} document(s) are agent-produced, so a reference into them is secondary "
                "at best" if agent else "")
         ),

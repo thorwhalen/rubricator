@@ -131,3 +131,19 @@ def test_a_valid_declaration_beside_junk_still_resolves() -> None:
     declared = {"id": "vendor-silent", "broader": "not-evidenced", "means": "the maker is silent"}
     document = {"missingCodes": [None, declared], "criteria": [{"id": "c", "missingCodes": 5}]}
     assert declarations_for(document, "c") == [declared]
+
+
+@pytest.mark.parametrize("shape", sorted(k for k in ROW_SHAPES if "criteri" in k))
+def test_criteria_set_repairs_a_criteria_list_the_merge_cannot_index(runtime, shape) -> None:
+    """Review of #226: the verb that replaces the criteria is the repair, so it must not crash."""
+    _hand_edit(runtime, ROW_SHAPES[shape])
+    bind(runtime)["criteria_set"](analysis_id="a1", criteria=[
+        {"id": "speed", "label": "Boil speed", "anchors": ANCHORS, "definition": RULES}])
+    assert bind(runtime)["report_completeness"](analysis_id="a1")["summary"]
+
+
+@pytest.mark.parametrize("shape", sorted(k for k in ROW_SHAPES if "alternative" in k))
+def test_alternatives_set_repairs_an_alternatives_list_the_merge_cannot_index(runtime, shape) -> None:
+    _hand_edit(runtime, ROW_SHAPES[shape])
+    bind(runtime)["alternatives_set"](analysis_id="a1", alternatives=[{"id": "k1", "label": "Kettle one"}])
+    assert bind(runtime)["report_completeness"](analysis_id="a1")["summary"]

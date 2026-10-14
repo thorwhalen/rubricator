@@ -287,6 +287,31 @@ CONNECTOR_FILES = [
 ]
 
 
+def _imported_modules(path: Path) -> set[str]:
+    """Full dotted names a file imports, relative imports resolved against its package."""
+    package = ["rubricator", *path.relative_to(PACKAGE_DIR).parent.parts]
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            names.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            base = package[: len(package) - node.level + 1] if node.level else []
+            module = ".".join([*base, *([node.module] if node.module else [])])
+            names.add(module)
+            names.update(f"{module}.{alias.name}" for alias in node.names)
+    return names
+
+
+def _reaches_a_model(path: Path) -> list[str]:
+    """Model clients, and the two model-owning runtimes, a connector file imports anywhere."""
+    return sorted(
+        name for name in _imported_modules(path)
+        if name.split(".")[0] in MODEL_MODULES
+        or any(name == f"rubricator.{r}" or name.startswith(f"rubricator.{r}.") for r in MODEL_RUNTIMES)
+    )
+
+
 @pytest.mark.parametrize(
     "path", CONNECTOR_FILES, ids=lambda p: str(p.relative_to(PACKAGE_DIR)).replace("\\", "/")
 )
@@ -299,9 +324,9 @@ def test_no_connector_module_imports_a_model_client_even_at_call_time(path: Path
     function body, so a call-time model import fails here, at CI time, instead
     of at the first request in production.
     """
-    offending = _imported_roots(path) & MODEL_MODULES
+    offending = _reaches_a_model(path)
     assert not offending, (
-        f"{path.relative_to(PACKAGE_DIR)} imports {sorted(offending)}, even if only inside a "
+        f"{path.relative_to(PACKAGE_DIR)} imports {offending}, even if only inside a "
         "function. ADR-0019: the connector has no API key, and only the deployed agent and "
         "the evaluation harness may reach a model -- through `aix`."
     )
@@ -324,3 +349,29 @@ def test_the_scan_catches_a_model_import_deferred_into_a_function(tmp_path: Path
         encoding="utf-8",
     )
     assert _imported_roots(planted) & MODEL_MODULES == {"aix"}
+
+
+@pytest.mark.parametrize("statement, where", [
+    ("from aix import chat", "server.py"),
+    ("from rubricator.agent import loop", "server.py"),
+    ("from ..agent import loop", "mcp/server.py"),
+    ("from ..evaluation.harness import judge", "tools/x.py"),
+    ("from . import agent", "agent_shim.py"),
+])
+def test_the_scan_resolves_relative_imports_and_refuses_the_model_runtimes(
+    tmp_path: Path, monkeypatch, statement: str, where: str
+) -> None:
+    """Review of #226: a relative or call-time import of the agent or the harness is caught too."""
+    planted = PACKAGE_DIR / where
+    source = f"def handler():\n    {statement}\n"
+    real_read = Path.read_text
+    monkeypatch.setattr(
+        Path, "read_text",
+        lambda self, *a, **k: source if self == planted else real_read(self, *a, **k),
+    )
+    assert _reaches_a_model(planted), statement
+
+
+def test_the_scan_leaves_the_connector_s_own_relative_imports_alone() -> None:
+    assert not _reaches_a_model(PACKAGE_DIR / "mcp" / "server.py")
+    assert "rubricator.tools.corpus" in _imported_modules(PACKAGE_DIR / "tools" / "search.py")

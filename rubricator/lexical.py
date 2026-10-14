@@ -10,9 +10,15 @@ treats normalisation (:mod:`rubricator.normalise`):
   the old one, never an edit in place.
 - **Each is pinned.** :data:`PINS` holds the sha256 of the tokenizer's output
   over :data:`PROBE` and of the sorted stopword list; :func:`drifted` names
-  whichever no longer matches, and a test keeps it empty. Python's own Unicode
-  tables move between releases, so the probe is what says whether the running
-  interpreter still tokenizes as the pin did.
+  whichever no longer matches, and a test keeps it empty. That catches an edit
+  in place, and a change in how the probe's own characters are handled.
+- **The Unicode version is part of the behaviour, and is named, not pinned.**
+  Python's Unicode tables move between releases: a character assigned in a
+  later version is a letter there and a separator before it, so the same text
+  can tokenize differently under Python 3.10 (Unicode 13) and 3.13 (Unicode 15),
+  and no fixed probe can cover every newly assigned character. Results are
+  byte-identical for one interpreter's :data:`UNICODE_VERSION`, which
+  ``corpus_search`` states beside the tokenizer id in every summary.
 
 The tokenizer is deliberately plain. NFKC folds compatibility forms (``ﬁ`` to
 ``fi``, full-width digits to ASCII), ``casefold`` folds case more thoroughly than
@@ -46,6 +52,7 @@ from functools import lru_cache
 from typing import Mapping
 
 __all__ = [
+    "UNICODE_VERSION",
     "TOKENIZER_ID",
     "STOPWORDS_ID",
     "STOPWORDS",
@@ -60,6 +67,9 @@ __all__ = [
 
 #: The tokenizer's id. A change to :func:`tokens` ships as a new id.
 TOKENIZER_ID = "lex-v1"
+
+#: The Unicode tables this interpreter tokenizes with (see the module docstring).
+UNICODE_VERSION = unicodedata.unidata_version
 
 #: The stopword list's id. Adding or removing a word is a new id: it changes
 #: which spans score at all, which ADR-0010 calls a release-note event.

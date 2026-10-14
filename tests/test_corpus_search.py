@@ -284,3 +284,79 @@ def test_searching_writes_nothing() -> None:
     verbs["corpus_search"](analysis_id="a1", query="kettle")
     verbs["corpus_search"](analysis_id="a1", query="")
     assert dict(runtime.store.blobs) == before
+
+
+# --- review of #226: a search of nothing, or of part, never reads as complete ---
+
+
+def _break_spans(runtime, *document_ids) -> None:
+    for rid in document_ids:
+        runtime.store.blobs[runtime.store.corpus_key("a1", rid, "ingest")] = b"{half-written"
+
+
+def test_no_readable_spans_anywhere_is_refused_not_reported_as_no_match() -> None:
+    runtime, verbs, (k2, l5) = _verbs()
+    _break_spans(runtime, k2, l5)
+    with pytest.raises(ValueError, match="no chosen document has readable spans"):
+        verbs["corpus_search"](analysis_id="a1", query="kettle")
+
+
+def test_a_frame_held_rendition_with_no_spans_is_refused_alone_and_inlined_on_request() -> None:
+    runtime = build_runtime(blobs={}, now=fixed_clock(MOMENT))
+    verbs = bind(runtime)
+    verbs["analysis_open"](analysis_id="a1", question="which kettle?")
+    frame = runtime.store.frame("a1")
+    frame["renditions"] = [{"id": "r1", "originalLocator": "inline", "normaliserId": "nfc-v1",
+                            "originalSha256": "sha256:" + "0" * 64, "content": K2}]
+    runtime.store.put_frame("a1", frame)
+    with pytest.raises(ValueError, match="r1"):
+        verbs["corpus_search"](analysis_id="a1", query="kettle")
+    assert verbs["corpus_search"](analysis_id="a1", query="")["hits"][0]["documentId"] == "r1"
+
+
+def test_an_empty_document_ids_is_refused() -> None:
+    _, verbs, _ = _verbs()
+    for query in ("", "kettle"):
+        with pytest.raises(ValueError, match="document_ids is empty"):
+            verbs["corpus_search"](analysis_id="a1", query=query, document_ids=[])
+
+
+def test_a_narrowed_inline_says_what_it_left_out() -> None:
+    _, verbs, (k2, l5) = _verbs()
+    got = verbs["corpus_search"](analysis_id="a1", query="", must_include=["swivels"])
+    assert [h["documentId"] for h in got["hits"]] == [l5]
+    assert "1 of the corpus's 2 document(s) inlined" in got["summary"]
+    assert "without every must_include phrase" in got["summary"]
+    assert "whole corpus" not in got["summary"]
+    none = verbs["corpus_search"](analysis_id="a1", query="", must_include=["espresso"])
+    assert none["hits"] == [] and "0 of the corpus's 2" in none["summary"]
+    by_id = verbs["corpus_search"](analysis_id="a1", query="", document_ids=[k2])
+    assert "1 not in document_ids" in by_id["summary"]
+
+
+def test_a_narrowed_search_and_its_warnings_are_in_the_summary() -> None:
+    runtime, verbs, (k2, l5) = _verbs()
+    got = verbs["corpus_search"](analysis_id="a1", query="kettle", document_ids=[l5])
+    assert "in 1 document(s) of the 2 in the corpus" in got["summary"]
+    _break_spans(runtime, k2)
+    got = verbs["corpus_search"](analysis_id="a1", query="kettle")
+    assert "1 document(s) could not be searched (see warnings)" in got["summary"]
+
+
+def test_whole_number_floats_for_the_sizes_are_taken_as_integers() -> None:
+    _, verbs, _ = _verbs()
+    a = verbs["corpus_search"](analysis_id="a1", query="kettle", k=2.0, window_chars=100.0)
+    b = verbs["corpus_search"](analysis_id="a1", query="kettle", k=2, window_chars=100)
+    assert a == b
+
+
+def test_the_tie_break_orders_ties_whatever_order_the_spans_arrive_in() -> None:
+    """Review of #226: spans built in key order let a missing tie-break pass unnoticed."""
+    from rubricator.tools.search import _ranked
+
+    text = "Boil-dry protection is standard."
+    spans = [(rid, start, start + len(text), lexical.terms(text), text)
+             for rid in ("doc-b", "doc-a") for start in (40, 0)]
+    ranked = _ranked("boil-dry protection", spans, chosen={"doc-a", "doc-b"}, required=[])
+    assert len({r[0] for r in ranked}) == 1
+    assert [(r[1], r[2]) for r in ranked] == [("doc-a", 0), ("doc-a", 40), ("doc-b", 0), ("doc-b", 40)]

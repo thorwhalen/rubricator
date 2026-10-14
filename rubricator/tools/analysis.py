@@ -1064,7 +1064,14 @@ def _revise_versions(
     """
     from rubricator.criteria_versions import meaning_changed, next_version
 
-    before = {c["id"]: c for c in frame.get("criteria", [])}
+    # Read tolerantly, as alternatives_set reads its rows: a hand-edited stored list
+    # (an object, null, entries without a string id) must not stop the verb that
+    # replaces it (#169, review of #226).
+    stored = frame.get("criteria")
+    before = {
+        c["id"]: c for c in (stored if isinstance(stored, list) else [])
+        if isinstance(c, Mapping) and isinstance(c.get("id"), str)
+    }
     after_ids = {c["id"] for c in out}
     referenced, unread = _references(store, analysis_id, "criterionId")
     dropped = sorted((set(before) - after_ids) & referenced)
