@@ -57,7 +57,7 @@ dependencies = [
 # `Context.sample` are both present on the installed 3.x, the whole 4.0.0 line is
 # pre-release, and the symbol the belief rested on is in neither tree. So the pin
 # was an extra no stable release could satisfy.
-mcp = ["fastmcp>=3.4", "py2mcp>=0.1.9"]
+mcp = ["fastmcp>=3.4.8", "py2mcp>=0.1.9"]
 
 # The deployed runtime, which owns model access. All of it goes through `aix`;
 # no provider SDK is a direct dependency of this package, and a test enforces it.
