@@ -373,7 +373,7 @@ def alternatives_set(
     # Only a real drop is guarded -- a row in the stored set and not in this one
     # -- as criteria_set guards columns. Read tolerantly, so a damaged stored
     # list can still be replaced by the verb that replaces it.
-    stored, intact = _stored_rows(frame.get("alternatives"))
+    stored, intact = _stored_rows(frame.get("alternatives", []))
     dropping = set(stored) - set(ids)
     referenced, unread = _references(store, analysis_id, "alternativeId")
     # A row carries no versioned meaning, so re-declaring a scored one loses nothing.
@@ -1065,7 +1065,7 @@ def _revise_versions(
 
     # Read tolerantly, so the verb that replaces a hand-edited list can repair it
     # (#169), but never blindly: see _stored_rows (second review of #226).
-    before, intact = _stored_rows(frame.get("criteria"))
+    before, intact = _stored_rows(frame.get("criteria", []))
     after_ids = {c["id"] for c in out}
     referenced, unread = _references(store, analysis_id, "criterionId")
     _refuse_a_blind_repair("criteria", before, intact, referenced, unread)
@@ -1517,7 +1517,7 @@ def _references(
     return referenced, unread
 
 
-def _stored_rows(stored: Any) -> tuple[dict[str, Mapping[str, Any]], bool]:
+def _stored_rows(stored: Any) -> tuple[dict[str, Mapping[str, Any]], bool | set[str]]:
     """The stored rows by id as far as they can be read, and whether all of them could.
 
     A hand edit can leave the frame's alternatives or criteria as an object, a
@@ -1525,7 +1525,11 @@ def _stored_rows(stored: Any) -> tuple[dict[str, Mapping[str, Any]], bool]:
     replaces the list is its repair, so it reads what it can: a list's object
     entries, an object's values. ``intact`` is false when anything was skipped,
     which :func:`_refuse_a_blind_repair` uses to refuse a write whose effect on a
-    scored row cannot be told.
+    scored row cannot be told. A missing key is an empty list, not a broken one
+    (callers pass ``frame.get(axis, [])``); an explicit ``null`` is broken. An id
+    stored twice is not intact either, and is returned as the set of duplicated
+    ids, because the last copy cannot be told apart from the record its scores
+    were made against.
 
     >>> _stored_rows([{"id": "a"}, 3])
     ({'a': {'id': 'a'}}, False)
@@ -1533,6 +1537,8 @@ def _stored_rows(stored: Any) -> tuple[dict[str, Mapping[str, Any]], bool]:
     ({'a': {'id': 'a'}}, False)
     >>> _stored_rows(None)
     ({}, False)
+    >>> _stored_rows([{"id": "a"}, {"id": "a", "label": "x"}])[1]
+    {'a'}
     """
     if stored is None:
         rows: Any = []
@@ -1542,16 +1548,19 @@ def _stored_rows(stored: Any) -> tuple[dict[str, Mapping[str, Any]], bool]:
         rows = stored
     else:
         rows = []
-    readable = {
-        r["id"]: r for r in rows if isinstance(r, Mapping) and isinstance(r.get("id"), str)
-    }
+    good = [r for r in rows if isinstance(r, Mapping) and isinstance(r.get("id"), str)]
+    readable = {r["id"]: r for r in good}
+    ids = [r["id"] for r in good]
+    duplicated = {i for i in ids if ids.count(i) > 1}
+    if duplicated:
+        return readable, duplicated
     return readable, isinstance(stored, list) and len(readable) == len(stored)
 
 
 def _refuse_a_blind_repair(
     axis: str,
     stored: Mapping[str, Any],
-    intact: bool,
+    intact: bool | set[str],
     referenced: set[str],
     unread: Sequence[str],
     *,
@@ -1569,20 +1578,21 @@ def _refuse_a_blind_repair(
     rows carry no versioned meaning. Criteria pass none, since a criterion
     re-declared over a lost record may have changed meaning undetected.
     """
-    if intact:
+    if intact is True:
         return
-    lost = sorted(referenced - set(stored) - kept)
+    duplicated = intact if isinstance(intact, set) else set()
+    lost = sorted(((referenced - set(stored)) | (referenced & duplicated)) - kept)
     if lost:
         raise ValueError(
             f"refused, nothing was written: the stored {axis} are not a list of objects each with "
-            f"a string id, and cells refer to {', '.join(lost)}, whose stored record cannot be "
+            f"a distinct string id, and cells refer to {', '.join(lost)}, whose stored record cannot be "
             "read; whether this call drops or redefines them cannot be told. Repair the frame "
             "file by hand."
         )
     if unread:
         raise ValueError(
             f"refused, nothing was written: the stored {axis} are not a list of objects each with "
-            f"a string id, and {', '.join(unread)} cannot be read to tell whether its cells refer "
+            f"a distinct string id, and {', '.join(unread)} cannot be read to tell whether its cells refer "
             f"to {axis} whose stored record is lost. Its owner repairs or removes it, or repair "
             "the frame file by hand."
         )

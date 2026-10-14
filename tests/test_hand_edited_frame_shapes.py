@@ -206,3 +206,21 @@ def test_an_unreadable_alternatives_list_never_drops_a_scored_alternative(scored
         bind(scored)["alternatives_set"](analysis_id="a1", alternatives=[{"id": "k9", "label": "Other"}])
     assert dict(scored.store.blobs) == before
     bind(scored)["alternatives_set"](analysis_id="a1", alternatives=[{"id": "k1", "label": "Kettle one"}])
+
+
+def test_a_missing_row_key_is_an_empty_list_not_a_broken_one(runtime) -> None:
+    """Third review of #226: a frame without the key, beside an unreadable file, still repairs."""
+    _hand_edit(runtime, lambda f: (f.pop("alternatives"), f.pop("criteria")))
+    runtime.store.blobs["analyses/a1/contributions/zed.json"] = b"{half"
+    verbs = bind(runtime)
+    verbs["alternatives_set"](analysis_id="a1", alternatives=[{"id": "k1", "label": "Kettle one"}])
+    verbs["criteria_set"](analysis_id="a1", criteria=[SPEED])
+
+
+def test_a_scored_criterion_stored_twice_is_refused_not_resolved_by_the_last_copy(scored) -> None:
+    redefined = {**SPEED, "anchors": [*ANCHORS[:2], {"level": "5", "text": "instant"}]}
+    _hand_edit(scored, lambda f: f["criteria"].append(redefined))
+    before = dict(scored.store.blobs)
+    with pytest.raises(ValueError, match="refused, nothing was written.*speed.*cannot be read"):
+        bind(scored)["criteria_set"](analysis_id="a1", criteria=[redefined, COST])
+    assert dict(scored.store.blobs) == before
