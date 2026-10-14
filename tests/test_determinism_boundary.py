@@ -273,3 +273,105 @@ def test_mcp_layer_imports_no_model_client_in_a_fresh_subprocess() -> None:
         "runtime (no API key) must never import the deployed-agent runtime (owns model "
         "access through `aix`) -- even transitively."
     )
+
+
+#: The modules a connector process can reach at *call* time (#133): every module
+#: in the package except the two runtimes that legitimately own model access --
+#: the deployed agent (ADR-0019) and the evaluation harness, whose model-based
+#: checkers ADR-0010 allows because a harness is offline and has a key.
+PACKAGE_DIR = Path(rubricator.__file__).parent
+MODEL_RUNTIMES = {"agent", "evaluation"}
+CONNECTOR_FILES = [
+    p for p in _python_files(PACKAGE_DIR)
+    if p.relative_to(PACKAGE_DIR).parts[0] not in MODEL_RUNTIMES
+]
+
+
+def _imported_modules(path: Path) -> set[str]:
+    """Full dotted names a file imports, relative imports resolved against its package."""
+    package = ["rubricator", *path.relative_to(PACKAGE_DIR).parent.parts]
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            names.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            base = package[: len(package) - node.level + 1] if node.level else []
+            module = ".".join([*base, *([node.module] if node.module else [])])
+            names.add(module)
+            names.update(f"{module}.{alias.name}" for alias in node.names)
+    return names
+
+
+def _reaches_a_model(path: Path) -> list[str]:
+    """Model clients, and the two model-owning runtimes, a connector file imports anywhere."""
+    return sorted(
+        name for name in _imported_modules(path)
+        if name.split(".")[0] in MODEL_MODULES
+        or any(name == f"rubricator.{r}" or name.startswith(f"rubricator.{r}.") for r in MODEL_RUNTIMES)
+    )
+
+
+@pytest.mark.parametrize(
+    "path", CONNECTOR_FILES, ids=lambda p: str(p.relative_to(PACKAGE_DIR)).replace("\\", "/")
+)
+def test_no_connector_module_imports_a_model_client_even_at_call_time(path: Path) -> None:
+    """ADR-0019 per file, over the whole connector, function bodies included.
+
+    The fresh-subprocess test above sees what *importing* the server loads, so it
+    misses ``def make_server(): import aix`` -- the idiom ``mcp/server.py``
+    already uses, legitimately, for ``py2mcp``. The AST walk reaches into every
+    function body, so a call-time model import fails here, at CI time, instead
+    of at the first request in production.
+    """
+    offending = _reaches_a_model(path)
+    assert not offending, (
+        f"{path.relative_to(PACKAGE_DIR)} imports {offending}, even if only inside a "
+        "function. ADR-0019: the connector has no API key, and only the deployed agent and "
+        "the evaluation harness may reach a model -- through `aix`."
+    )
+
+
+def test_the_connector_scan_covers_the_named_seams_and_spares_the_model_runtimes() -> None:
+    names = {str(p.relative_to(PACKAGE_DIR)).replace("\\", "/") for p in CONNECTOR_FILES}
+    assert {"compose.py", "surface/__init__.py", "mcp/server.py", "tools/search.py"} <= names
+    assert not {n for n in names if n.split("/")[0] in MODEL_RUNTIMES}
+
+
+def test_the_scan_catches_a_model_import_deferred_into_a_function(tmp_path: Path) -> None:
+    """The planted violation of #133: invisible to an import-time check, caught by the walk."""
+    planted = tmp_path / "server.py"
+    planted.write_text(
+        "def make_server(blobs):\n"
+        "    import py2mcp  # legitimate: the host framework\n"
+        "    from aix import chat  # not: a model client, reached only when a handler runs\n"
+        "    return chat\n",
+        encoding="utf-8",
+    )
+    assert _imported_roots(planted) & MODEL_MODULES == {"aix"}
+
+
+@pytest.mark.parametrize("statement, where", [
+    ("from aix import chat", "server.py"),
+    ("from rubricator.agent import loop", "server.py"),
+    ("from ..agent import loop", "mcp/server.py"),
+    ("from ..evaluation.harness import judge", "tools/x.py"),
+    ("from . import agent", "agent_shim.py"),
+])
+def test_the_scan_resolves_relative_imports_and_refuses_the_model_runtimes(
+    tmp_path: Path, monkeypatch, statement: str, where: str
+) -> None:
+    """Review of #226: a relative or call-time import of the agent or the harness is caught too."""
+    planted = PACKAGE_DIR / where
+    source = f"def handler():\n    {statement}\n"
+    real_read = Path.read_text
+    monkeypatch.setattr(
+        Path, "read_text",
+        lambda self, *a, **k: source if self == planted else real_read(self, *a, **k),
+    )
+    assert _reaches_a_model(planted), statement
+
+
+def test_the_scan_leaves_the_connector_s_own_relative_imports_alone() -> None:
+    assert not _reaches_a_model(PACKAGE_DIR / "mcp" / "server.py")
+    assert "rubricator.tools.corpus" in _imported_modules(PACKAGE_DIR / "tools" / "search.py")

@@ -51,6 +51,7 @@ __all__ = [
     "procedure_and_round_resolve",
     "unique_ids",
     "missing_rule_code_defined",
+    "declaration_entries",
     "value_cites_evidence",
     "blank_has_a_note",
     "unsearched_blank_cites_nothing",
@@ -316,14 +317,16 @@ def missing_rule_code_defined(document: Mapping[str, Any]) -> Iterable[Problem]:
     """
     from rubricator.schema.vocabulary import vocabulary
 
-    analysis_codes = list(document.get("missingCodes", []))
-    for i, criterion in enumerate(document.get("criteria", [])):
+    analysis_codes = declaration_entries(document.get("missingCodes"))
+    for i, criterion in _objects(document.get("criteria")):
         # Nearest scope first, as the companion's makeVocabulary orders it.
-        declarations = [*criterion.get("missingCodes", []), *analysis_codes]
-        rules = (criterion.get("definition") or {}).get("missingRules", [])
-        for k, rule in enumerate(rules):
+        declarations = [*declaration_entries(criterion.get("missingCodes")), *analysis_codes]
+        definition = criterion.get("definition")
+        rules = definition.get("missingRules") if isinstance(definition, Mapping) else None
+        for k, rule in _objects(rules):
             code = rule.get("code", "")
-            if vocabulary().resolve(code, declarations).source != "undeclared":
+            # A code that is not a string names nothing anyone declares (#169).
+            if isinstance(code, str) and vocabulary().resolve(code, declarations).source != "undeclared":
                 continue
             yield Problem(
                 path=f"criteria[{i}].definition.missingRules[{k}].code",
@@ -488,8 +491,39 @@ def declarations_for(document: Mapping[str, Any], criterion_id: str) -> list[Map
     ``makeVocabulary``: the resolver takes the first match, so a criterion-scoped
     redefinition wins inside that criterion and nowhere else.
     """
-    criterion = next((c for c in document.get("criteria", []) if c.get("id") == criterion_id), {})
-    return [*criterion.get("missingCodes", []), *document.get("missingCodes", [])]
+    criterion = next(
+        (c for _, c in _objects(document.get("criteria")) if c.get("id") == criterion_id), {}
+    )
+    return [
+        *declaration_entries(criterion.get("missingCodes")),
+        *declaration_entries(document.get("missingCodes")),
+    ]
+
+
+def declaration_entries(value: Any) -> list[Mapping[str, Any]]:
+    """The declarations in a ``missingCodes`` list as read from disk: its object entries only.
+
+    A hand edit can leave ``null``, a number or an object where the list should
+    be, or junk among its entries (#169). Those are shape problems, the schema's
+    to report; a reader walks past them rather than raising, as
+    :func:`_declaration_lists` does for the schema-family rules. What is lost is
+    only a declaration nobody could have read, so a blank or rule naming it
+    resolves as undeclared -- reported, and counted as outstanding, the cautious
+    direction.
+
+    >>> declaration_entries(None), declaration_entries(5), declaration_entries({"id": "x"})
+    ([], [], [])
+    >>> declaration_entries([None, {"id": "x"}, "y"])
+    [{'id': 'x'}]
+    """
+    return [d for _, d in _objects(value)]
+
+
+def _objects(value: Any) -> list[tuple[int, Mapping[str, Any]]]:
+    """``(index, entry)`` for each object in a list from disk; anything that is not a list is empty."""
+    if not isinstance(value, (list, tuple)):
+        return []
+    return [(i, d) for i, d in enumerate(value) if isinstance(d, Mapping)]
 
 
 #: The source types that are someone else's words rather than the agent's own

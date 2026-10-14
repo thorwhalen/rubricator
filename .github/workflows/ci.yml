@@ -53,7 +53,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[test]"
       - name: The tool layer calls no model, and is reproducible
-        run: pytest tests/test_determinism_boundary.py -q
+        # The boundary proves what tool modules import; the replay proves what each
+        # verb returns and writes is byte-identical across processes and hash seeds (#48).
+        run: pytest tests/test_determinism_boundary.py tests/test_tool_reproducibility.py -q
 
   connector:
     # The connector extra, installed. Without this job every test that builds

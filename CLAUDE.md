@@ -36,6 +36,19 @@ Never "items" or "features".
     rubricator/data/prompts/ the prompts themselves, versioned content shipped in the wheel
     skills/                  dev skills — tooling for the agent building this repo
 
+## Running the tests
+
+    uv venv .venv && . .venv/bin/activate
+    uv pip install -e ".[test,mcp]"
+    python -m pytest -q                      # tests/ and the package's doctests
+
+CI runs the suite with no extras (the connector tests skip), then the connector tests with `mcp`,
+then `tests/test_determinism_boundary.py` and `tests/test_tool_reproducibility.py` on their own.
+A new verb needs a step in `tests/determinism_scenarios.py`; a changed tool row needs the token
+pin in `frozen.py` re-measured, or re-pinned in an ADR-0026 amendment when no provider key is at
+hand (#199). The tokenizer and stopword list behind `corpus_search` are pinned in
+`rubricator/lexical.py`, like the normaliser: a change is a new id, never an edit in place.
+
 ## Dev skills
 
 Real files in `skills/`, surfaced through relative symlinks in `.claude/skills/`. These are for

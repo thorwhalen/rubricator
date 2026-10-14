@@ -43,7 +43,7 @@ from rubricator.procedure import (
     stored_prior_applied,
     round_id,
 )
-from rubricator.rules import declarations_for
+from rubricator.rules import declaration_entries, declarations_for
 from rubricator.schema.vocabulary import vocabulary
 from rubricator.store import AnalysisNotFound, AnalysisStore
 from rubricator.tools.corpus import agent_produced_names, cited_document
@@ -52,6 +52,9 @@ __all__ = [
     "analysis_open",
     "frame_set",
     "alternatives_set",
+    "NEAR_DUPLICATE_THRESHOLD",
+    "label_similarity",
+    "near_duplicates",
     "criteria_set",
     "measures_write",
     "measures_mark_missing",
@@ -294,6 +297,56 @@ def frame_set(
     }
 
 
+#: How much two alternatives' labels must share before the pair is flagged as a
+#: possible duplicate (#55): the overlap coefficient of their label tokens, see
+#: :func:`label_similarity`. Provisional and named, so it can be settled against
+#: the ADR-0008 fixtures; set for recall, because a flag costs one question to
+#: the user and a missed duplicate splits one alternative's evidence in two.
+NEAR_DUPLICATE_THRESHOLD = 0.75
+
+
+def label_similarity(a: str, b: str) -> float:
+    """The overlap coefficient of two labels' ``lex-v1`` token sets, ``|A & B| / min(|A|, |B|)``.
+
+    Tokens, not terms: a stopword is kept, because in a label it is often the
+    whole difference ("Option A" and "Option B"). Overlap rather than Jaccard, so
+    a label inside a longer one ("K2", "The K2 kettle") scores 1. A label with no
+    tokens matches nothing.
+
+    >>> label_similarity("Brightwater K2", "the brightwater-k2 kettle")
+    1.0
+    >>> label_similarity("Option A", "Option B")
+    0.5
+    """
+    from rubricator.lexical import tokens
+
+    if not (isinstance(a, str) and isinstance(b, str)):
+        return 0.0  # a hand-edited label of another type: the contract's to report, not a match
+    left, right = set(tokens(a)), set(tokens(b))
+    if not left or not right:
+        return 0.0
+    return round(len(left & right) / min(len(left), len(right)), 4)
+
+
+def near_duplicates(alternatives: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """Pairs of live alternatives whose labels reach :data:`NEAR_DUPLICATE_THRESHOLD`, by id.
+
+    Flagged, never merged: whether two rows are one alternative is a decision
+    about the frame, which is the user's (ADR-0005). Tombstoned rows are left
+    out, as they are of every comparison.
+    """
+    live = sorted(
+        (a for a in alternatives if not a.get("tombstoned")), key=lambda a: a["id"]
+    )
+    pairs = []
+    for i, a in enumerate(live):
+        for b in live[i + 1:]:
+            similarity = label_similarity(a.get("label", ""), b.get("label", ""))
+            if similarity >= NEAR_DUPLICATE_THRESHOLD:
+                pairs.append({"a": a["id"], "b": b["id"], "similarity": similarity})
+    return pairs
+
+
 def alternatives_set(
     store: AnalysisStore, *, analysis_id: str, alternatives: Sequence[Mapping[str, Any]]
 ) -> dict[str, Any]:
@@ -304,8 +357,10 @@ def alternatives_set(
     criterion: a row with history is never deleted, it is tombstoned, and that
     is a separate, visible act.
 
-    Near-duplicate and unsourced alternatives are *flagged*, never merged, by
-    the checks tracked in #55; this verb writes.
+    Near-duplicate alternatives are *flagged*, never merged (#55): every row is
+    written as given, and :func:`near_duplicates` names the pairs whose labels
+    nearly coincide, for the user to decide. Flagging an alternative with no
+    source needs a slot for its source, which the input does not have yet.
     """
     frame = store.frame(analysis_id)
     ids = [a["id"] for a in alternatives]
@@ -318,12 +373,11 @@ def alternatives_set(
     # Only a real drop is guarded -- a row in the stored set and not in this one
     # -- as criteria_set guards columns. Read tolerantly, so a damaged stored
     # list can still be replaced by the verb that replaces it.
-    stored = frame.get("alternatives")
-    dropping = {
-        a["id"] for a in (stored if isinstance(stored, list) else [])
-        if isinstance(a, dict) and isinstance(a.get("id"), str)
-    } - set(ids)
+    stored, intact = _stored_rows(frame.get("alternatives", []))
+    dropping = set(stored) - set(ids)
     referenced, unread = _references(store, analysis_id, "alternativeId")
+    # A row carries no versioned meaning, so re-declaring a scored one loses nothing.
+    _refuse_a_blind_repair("alternatives", stored, intact, referenced, unread, kept=set(ids))
     dropped = sorted(dropping & referenced)
     if dropped:
         raise ValueError(
@@ -333,10 +387,19 @@ def alternatives_set(
     _refuse_a_blind_drop("alternatives", dropping, unread)
     frame["alternatives"] = [dict(a) for a in alternatives]
     _put_frame(store, analysis_id, frame)
+    flagged = near_duplicates(alternatives)
+    summary = f"{len(ids)} alternative(s) declared"
+    if flagged:
+        summary += (
+            f"; {len(flagged)} near-duplicate pair(s) flagged and never merged ("
+            + ", ".join(f"{p['a']} / {p['b']}" for p in flagged)
+            + "): ask the user whether each pair is one alternative before scoring"
+        )
     return {
         "analysisId": analysis_id,
         "alternatives": ids,
-        "summary": f"{len(ids)} alternative(s) declared",
+        "nearDuplicates": flagged,
+        "summary": summary,
     }
 
 
@@ -445,9 +508,12 @@ def criteria_set(
         criterion_codes = [dict(d) for d in c.get("missingCodes", [])]
         definition = c.get("definition")
         if definition is not None:
+            # The stored analysis-level list may be a hand edit of any shape (#169):
+            # walked as declarations only, so it never locks a criteria write (#160).
             problems.extend(
                 _definition_problems(
-                    c.get("id"), definition, [*criterion_codes, *frame.get("missingCodes", [])]
+                    c.get("id"), definition,
+                    [*criterion_codes, *declaration_entries(frame.get("missingCodes"))],
                 )
             )
         if definition is None or isinstance(definition, Mapping):
@@ -997,9 +1063,12 @@ def _revise_versions(
     """
     from rubricator.criteria_versions import meaning_changed, next_version
 
-    before = {c["id"]: c for c in frame.get("criteria", [])}
+    # Read tolerantly, so the verb that replaces a hand-edited list can repair it
+    # (#169), but never blindly: see _stored_rows (second review of #226).
+    before, intact = _stored_rows(frame.get("criteria", []))
     after_ids = {c["id"] for c in out}
     referenced, unread = _references(store, analysis_id, "criterionId")
+    _refuse_a_blind_repair("criteria", before, intact, referenced, unread)
     dropped = sorted((set(before) - after_ids) & referenced)
     if dropped:
         raise ValueError(
@@ -1446,6 +1515,87 @@ def _references(
         else:
             unread.append(file)
     return referenced, unread
+
+
+def _stored_rows(stored: Any) -> tuple[dict[str, Mapping[str, Any]], bool | set[str]]:
+    """The stored rows by id as far as they can be read, and whether all of them could.
+
+    A hand edit can leave the frame's alternatives or criteria as an object, a
+    scalar, or a list with entries that are not rows (#169). The verb that
+    replaces the list is its repair, so it reads what it can: a list's object
+    entries, an object's values. ``intact`` is false when anything was skipped,
+    which :func:`_refuse_a_blind_repair` uses to refuse a write whose effect on a
+    scored row cannot be told. A missing key is an empty list, not a broken one
+    (callers pass ``frame.get(axis, [])``); an explicit ``null`` is broken. An id
+    stored twice is not intact either, and is returned as the set of duplicated
+    ids, because the last copy cannot be told apart from the record its scores
+    were made against.
+
+    >>> _stored_rows([{"id": "a"}, 3])
+    ({'a': {'id': 'a'}}, False)
+    >>> _stored_rows({"a": {"id": "a"}})
+    ({'a': {'id': 'a'}}, False)
+    >>> _stored_rows(None)
+    ({}, False)
+    >>> _stored_rows([{"id": "a"}, {"id": "a", "label": "x"}])[1]
+    {'a'}
+    """
+    if stored is None:
+        rows: Any = []
+    elif isinstance(stored, Mapping):
+        rows = list(stored.values())
+    elif isinstance(stored, list):
+        rows = stored
+    else:
+        rows = []
+    good = [r for r in rows if isinstance(r, Mapping) and isinstance(r.get("id"), str)]
+    readable = {r["id"]: r for r in good}
+    ids = [r["id"] for r in good]
+    duplicated = {i for i in ids if ids.count(i) > 1}
+    if duplicated:
+        return readable, duplicated
+    return readable, isinstance(stored, list) and len(readable) == len(stored)
+
+
+def _refuse_a_blind_repair(
+    axis: str,
+    stored: Mapping[str, Any],
+    intact: bool | set[str],
+    referenced: set[str],
+    unread: Sequence[str],
+    *,
+    kept: set[str] = frozenset(),
+) -> None:
+    """Refuse replacing a stored list that could not be read whole, where that could hide history.
+
+    With rows skipped, a cell may refer to a row whose stored record is gone:
+    the drop guard and the change of meaning are both computed against the
+    stored rows, so a replacement would delete that row, or redefine it with
+    its scores still attached, without a word (second review of #226). Refused
+    then, as is any repair while a contribution cannot be read to tell. A list
+    nobody scored against is repaired as before. ``kept`` are ids the call
+    re-declares where that is safe without the old record: alternatives, whose
+    rows carry no versioned meaning. Criteria pass none, since a criterion
+    re-declared over a lost record may have changed meaning undetected.
+    """
+    if intact is True:
+        return
+    duplicated = intact if isinstance(intact, set) else set()
+    lost = sorted(((referenced - set(stored)) | (referenced & duplicated)) - kept)
+    if lost:
+        raise ValueError(
+            f"refused, nothing was written: the stored {axis} are not a list of objects each with "
+            f"a distinct string id, and cells refer to {', '.join(lost)}, whose stored record cannot be "
+            "read; whether this call drops or redefines them cannot be told. Repair the frame "
+            "file by hand."
+        )
+    if unread:
+        raise ValueError(
+            f"refused, nothing was written: the stored {axis} are not a list of objects each with "
+            f"a distinct string id, and {', '.join(unread)} cannot be read to tell whether its cells refer "
+            f"to {axis} whose stored record is lost. Its owner repairs or removes it, or repair "
+            "the frame file by hand."
+        )
 
 
 def _refuse_a_blind_drop(axis: str, dropping: set[str], unread: Sequence[str]) -> None:

@@ -20,9 +20,9 @@ One more force. The closed comparanda v1 schema refuses unknown keys, and the wr
 | 1 | `analysis_open` | analysis | 1, resume | implemented | yes | — | 1 |
 | 2 | `analysis_get` | analysis | all | implemented (#52) | yes | — | 2 |
 | 3 | `corpus_add` | corpus | 2, 5 | implemented (#53) | yes | — | 3 |
-| 4 | `corpus_search` | corpus | 2, 3, 5 | planned (#54) | yes | — | 4 |
+| 4 | `corpus_search` | corpus | 2, 3, 5 | implemented (#54) | yes | — | 4 |
 | 5 | `frame_set` | frame | 1 | implemented | yes | — | 5 |
-| 6 | `alternatives_set` | alternatives | 2 | implemented (checks: #55) | yes | — | 6 |
+| 6 | `alternatives_set` | alternatives | 2 | implemented (near-duplicates: #55) | yes | — | 6 |
 | 7 | `criteria_set` | criteria | 3 | implemented | yes | — | 7 |
 | 8 | `frame_confirm` | frame | 4 | implemented (#57) | yes | — | 8 |
 | 9 | `plan_traversal` | plan | 5 | implemented | yes | — | 9 |
@@ -209,3 +209,31 @@ Row 3 is implemented, in `rubricator/tools/corpus.py`. A source's text is normal
 A pass that leaves the plan's traversal and reduction out joins the single stored procedure of the same model, prompt version and run whose stated plan it does not contradict (and fills them in when a later pass states them), instead of becoming a second procedure with one repeat each.
 
 **Not re-measured.** `MEASURED` below is still the 2026-10-12 count; `AWAITING_MEASUREMENT` in `frozen.py` pins the digest and byte size of what is now served (15 advertised tools, 22,152 bytes, digest `35b2988518a9`; the whole surface, 22 tools, 28,365 bytes, digest `81c4b561bb3a`) and still names #199, which owes the count. No estimate is recorded as a count.
+
+### 2026-10-14 — `corpus_search` lands (#54)
+
+- **Deciders:** Thor Whalen (the row's text and the unmeasured definitions are recorded here so they can be reversed; the measurement is still owed in #199)
+
+Row 4 is implemented, in `rubricator/tools/search.py`, with no input change. Retrieval is Okapi BM25 (`k1` 1.2, `b` 0.75) over the spans `corpus_add` recorded, never re-chunked, with collection statistics taken over the whole corpus so that narrowing `document_ids` never moves a span's score. "Normalised substring" is made exact as a phrase match on token boundaries: a span holding the whole query as written gets a bonus equal to BM25's own upper bound for the query, so it always outranks a span holding only the words. Scores are rounded to six places, so a tie is exact and `(score, documentId, start)` decides it. The tokenizer (`lex-v1`: NFKC, casefold, runs of letters, marks and numbers) and the stopword list (`stop-en-v1`) live in `rubricator/lexical.py`, each with an id and a pin over a probe, as the normaliser has; no stemming, because a stemmer's rules move between releases and the model can search again with another inflection.
+
+**Retrieve small, present wide.** A hit is a stored span widened to `window_chars` (default 600) for reading. `start` and `end` are the offsets of the returned text into the normalised document, so `text` is exactly `content[start:end]`; `spanId` is `{documentId}:{spanStart}-{spanEnd}` and names the span itself, which is what the span resource (#66) will resolve.
+
+**The inline behaviour.** An empty query returns the whole corpus, one hit per document, when it is under 25,000 estimated tokens (ADR-0010's client ceiling), and is refused above it with the threshold and the size; `k` does not apply to it.
+
+**What finding nothing says.** No match is an empty list whose summary names what was searched, and how much of the corpus that was. An empty corpus, an empty or unknown `document_ids`, a query or `must_include` phrase with no letters or digits, a `k` or `window_chars` below 1, and a search in which no chosen document has readable spans are refused, because an empty list there would read as a search that found nothing. A document whose spans cannot be read (a hand-made or imported rendition, or a damaged ingest record) is left out, named in `warnings`, and counted in the summary. An inlined read that `document_ids` or `must_include` narrowed says how many of the corpus's documents it holds and why the rest were left out. Every search summary, and an inlined read's when `must_include` filtered it, names the tokenizer and the interpreter's Unicode version: Python's Unicode tables change between releases, so results are byte-identical for one Unicode version, not across them.
+
+**Outputs added.** Each hit gains `agentProduced`, so a model learns before it cites that a reference into that document is secondary at best (ADR-0015); the result gains `warnings` and `skipped`, the latter as every reading tool reports it (#151).
+
+**The row's text.** The contract now states the defaults, the offsets' meaning, `must_include`, the marker and the threshold, and the failure line lists every refusal, since the text is what the model reads.
+
+**Not re-measured.** The definitions changed on a machine with no provider key. `MEASURED` below is still the 2026-10-12 count; `AWAITING_MEASUREMENT` in `frozen.py` pins the digest and byte size of what is now served (16 advertised tools, 23,399 bytes, digest `ecdcab89bbf6`; the whole surface, 22 tools, 28,723 bytes, digest `e963ccdecd64`) and still names #199, which owes the count. No estimate is recorded as a count.
+
+### 2026-10-14 — `alternatives_set` flags near-duplicates, and its row stops promising an unsourced flag (#55)
+
+- **Deciders:** Thor Whalen (additive and reversible; recorded here so it can be)
+
+**One output addition.** `alternatives_set` returns `nearDuplicates`, the pairs of live alternatives whose labels nearly coincide, as `{a, b, similarity}` ordered by id. Every row is still written exactly as given: whether two rows are one alternative is a decision about the frame, and the summary tells the model to ask the user. Similarity is the overlap coefficient of the two labels' `lex-v1` token sets (`|A ∩ B| / min(|A|, |B|)`), so a label inside a longer one scores 1, and stopwords are kept because in a label they are often the whole difference ("Option A", "Option B"). The threshold is `NEAR_DUPLICATE_THRESHOLD`, 0.75: a named, provisional constant set for recall, to be settled against the ADR-0008 fixtures as r6 recommends. Tombstoned rows are not compared.
+
+**The row's text.** The contract said alternatives with no source were flagged. Nothing computed that, and nothing can yet: the input `Alternative` (comparanda v1's, closed) has no slot for where an alternative came from, so there is nothing to read "unsourced" off. The sentence now promises only what is returned, and the unsourced half stays open on #55 as an input-and-schema question.
+
+**Not re-measured.** `MEASURED` below is still the 2026-10-12 count; `AWAITING_MEASUREMENT` in `frozen.py` pins the digest and byte size of what is now served (16 advertised tools, 23,450 bytes, digest `521313484f78`; the whole surface, 22 tools, 28,774 bytes, digest `9165078f8abc`) and still names #199, which owes the count. No estimate is recorded as a count.

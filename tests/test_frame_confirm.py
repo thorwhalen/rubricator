@@ -657,6 +657,21 @@ def test_a_mixed_state_read_names_each_parts_own_record() -> None:
     assert "nobody confirmed the frame, alternatives" in got["summary"] and "criteria: confirmed by ana" in got["summary"]
 
 
+def test_a_criteria_change_after_a_criteria_only_confirm_still_names_the_skipped_parts() -> None:
+    """#194 item 1: the stale-version summary used to give only the criteria's confirmer."""
+    _, verbs = _verbs()
+    _framed(verbs, allow_skip_confirmation=True)
+    verbs["frame_confirm"](analysis_id="a1")
+    verbs["frame_confirm"](analysis_id="a1", scope="criteria", decision="confirm", confirmed_by="ana",
+                           confirmation_text="The criteria are right.")
+    verbs["criteria_set"](analysis_id="a1", criteria=[
+        {"id": "speed", "label": "Speed", "anchors": ANCHORS, "definition": {"objective": "boil fast"}}])
+    got = verbs["frame_confirm"](analysis_id="a1")
+    assert 'now at "2"' in got["summary"]
+    assert "nobody confirmed the frame, alternatives" in got["summary"]
+    assert "criteria: confirmed by ana" in got["summary"]
+
+
 def test_the_result_of_a_decision_names_each_parts_own_confirmation() -> None:
     """The third review of #206: 'confirmed by bob: scoring may start' for parts Alice confirmed."""
     _, verbs = _verbs()
