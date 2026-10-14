@@ -749,6 +749,7 @@ def measures_mark_missing(
     criterion_ids: Sequence[str] = (),
     alternative_ids: Sequence[str] = (),
     independence: str | None = None,
+    procedure: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Mark a selection of cells as a qualified blank.
 
@@ -763,6 +764,10 @@ def measures_mark_missing(
 
     ``independence`` is needed when a marked cell already holds another live
     assertion (``independence-recorded``); a blank beside a score is two claims.
+
+    ``procedure`` is :func:`measures_write`'s: a blank from a repeated pass is a draw
+    like any other, so it is stamped with the same procedure and round, and counted
+    in the repeats (#218).
     """
     frame = store.frame(analysis_id)
     # The default selection is every *live* row and column: a tombstoned one
@@ -810,6 +815,7 @@ def measures_mark_missing(
         author=author,
         at=at,
         cells=cells,
+        procedure=procedure,
     )
     return {
         **result,

@@ -583,7 +583,9 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
             "named, against every criterion, or those named -- with a note saying why. The "
             "code must be one the analysis's own vocabulary resolves: the core six, or a code "
             "declared on the analysis or the criterion. This is what makes 'fill these two "
-            "criteria and mark the rest deferred' a first-class instruction."
+            "criteria and mark the rest deferred' a first-class instruction. A blank from a "
+            "repeated pass takes the same procedure as measures_write, so it is counted and "
+            "stamped like any other draw."
         ),
         determinism="Set arithmetic over the frame, then measures_write.",
         failure="An undeclared code is refused, listing what is known and how to declare a new one.",
@@ -591,7 +593,7 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
             {"analysis_id": S, "contributor_id": S, "author": AUTHOR,
              "at": DATE_TIME, "code": S, "note": S,
              "criterion_ids": at_least_one(S), "alternative_ids": at_least_one(S),
-             "independence": INDEPENDENCE},
+             "independence": INDEPENDENCE, "procedure": PROCEDURE},
             ("analysis_id", "contributor_id", "author", "code", "note"),
         ),
         output_schema=obj(
@@ -1034,11 +1036,11 @@ MEASURED: Mapping[str, Any] = {
 AWAITING_MEASUREMENT: Mapping[str, Any] | None = {
     "issue": 199,
     "advertised": {
-        "tools": 15, "bytes": 21365,
-        "sha256": "e3096578be403a2f4f5fcd9b86bc8187afdf3b0542a6d3099629609fef18b1ac",
+        "tools": 15, "bytes": 21929,
+        "sha256": "0853780733ac82fea9e68be3b2f1863009446c5d5b9c82c7cc7c6a198042434d",
     },
     "wholeSurface": {
-        "tools": 22, "bytes": 27578,
-        "sha256": "848ce4c982369df5e2d66ef9a5be75e5c4ec94be7694c93f8e17f7afda8d8beb",
+        "tools": 22, "bytes": 28142,
+        "sha256": "3ea6fdffcdae4d7fcecd67575f33d1905bb2049482530b20a221687e826188f5",
     },
 }

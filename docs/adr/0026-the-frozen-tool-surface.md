@@ -199,3 +199,11 @@ Row 3 is implemented, in `rubricator/tools/corpus.py`. A source's text is normal
 **One output addition.** Each `aggregate_assertions` cell gains `agreement`: its lowest independence rung and the wording that rung allows, or null for a cell with fewer than two draws. An output field is additive and needs no amendment; it is recorded here beside the input change.
 
 **Not re-measured.** The definitions changed on a machine with no provider key. `MEASURED` below is still the 2026-10-12 count; `AWAITING_MEASUREMENT` in `frozen.py` pins the digest and byte size of what is now served (15 advertised tools, 21,365 bytes, digest `e3096578be40`; the whole surface, 22 tools, 27,578 bytes, digest `848ce4c98236`) and still names #199, which owes the count. No estimate is recorded as a count.
+
+### 2026-10-14 — `measures_mark_missing` takes the same `procedure` (#218)
+
+- **Deciders:** Thor Whalen (additive and reversible; recorded here so it can be)
+
+**One input amendment.** `measures_mark_missing` gains the optional `procedure` that `measures_write` took in the amendment above, passed through unchanged. A blank from a repeated pass is a draw like any other: without the argument it could not be stamped with the pass's procedure and round, was not counted in the repeats, and a re-scoring pass that found nothing quotable would have left the disclosure (#100) describing fewer passes than were run. No new facts: the same six, the same closed object, the same refusals.
+
+**Not re-measured.** `MEASURED` below is still the 2026-10-12 count; `AWAITING_MEASUREMENT` in `frozen.py` pins the digest and byte size of what is now served (15 advertised tools, 21,929 bytes, digest `0853780733ac`; the whole surface, 22 tools, 28,142 bytes, digest `3ea6fdffcdae`) and still names #199, which owes the count. No estimate is recorded as a count.

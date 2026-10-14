@@ -394,3 +394,36 @@ def test_only_an_rfc3339_timestamp_with_an_offset_is_accepted_with_a_procedure(s
         with pytest.raises(ValueError, match="RFC 3339"):
             _score(store, BOT, 3, at=bad, procedure={"round": 1})
     _score(store, BOT, 3, at="2026-10-12T12:00:00.5+02:00", procedure={"round": 1})
+
+
+# --- a blank from a repeated pass is stamped like any other draw (#218) ---------
+
+
+def test_a_blank_from_a_repeated_pass_takes_the_procedure_and_is_counted(store) -> None:
+    from rubricator.tools.analysis import measures_mark_missing
+
+    facts = {"traversal": "cell-wise", "reduction": "lower-median", "session": "fresh",
+             "prior": "withheld"}
+    _score(store, BOT, 4, at="2026-10-12T12:01:00Z", procedure={**facts, "round": 1, "seed": 1})
+    measures_mark_missing(
+        store, analysis_id="a", contributor_id="bot", author=BOT, at="2026-10-12T12:02:00Z",
+        code="not-evidenced", note="a second pass found nothing quotable",
+        procedure={**facts, "round": 2, "seed": 2})
+    (procedure,) = _merged(store)["procedures"]
+    first, blank = _assertions(store)
+    assert procedure["repeats"] == 2
+    assert blank["procedureId"] == procedure["id"] == first["procedureId"]
+    assert blank["roundId"] == "bot:round-2"
+    assert blank["independence"] == "perturbed"
+    assert honesty_problems(_merged(store)) == []
+
+
+def test_mark_missing_refuses_a_rung_its_procedure_contradicts(store) -> None:
+    from rubricator.tools.analysis import measures_mark_missing
+
+    with pytest.raises(ValueError):
+        measures_mark_missing(
+            store, analysis_id="a", contributor_id="bot", author=BOT, at=AT,
+            code="not-evidenced", note="n", independence="independent",
+            procedure={"round": 2, "session": "same", "prior": "shown"})
+    assert not list(store.contributions("a"))
