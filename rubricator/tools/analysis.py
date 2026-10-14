@@ -373,12 +373,11 @@ def alternatives_set(
     # Only a real drop is guarded -- a row in the stored set and not in this one
     # -- as criteria_set guards columns. Read tolerantly, so a damaged stored
     # list can still be replaced by the verb that replaces it.
-    stored = frame.get("alternatives")
-    dropping = {
-        a["id"] for a in (stored if isinstance(stored, list) else [])
-        if isinstance(a, dict) and isinstance(a.get("id"), str)
-    } - set(ids)
+    stored, intact = _stored_rows(frame.get("alternatives"))
+    dropping = set(stored) - set(ids)
     referenced, unread = _references(store, analysis_id, "alternativeId")
+    # A row carries no versioned meaning, so re-declaring a scored one loses nothing.
+    _refuse_a_blind_repair("alternatives", stored, intact, referenced, unread, kept=set(ids))
     dropped = sorted(dropping & referenced)
     if dropped:
         raise ValueError(
@@ -1064,16 +1063,12 @@ def _revise_versions(
     """
     from rubricator.criteria_versions import meaning_changed, next_version
 
-    # Read tolerantly, as alternatives_set reads its rows: a hand-edited stored list
-    # (an object, null, entries without a string id) must not stop the verb that
-    # replaces it (#169, review of #226).
-    stored = frame.get("criteria")
-    before = {
-        c["id"]: c for c in (stored if isinstance(stored, list) else [])
-        if isinstance(c, Mapping) and isinstance(c.get("id"), str)
-    }
+    # Read tolerantly, so the verb that replaces a hand-edited list can repair it
+    # (#169), but never blindly: see _stored_rows (second review of #226).
+    before, intact = _stored_rows(frame.get("criteria"))
     after_ids = {c["id"] for c in out}
     referenced, unread = _references(store, analysis_id, "criterionId")
+    _refuse_a_blind_repair("criteria", before, intact, referenced, unread)
     dropped = sorted((set(before) - after_ids) & referenced)
     if dropped:
         raise ValueError(
@@ -1520,6 +1515,77 @@ def _references(
         else:
             unread.append(file)
     return referenced, unread
+
+
+def _stored_rows(stored: Any) -> tuple[dict[str, Mapping[str, Any]], bool]:
+    """The stored rows by id as far as they can be read, and whether all of them could.
+
+    A hand edit can leave the frame's alternatives or criteria as an object, a
+    scalar, or a list with entries that are not rows (#169). The verb that
+    replaces the list is its repair, so it reads what it can: a list's object
+    entries, an object's values. ``intact`` is false when anything was skipped,
+    which :func:`_refuse_a_blind_repair` uses to refuse a write whose effect on a
+    scored row cannot be told.
+
+    >>> _stored_rows([{"id": "a"}, 3])
+    ({'a': {'id': 'a'}}, False)
+    >>> _stored_rows({"a": {"id": "a"}})
+    ({'a': {'id': 'a'}}, False)
+    >>> _stored_rows(None)
+    ({}, False)
+    """
+    if stored is None:
+        rows: Any = []
+    elif isinstance(stored, Mapping):
+        rows = list(stored.values())
+    elif isinstance(stored, list):
+        rows = stored
+    else:
+        rows = []
+    readable = {
+        r["id"]: r for r in rows if isinstance(r, Mapping) and isinstance(r.get("id"), str)
+    }
+    return readable, isinstance(stored, list) and len(readable) == len(stored)
+
+
+def _refuse_a_blind_repair(
+    axis: str,
+    stored: Mapping[str, Any],
+    intact: bool,
+    referenced: set[str],
+    unread: Sequence[str],
+    *,
+    kept: set[str] = frozenset(),
+) -> None:
+    """Refuse replacing a stored list that could not be read whole, where that could hide history.
+
+    With rows skipped, a cell may refer to a row whose stored record is gone:
+    the drop guard and the change of meaning are both computed against the
+    stored rows, so a replacement would delete that row, or redefine it with
+    its scores still attached, without a word (second review of #226). Refused
+    then, as is any repair while a contribution cannot be read to tell. A list
+    nobody scored against is repaired as before. ``kept`` are ids the call
+    re-declares where that is safe without the old record: alternatives, whose
+    rows carry no versioned meaning. Criteria pass none, since a criterion
+    re-declared over a lost record may have changed meaning undetected.
+    """
+    if intact:
+        return
+    lost = sorted(referenced - set(stored) - kept)
+    if lost:
+        raise ValueError(
+            f"refused, nothing was written: the stored {axis} are not a list of objects each with "
+            f"a string id, and cells refer to {', '.join(lost)}, whose stored record cannot be "
+            "read; whether this call drops or redefines them cannot be told. Repair the frame "
+            "file by hand."
+        )
+    if unread:
+        raise ValueError(
+            f"refused, nothing was written: the stored {axis} are not a list of objects each with "
+            f"a string id, and {', '.join(unread)} cannot be read to tell whether its cells refer "
+            f"to {axis} whose stored record is lost. Its owner repairs or removes it, or repair "
+            "the frame file by hand."
+        )
 
 
 def _refuse_a_blind_drop(axis: str, dropping: set[str], unread: Sequence[str]) -> None:

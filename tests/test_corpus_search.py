@@ -328,6 +328,7 @@ def test_a_narrowed_inline_says_what_it_left_out() -> None:
     assert "1 of the corpus's 2 document(s) inlined" in got["summary"]
     assert "without every must_include phrase" in got["summary"]
     assert "whole corpus" not in got["summary"]
+    assert f"lex-v1 (Unicode {lexical.UNICODE_VERSION})" in got["summary"]
     none = verbs["corpus_search"](analysis_id="a1", query="", must_include=["espresso"])
     assert none["hits"] == [] and "0 of the corpus's 2" in none["summary"]
     by_id = verbs["corpus_search"](analysis_id="a1", query="", document_ids=[k2])

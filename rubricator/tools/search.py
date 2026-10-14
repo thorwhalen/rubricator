@@ -330,6 +330,8 @@ def _inline(
         "summary": (
             f"{what}, about {size:,} tokens, under the {INLINE_THRESHOLD_TOKENS:,}-token "
             "threshold; k does not apply to an empty query"
+            + (f"; must_include matched with {TOKENIZER_ID} (Unicode {UNICODE_VERSION})"
+               if required else "")
             + (f"; {agent} document(s) are agent-produced, so a reference into them is secondary "
                "at best" if agent else "")
         ),

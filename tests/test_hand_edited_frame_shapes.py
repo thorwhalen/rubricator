@@ -147,3 +147,62 @@ def test_alternatives_set_repairs_an_alternatives_list_the_merge_cannot_index(ru
     _hand_edit(runtime, ROW_SHAPES[shape])
     bind(runtime)["alternatives_set"](analysis_id="a1", alternatives=[{"id": "k1", "label": "Kettle one"}])
     assert bind(runtime)["report_completeness"](analysis_id="a1")["summary"]
+
+
+# --- second review of #226: tolerant is never blind -------------------------------
+
+SPEED = {"id": "speed", "label": "Boil speed", "anchors": ANCHORS, "definition": RULES}
+COST = {"id": "cost", "label": "Price", "anchors": ANCHORS}
+EVIDENCE = [{"id": "e1", "target": "doc:spec", "sourceType": "primary",
+             "selectors": [{"type": "TextQuoteSelector", "exact": "boils fast"}]}]
+
+
+@pytest.fixture()
+def scored(runtime):
+    verbs = bind(runtime)
+    verbs["criteria_set"](analysis_id="a1", criteria=[SPEED, COST])
+    verbs["measures_write"](analysis_id="a1", contributor_id="ana", author={
+        "id": "ana", "displayName": "Ana", "kind": "human"}, cells=[{
+            "alternativeId": "k1", "criterionId": "speed", "value": 4,
+            "justification": "the sheet says so", "evidence": EVIDENCE}])
+    return runtime
+
+
+BROKEN_CRITERIA = {
+    "criteria null": lambda f: f.__setitem__("criteria", None),
+    "criteria a number": lambda f: f.__setitem__("criteria", 5),
+    "a criterion that is a number": lambda f: f.__setitem__("criteria", [1, f["criteria"][1]]),
+}
+
+
+@pytest.mark.parametrize("shape", sorted(BROKEN_CRITERIA))
+@pytest.mark.parametrize("criteria", [[COST], [{**SPEED, "anchors": [*ANCHORS[:2], {"level": "5", "text": "instant"}]}, COST]],
+                         ids=["drop", "redefine"])
+def test_an_unreadable_stored_list_never_drops_or_redefines_a_scored_criterion(
+    scored, shape, criteria
+) -> None:
+    _hand_edit(scored, BROKEN_CRITERIA[shape])
+    before = dict(scored.store.blobs)
+    with pytest.raises(ValueError, match="refused, nothing was written.*speed.*cannot be read"):
+        bind(scored)["criteria_set"](analysis_id="a1", criteria=criteria)
+    assert dict(scored.store.blobs) == before
+
+
+def test_an_object_shaped_list_is_read_by_its_values_so_the_usual_guards_hold(scored) -> None:
+    _hand_edit(scored, lambda f: f.__setitem__("criteria", {c["id"]: c for c in f["criteria"]}))
+    verbs = bind(scored)
+    with pytest.raises(ValueError, match="criteria speed would be dropped"):
+        verbs["criteria_set"](analysis_id="a1", criteria=[COST])
+    got = verbs["criteria_set"](analysis_id="a1", criteria=[
+        {**SPEED, "anchors": [*ANCHORS[:2], {"level": "5", "text": "instant"}]}, COST])
+    assert 'version "2"' in got["summary"]
+    assert scored.store.frame("a1")["criteria"][0]["definedInVersion"] == "2"
+
+
+def test_an_unreadable_alternatives_list_never_drops_a_scored_alternative(scored) -> None:
+    _hand_edit(scored, lambda f: f.__setitem__("alternatives", None))
+    before = dict(scored.store.blobs)
+    with pytest.raises(ValueError, match="refused, nothing was written.*k1.*cannot be read"):
+        bind(scored)["alternatives_set"](analysis_id="a1", alternatives=[{"id": "k9", "label": "Other"}])
+    assert dict(scored.store.blobs) == before
+    bind(scored)["alternatives_set"](analysis_id="a1", alternatives=[{"id": "k1", "label": "Kettle one"}])
