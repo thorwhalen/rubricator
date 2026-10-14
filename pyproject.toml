@@ -100,3 +100,17 @@ addopts = "--doctest-modules"
 [tool.black]
 line-length = 88
 skip-string-normalization = true
+
+# The house's narrow lint: every module carries a top-level docstring, which is
+# what the published docs are extracted from. Style is black's; ruff is not
+# asked to re-litigate it.
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+exclude = ["tests", "scripts", ".venv"]
+
+[tool.ruff.lint]
+select = ["D100"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/*" = ["D"]

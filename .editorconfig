@@ -1,0 +1,26 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{py,toml}]
+indent_style = space
+indent_size = 4
+
+# This repository's workflows and YAML are indented by two.
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+# Vendored contract files are pinned by sha256 of their bytes: never touched on save.
+[rubricator/schema/comparanda/**]
+charset = unset
+end_of_line = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset
