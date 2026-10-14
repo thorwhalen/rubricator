@@ -11,29 +11,33 @@ from __future__ import annotations
 
 import asyncio
 import importlib.metadata as md
+import json
 import re
+import subprocess
 import sys
+import threading
 
 import pytest
+from packaging.requirements import Requirement
 
-pytest.importorskip("py2mcp")
+from rubricator.surface import advertised, describe
 
-from mcp import ClientSession, StdioServerParameters  # noqa: E402
-from mcp.client.stdio import stdio_client  # noqa: E402
-from packaging.requirements import Requirement  # noqa: E402
-
-from rubricator.surface import advertised, describe  # noqa: E402
+# The process tests need the connector extra; the dependency tests at the bottom
+# do not, and run in the bare job too.
 
 
-def _params(root) -> StdioServerParameters:
-    return StdioServerParameters(
-        command=sys.executable,
-        args=["-m", "rubricator.mcp", "--root", str(root)],
-    )
+def _argv(root) -> list[str]:
+    return [sys.executable, "-m", "rubricator.mcp", "--root", str(root)]
 
 
-async def _session_roundtrip(root):
-    async with stdio_client(_params(root)) as (read, write):
+async def _session_roundtrip(root, errlog):
+    from mcp import ClientSession, StdioServerParameters
+    from mcp.client.stdio import stdio_client
+
+    params = StdioServerParameters(command=sys.executable, args=_argv(root)[1:])
+    # A file, not sys.stderr: under `pytest --capture=sys` sys.stderr has no
+    # fileno, and the child's stderr is the only clue when it dies at start-up.
+    async with stdio_client(params, errlog=errlog) as (read, write):
         async with ClientSession(read, write) as session:
             init = await session.initialize()
             tools = (await session.list_tools()).tools
@@ -46,7 +50,52 @@ async def _session_roundtrip(root):
 
 @pytest.fixture(scope="module")
 def roundtrip(tmp_path_factory):
-    return asyncio.run(asyncio.wait_for(_session_roundtrip(tmp_path_factory.mktemp("store")), 60))
+    pytest.importorskip("py2mcp")
+    work = tmp_path_factory.mktemp("store")
+    with open(work / "stderr.log", "w+") as errlog:
+        try:
+            return asyncio.run(asyncio.wait_for(_session_roundtrip(work, errlog), 60))
+        except BaseException as exc:
+            errlog.seek(0)
+            raise AssertionError(f"the server did not answer: {exc!r}\n{errlog.read()}") from exc
+
+
+def test_stdout_carries_only_protocol_messages(tmp_path) -> None:
+    """The MCP client logs and drops a stray stdout line, so the client tests above
+    cannot see a banner or a print: read the raw bytes instead."""
+    pytest.importorskip("py2mcp")
+    messages = [
+        {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {
+            "protocolVersion": "2025-06-18", "capabilities": {},
+            "clientInfo": {"name": "t", "version": "0"}}},
+        {"jsonrpc": "2.0", "method": "notifications/initialized"},
+        {"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
+        {"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {
+            "name": "analysis_open", "arguments": {"analysis_id": "a1", "question": "q"}}},
+    ]
+    # Close stdin only after the last reply: EOF ends the session, and a call
+    # still in flight at that moment is dropped.
+    proc = subprocess.Popen(
+        _argv(tmp_path), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL, text=True,
+    )
+    watchdog = threading.Timer(60, proc.kill)  # a hung server must not hang the suite
+    watchdog.start()
+    try:
+        proc.stdin.write("".join(json.dumps(m) + "\n" for m in messages))
+        proc.stdin.flush()
+        lines = []
+        while not any(json.loads(line).get("id") == 3 for line in lines):
+            line = proc.stdout.readline()
+            assert line, "the server closed stdout before answering the call"
+            lines.append(line)
+    finally:
+        watchdog.cancel()
+        proc.kill()
+        proc.communicate()
+    for line in lines:
+        reply = json.loads(line)  # a banner or a print is not JSON
+        assert reply.get("jsonrpc") == "2.0", line
 
 
 def test_the_server_starts_over_stdio_and_names_itself(roundtrip) -> None:
@@ -95,14 +144,20 @@ def _norm(name: str) -> str:
 
 
 def _closure(name: str, extras: frozenset[str] = frozenset()) -> set[str]:
-    """Every distribution reachable from ``name`` under ``extras``, markers evaluated."""
+    """Every distribution reachable from ``name`` under ``extras``, markers evaluated.
+
+    A requirement that applies but is not installed would cut the walk short
+    silently, so it is an error: a closure that stops early proves nothing.
+    """
     seen: set[str] = set()
+    missing: list[str] = []
     todo = [(_norm(name), extras)]
     while todo:
         dist_name, wanted = todo.pop()
         try:
             dist = md.distribution(dist_name)
         except md.PackageNotFoundError:
+            missing.append(dist_name)
             continue
         seen.add(dist_name)
         for line in dist.requires or []:
@@ -116,10 +171,13 @@ def _closure(name: str, extras: frozenset[str] = frozenset()) -> set[str]:
             if key not in seen or req.extras:
                 todo.append((key, frozenset(req.extras)))
                 seen.add(key)
+    seen -= set(missing)
+    assert not missing, f"cannot walk the install closure: {sorted(set(missing))} not installed"
     return seen
 
 
 def test_the_connector_extra_installs_no_model_client() -> None:
+    pytest.importorskip("py2mcp")
     assert md.distribution("rubricator").requires, "rubricator metadata not installed"
     pulled = _closure("rubricator", frozenset({"mcp"}))
     assert {"fastmcp", "py2mcp", "mcp"} <= pulled, "the closure walk missed the connector"
@@ -146,3 +204,7 @@ def test_the_console_script_points_at_the_entry_point() -> None:
     scripts = tomllib.loads(pyproject.read_text(encoding="utf-8"))["project"]["scripts"]
     assert scripts["rubricator-mcp"] == "rubricator.mcp.server:main"
     assert callable(server.main)
+    installed = md.entry_points(group="console_scripts", name="rubricator-mcp")
+    if not installed:
+        pytest.skip("installed metadata predates the script: reinstall to check it")
+    assert {e.value for e in installed} == {"rubricator.mcp.server:main"}

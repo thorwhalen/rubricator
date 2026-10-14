@@ -27,6 +27,7 @@ whole reason the tool layer is denied a model client by a test.
 from __future__ import annotations
 
 import inspect
+import os
 from collections.abc import Sequence
 from typing import Any, Callable
 
@@ -171,6 +172,13 @@ def main(argv: Sequence[str] | None = None) -> None:  # pragma: no cover - proce
         "moved by RUBRICATOR_DATA_DIR)",
     )
     args = parser.parse_args(argv)
+    if args.root is not None:
+        # An empty value is an unset variable in a client config, which would
+        # otherwise fall through to the default store without a word.
+        if not args.root.strip():
+            parser.error("--root is empty (an unset variable in the client config?)")
+        if os.path.exists(args.root) and not os.path.isdir(args.root):
+            parser.error(f"--root {args.root!r} exists and is not a directory")
     make_server(root=args.root).run(transport="stdio", show_banner=False)
 
 
