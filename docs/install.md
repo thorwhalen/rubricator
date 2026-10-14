@@ -2,13 +2,13 @@
 
 rubricator runs inside the Claude you already use. It needs **no API key and no model account of its own**: Claude supplies the judgement, rubricator supplies the tools, the method and a place to keep the work.
 
-> **Your analyses are kept for 30 days after their last write.** Every save restarts the clock, so work you come back to stays; an analysis nobody touches for 30 days is deleted. To keep one for good, export it (see [Keeping an analysis](#keeping-an-analysis)). The window is a setting of the store, and the connector tells Claude the value your store actually uses.
+> **Your analyses are kept for 30 days after their last write, then deleted.** Each save restarts the clock; merely opening or reading an analysis does not. This holds for whatever folder the connector stores into, including one you choose with `--root`. To keep an analysis for good, export it (see [Keeping an analysis](#keeping-an-analysis)). The window is 30 days for `rubricator-mcp`; the connector states it to Claude in the description of `analysis_open`.
 
 ## In a few lines
 
     uv tool install "rubricator[mcp] @ git+https://github.com/thorwhalen/rubricator"
     claude mcp add rubricator -- rubricator-mcp          # Claude Code
-    # then, in Claude: "Use rubricator to compare ... "
+    # then, in Claude: "Use rubricator to compare ... " (the exact words are in step 3)
 
 For Claude Desktop, see below. Requires Python 3.10 or newer. rubricator is not on PyPI yet, so it installs from GitHub.
 
@@ -30,7 +30,7 @@ Find where the command landed (you need the full path for Claude Desktop): `whic
 
     claude mcp add rubricator -- rubricator-mcp
 
-Add `--scope user` to have it in every project rather than the current one. To keep analyses in a folder you choose:
+Options of `claude mcp add` go before the name: `claude mcp add --scope user rubricator -- rubricator-mcp` makes it available in every project rather than only the current one. Everything after `--` is the command and its arguments. To keep analyses in a folder you choose:
 
     claude mcp add rubricator -- rubricator-mcp --root ~/analyses
 
@@ -48,49 +48,49 @@ Claude Desktop starts local servers from its config file. Open **Settings → De
       }
     }
 
-Use the **full path** from `which rubricator-mcp`: a desktop app does not see the `PATH` of your shell, and `"command": "rubricator-mcp"` is the usual reason a server fails to appear. To choose where analyses go, add `"args": ["--root", "/full/path/to/analyses"]`; give `--root` an absolute path for the same reason. Quit Claude Desktop completely and reopen it; start a new chat and the rubricator tools are listed among the chat's tools.
+Use the **full path** from `which rubricator-mcp` (on Windows write the backslashes doubled, `C:\\Users\\...\\rubricator-mcp.exe`, or use forward slashes, since JSON treats a single backslash as an escape): a desktop app does not see the `PATH` of your shell, and `"command": "rubricator-mcp"` is the usual reason a server fails to appear. To choose where analyses go, add `"args": ["--root", "/full/path/to/analyses"]`; give `--root` an absolute path for the same reason. Quit Claude Desktop completely and reopen it; start a new chat and the rubricator tools are listed among the chat's tools.
 
 ### Over HTTP, and the web app
 
-`rubricator-mcp --transport http` serves the same tools on `http://127.0.0.1:8765/mcp`, for any client that speaks MCP over HTTP (`claude mcp add --transport http rubricator http://127.0.0.1:8765/mcp` in Claude Code). It has **no authentication** and listens on your machine only. The web app at claude.ai reaches connectors from Anthropic's servers, so it cannot reach a loopback address, and exposing the server publicly is not supported yet. Read [connector-http.md](connector-http.md) before going further.
+`rubricator-mcp --transport http` serves the same tools on `http://127.0.0.1:8765/mcp`, for any client that speaks MCP over HTTP (`claude mcp add --transport http rubricator http://127.0.0.1:8765/mcp` in Claude Code). It has **no authentication** and listens on your machine only. The web app at claude.ai reaches connectors from Anthropic's servers, so it cannot reach a loopback address, and putting it behind an authenticating proxy is possible but yours to build. Read [connector-http.md](connector-http.md) before going further.
 
 ## 3. Run a first analysis
 
-Start a new chat, make sure the rubricator tools are on, and ask in plain words:
+Start a new chat, make sure the rubricator tools are on, and ask in plain words. Name the method, because the server does not yet tell Claude to read its prompts on its own ([#216](https://github.com/thorwhalen/rubricator/issues/216)):
 
-> Use rubricator to compare three note-taking apps for a two-person team. Start by asking me what matters before you score anything.
+> Use rubricator to compare three note-taking apps for a two-person team, in an analysis called `notes-apps`. First call `prompts_list` and read the prompts you will need with `prompts_get`, and follow them. Ask me what matters before you score anything.
 
-What the method asks of Claude, so nothing surprises you (Claude is a model, so steer it if it drifts):
+The method the prompts ask of Claude (it is a model, so steer it if it drifts):
 
-1. **Claude asks about the frame first**: what is being compared, what for, who decides. This is deliberate and is the valuable part; answer it properly rather than skipping it.
-2. **It proposes criteria** with definitions and what evidence would justify each score, and **asks you to confirm** them before any cell is scored. Say what you would change.
-3. **It scores cells one at a time**, each with a confidence, a one-line justification and a citation to a span of the source, not to a whole document. Where the sources say nothing, the cell is left **blank with a reason** (`not-evidenced`, `indeterminate`, `not-assessed`) instead of a plausible guess. A blank is a finding, not a gap.
-4. Everything is saved as it goes, so a closed chat loses nothing. Ask for a summary or the completeness counts at any point.
+1. **The frame comes first.** Nothing makes Claude ask about the frame yet, which is why the message above does. A good frame says what is being compared, for what decision and who decides. The shipped tools refuse to score anything before the criteria are confirmed (step 2), so skipping the conversation costs you a refused write, not a wrong score.
+2. **It proposes criteria** with a definition and the evidence that would justify each score, and **asks you to confirm** them in chat before any cell is scored. Say what you would change.
+3. **It scores one cell at a time**, each with a confidence, a justification and a quoted span of the source, not a whole document. Where it cannot score, the cell is left blank *with a reason*, and the reasons mean different things: `not-evidenced` (the sources are silent) and `indeterminate` (they conflict) are findings about the subject, finished work; `not-assessed` only means nobody has looked yet, and is still to do. A qualified blank beats a plausible guess.
+4. **Everything is saved as it goes**, so a closed chat loses nothing. Ask for the completeness counts at any point.
 
 Give Claude your material by pasting it or pointing at files it can already read; rubricator records the sources and cites spans of them.
 
-The method lives in prompts that Claude reads by calling the `prompts_get` tool, so if it seems to be improvising, ask it to "list the rubricator prompts and follow them". Prompts for the criteria, their confirmation, scoring a cell and resuming are written; the frame and alternatives steps are driven by the tools alone for now, and a single `run-analysis` instruction is tracked in [#77](https://github.com/thorwhalen/rubricator/issues/77). The prompts do not yet show up as slash commands in your client: that is [#80](https://github.com/thorwhalen/rubricator/issues/80).
+Prompts for the criteria, their confirmation, scoring a cell and resuming are written. The frame and alternatives steps are driven by the tools alone for now, and a single `run-analysis` instruction is tracked in [#77](https://github.com/thorwhalen/rubricator/issues/77). The prompts do not yet show up as slash commands in your client: that is [#80](https://github.com/thorwhalen/rubricator/issues/80).
 
 ### Coming back later
 
-Start a new chat and say which analysis you were working on, by its id (ask Claude for the id before you close the chat): "Resume rubricator analysis `notes-apps`." Claude reads what was stored, restates where it stands, including which blanks are settled answers and which cells nobody has looked at, and proposes the next step without taking it. Within 30 days of the last write, nothing needs redoing, including your confirmation of the criteria.
+Start a new chat and say which analysis you were working on, by its id (the one you named, or ask Claude for it before you close the chat): "Use rubricator to resume analysis `notes-apps`; read the `resume` prompt first." Claude reads what was stored, restates where it stands, keeping settled blanks apart from cells nobody has looked at, and proposes the next step without taking it. Nothing needs redoing, including your confirmation of the criteria. Resuming only reads, so it does not extend the 30 days; the next write does.
 
 ## Where things are kept
 
-Analyses are JSON files in a folder: `~/.local/share/rubricator/working/` on macOS and Linux, `%LOCALAPPDATA%\rubricator\working\` on Windows. Set `RUBRICATOR_DATA_DIR` to move the whole data root, or pass `--root` to move just the analyses. Nothing is sent anywhere by rubricator itself; what Claude reads and writes through the tools goes through your Claude client like the rest of your conversation.
+Analyses are JSON files in a folder: `~/.local/share/rubricator/working/` on macOS and Linux (`$XDG_DATA_HOME/rubricator/working/` if that variable is set), `%LOCALAPPDATA%\rubricator\working\` on Windows. Set `RUBRICATOR_DATA_DIR` to move the whole data root, or pass `--root` to move just the analyses. Nothing is sent anywhere by rubricator itself; what Claude reads and writes through the tools goes through your Claude client like the rest of your conversation.
 
 ### Keeping an analysis
 
     rubricator show notes-apps > notes-apps.json          # add --root DIR if you used one
 
-prints the merged analysis as a [comparanda](https://github.com/thorwhalen/comparanda) document. The file is yours: the 30-day window applies only to the working folder, never to a file you exported.
+prints the merged analysis as a [comparanda](https://github.com/thorwhalen/comparanda) document. The file is yours: the 30-day window applies to the store, never to a file you exported. It is a record to read and render, not a way back in: there is no import yet, so an exported file cannot be resumed in rubricator.
 
 ## When it does not work
 
 | symptom | usual cause |
 |---|---|
 | Desktop shows no rubricator tools | `command` is not a full path; or Desktop was not fully quit and reopened |
-| Desktop reports the server "disconnected" | run the command by hand and read the error; a Python older than 3.10 is the usual one |
+| Desktop reports the server "disconnected" | run the same command by hand in a terminal and read its error; a wrong or unescaped path in the config is the usual cause |
 | `--root is empty` at start-up | the folder comes from a variable your client config leaves unset |
 | "analysis not found" for an id you used | more than 30 days since its last write, or a different `--root` / `RUBRICATOR_DATA_DIR` than last time |
 | Claude Code lists the server as failed | `claude mcp list` shows the command it ran; run that command in a terminal |
