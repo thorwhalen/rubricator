@@ -43,7 +43,7 @@ from rubricator.procedure import (
     stored_prior_applied,
     round_id,
 )
-from rubricator.rules import declarations_for
+from rubricator.rules import declaration_entries, declarations_for
 from rubricator.schema.vocabulary import vocabulary
 from rubricator.store import AnalysisNotFound, AnalysisStore
 from rubricator.tools.corpus import agent_produced_names, cited_document
@@ -445,9 +445,12 @@ def criteria_set(
         criterion_codes = [dict(d) for d in c.get("missingCodes", [])]
         definition = c.get("definition")
         if definition is not None:
+            # The stored analysis-level list may be a hand edit of any shape (#169):
+            # walked as declarations only, so it never locks a criteria write (#160).
             problems.extend(
                 _definition_problems(
-                    c.get("id"), definition, [*criterion_codes, *frame.get("missingCodes", [])]
+                    c.get("id"), definition,
+                    [*criterion_codes, *declaration_entries(frame.get("missingCodes"))],
                 )
             )
         if definition is None or isinstance(definition, Mapping):

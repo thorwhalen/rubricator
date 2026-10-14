@@ -223,6 +223,19 @@ def _index_frame(
             f"the frame is not shaped like one this build can merge ({type(error).__name__}: "
             f"{error}). Every read of this analysis needs it, so repair the frame file."
         ) from None
+    # The rows every reader indexes by id (#169): a list of objects, each with a
+    # string id. A hand edit that leaves an object, ``null`` or a number there
+    # crashed each reader in turn with a bare TypeError or AttributeError.
+    for axis in ("alternatives", "criteria"):
+        rows = frame.get(axis, [])
+        if not isinstance(rows, list) or not all(
+            isinstance(row, Mapping) and isinstance(row.get("id"), str) for row in rows
+        ):
+            raise MergeProblem(
+                f"the frame's {axis} are not a list of objects each with a string id (found "
+                f"{_shape_of(rows)}). Every read of this analysis needs the frame, so repair the "
+                "frame file."
+            )
     try:
         renditions = [r["id"] for r in frame.get("renditions", [])]
     except (AttributeError, KeyError, TypeError) as error:
@@ -259,6 +272,25 @@ def _index_frame(
             "the frame, so repair the frame file."
         )
     return authors, cells
+
+
+def _shape_of(rows: Any) -> str:
+    """What a row list from disk is instead, briefly, for the frame's ``MergeProblem``.
+
+    >>> _shape_of({"a": 1}), _shape_of(None), _shape_of([{"id": "a"}, 1, {"label": "?"}])
+    ('an object', 'null', 'entries [1] and [2] without one')
+    """
+    if rows is None:
+        return "null"
+    if isinstance(rows, Mapping):
+        return "an object"
+    if not isinstance(rows, list):
+        return f"a {type(rows).__name__}"
+    bad = [
+        f"[{i}]" for i, row in enumerate(rows)
+        if not (isinstance(row, Mapping) and isinstance(row.get("id"), str))
+    ]
+    return f"entr{'y' if len(bad) == 1 else 'ies'} {' and '.join(bad)} without one"
 
 
 def _check_identity(contributor_id: str, what: str, values: Iterable[Any]) -> None:
