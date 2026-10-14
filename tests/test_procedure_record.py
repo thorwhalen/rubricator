@@ -408,7 +408,7 @@ def test_a_blank_from_a_repeated_pass_takes_the_procedure_and_is_counted(store) 
     measures_mark_missing(
         store, analysis_id="a", contributor_id="bot", author=BOT, at="2026-10-12T12:02:00Z",
         code="not-evidenced", note="a second pass found nothing quotable",
-        procedure={**facts, "round": 2, "seed": 2})
+        alternative_ids=["x"], criterion_ids=["c"], procedure={**facts, "round": 2, "seed": 2})
     (procedure,) = _merged(store)["procedures"]
     first, blank = _assertions(store)
     assert procedure["repeats"] == 2
@@ -427,3 +427,18 @@ def test_mark_missing_refuses_a_rung_its_procedure_contradicts(store) -> None:
             code="not-evidenced", note="n", independence="independent",
             procedure={"round": 2, "session": "same", "prior": "shown"})
     assert not list(store.contributions("a"))
+
+
+def test_mark_missing_with_a_procedure_must_name_its_cell_and_writes_nothing_otherwise(store) -> None:
+    from rubricator.tools.analysis import measures_mark_missing
+
+    _score(store, BOT, 4, procedure={"round": 1, "session": "fresh", "prior": "withheld"})
+    before = list(store.contributions("a"))
+    for names in ({}, {"alternative_ids": ["x"]}, {"criterion_ids": ["c"]}):
+        with pytest.raises(ValueError, match="name the alternative_ids and the criterion_ids"):
+            measures_mark_missing(
+                store, analysis_id="a", contributor_id="bot", author=BOT, at=AT,
+                code="not-evidenced", note="n",
+                procedure={"round": 2, "session": "same", "prior": "shown"}, **names)
+    assert list(store.contributions("a")) == before
+    assert honesty_problems(_merged(store)) == []

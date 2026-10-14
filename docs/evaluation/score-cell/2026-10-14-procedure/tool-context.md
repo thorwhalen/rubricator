@@ -117,3 +117,7 @@ Its `procedure` argument (optional):
  "additionalProperties": false
 }
 ```
+
+## What the tools do with a second assertion on a cell
+
+A cell that already holds an assertion takes another only if the new one's independence is recorded. When you pass a `procedure`, the tools derive it from `session` and `prior` (an earlier pass in view is shared-context; a fresh session is a resample). With a `procedure` that carries neither, nothing is derived and the write is refused, naming `independence-recorded`. A `measures_mark_missing` call that carries a `procedure` must name its `alternative_ids` and `criterion_ids`.

@@ -767,8 +767,17 @@ def measures_mark_missing(
 
     ``procedure`` is :func:`measures_write`'s: a blank from a repeated pass is a draw
     like any other, so it is stamped with the same procedure and round, and counted
-    in the repeats (#218).
+    in the repeats (#218). It is for one named cell, so ``procedure`` requires both
+    ``alternative_ids`` and ``criterion_ids``: the default selection is the whole
+    matrix, which "mark the rest" wants and a repeat never does.
     """
+    if procedure is not None and not (criterion_ids and alternative_ids):
+        raise ValueError(
+            "a blank from a repeated pass is for the cell it was scored for: name the "
+            "alternative_ids and the criterion_ids. With a procedure, an unnamed selection "
+            "would put a second draw beside every score in the matrix (and a first draw "
+            "where nothing was scored)."
+        )
     frame = store.frame(analysis_id)
     # The default selection is every *live* row and column: a tombstoned one
     # takes no new assertions, and "mark the rest" must not fail because a row

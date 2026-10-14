@@ -14,7 +14,7 @@ none. The graded things, each counted per scenario:
 
 - **valid**: the procedure passes the tool's own check (only the six facts, in range);
 - **true**: every fact the scenario fixes is what it says, none the scenario forbids is claimed;
-- **left out**: a fact the harness did not give is not invented;
+- **left out**: a fact the scenario does not give is not invented (a fact outside `must` and `may` fails);
 - **no claim of independence**: no key naming one, and no count, model or time.
 """
 
@@ -59,7 +59,8 @@ def _procedure(output: Mapping[str, Any]) -> tuple[bool, Any]:
 def grade_one(expect: Mapping[str, Any], output: Mapping[str, Any]) -> dict[str, bool]:
     made, facts = _procedure(output)
     if expect.get("omit"):
-        return {"valid": made, "true": not facts, "left out": not facts, "no independence": not facts}
+        clean = "independen" not in json.dumps(output.get("call", {})).lower()
+        return {"valid": made, "true": not facts, "left out": not facts, "no independence": clean}
     facts = facts if isinstance(facts, Mapping) else None
     valid = made and facts is not None
     if valid:
@@ -74,7 +75,8 @@ def grade_one(expect: Mapping[str, Any], output: Mapping[str, Any]) -> dict[str,
     return {
         "valid": valid,
         "true": bool(true),
-        "left out": valid and not any(k in facts for k in expect.get("absent", ())),
+        "left out": valid and not any(k in facts for k in expect.get("absent", ()))
+        and set(facts) <= set(must) | set(expect.get("may", ())),
         "no independence": valid and "independen" not in json.dumps(output.get("call", {})).lower(),
     }
 

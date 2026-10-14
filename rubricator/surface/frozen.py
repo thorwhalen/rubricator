@@ -585,7 +585,8 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
             "declared on the analysis or the criterion. This is what makes 'fill these two "
             "criteria and mark the rest deferred' a first-class instruction. A blank from a "
             "repeated pass takes the same procedure as measures_write, so it is counted and "
-            "stamped like any other draw."
+            "stamped like any other draw; with a procedure the alternative_ids and "
+            "criterion_ids must both be named, because a repeat is for one cell."
         ),
         determinism="Set arithmetic over the frame, then measures_write.",
         failure="An undeclared code is refused, listing what is known and how to declare a new one.",
@@ -1036,11 +1037,11 @@ MEASURED: Mapping[str, Any] = {
 AWAITING_MEASUREMENT: Mapping[str, Any] | None = {
     "issue": 199,
     "advertised": {
-        "tools": 15, "bytes": 21929,
-        "sha256": "0853780733ac82fea9e68be3b2f1863009446c5d5b9c82c7cc7c6a198042434d",
+        "tools": 15, "bytes": 22038,
+        "sha256": "2d69cef2bdd7ad6cfa67d33679c0a78473bfa2a299e19bc6bcedb1056a486cfe",
     },
     "wholeSurface": {
-        "tools": 22, "bytes": 28142,
-        "sha256": "3ea6fdffcdae4d7fcecd67575f33d1905bb2049482530b20a221687e826188f5",
+        "tools": 22, "bytes": 28251,
+        "sha256": "5b4fdb65ca22bb39feb94385454b26d2e5c566ed72dd0ca3102192240780a835",
     },
 }
