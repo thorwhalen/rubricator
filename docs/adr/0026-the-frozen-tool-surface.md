@@ -22,7 +22,7 @@ One more force. The closed comparanda v1 schema refuses unknown keys, and the wr
 | 3 | `corpus_add` | corpus | 2, 5 | implemented (#53) | yes | — | 3 |
 | 4 | `corpus_search` | corpus | 2, 3, 5 | implemented (#54) | yes | — | 4 |
 | 5 | `frame_set` | frame | 1 | implemented | yes | — | 5 |
-| 6 | `alternatives_set` | alternatives | 2 | implemented (checks: #55) | yes | — | 6 |
+| 6 | `alternatives_set` | alternatives | 2 | implemented (near-duplicates: #55) | yes | — | 6 |
 | 7 | `criteria_set` | criteria | 3 | implemented | yes | — | 7 |
 | 8 | `frame_confirm` | frame | 4 | implemented (#57) | yes | — | 8 |
 | 9 | `plan_traversal` | plan | 5 | implemented | yes | — | 9 |
@@ -227,3 +227,13 @@ Row 4 is implemented, in `rubricator/tools/search.py`, with no input change. Ret
 **The row's text.** The contract now states the defaults, the offsets' meaning, `must_include`, the marker and the threshold, and the failure line lists every refusal, since the text is what the model reads.
 
 **Not re-measured.** The definitions changed on a machine with no provider key. `MEASURED` below is still the 2026-10-12 count; `AWAITING_MEASUREMENT` in `frozen.py` pins the digest and byte size of what is now served (16 advertised tools, 23,399 bytes, digest `ecdcab89bbf6`; the whole surface, 22 tools, 28,723 bytes, digest `e963ccdecd64`) and still names #199, which owes the count. No estimate is recorded as a count.
+
+### 2026-10-14 — `alternatives_set` flags near-duplicates, and its row stops promising an unsourced flag (#55)
+
+- **Deciders:** Thor Whalen (additive and reversible; recorded here so it can be)
+
+**One output addition.** `alternatives_set` returns `nearDuplicates`, the pairs of live alternatives whose labels nearly coincide, as `{a, b, similarity}` ordered by id. Every row is still written exactly as given: whether two rows are one alternative is a decision about the frame, and the summary tells the model to ask the user. Similarity is the overlap coefficient of the two labels' `lex-v1` token sets (`|A ∩ B| / min(|A|, |B|)`), so a label inside a longer one scores 1, and stopwords are kept because in a label they are often the whole difference ("Option A", "Option B"). The threshold is `NEAR_DUPLICATE_THRESHOLD`, 0.75: a named, provisional constant set for recall, to be settled against the ADR-0008 fixtures as r6 recommends. Tombstoned rows are not compared.
+
+**The row's text.** The contract said alternatives with no source were flagged. Nothing computed that, and nothing can yet: the input `Alternative` (comparanda v1's, closed) has no slot for where an alternative came from, so there is nothing to read "unsourced" off. The sentence now promises only what is returned, and the unsourced half stays open on #55 as an input-and-schema question.
+
+**Not re-measured.** `MEASURED` below is still the 2026-10-12 count; `AWAITING_MEASUREMENT` in `frozen.py` pins the digest and byte size of what is now served (16 advertised tools, 23,450 bytes, digest `521313484f78`; the whole surface, 22 tools, 28,774 bytes, digest `9165078f8abc`) and still names #199, which owes the count. No estimate is recorded as a count.

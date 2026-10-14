@@ -52,6 +52,9 @@ __all__ = [
     "analysis_open",
     "frame_set",
     "alternatives_set",
+    "NEAR_DUPLICATE_THRESHOLD",
+    "label_similarity",
+    "near_duplicates",
     "criteria_set",
     "measures_write",
     "measures_mark_missing",
@@ -294,6 +297,56 @@ def frame_set(
     }
 
 
+#: How much two alternatives' labels must share before the pair is flagged as a
+#: possible duplicate (#55): the overlap coefficient of their label tokens, see
+#: :func:`label_similarity`. Provisional and named, so it can be settled against
+#: the ADR-0008 fixtures; set for recall, because a flag costs one question to
+#: the user and a missed duplicate splits one alternative's evidence in two.
+NEAR_DUPLICATE_THRESHOLD = 0.75
+
+
+def label_similarity(a: str, b: str) -> float:
+    """The overlap coefficient of two labels' ``lex-v1`` token sets, ``|A & B| / min(|A|, |B|)``.
+
+    Tokens, not terms: a stopword is kept, because in a label it is often the
+    whole difference ("Option A" and "Option B"). Overlap rather than Jaccard, so
+    a label inside a longer one ("K2", "The K2 kettle") scores 1. A label with no
+    tokens matches nothing.
+
+    >>> label_similarity("Brightwater K2", "the brightwater-k2 kettle")
+    1.0
+    >>> label_similarity("Option A", "Option B")
+    0.5
+    """
+    from rubricator.lexical import tokens
+
+    if not (isinstance(a, str) and isinstance(b, str)):
+        return 0.0  # a hand-edited label of another type: the contract's to report, not a match
+    left, right = set(tokens(a)), set(tokens(b))
+    if not left or not right:
+        return 0.0
+    return round(len(left & right) / min(len(left), len(right)), 4)
+
+
+def near_duplicates(alternatives: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """Pairs of live alternatives whose labels reach :data:`NEAR_DUPLICATE_THRESHOLD`, by id.
+
+    Flagged, never merged: whether two rows are one alternative is a decision
+    about the frame, which is the user's (ADR-0005). Tombstoned rows are left
+    out, as they are of every comparison.
+    """
+    live = sorted(
+        (a for a in alternatives if not a.get("tombstoned")), key=lambda a: a["id"]
+    )
+    pairs = []
+    for i, a in enumerate(live):
+        for b in live[i + 1:]:
+            similarity = label_similarity(a.get("label", ""), b.get("label", ""))
+            if similarity >= NEAR_DUPLICATE_THRESHOLD:
+                pairs.append({"a": a["id"], "b": b["id"], "similarity": similarity})
+    return pairs
+
+
 def alternatives_set(
     store: AnalysisStore, *, analysis_id: str, alternatives: Sequence[Mapping[str, Any]]
 ) -> dict[str, Any]:
@@ -304,8 +357,10 @@ def alternatives_set(
     criterion: a row with history is never deleted, it is tombstoned, and that
     is a separate, visible act.
 
-    Near-duplicate and unsourced alternatives are *flagged*, never merged, by
-    the checks tracked in #55; this verb writes.
+    Near-duplicate alternatives are *flagged*, never merged (#55): every row is
+    written as given, and :func:`near_duplicates` names the pairs whose labels
+    nearly coincide, for the user to decide. Flagging an alternative with no
+    source needs a slot for its source, which the input does not have yet.
     """
     frame = store.frame(analysis_id)
     ids = [a["id"] for a in alternatives]
@@ -333,10 +388,19 @@ def alternatives_set(
     _refuse_a_blind_drop("alternatives", dropping, unread)
     frame["alternatives"] = [dict(a) for a in alternatives]
     _put_frame(store, analysis_id, frame)
+    flagged = near_duplicates(alternatives)
+    summary = f"{len(ids)} alternative(s) declared"
+    if flagged:
+        summary += (
+            f"; {len(flagged)} near-duplicate pair(s) flagged and never merged ("
+            + ", ".join(f"{p['a']} / {p['b']}" for p in flagged)
+            + "): ask the user whether each pair is one alternative before scoring"
+        )
     return {
         "analysisId": analysis_id,
         "alternatives": ids,
-        "summary": f"{len(ids)} alternative(s) declared",
+        "nearDuplicates": flagged,
+        "summary": summary,
     }
 
 

@@ -435,15 +435,17 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
         contract=(
             "Declare the alternatives -- the rows -- replacing the current set. Dropping an "
             "alternative that any cell refers to is refused: a row with history is "
-            "tombstoned, never deleted. Near-duplicates and alternatives with no source are "
-            "flagged, never merged (#55)."
+            "tombstoned, never deleted. Pairs whose labels nearly coincide are returned in "
+            "nearDuplicates, never merged: ask the user whether each pair is one alternative."
         ),
-        determinism="A validated write; the near-duplicate check is normalisation and a named threshold.",
+        determinism="A validated write; the near-duplicate check is token overlap and a named threshold.",
         failure="Duplicate ids, or dropping a scored row, is refused with nothing written.",
         input_schema=obj({"analysis_id": S, "alternatives": arr(ALTERNATIVE)}, ("analysis_id", "alternatives")),
         output_schema=obj(
-            {"analysisId": S, "alternatives": arr(S), "summary": S},
-            ("analysisId", "alternatives", "summary"),
+            {"analysisId": S, "alternatives": arr(S),
+             "nearDuplicates": arr(obj({"a": S, "b": S, "similarity": N}, ("a", "b", "similarity"))),
+             "summary": S},
+            ("analysisId", "alternatives", "nearDuplicates", "summary"),
         ),
     ),
     ToolSpec(
@@ -1046,11 +1048,11 @@ MEASURED: Mapping[str, Any] = {
 AWAITING_MEASUREMENT: Mapping[str, Any] | None = {
     "issue": 199,
     "advertised": {
-        "tools": 16, "bytes": 23399,
-        "sha256": "ecdcab89bbf66ffed2ac733cd5d727ec0e9b491a59ac34ab3bcccc6674dea115",
+        "tools": 16, "bytes": 23450,
+        "sha256": "521313484f780b0c4a53c503c0465af82f521c45b6eba92aa7e785e5d309dfca",
     },
     "wholeSurface": {
-        "tools": 22, "bytes": 28723,
-        "sha256": "e963ccdecd643608834e36402975e699612801c166a57ce69d5658cadee9387e",
+        "tools": 22, "bytes": 28774,
+        "sha256": "9165078f8abca48f3c4b2e926fe8b7c88c9fe3644c61eef212470cbaf149eb72",
     },
 }
