@@ -33,6 +33,16 @@ from typing import Any, Mapping, Sequence
 from rubricator.contributors import sign
 from rubricator.interpret.resolution import Degradation, degradation_of
 from rubricator.locators import profile_problems
+from rubricator.procedure import (
+    check_facts,
+    contradiction,
+    derived_rung,
+    is_rfc3339,
+    procedure_id,
+    refresh_procedures,
+    stored_prior_applied,
+    round_id,
+)
 from rubricator.rules import declarations_for
 from rubricator.schema.vocabulary import vocabulary
 from rubricator.store import AnalysisNotFound, AnalysisStore
@@ -542,8 +552,15 @@ def measures_write(
     at: str,
     cells: Sequence[Mapping[str, Any]],
     expected_criteria_version: str | None = None,
+    procedure: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Write one contributor's scored cells.
+
+    ``procedure``, when given, states a few closed facts about the pass these
+    cells belong to (:mod:`rubricator.procedure`); the tools write the procedure
+    record from them and from the draws, stamp each assertion with its
+    ``procedureId`` and ``roundId``, and derive the independence rung where the
+    cell names none. A rung that contradicts them is refused. Agents only.
 
     ``expected_criteria_version``, when given, is the criteria-set version the
     caller read before scoring; a mismatch is refused, because the stamp would
@@ -568,6 +585,7 @@ def measures_write(
         )
     _refuse_malformed_cells(cells)
     _refuse_malformed_author(author)
+    facts = _checked_procedure(procedure, author, at)
     known = {c["id"]: c for c in frame.get("criteria", [])}
     rows = {a["id"]: a for a in frame.get("alternatives", [])}
     for axis, index, verb in (
@@ -595,6 +613,10 @@ def measures_write(
     mergeable, skipped = store.mergeable_contributions(analysis_id)
     _refuse_an_unread_own_file(store, analysis_id, contributor_id, skipped)
     contribution, introduced = _existing(store, analysis_id, contributor_id, author)
+    # The record the store holds for this author, not the argument: a later call cannot
+    # restate the model a stored assertion was signed under (#99).
+    signer = next(a for a in contribution["authors"] if a["id"] == author["id"])
+    facts = stored_prior_applied(facts, contribution, signer["id"], contributor_id)
     index = {
         (c["alternativeId"], c["criterionId"], c["measure"]): c
         for c in contribution["cells"]
@@ -617,6 +639,7 @@ def measures_write(
                 f"cell {'/'.join(key)}. Omit assertionId to get a fresh one, or choose another."
             )
         added.append((key, assertion_id))
+        independence, perturbation = _rung_for(cell, facts)
         assertion = sign(
             author,
             at=at,
@@ -625,10 +648,14 @@ def measures_write(
             missing=cell.get("missing"),
             justification=cell.get("justification"),
             evidence=list(cell.get("evidence", [])),
-            independence=cell.get("independence"),
-            perturbation=cell.get("perturbation"),
+            independence=independence,
+            perturbation=perturbation,
             criteria_version=criteria_version,
         )
+        if facts is not None:
+            assertion["procedureId"] = procedure_id(facts, signer)
+            if round_id(facts, signer["id"], contributor_id) is not None:
+                assertion["roundId"] = round_id(facts, signer["id"], contributor_id)
         off_contract += [
             _ARGUMENT_FIELD.sub(lambda m: _ARGUMENT_PATHS[m.group(1)], line)
             for line in _contract().refusals(
@@ -641,6 +668,16 @@ def measures_write(
         raise ValueError(_OFF_CONTRACT + "; ".join(dict.fromkeys(off_contract)))
 
     contribution["cells"] = [index[k] for k in sorted(index)]
+    if facts is not None:
+        refresh_procedures(contribution, facts=facts, author=signer, contributor_id=contributor_id)
+        off_contract += [
+            line for field in ("procedures", "rounds")
+            for line in _contract().refusals(
+                _as_stored(contribution[field]), pointer=f"/properties/{field}", root=f"$.{field}"
+            )
+        ]
+        if off_contract:
+            raise ValueError(_OFF_CONTRACT + "; ".join(dict.fromkeys(off_contract)))
     _refuse_dishonest(
         store, analysis_id, contributor_id, contribution, added=added, mergeable=mergeable,
         introduced=author["id"] if introduced else None,
@@ -656,6 +693,48 @@ def measures_write(
         "summary": f"{len(cells)} assertion(s) written for {contributor_id}: "
         f"{valued} valued, {len(cells) - valued} qualified blank(s)" + _skipped_clause(skipped),
     }
+
+
+def _checked_procedure(
+    procedure: Mapping[str, Any] | None, author: Mapping[str, Any], at: Any
+) -> Mapping[str, Any] | None:
+    """The pass facts, refused when malformed or when a human is the signer."""
+    if procedure is None:
+        return None
+    try:
+        check_facts(procedure)
+    except ValueError as problem:
+        raise ValueError(f"refused, nothing was written: {problem}") from None
+    if author.get("kind") != "agent":
+        raise ValueError(
+            "refused, nothing was written: a procedure record describes an agent's pass; a human "
+            "states the independence of each assertion on the cell."
+        )
+    if not is_rfc3339(at):
+        raise ValueError(
+            f"refused, nothing was written: at={at!r} is not an RFC 3339 date-time, and a "
+            "procedure record orders its passes by time."
+        )
+    return procedure
+
+
+def _rung_for(
+    cell: Mapping[str, Any], facts: Mapping[str, Any] | None
+) -> tuple[str | None, Mapping[str, Any] | None]:
+    """The rung and perturbation a cell is signed with: the caller's, else derived from the pass."""
+    independence, perturbation = cell.get("independence"), cell.get("perturbation")
+    if facts is None:
+        return independence, perturbation
+    clash = contradiction(facts, independence)
+    if clash:
+        raise ValueError(f"refused, nothing was written: cell {cell['alternativeId']}/"
+                         f"{cell['criterionId']}: {clash}")
+    if independence is None:
+        independence = derived_rung(facts, has_perturbation=perturbation is not None)
+    if independence == "perturbed" and perturbation is None and facts.get("seed") is not None:
+        perturbation = {"kind": "traversal-order", "seed": facts["seed"],
+                        **({"detail": f"{facts['traversal']} traversal"} if facts.get("traversal") else {})}
+    return independence, perturbation
 
 
 def measures_mark_missing(

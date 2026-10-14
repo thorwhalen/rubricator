@@ -118,6 +118,11 @@ def merge_contributions(
     # the contribution that got there first.
     declared_by: dict[str, str] = {a: "the frame" for a in authors}
     frame_authors = dict(authors)
+    # What each contributor's passes did (ADR-0018, #99): their own records, ids namespaced
+    # like assertions', appended after the frame's.
+    passes: dict[str, list[Any]] = {
+        "procedures": list(merged.get("procedures", [])), "rounds": list(merged.get("rounds", [])),
+    }
 
     for contributor_id, contribution in contributions:
         own: dict[str, Any] = {}
@@ -156,6 +161,10 @@ def merge_contributions(
             for assertion in cell.get("assertions", []):
                 _check_speaks_for(contributor_id, assertion, speaks_for)
                 namespaced = {**assertion, "id": _namespaced(contributor_id, assertion["id"])}
+                # The pass an assertion belongs to is the contributor's own record (#99).
+                for ref in ("procedureId", "roundId"):
+                    if assertion.get(ref):
+                        namespaced[ref] = _namespaced(contributor_id, assertion[ref])
                 # A contributor supersedes their own assertions, so the reference
                 # is namespaced the same way; left bare it would name nothing.
                 if assertion.get("supersededBy"):
@@ -169,9 +178,19 @@ def merge_contributions(
             # a coordination question, not a merge one.
             if "reduction" in cell:
                 target["reduction"] = cell["reduction"]
+        for field in ("procedures", "rounds"):
+            entries = contribution.get(field, [])
+            if not all(isinstance(e, Mapping) for e in entries):
+                raise MergeProblem(
+                    f'contribution "{contributor_id}" gives {field} that are not objects. Repair or '
+                    "remove the file."
+                )
+            _check_identity(contributor_id, f"a {field[:-1]} id", [e.get("id") for e in entries])
+            passes[field].extend({**e, "id": _namespaced(contributor_id, e["id"])} for e in entries)
 
     merged["authors"] = [authors[k] for k in sorted(authors)]
     merged["cells"] = [cells[k] for k in sorted(cells)]
+    merged["procedures"], merged["rounds"] = passes["procedures"], passes["rounds"]
 
     existing = {r["id"] for r in merged.get("renditions", [])}
     merged["renditions"] = list(merged.get("renditions", [])) + [
