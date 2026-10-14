@@ -375,16 +375,22 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
         ),
     ),
     ToolSpec(
-        name="corpus_search", family="corpus", stage="2, 3, 5", status="planned",
+        name="corpus_search", family="corpus", stage="2, 3, 5", status="implemented",
         minimum_viable=True, cut_rank=None, research_row=4, issue=54,
         contract=(
-            "Find spans in the corpus by lexical match: BM25 plus normalised substring, never "
-            "embeddings (ADR-0010). Returns the top k spans with their document, offsets and "
-            "text. An empty query returns the whole corpus when it is under the inline "
-            "threshold. Retrieve small, present wide."
+            "Find spans in the corpus by lexical match: BM25 plus the whole query as a phrase, "
+            "never embeddings (ADR-0010). No stemming: try other inflections. Returns the top k "
+            "(default 8) spans, each widened to window_chars (default 600) for reading; start "
+            "and end are the returned text's offsets into the document quotes resolve against. "
+            "must_include keeps spans holding every phrase. A hit in an agent-produced document "
+            "says so. An empty query returns the whole corpus when it is under 25,000 tokens."
         ),
-        determinism="A fixed tokenizer, a fixed stopword list, and the tie-break (score, documentId, start).",
-        failure="An empty query over a corpus above the inline threshold is refused with the threshold and the size.",
+        determinism="A pinned tokenizer and stopword list, stored spans, and the tie-break (score, documentId, start).",
+        failure=(
+            "An empty query over a corpus above the threshold is refused with the threshold and "
+            "the size; so are an empty corpus, an unknown document id, and a query with no "
+            "letters or digits. No match is an empty list saying what was searched."
+        ),
         input_schema=obj(
             {"analysis_id": S, "query": S, "k": I, "document_ids": arr(S),
              "must_include": arr(S), "window_chars": I},
@@ -394,11 +400,12 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
             {
                 "analysisId": S, "query": S,
                 "hits": arr(obj(
-                    {"spanId": S, "documentId": S, "start": I, "end": I, "text": S, "score": N},
-                    ("spanId", "documentId", "start", "end", "text", "score"))),
-                "inlined": B, "summary": S,
+                    {"spanId": S, "documentId": S, "start": I, "end": I, "text": S, "score": N,
+                     "agentProduced": B},
+                    ("spanId", "documentId", "start", "end", "text", "score", "agentProduced"))),
+                "inlined": B, "warnings": arr(S), "skipped": arr(SKIPPED), "summary": S,
             },
-            ("analysisId", "query", "hits", "inlined", "summary"),
+            ("analysisId", "query", "hits", "inlined", "warnings", "skipped", "summary"),
         ),
     ),
     ToolSpec(
@@ -1039,11 +1046,11 @@ MEASURED: Mapping[str, Any] = {
 AWAITING_MEASUREMENT: Mapping[str, Any] | None = {
     "issue": 199,
     "advertised": {
-        "tools": 15, "bytes": 22152,
-        "sha256": "35b2988518a91f9393ce6441592d330557e4a32cb4c10bcd58a6e1b386a2bdb1",
+        "tools": 16, "bytes": 23399,
+        "sha256": "ecdcab89bbf66ffed2ac733cd5d727ec0e9b491a59ac34ab3bcccc6674dea115",
     },
     "wholeSurface": {
-        "tools": 22, "bytes": 28365,
-        "sha256": "81c4b561bb3ab87e13b48f0b2c5a0c048ad19bcf66284f5ed770096bccec6907",
+        "tools": 22, "bytes": 28723,
+        "sha256": "e963ccdecd643608834e36402975e699612801c166a57ce69d5658cadee9387e",
     },
 }
