@@ -489,3 +489,48 @@ def test_a_stated_plan_that_differs_is_its_own_procedure(store) -> None:
     _score(store, BOT, 4, at="2026-10-12T12:02:00Z", procedure={
         "round": 2, "session": "same", "prior": "shown", "traversal": "row-wise"})
     assert [p["repeats"] for p in _merged(store)["procedures"]] == [1, 1]
+
+
+def test_a_plan_filled_in_later_does_not_orphan_the_procedure(store) -> None:
+    plan = {"traversal": "cell-wise", "reduction": "lower-median"}
+    _score(store, BOT, 3, at="2026-10-12T12:01:00Z",
+           procedure={"round": 1, "session": "fresh", "prior": "withheld"})
+    _score(store, BOT, 4, at="2026-10-12T12:02:00Z",
+           procedure={**plan, "round": 2, "session": "same", "prior": "shown"})
+    _score(store, BOT, 4, at="2026-10-12T12:03:00Z",
+           procedure={**plan, "round": 3, "session": "same", "prior": "shown"})
+    _score(store, BOT, 4, at="2026-10-12T12:04:00Z",
+           procedure={"round": 4, "session": "same", "prior": "shown"})
+    assert [p["repeats"] for p in _merged(store)["procedures"]] == [4]
+
+
+def test_a_plan_arriving_in_pieces_stays_one_procedure(store) -> None:
+    _score(store, BOT, 3, at="2026-10-12T12:01:00Z", alt="x", procedure={
+        "round": 1, "session": "fresh", "prior": "withheld", "traversal": "cell-wise"})
+    _score(store, BOT, 3, at="2026-10-12T12:02:00Z", alt="y", procedure={
+        "round": 1, "session": "fresh", "prior": "withheld", "reduction": "lower-median"})
+    _score(store, BOT, 3, at="2026-10-12T12:03:00Z", alt="z", procedure={
+        "round": 1, "session": "fresh", "prior": "withheld"})
+    (procedure,) = _merged(store)["procedures"]
+    assert procedure["traversal"] == "cell-wise" and procedure["reduction"] == "lower-median"
+
+
+def test_a_placeholder_blank_in_a_write_is_no_draw_of_the_pass(store) -> None:
+    facts = {"round": 1, "session": "fresh", "prior": "withheld"}
+    measures_write(
+        store, analysis_id="a", contributor_id="bot", author=BOT, at=AT, procedure=facts,
+        cells=[{"alternativeId": "x", "criterionId": "c",
+                "missing": {"code": "deferred", "note": "set aside"}}])
+    merged = _merged(store)
+    assert merged["procedures"] == [] and merged["rounds"] == []
+    (placeholder,) = _assertions(store)
+    assert "procedureId" not in placeholder and "independence" not in placeholder
+    # a mixed batch: the score is stamped, the placeholder is not
+    measures_write(
+        store, analysis_id="a", contributor_id="bot", author=BOT, at=AT, procedure=facts,
+        cells=[{"alternativeId": "y", "criterionId": "c", "value": 3, "justification": "j",
+                "evidence": CITED},
+               {"alternativeId": "z", "criterionId": "c",
+                "missing": {"code": "not-assessed", "note": "not yet"}}])
+    (procedure,) = _merged(store)["procedures"]
+    assert procedure["repeats"] == 1

@@ -102,26 +102,30 @@ def procedure_id(facts: Mapping[str, Any], author: Mapping[str, Any]) -> str:
 
 
 def resolved_procedure_id(
-    facts: Mapping[str, Any], author: Mapping[str, Any], procedures: Sequence[Mapping[str, Any]],
+    facts: Mapping[str, Any], author: Mapping[str, Any], contribution: Mapping[str, Any],
 ) -> str:
     """The procedure a pass joins: its own id, or the one stored entry it does not contradict.
 
     A pass that leaves the plan's traversal or reduction out (the connector gives none, a
     first pass is written before the plan is known) must not split the author's record in
-    two: it joins the single stored procedure of the same model, prompt version and run
-    whose stated plan facts it does not contradict, and a later pass that states them
-    fills them in. Two stored entries that both fit, or none, and it is its own procedure.
+    two: it joins the single stored procedure this signing author already has draws under
+    (same model, prompt version and run, since the tools read those off the author) whose
+    stated plan facts it does not contradict, and a later pass that states them fills them
+    in. Two stored entries that both fit, or none, and it is its own procedure.
+
+    The candidates are found by the author's own stored draws, not by recomputing an id from
+    an entry's plan: an entry whose plan was filled in after it was created no longer hashes
+    to its id.
     """
     own = procedure_id(facts, author)
-    if any(p.get("id") == own for p in procedures):
+    mine = {a.get("procedureId") for cell in contribution.get("cells", [])
+            for a in cell.get("assertions", []) if a.get("authorId") == author.get("id")}
+    stored = [p for p in contribution.get("procedures", []) if p.get("id") in mine]
+    if any(p["id"] == own for p in stored):
         return own
-    fits = []
-    for p in procedures:
-        theirs = {k: p.get(k) for k in ("traversal", "reduction")}
-        if procedure_id(theirs, author) != p.get("id"):
-            continue  # another model, prompt or run
-        if all(facts.get(k) is None or theirs[k] is None or facts[k] == theirs[k] for k in theirs):
-            fits.append(p["id"])
+    fits = [p["id"] for p in stored if all(
+        facts.get(k) is None or p.get(k) is None or facts[k] == p[k]
+        for k in ("traversal", "reduction"))]
     return fits[0] if len(fits) == 1 else own
 
 
@@ -218,7 +222,7 @@ def refresh_procedures(
     from every assertion stored under the procedure, so the record cannot drift from
     the draws it describes.
     """
-    pid = resolved_procedure_id(facts, author, contribution.get("procedures", []))
+    pid = resolved_procedure_id(facts, author, contribution)
     procedures = {p["id"]: p for p in contribution.get("procedures", [])}
     rounds = {r["id"]: r for r in contribution.get("rounds", [])}
     rid = round_id(facts, author["id"], contributor_id)

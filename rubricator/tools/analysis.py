@@ -587,6 +587,11 @@ def measures_write(
     _refuse_malformed_author(author)
     facts = _checked_procedure(procedure, author, at)
     known = {c["id"]: c for c in frame.get("criteria", [])}
+    # A blank that says nobody looked is a placeholder, not a draw of the pass: it is not
+    # stamped with the procedure, derives no rung and is not counted among the repeats.
+    placeholder = [_is_placeholder(c, frame) for c in cells]
+    if all(placeholder):
+        facts = None
     rows = {a["id"]: a for a in frame.get("alternatives", [])}
     for axis, index, verb in (
         ("criteria", known, "criteria_set"), ("alternatives", rows, "alternatives_set")
@@ -639,7 +644,8 @@ def measures_write(
                 f"cell {'/'.join(key)}. Omit assertionId to get a fresh one, or choose another."
             )
         added.append((key, assertion_id))
-        independence, perturbation = _rung_for(cell, facts)
+        cell_facts = None if placeholder[i] else facts
+        independence, perturbation = _rung_for(cell, cell_facts)
         assertion = sign(
             author,
             at=at,
@@ -652,9 +658,8 @@ def measures_write(
             perturbation=perturbation,
             criteria_version=criteria_version,
         )
-        if facts is not None:
-            assertion["procedureId"] = resolved_procedure_id(
-                facts, signer, contribution.get("procedures", []))
+        if cell_facts is not None:
+            assertion["procedureId"] = resolved_procedure_id(facts, signer, contribution)
             rid = round_id(facts, signer["id"], contributor_id)
             if rid is not None:
                 if any(a.get("roundId") == rid for a in target["assertions"]):
@@ -701,6 +706,15 @@ def measures_write(
         "summary": f"{len(cells)} assertion(s) written for {contributor_id}: "
         f"{valued} valued, {len(cells) - valued} qualified blank(s)" + _skipped_clause(skipped),
     }
+
+
+def _is_placeholder(cell: Mapping[str, Any], frame: Mapping[str, Any]) -> bool:
+    """Whether ``cell`` is a blank whose code says nobody looked (``not-assessed``, ``deferred``, a kind of them)."""
+    code = (cell.get("missing") or {}).get("code") if isinstance(cell.get("missing"), Mapping) else None
+    if not isinstance(code, str):
+        return False
+    facts = vocabulary().resolve(code, declarations_for(frame, cell.get("criterionId"))).facts
+    return facts is not None and not facts.terminal
 
 
 def _checked_procedure(
