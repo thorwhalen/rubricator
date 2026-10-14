@@ -38,6 +38,7 @@ is the cheapest path to value and should work on day one.
     pip install "rubricator[mcp]"
     rubricator-mcp                        # stdio; or: python -m rubricator.mcp
     rubricator-mcp --root ./analyses      # keep analyses in this directory
+    rubricator-mcp --transport http       # Streamable HTTP on 127.0.0.1:8765, no auth: see docs/connector-http.md
 
 Point an MCP client at that command. The `mcp` extra installs the MCP server framework and no
 model client; the model access lives in the separate `agent` extra.

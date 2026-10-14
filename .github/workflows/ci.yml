@@ -70,7 +70,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[mcp,test]"
       - name: The connector advertises the frozen rows and answers over MCP
-        run: pytest tests/test_frozen_surface.py tests/test_surface.py tests/test_mcp_stdio.py -q
+        run: pytest tests/test_frozen_surface.py tests/test_surface.py tests/test_mcp_stdio.py tests/test_mcp_http.py -q
 
   hygiene:
     runs-on: ubuntu-latest

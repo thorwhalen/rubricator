@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import inspect
 import os
+import sys
 from collections.abc import Sequence
 from typing import Any, Callable
 
@@ -157,12 +158,39 @@ def _tool_from_row(spec: ToolSpec, verb: Callable[..., Any], *, retention_days: 
     return tool
 
 
-def main(argv: Sequence[str] | None = None) -> None:  # pragma: no cover - process entry point
-    """Serve over stdio, which is how a desktop client attaches.
+#: Where the HTTP transport listens unless told otherwise. Loopback, and never
+#: anything else by default: the server has no authentication of its own (see
+#: ``docs/connector-http.md``), so reachable-by-anyone must be a decision.
+DEFAULT_HOST = "127.0.0.1"
+DEFAULT_PORT = 8765
+DEFAULT_PATH = "/mcp"
+_LOOPBACK_NAMES = {"localhost", "127.0.0.1", "::1"}
 
-    stdout is the protocol channel, so nothing else may write to it: the
-    framework's start-up banner is switched off, and diagnostics go to stderr.
+
+def _is_loopback(host: str) -> bool:
+    import ipaddress
+
+    if host in _LOOPBACK_NAMES:
+        return True
+    try:
+        return ipaddress.ip_address(host.strip("[]")).is_loopback
+    except ValueError:
+        return False
+
+
+def _allowed_hosts(host: str, extra: Sequence[str]) -> list[str] | None:
+    """The Host values to accept; ``None`` leaves the framework's rule for ``host``.
+
+    An allowlist replaces that rule rather than adding to it, so the loopback
+    names are restated or a proxy flag would lock out ``localhost`` itself.
     """
+    if not extra:
+        return None
+    local = sorted(_LOOPBACK_NAMES) if _is_loopback(host) else [host]
+    return [*local, *extra]
+
+
+def _build_parser():
     import argparse
 
     parser = argparse.ArgumentParser(prog="rubricator-mcp")
@@ -171,7 +199,33 @@ def main(argv: Sequence[str] | None = None) -> None:  # pragma: no cover - proce
         help="directory to store analyses in (default: the user-data working store, "
         "moved by RUBRICATOR_DATA_DIR)",
     )
-    args = parser.parse_args(argv)
+    parser.add_argument(
+        "--transport", choices=("stdio", "http"), default="stdio",
+        help="stdio (default) is how a desktop client attaches; http serves Streamable HTTP",
+    )
+    http = parser.add_argument_group(
+        "http transport",
+        "Only with --transport http. The server has NO authentication: it binds to "
+        "loopback unless --allow-remote is given, and a remote bind must sit behind "
+        "something that authenticates.",
+    )
+    http.add_argument("--host", default=DEFAULT_HOST, help=f"address to bind (default {DEFAULT_HOST})")
+    http.add_argument("--port", type=int, default=DEFAULT_PORT, help=f"port (default {DEFAULT_PORT})")
+    http.add_argument("--path", default=DEFAULT_PATH, help=f"endpoint path (default {DEFAULT_PATH})")
+    http.add_argument(
+        "--allow-remote", action="store_true",
+        help="permit binding a non-loopback address (all analyses become readable and "
+        "writable by anyone who can reach the port)",
+    )
+    http.add_argument(
+        "--allow-host", action="append", default=[], metavar="HOSTNAME",
+        help="extra Host header value to accept, for a reverse proxy (repeatable)",
+    )
+    return parser
+
+
+def _check_args(parser, args) -> None:
+    """Refuse, at start-up and in words, what would otherwise fail late or silently."""
     if args.root is not None:
         # An empty value is an unset variable in a client config, which would
         # otherwise fall through to the default store without a word.
@@ -179,7 +233,48 @@ def main(argv: Sequence[str] | None = None) -> None:  # pragma: no cover - proce
             parser.error("--root is empty (an unset variable in the client config?)")
         if os.path.exists(args.root) and not os.path.isdir(args.root):
             parser.error(f"--root {args.root!r} exists and is not a directory")
-    make_server(root=args.root).run(transport="stdio", show_banner=False)
+    if args.transport == "stdio":
+        return
+    if not 0 <= args.port <= 65535:
+        parser.error(f"--port {args.port} is not a port")
+    if not args.path.startswith("/"):
+        parser.error(f"--path {args.path!r} must start with '/'")
+    if not _is_loopback(args.host) and not args.allow_remote:
+        parser.error(
+            f"--host {args.host!r} is not a loopback address and the server has no "
+            "authentication. Bind 127.0.0.1 and put an authenticating proxy in front, "
+            "or pass --allow-remote to say you have."
+        )
+
+
+def main(argv: Sequence[str] | None = None) -> None:  # pragma: no cover - process entry point
+    """Serve over stdio (a desktop client) or Streamable HTTP (a connector).
+
+    Both transports run the one server :func:`make_server` builds, so the
+    surface cannot differ between them. stdout is the protocol channel under
+    stdio, so nothing else may write to it: the framework's start-up banner is
+    switched off, and diagnostics go to stderr.
+    """
+    parser = _build_parser()
+    args = parser.parse_args(argv)
+    _check_args(parser, args)
+    server = make_server(root=args.root)
+    if args.transport == "stdio":
+        server.run(transport="stdio", show_banner=False)
+        return
+    if not _is_loopback(args.host):
+        print(
+            f"rubricator-mcp: serving on {args.host}:{args.port} with NO authentication",
+            file=sys.stderr,
+        )
+    server.run(
+        transport="http", show_banner=False, host=args.host, port=args.port, path=args.path,
+        # "auto" validates Host and Origin on a loopback bind (the DNS-rebinding
+        # defence: a web page the user visits cannot drive a local server) and
+        # on an explicit allowlist; the framework default is off.
+        host_origin_protection="auto",
+        allowed_hosts=_allowed_hosts(args.host, args.allow_host),
+    )
 
 
 if __name__ == "__main__":  # pragma: no cover
