@@ -37,8 +37,10 @@ from rubricator.procedure import (
     check_facts,
     contradiction,
     derived_rung,
+    instant,
     procedure_id,
     refresh_procedures,
+    stored_prior_applied,
     round_id,
 )
 from rubricator.rules import declarations_for
@@ -583,7 +585,7 @@ def measures_write(
         )
     _refuse_malformed_cells(cells)
     _refuse_malformed_author(author)
-    facts = _checked_procedure(procedure, author)
+    facts = _checked_procedure(procedure, author, at)
     known = {c["id"]: c for c in frame.get("criteria", [])}
     rows = {a["id"]: a for a in frame.get("alternatives", [])}
     for axis, index, verb in (
@@ -614,6 +616,7 @@ def measures_write(
     # The record the store holds for this author, not the argument: a later call cannot
     # restate the model a stored assertion was signed under (#99).
     signer = next(a for a in contribution["authors"] if a["id"] == author["id"])
+    facts = stored_prior_applied(facts, contribution, signer["id"], contributor_id)
     index = {
         (c["alternativeId"], c["criterionId"], c["measure"]): c
         for c in contribution["cells"]
@@ -693,7 +696,7 @@ def measures_write(
 
 
 def _checked_procedure(
-    procedure: Mapping[str, Any] | None, author: Mapping[str, Any]
+    procedure: Mapping[str, Any] | None, author: Mapping[str, Any], at: Any
 ) -> Mapping[str, Any] | None:
     """The pass facts, refused when malformed or when a human is the signer."""
     if procedure is None:
@@ -706,6 +709,11 @@ def _checked_procedure(
         raise ValueError(
             "refused, nothing was written: a procedure record describes an agent's pass; a human "
             "states the independence of each assertion on the cell."
+        )
+    if not (isinstance(at, str) and "T" in at and instant(at) is not None):
+        raise ValueError(
+            f"refused, nothing was written: at={at!r} is not an RFC 3339 date-time, and a "
+            "procedure record orders its passes by time."
         )
     return procedure
 

@@ -43,11 +43,13 @@ from typing import Any
 
 __all__ = [
     "FACTS",
+    "instant",
     "check_facts",
     "contradiction",
     "derived_rung",
     "procedure_id",
     "refresh_procedures",
+    "stored_prior_applied",
     "round_entry",
     "round_id",
 ]
@@ -122,6 +124,23 @@ def round_entry(facts: Mapping[str, Any], author_id: str, contributor_id: str) -
     return entry
 
 
+def stored_prior_applied(
+    facts: Mapping[str, Any] | None, contribution: Mapping[str, Any], author_id: str,
+    contributor_id: str,
+) -> Mapping[str, Any] | None:
+    """``facts`` with the prior the stored round already records, when the call states none.
+
+    A pass whose round says the prior was shown stays that pass: leaving ``prior`` out of a
+    later call must not lift the rung its draws may claim.
+    """
+    rid = round_id(facts or {}, author_id, contributor_id) if facts else None
+    if rid is None or facts.get("prior") is not None:
+        return facts
+    old = next((r for r in contribution.get("rounds", []) if r.get("id") == rid), None)
+    prior = {v: k for k, v in _FEEDBACK.items()}.get((old or {}).get("feedback"))
+    return {**facts, "prior": prior} if prior else facts
+
+
 def derived_rung(facts: Mapping[str, Any], *, has_perturbation: bool) -> str | None:
     """The rung a draw earns from the declared facts, or ``None`` when they say nothing.
 
@@ -178,8 +197,10 @@ def refresh_procedures(
     rounds = {r["id"]: r for r in contribution.get("rounds", [])}
     rid = round_id(facts, author["id"], contributor_id)
     if rid is not None:
-        entry = round_entry(facts, author["id"], contributor_id)
         old = rounds.get(rid)
+        stored_prior = {v: k for k, v in _FEEDBACK.items()}.get((old or {}).get("feedback"))
+        entry = round_entry({**facts, "prior": facts.get("prior") or stored_prior},
+                            author["id"], contributor_id)
         if old is not None and "feedback" in old and "feedback" in entry and (
             old["feedback"] != entry["feedback"]
         ):
@@ -189,9 +210,17 @@ def refresh_procedures(
                 "restated; a draw that saw the prior is a different pass, so give it the next "
                 "round number."
             )
+        if entry.get("feedback") == "full" and (old is None or "feedback" not in old):
+            higher = [a["id"] for _c, a in _draws(contribution) if a.get("roundId") == rid
+                      and a.get("independence") not in (None, "shared-context")]
+            if higher:
+                raise ValueError(
+                    f"refused, nothing was written: pass {facts['round']} already holds draw(s) "
+                    f"{', '.join(higher)} recorded above shared-context, and a draw that saw the "
+                    "prior shares its context. Give the draw that saw the prior the next round "
+                    "number."
+                )
         rounds[rid] = {**(old or {}), **entry}
-        if "feedback" not in entry and old is not None and "feedback" in old:
-            rounds[rid]["label"] = old["label"]
     procedures[pid] = _procedure(pid, facts, author, contribution, procedures.get(pid))
     contribution["procedures"] = [procedures[k] for k in sorted(procedures)]
     contribution["rounds"] = [rounds[k] for k in sorted(rounds, key=lambda k: (rounds[k]["index"], k))]
@@ -201,7 +230,7 @@ def refresh_procedures(
             entry["openedAt"], entry["closedAt"] = span
 
 
-def _instant(text: str):
+def instant(text: str):
     """A timestamp as a point in time, so ``12:00+02:00`` sorts before ``11:00Z``."""
     from datetime import datetime, timezone
 
@@ -217,7 +246,7 @@ def _span(times) -> tuple[str, str] | None:
     times = list(times)
     if not times:
         return None
-    ordered = sorted(times, key=lambda t: (_instant(t) is None, _instant(t) or 0, t))
+    ordered = sorted(times, key=lambda t: (instant(t) is None, instant(t) or 0, t))
     return ordered[0], ordered[-1]
 
 
@@ -235,7 +264,8 @@ def _procedure(
     old: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
     agent = author.get("agent") or {}
-    mine = [(c, a) for c, a in _draws(contribution) if a.get("procedureId") == pid]
+    mine = [(c, a) for c, a in _draws(contribution)
+            if a.get("procedureId") == pid and not a.get("supersededBy")]
     per_cell: dict[tuple[str, str, str], int] = {}
     for cell, _a in mine:
         key = (cell["alternativeId"], cell["criterionId"], cell["measure"])

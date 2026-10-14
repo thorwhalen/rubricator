@@ -324,3 +324,51 @@ def test_a_model_id_differing_only_in_case_or_space_is_the_same_model(store) -> 
     twin = agent("twin", "Twin", name="rubricator", model=" Model-A ")
     with pytest.raises(ValueError, match="independent-agent-is-distinct"):
         _score(store, twin, 4, independence="independent")
+
+
+# --- regressions from the second review ----------------------------------------------
+
+
+def test_leaving_the_prior_out_of_a_later_call_does_not_lift_the_rung(store) -> None:
+    _score(store, BOT, 3, procedure={"round": 1, "prior": "shown"})
+    _score(store, BOT, 4, procedure={"round": 1, "session": "fresh"})
+    assert [a["independence"] for a in _assertions(store)] == ["shared-context", "shared-context"]
+    assert _merged(store)["rounds"][0]["feedback"] == "full"
+
+
+def test_a_round_holding_a_higher_rung_cannot_later_be_declared_prior_shown(store) -> None:
+    _score(store, BOT, 3, procedure={"round": 1, "session": "fresh"}, independence="resampled")
+    with pytest.raises(ValueError, match="already holds draw"):
+        _score(store, BOT, 4, procedure={"round": 1, "prior": "shown"})
+
+
+def test_personas_of_one_agent_are_not_distinct_raters(store) -> None:
+    from rubricator.contributors import persona
+
+    nomodel = agent("bot", "Bot", name="rubricator")
+    _score(store, nomodel, 3, independence="resampled")
+    buyer = persona(nomodel, "the buyer")
+    with pytest.raises(ValueError, match="persona is not a rater"):
+        measures_write(store, analysis_id="a", contributor_id="bot", author=buyer, at=AT,
+                       cells=[{"alternativeId": "x", "criterionId": "c", "value": 4,
+                               "justification": "j", "evidence": CITED, "independence": "independent"}])
+
+
+def test_agreement_reads_a_principal_with_its_persona_as_one_rater() -> None:
+    authors = {"bot": {"kind": "agent"}, "bot:p": {"kind": "agent", "principalId": "bot"}}
+    got = agreement([_a("1", "bot", "independent"), _a("2", "bot:p", "independent")], authors)
+    assert got["rung"] == "in-session"
+
+
+def test_the_round_label_keeps_the_prior_when_a_later_call_leaves_it_out(store) -> None:
+    _score(store, BOT, 3, procedure={"round": 1, "seed": 7, "prior": "withheld", "session": "fresh"})
+    _score(store, BOT, 3, procedure={"round": 1, "seed": 9, "session": "fresh"})
+    label = _merged(store)["rounds"][0]["label"]
+    assert "seed 9" in label and "prior withheld" in label
+
+
+def test_a_procedure_needs_a_real_timestamp(store) -> None:
+    with pytest.raises(ValueError, match="RFC 3339"):
+        _score(store, BOT, 3, at="not-a-time", procedure={"round": 1})
+    with pytest.raises(ValueError, match="RFC 3339"):
+        _score(store, BOT, 3, at="2026-10-12", procedure={"round": 1})

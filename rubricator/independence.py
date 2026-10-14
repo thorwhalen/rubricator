@@ -74,6 +74,14 @@ def agent_model(author: Mapping[str, Any] | None) -> str | None:
     return model.strip().casefold() or None if isinstance(model, str) else None
 
 
+def principal(authors: Mapping[str, Mapping[str, Any]], author_id: Any) -> Any:
+    """Who is behind an author id: its ``principalId`` when it is a persona, else itself.
+
+    A persona is not a rater (ADR-0018), so every comparison of raters is between principals.
+    """
+    return (authors.get(author_id) or {}).get("principalId") or author_id
+
+
 def policy_rung(assertion: Mapping[str, Any], authors: Mapping[str, Mapping[str, Any]]) -> str | None:
     """The policy rung one assertion earns, or ``None`` for ``consensus``.
 
@@ -117,6 +125,13 @@ def agreement(
     The counts are per rung so a reader sees the mix the label summarises.
     """
     rungs = [policy_rung(a, authors) for a in assertions]
+    # One principal behind two assertions is one rater arguing with itself: "independent"
+    # between a persona and its principal, or two personas, is not independence.
+    behind = [principal(authors, a.get("authorId")) for a in assertions]
+    rungs = [
+        "in-session" if r in ("distinct-model", "distinct-human") and behind.count(who) > 1 else r
+        for r, who in zip(rungs, behind)
+    ]
     observed = [r for r in rungs if r is not None]
     if len(observed) < 2:
         return None
@@ -164,10 +179,10 @@ def distinct_model_problem(
             continue
         theirs_id = other.get("authorId")
         theirs = authors.get(theirs_id) or {}
-        if theirs_id == assertion.get("authorId"):
+        if principal(authors, theirs_id) == principal(authors, assertion.get("authorId")):
             return (
-                f'"{theirs_id}" also scored this cell, and one author is one model: another '
-                'draw of it is "resampled"'
+                f'"{theirs_id}" is the same principal and also scored this cell, and a persona is '
+                'not a rater: another draw of one model is "resampled"'
             )
         if theirs.get("kind") != "agent":
             continue
