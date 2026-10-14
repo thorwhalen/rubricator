@@ -5,7 +5,7 @@
       "cell": {
         "alternativeId": "quillbase",
         "criterionId": "support-window",
-        "justification": "The vendor's own support page states a dated end of support more than 12 months out, which is the level-5 condition.",
+        "justification": "The vendor's own support page states the Team plan is supported until 31 March 2030, more than 12 months out: the level-5 condition.",
         "evidence": [
           {
             "id": "s1",
@@ -22,7 +22,7 @@
     },
     "call": {
       "tool": "measures_write",
-      "procedure": {"traversal": "cell-wise", "reduction": "lower-median", "seed": 12, "round": 2, "session": "same", "prior": "shown"}
+      "procedure": {"round": 2, "session": "same", "prior": "shown", "traversal": "cell-wise", "reduction": "lower-median", "seed": 12}
     }
   },
   {
@@ -31,7 +31,7 @@
       "cell": {
         "alternativeId": "quillbase",
         "criterionId": "data-export",
-        "justification": "inferred from span-1 and span-2: span-1 states that every workspace exports to open Markdown and JSON with a published schema, read as all of its data in an open, documented format; span-2 documents the bulk endpoint's exports in an open schema.",
+        "justification": "Inferred from span-1 and span-2: span-1 states every workspace exports to Markdown and JSON with a published JSON schema, which is open and documented, and span-2 documents the bulk endpoint's exports in an open schema; span-1 does not say comments or attachments are included, so reading it as all of a team's data is an inference.",
         "evidence": [
           {
             "id": "s1",
@@ -64,7 +64,7 @@
       "cell": {
         "alternativeId": "quillbase",
         "criterionId": "data-export",
-        "justification": "inferred from span-1 and span-2: span-1 states that every workspace exports to open Markdown and JSON with a published schema, read as all of its data in an open, documented format; span-2 documents the bulk endpoint's exports in an open schema.",
+        "justification": "Inferred from span-1 and span-2: span-1 states every workspace exports to Markdown and JSON with a published JSON schema, which is open and documented, and span-2 documents the bulk endpoint's exports in an open schema; span-1 does not say comments or attachments are included, so reading it as all of a team's data is an inference.",
         "evidence": [
           {
             "id": "s1",
@@ -97,7 +97,7 @@
       "cell": {
         "alternativeId": "mossnote",
         "criterionId": "data-export",
-        "justification": "Notes and folders export as open Markdown but comments and attachments only as a proprietary bundle, so the cell sits between anchor 3 (proprietary only) and anchor 5 (all data in an open format).",
+        "justification": "Notes and folders export to open Markdown, but comments and attachments export only as a proprietary .mossarchive bundle: this clears the level-3 condition and falls short of level 5, so it sits between anchors 3 and 5.",
         "evidence": [
           {
             "id": "s1",
@@ -125,14 +125,16 @@
         "criterionId": "support-window",
         "missing": {
           "code": "not-evidenced",
-          "note": "Retrieval covered the Larkpad website, the Larkpad changelog and two independent review sites and returned no span on a support window."
+          "note": "Retrieval covered the Larkpad website, changelog and two independent review sites and returned nothing on a dated support commitment."
         }
       },
       "dependsOn": []
     },
     "call": {
-      "tool": "measures_write",
-      "procedure": {"round": 2, "session": "same", "prior": "shown", "seed": 22}
+      "tool": "measures_mark_missing",
+      "procedure": {"round": 2, "session": "same", "prior": "shown", "seed": 22},
+      "alternative_ids": ["larkpad"],
+      "criterion_ids": ["support-window"]
     }
   },
   {
@@ -141,7 +143,7 @@
       "cell": {
         "alternativeId": "mossnote",
         "criterionId": "migration-effort",
-        "justification": "inferred from span-1 and span-2: the vendor says migration is handled by its paid services team, and the consultancy states a paid engagement is required above 50 seats, so no self-serve path is stated.",
+        "justification": "Inferred from span-1 and span-2: the vendor's own page routes organisation moves through its paid Migration Services team, and a consultancy's summary states that migrating more than 50 seats requires that paid engagement, which meets the level-1 condition for those organisations; nothing states a self-serve path for smaller ones.",
         "evidence": [
           {
             "id": "s1",
@@ -174,7 +176,7 @@
       "cell": {
         "alternativeId": "larkpad",
         "criterionId": "data-export",
-        "justification": "The vendor's own developer documentation states that every workspace, including comments and attachments, exports as JSON under a published open schema, which is the level-5 condition.",
+        "justification": "The vendor's developer documentation states every workspace, including comments and attachments, exports as JSON that follows a published schema: the level-5 condition.",
         "evidence": [
           {
             "id": "s1",
@@ -200,7 +202,7 @@
       "cell": {
         "alternativeId": "quillbase",
         "criterionId": "data-export",
-        "justification": "inferred from span-1 and span-2: span-1 states that every workspace exports to open Markdown and JSON with a published schema, read as all of its data in an open, documented format; span-2 documents the bulk endpoint's exports in an open schema.",
+        "justification": "Inferred from span-1 and span-2: span-1 states every workspace exports to Markdown and JSON with a published JSON schema, which is open and documented, and span-2 documents the bulk endpoint's exports in an open schema; span-1 does not say comments or attachments are included, so reading it as all of a team's data is an inference.",
         "evidence": [
           {
             "id": "s1",
@@ -233,7 +235,7 @@
       "cell": {
         "alternativeId": "mossnote",
         "criterionId": "data-export",
-        "justification": "Notes and folders export as open Markdown but comments and attachments only as a proprietary bundle, so the cell sits between anchor 3 (proprietary only) and anchor 5 (all data in an open format).",
+        "justification": "Notes and folders export to open Markdown, but comments and attachments export only as a proprietary .mossarchive bundle: this clears the level-3 condition and falls short of level 5, so it sits between anchors 3 and 5.",
         "evidence": [
           {
             "id": "s1",
@@ -259,7 +261,7 @@
       "cell": {
         "alternativeId": "quillbase",
         "criterionId": "support-window",
-        "justification": "downgraded (superseded): span-1 vs span-2. The vendor page states support until 31 March 2030 and a later changelog entry extends it to 30 June 2031; both are more than 12 months out, so level 5.",
+        "justification": "downgraded (superseded): s1 vs s2. The vendor's support page dates the Team plan to 31 March 2030 and its later changelog entry extends that to 30 June 2031; both meet the level-5 condition, so the cell is scored and the disagreement is named.",
         "evidence": [
           {
             "id": "s1",
@@ -283,7 +285,7 @@
     },
     "call": {
       "tool": "measures_write",
-      "procedure": {"round": 2, "session": "fresh", "prior": "shown", "seed": 8}
+      "procedure": {"round": 2, "session": "same", "prior": "shown", "seed": 8}
     }
   },
   {
@@ -292,7 +294,7 @@
       "cell": {
         "alternativeId": "quillbase",
         "criterionId": "support-window",
-        "justification": "The vendor's own support page states a dated end of support more than 12 months out, which is the level-5 condition.",
+        "justification": "The vendor's own support page states the Team plan is supported until 31 March 2030, more than 12 months out: the level-5 condition.",
         "evidence": [
           {
             "id": "s1",
@@ -329,7 +331,7 @@
         ],
         "missing": {
           "code": "not-evidenced",
-          "note": "Retrieval covered the Larkpad homepage and press releases; the only span found is a homepage slogan that states no support window."
+          "note": "Retrieval covered the Larkpad homepage and press releases; the homepage holds only a general support line with no dated commitment for the plan, and nothing places the cell."
         }
       },
       "dependsOn": []

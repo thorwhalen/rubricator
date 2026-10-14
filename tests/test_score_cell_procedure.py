@@ -1,10 +1,10 @@
 """The procedure-facts harness (#218) measures what it says it measures.
 
-A scorer on a repeated pass describes the pass to the write call in ``procedure``. The grader reads
+A scorer describes each pass to the write call in ``procedure``, the first included. The grader reads
 that object against what each scenario says is true. These tests pin that every scenario is
 passable by a faithful answer and that each metric moves when, and only when, a run breaks the
 way it exists to catch: a fact claimed that the scenario denies, a fact invented, a count or a
-claim of independence smuggled in, a procedure on a single pass.
+claim of independence smuggled in, a pass that passes no procedure.
 """
 
 from __future__ import annotations
@@ -110,10 +110,29 @@ def test_either_write_tool_may_carry_a_blank_from_a_repeat() -> None:
     run = _run()
     run[5] = _output("p6-blank-on-a-repeat", FAITHFUL["p6-blank-on-a-repeat"],
                      tool="measures_mark_missing")
+    run[5]["call"].update(alternative_ids=["larkpad"], criterion_ids=["support-window"])
     assert proc.grade({"r": run})["r"]["failed"] == []
 
 
-def test_a_faithful_answer_to_a_repeat_is_accepted_by_the_tool_beside_a_first_pass() -> None:
+def test_a_mark_missing_that_does_not_name_exactly_its_one_cell_is_not_valid() -> None:
+    for ids in ({}, {"alternative_ids": ["larkpad"], "criterion_ids": ["support-window", "data-export"]},
+                {"alternative_ids": ["quillbase"], "criterion_ids": ["support-window"]}):
+        run = _run()
+        run[5] = _output("p6-blank-on-a-repeat", FAITHFUL["p6-blank-on-a-repeat"],
+                         tool="measures_mark_missing")
+        run[5]["call"].update(ids)
+        graded = proc.grade({"r": run})["r"]
+        assert graded["valid"] == f"{N - 1}/{N}" and "p6-blank-on-a-repeat" in graded["failed"]
+
+
+def test_passing_no_procedure_invents_and_claims_nothing_but_is_not_true() -> None:
+    graded = _grade({"p1-first-pass": None})
+    assert graded["left out"] == f"{N}/{N}" and graded["no independence"] == f"{N}/{N}"
+    assert graded["valid"] == f"{N - 1}/{N}" and graded["true"] == f"{N - 1}/{N}"
+
+
+@pytest.mark.parametrize("second", ["p5-asked-for-independent", "p2-repeat-same-conversation"])
+def test_a_faithful_answer_to_a_repeat_is_accepted_by_the_tool_beside_a_first_pass(second: str) -> None:
     """The pinned faithful answers are things the tools take, in order (the #221 review).
 
     Pass 1 as the prompt teaches it, then pass 2 on the same cell with the prior in view: both
@@ -137,11 +156,11 @@ def test_a_faithful_answer_to_a_repeat_is_accepted_by_the_tool_beside_a_first_pa
     bot = agent("bot", "Bot", name="r", model="m", prompt_version="score-cell-v4", run_id="r1")
     cited = [{"id": "e1", "target": "doc:s", "sourceType": "primary",
               "selectors": [{"type": "TextQuoteSelector", "exact": "as stated"}]}]
-    for n, key in enumerate(("p1-first-pass", "p5-asked-for-independent"), start=1):
+    for n, key in enumerate(("p1-first-pass", second), start=1):
         measures_write(store, analysis_id="a", contributor_id="bot", author=bot,
                        at=f"2026-10-12T12:0{n}:00Z", procedure=FAITHFUL[key],
                        cells=[{"alternativeId": "x", "criterionId": "c", "value": 3,
                                "justification": "j", "evidence": cited}])
     merged = merge_contributions(store.frame("a"), store.contributions("a"))
-    assert merged["procedures"][0]["repeats"] == 2
+    assert [p["repeats"] for p in merged["procedures"]] == [2]  # a pass without the plan joins it
     assert honesty_problems(merged) == []

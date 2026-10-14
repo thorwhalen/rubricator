@@ -554,9 +554,10 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
             "evidence, or a qualified blank naming its missingness code. Writes only that "
             "contributor's file and never echoes a previously written score. Each assertion "
             "is stamped with the criteria-set version; pass expected_criteria_version to be "
-            "refused if the set moved since you read it. For a repeated or re-scoring pass an "
-            "agent passes procedure (traversal, reduction, plan seed, round number, same or "
-            "fresh session, whether the prior was withheld or shown): the tools record the "
+            "refused if the set moved since you read it. An agent passes procedure on every "
+            "pass, the first included (round number, same or fresh session, whether the prior "
+            "was withheld or shown, and the plan's traversal, reduction and seed when it has "
+            "one); a cell takes one draw per round: the tools record the "
             "procedure, count its repeats and derive each draw's independence rung, and refuse "
             "a rung the pass contradicts. Honesty rules run before the bytes land (ADR-0024)."
         ),
@@ -584,9 +585,10 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
             "code must be one the analysis's own vocabulary resolves: the core six, or a code "
             "declared on the analysis or the criterion. This is what makes 'fill these two "
             "criteria and mark the rest deferred' a first-class instruction. A blank from a "
-            "repeated pass takes the same procedure as measures_write, so it is counted and "
-            "stamped like any other draw; with a procedure the alternative_ids and "
-            "criterion_ids must both be named, because a repeat is for one cell."
+            "pass takes the same procedure as measures_write, so it is counted and stamped "
+            "like any other draw; with a procedure it is for one cell (exactly one of "
+            "alternative_ids and one of criterion_ids) and its code is one that says someone "
+            "looked, not not-assessed or deferred."
         ),
         determinism="Set arithmetic over the frame, then measures_write.",
         failure="An undeclared code is refused, listing what is known and how to declare a new one.",
@@ -1037,11 +1039,11 @@ MEASURED: Mapping[str, Any] = {
 AWAITING_MEASUREMENT: Mapping[str, Any] | None = {
     "issue": 199,
     "advertised": {
-        "tools": 15, "bytes": 22038,
-        "sha256": "2d69cef2bdd7ad6cfa67d33679c0a78473bfa2a299e19bc6bcedb1056a486cfe",
+        "tools": 15, "bytes": 22152,
+        "sha256": "35b2988518a91f9393ce6441592d330557e4a32cb4c10bcd58a6e1b386a2bdb1",
     },
     "wholeSurface": {
-        "tools": 22, "bytes": 28251,
-        "sha256": "5b4fdb65ca22bb39feb94385454b26d2e5c566ed72dd0ca3102192240780a835",
+        "tools": 22, "bytes": 28365,
+        "sha256": "81c4b561bb3ab87e13b48f0b2c5a0c048ad19bcf66284f5ed770096bccec6907",
     },
 }

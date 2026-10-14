@@ -39,15 +39,16 @@ def store():
     analysis_open(s, analysis_id="a", question="which?", allow_skip_confirmation=True,
                   at="2026-08-22T12:00:00Z")
     frame_set(s, analysis_id="a", ambiguities=[])
-    alternatives_set(s, analysis_id="a", alternatives=[{"id": "x", "label": "X"}])
+    alternatives_set(s, analysis_id="a", alternatives=[
+        {"id": "x", "label": "X"}, {"id": "y", "label": "Y"}, {"id": "z", "label": "Z"}])
     criteria_set(s, analysis_id="a", criteria=[{"id": "c", "label": "C", "anchors": ANCHORS}])
     return s
 
 
-def _score(store, who, value, *, at=AT, procedure=None, **cell):
+def _score(store, who, value, *, at=AT, procedure=None, alt="x", **cell):
     return measures_write(
         store, analysis_id="a", contributor_id=who["id"], author=who, at=at, procedure=procedure,
-        cells=[{"alternativeId": "x", "criterionId": "c", "value": value,
+        cells=[{"alternativeId": alt, "criterionId": "c", "value": value,
                 "justification": "because", "evidence": CITED, **cell}],
     )
 
@@ -58,6 +59,10 @@ def _merged(store):
 
 def _assertions(store):
     return _merged(store)["cells"][0]["assertions"]
+
+
+def _all_assertions(store):
+    return [a for cell in _merged(store)["cells"] for a in cell["assertions"]]
 
 
 # --- the procedure record is written by the tools -------------------------------
@@ -146,7 +151,7 @@ def test_understating_the_rung_is_allowed(store) -> None:
 def test_a_round_cannot_be_restated_with_a_different_prior(store) -> None:
     _score(store, BOT, 3, procedure={"round": 1, "prior": "withheld", "session": "fresh"})
     with pytest.raises(ValueError, match="already recorded"):
-        _score(store, BOT, 4, procedure={"round": 1, "prior": "shown"})
+        _score(store, BOT, 4, procedure={"round": 1, "prior": "shown"}, alt="y")
 
 
 def test_two_contributors_passes_keep_their_own_records(store) -> None:
@@ -300,10 +305,10 @@ def test_a_persona_has_its_own_pass_numbers(store) -> None:
 
 def test_stating_the_prior_after_the_fact_completes_a_round_and_a_restatement_names_the_truth(store) -> None:
     _score(store, BOT, 3, procedure={"round": 1, "session": "fresh"})
-    _score(store, BOT, 3, procedure={"round": 1, "session": "fresh", "prior": "withheld"})
+    _score(store, BOT, 3, procedure={"round": 1, "session": "fresh", "prior": "withheld"}, alt="y")
     assert _merged(store)["rounds"][0]["feedback"] == "none"
     with pytest.raises(ValueError, match="prior withheld"):
-        _score(store, BOT, 3, procedure={"round": 1, "prior": "shown"})
+        _score(store, BOT, 3, procedure={"round": 1, "prior": "shown"}, alt="z")
 
 
 def test_only_a_perturbed_draw_gets_a_perturbation_record(store) -> None:
@@ -331,15 +336,15 @@ def test_a_model_id_differing_only_in_case_or_space_is_the_same_model(store) -> 
 
 def test_leaving_the_prior_out_of_a_later_call_does_not_lift_the_rung(store) -> None:
     _score(store, BOT, 3, procedure={"round": 1, "prior": "shown"})
-    _score(store, BOT, 4, procedure={"round": 1, "session": "fresh"})
-    assert [a["independence"] for a in _assertions(store)] == ["shared-context", "shared-context"]
+    _score(store, BOT, 4, procedure={"round": 1, "session": "fresh"}, alt="y")
+    assert [a["independence"] for a in _all_assertions(store)] == ["shared-context", "shared-context"]
     assert _merged(store)["rounds"][0]["feedback"] == "full"
 
 
 def test_a_round_holding_a_higher_rung_cannot_later_be_declared_prior_shown(store) -> None:
     _score(store, BOT, 3, procedure={"round": 1, "session": "fresh"}, independence="resampled")
     with pytest.raises(ValueError, match="already holds draw"):
-        _score(store, BOT, 4, procedure={"round": 1, "prior": "shown"})
+        _score(store, BOT, 4, procedure={"round": 1, "prior": "shown"}, alt="y")
 
 
 def test_personas_of_one_agent_are_not_distinct_raters(store) -> None:
@@ -362,7 +367,7 @@ def test_agreement_reads_a_principal_with_its_persona_as_one_rater() -> None:
 
 def test_the_round_label_keeps_the_prior_when_a_later_call_leaves_it_out(store) -> None:
     _score(store, BOT, 3, procedure={"round": 1, "seed": 7, "prior": "withheld", "session": "fresh"})
-    _score(store, BOT, 3, procedure={"round": 1, "seed": 9, "session": "fresh"})
+    _score(store, BOT, 3, procedure={"round": 1, "seed": 9, "session": "fresh"}, alt="y")
     label = _merged(store)["rounds"][0]["label"]
     assert "seed 9" in label and "prior withheld" in label
 
@@ -434,11 +439,53 @@ def test_mark_missing_with_a_procedure_must_name_its_cell_and_writes_nothing_oth
 
     _score(store, BOT, 4, procedure={"round": 1, "session": "fresh", "prior": "withheld"})
     before = list(store.contributions("a"))
-    for names in ({}, {"alternative_ids": ["x"]}, {"criterion_ids": ["c"]}):
-        with pytest.raises(ValueError, match="name the alternative_ids and the criterion_ids"):
+    for names in ({}, {"alternative_ids": ["x"]}, {"criterion_ids": ["c"]},
+                  {"alternative_ids": ["x", "y"], "criterion_ids": ["c"]}):
+        with pytest.raises(ValueError, match="for one cell: name exactly one"):
             measures_mark_missing(
                 store, analysis_id="a", contributor_id="bot", author=BOT, at=AT,
                 code="not-evidenced", note="n",
                 procedure={"round": 2, "session": "same", "prior": "shown"}, **names)
     assert list(store.contributions("a")) == before
     assert honesty_problems(_merged(store)) == []
+
+
+def test_a_placeholder_code_is_not_a_draw_and_takes_no_procedure(store) -> None:
+    from rubricator.tools.analysis import measures_mark_missing
+
+    _score(store, BOT, 4, procedure={"round": 1, "session": "fresh", "prior": "withheld"}, alt="y")
+    for code in ("deferred", "not-assessed"):
+        with pytest.raises(ValueError, match="not a draw of a pass"):
+            measures_mark_missing(
+                store, analysis_id="a", contributor_id="bot", author=BOT, at=AT, code=code,
+                note="n", alternative_ids=["y"], criterion_ids=["c"],
+                procedure={"round": 2, "session": "same", "prior": "shown"})
+    assert len(_all_assertions(store)) == 1
+
+
+def test_a_cell_has_one_draw_per_round(store) -> None:
+    facts = {"round": 2, "session": "same", "prior": "shown"}
+    _score(store, BOT, 3, procedure={"round": 1, "session": "fresh", "prior": "withheld"})
+    _score(store, BOT, 3, procedure=facts)
+    with pytest.raises(ValueError, match="already holds a draw from pass 2.*next unused number"):
+        _score(store, BOT, 4, procedure=facts)
+    assert len(_assertions(store)) == 2
+
+
+def test_a_pass_that_leaves_the_plan_out_joins_the_procedure_it_does_not_contradict(store) -> None:
+    plan = {"traversal": "cell-wise", "reduction": "lower-median"}
+    _score(store, BOT, 3, at="2026-10-12T12:01:00Z",
+           procedure={"round": 1, "session": "fresh", "prior": "withheld"})
+    _score(store, BOT, 4, at="2026-10-12T12:02:00Z",
+           procedure={**plan, "round": 2, "session": "same", "prior": "shown", "seed": 5})
+    (procedure,) = _merged(store)["procedures"]
+    assert procedure["repeats"] == 2 and procedure["traversal"] == "cell-wise"
+    assert len({a["procedureId"] for a in _assertions(store)}) == 1
+
+
+def test_a_stated_plan_that_differs_is_its_own_procedure(store) -> None:
+    _score(store, BOT, 3, at="2026-10-12T12:01:00Z", procedure={
+        "round": 1, "session": "fresh", "prior": "withheld", "traversal": "cell-wise"})
+    _score(store, BOT, 4, at="2026-10-12T12:02:00Z", procedure={
+        "round": 2, "session": "same", "prior": "shown", "traversal": "row-wise"})
+    assert [p["repeats"] for p in _merged(store)["procedures"]] == [1, 1]

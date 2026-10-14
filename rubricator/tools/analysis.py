@@ -38,7 +38,7 @@ from rubricator.procedure import (
     contradiction,
     derived_rung,
     is_rfc3339,
-    procedure_id,
+    resolved_procedure_id,
     refresh_procedures,
     stored_prior_applied,
     round_id,
@@ -653,9 +653,17 @@ def measures_write(
             criteria_version=criteria_version,
         )
         if facts is not None:
-            assertion["procedureId"] = procedure_id(facts, signer)
-            if round_id(facts, signer["id"], contributor_id) is not None:
-                assertion["roundId"] = round_id(facts, signer["id"], contributor_id)
+            assertion["procedureId"] = resolved_procedure_id(
+                facts, signer, contribution.get("procedures", []))
+            rid = round_id(facts, signer["id"], contributor_id)
+            if rid is not None:
+                if any(a.get("roundId") == rid for a in target["assertions"]):
+                    raise ValueError(
+                        f"refused, nothing was written: cell {'/'.join(key)} already holds a "
+                        f"draw from pass {facts['round']}. A cell's next pass is a new round "
+                        "number: give this one the next unused number."
+                    )
+                assertion["roundId"] = rid
         off_contract += [
             _ARGUMENT_FIELD.sub(lambda m: _ARGUMENT_PATHS[m.group(1)], line)
             for line in _contract().refusals(
@@ -767,15 +775,16 @@ def measures_mark_missing(
 
     ``procedure`` is :func:`measures_write`'s: a blank from a repeated pass is a draw
     like any other, so it is stamped with the same procedure and round, and counted
-    in the repeats (#218). It is for one named cell, so ``procedure`` requires both
-    ``alternative_ids`` and ``criterion_ids``: the default selection is the whole
-    matrix, which "mark the rest" wants and a repeat never does.
+    in the repeats (#218). It is for one named cell, so ``procedure`` requires exactly one
+    ``alternative_ids`` and one ``criterion_ids`` and a terminal code (someone looked): the
+    default selection is the whole matrix, which "mark the rest" wants and a repeat never
+    does, and ``not-assessed`` / ``deferred`` are placeholders, not draws.
     """
-    if procedure is not None and not (criterion_ids and alternative_ids):
+    if procedure is not None and not (len(criterion_ids) == 1 and len(alternative_ids) == 1):
         raise ValueError(
-            "a blank from a repeated pass is for the cell it was scored for: name the "
-            "alternative_ids and the criterion_ids. With a procedure, an unnamed selection "
-            "would put a second draw beside every score in the matrix (and a first draw "
+            "refused, nothing was written: a blank from a repeated pass is for one cell: name "
+            "exactly one of alternative_ids and one of criterion_ids. A procedure on a wider "
+            "selection would put a second draw beside every score in it (and a first draw "
             "where nothing was scored)."
         )
     frame = store.frame(analysis_id)
@@ -796,6 +805,16 @@ def measures_mark_missing(
                 "what it means, so that a reader which does not implement it can still classify "
                 "the blank."
             )
+
+    if procedure is not None:
+        for crit in criteria:
+            facts = vocabulary().resolve(code, declarations_for(frame, crit)).facts
+            if facts is not None and not facts.terminal:
+                raise ValueError(
+                    f'refused, nothing was written: "{code}" says nobody has looked at the cell '
+                    "(or that it was set aside), so it is not a draw of a pass and carries no "
+                    "procedure. Mark it without one."
+                )
 
     alternatives = list(alternative_ids) or [
         a["id"] for a in frame["alternatives"] if not a.get("tombstoned")

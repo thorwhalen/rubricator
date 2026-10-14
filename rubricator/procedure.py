@@ -49,6 +49,7 @@ __all__ = [
     "contradiction",
     "derived_rung",
     "procedure_id",
+    "resolved_procedure_id",
     "refresh_procedures",
     "stored_prior_applied",
     "round_entry",
@@ -98,6 +99,30 @@ def procedure_id(facts: Mapping[str, Any], author: Mapping[str, Any]) -> str:
            agent.get("promptVersion"), agent.get("runId"), author.get("id")]
     digest = hashlib.sha256(json.dumps(key, separators=(",", ":")).encode()).hexdigest()
     return f"p-{digest[:8]}"
+
+
+def resolved_procedure_id(
+    facts: Mapping[str, Any], author: Mapping[str, Any], procedures: Sequence[Mapping[str, Any]],
+) -> str:
+    """The procedure a pass joins: its own id, or the one stored entry it does not contradict.
+
+    A pass that leaves the plan's traversal or reduction out (the connector gives none, a
+    first pass is written before the plan is known) must not split the author's record in
+    two: it joins the single stored procedure of the same model, prompt version and run
+    whose stated plan facts it does not contradict, and a later pass that states them
+    fills them in. Two stored entries that both fit, or none, and it is its own procedure.
+    """
+    own = procedure_id(facts, author)
+    if any(p.get("id") == own for p in procedures):
+        return own
+    fits = []
+    for p in procedures:
+        theirs = {k: p.get(k) for k in ("traversal", "reduction")}
+        if procedure_id(theirs, author) != p.get("id"):
+            continue  # another model, prompt or run
+        if all(facts.get(k) is None or theirs[k] is None or facts[k] == theirs[k] for k in theirs):
+            fits.append(p["id"])
+    return fits[0] if len(fits) == 1 else own
 
 
 def round_id(facts: Mapping[str, Any], author_id: str, contributor_id: str) -> str | None:
@@ -193,7 +218,7 @@ def refresh_procedures(
     from every assertion stored under the procedure, so the record cannot drift from
     the draws it describes.
     """
-    pid = procedure_id(facts, author)
+    pid = resolved_procedure_id(facts, author, contribution.get("procedures", []))
     procedures = {p["id"]: p for p in contribution.get("procedures", [])}
     rounds = {r["id"]: r for r in contribution.get("rounds", [])}
     rid = round_id(facts, author["id"], contributor_id)

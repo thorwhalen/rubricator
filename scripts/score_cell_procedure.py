@@ -1,6 +1,6 @@
-"""Grade the procedure facts a scorer passes on a repeated pass (#218): scenarios in, one table out.
+"""Grade the procedure facts a scorer passes with each pass (#218): scenarios in, one table out.
 
-``score-cell`` v4 teaches a scorer to describe a repeated pass to ``measures_write`` (or
+``score-cell`` v4 teaches a scorer to describe a pass to ``measures_write`` (or
 ``measures_mark_missing``) through the closed ``procedure`` argument and to state only what is
 true of the pass. This builds the packet a subject is given and grades the ``procedure`` it
 would pass, against ``docs/evaluation/score-cell/procedure.json``. Nothing here calls a model.
@@ -10,9 +10,11 @@ would pass, against ``docs/evaluation/score-cell/procedure.json``. Nothing here 
 
 The subject writes ``[{"cellId", "output", "call": {"tool", "procedure"}}]`` -- one entry per
 scenario id, ``cellId`` carrying the scenario id -- where ``procedure`` is ``null`` when it passes
-none. The graded things, each counted per scenario:
+none, and a ``measures_mark_missing`` call also carries ``alternative_ids`` and ``criterion_ids``.
+The graded things, each counted per scenario:
 
-- **valid**: the procedure passes the tool's own check (only the six facts, in range);
+- **valid**: a write call whose procedure passes the tool's own check (only the six facts, in
+  range), and a ``measures_mark_missing`` that names exactly its one cell;
 - **true**: every fact the scenario fixes is what it says, none the scenario forbids is claimed;
 - **left out**: a fact the scenario does not give is not invented (a fact outside `must` and `may` fails);
 - **no claim of independence**: no key naming one, and no count, model or time.
@@ -50,47 +52,67 @@ def packet() -> list[dict[str, Any]]:
     return out
 
 
-def _procedure(output: Mapping[str, Any]) -> tuple[bool, Any]:
-    """``(a call was made, its procedure)``; a missing call counts as a procedure of none."""
-    call = output.get("call") or {}
-    return call.get("tool") in TOOLS, call.get("procedure")
+def _call(output: Mapping[str, Any]) -> Mapping[str, Any]:
+    call = output.get("call")
+    return call if isinstance(call, Mapping) and call.get("tool") in TOOLS else {}
 
 
-def grade_one(expect: Mapping[str, Any], output: Mapping[str, Any]) -> dict[str, bool]:
-    made, facts = _procedure(output)
+def _names_its_cell(call: Mapping[str, Any], cell: Mapping[str, Any]) -> bool:
+    """``measures_mark_missing`` names exactly the one alternative and criterion; the other tool needs no ids."""
+    if call.get("tool") != "measures_mark_missing":
+        return True
+    return (call.get("alternative_ids") == [cell["alternative"]]
+            and call.get("criterion_ids") == [cell["criterion"]])
+
+
+def grade_one(expect: Mapping[str, Any], output: Mapping[str, Any], cell: Mapping[str, Any]) -> dict[str, bool]:
+    """Four verdicts on one scenario.
+
+    ``valid``: a write call was made, its procedure (if the scenario wants one) passes the
+    tool's own check, and a ``measures_mark_missing`` names its one cell. ``true``: the
+    facts the scenario fixes are as it says. ``left out`` and ``no independence`` read what
+    was passed whether or not it was valid: a stated fact outside ``must`` and ``may`` is
+    invented, and any word of independence in the call is a claim. Passing no procedure
+    claims and invents nothing.
+    """
+    call = _call(output)
+    made = bool(call)
+    raw = call.get("procedure")
+    facts = raw if isinstance(raw, Mapping) else None
+    valid = made and _names_its_cell(call, cell)
     if expect.get("omit"):
-        clean = "independen" not in json.dumps(output.get("call", {})).lower()
-        return {"valid": made, "true": not facts, "left out": not facts, "no independence": clean}
-    facts = facts if isinstance(facts, Mapping) else None
-    valid = made and facts is not None
-    if valid:
-        try:
-            check_facts(facts)
-        except ValueError:
-            valid = False
-    facts = facts or {}
+        valid = valid and facts is None
+    else:
+        valid = valid and facts is not None
+        if valid:
+            try:
+                check_facts(facts)
+            except ValueError:
+                valid = False
+    stated = facts or {}
     must, must_not = expect.get("must", {}), expect.get("mustNot", {})
-    true = valid and all(facts.get(k) == v for k, v in must.items()) and all(
-        facts.get(k) not in vs for k, vs in must_not.items())
+    true = valid and all(stated.get(k) == v for k, v in must.items()) and all(
+        stated.get(k) not in vs for k, vs in must_not.items())
     return {
-        "valid": valid,
+        "valid": bool(valid),
         "true": bool(true),
-        "left out": valid and not any(k in facts for k in expect.get("absent", ()))
-        and set(facts) <= set(must) | set(expect.get("may", ())),
-        "no independence": valid and "independen" not in json.dumps(output.get("call", {})).lower(),
+        "left out": made and not any(k in stated for k in expect.get("absent", ()))
+        and set(stated) <= set(must) | set(expect.get("may", ())),
+        "no independence": made and "independen" not in json.dumps(call).lower(),
     }
 
 
 def grade(runs: Mapping[str, list[Mapping[str, Any]]]) -> dict[str, Any]:
-    _, scenarios = load()
-    expects = {s["id"]: s["expect"] for s in scenarios["scenarios"]}
+    cells, scenarios = load()
+    by_cell = {c["id"]: c for c in cells["cells"]}
+    expects = {s["id"]: (s["expect"], by_cell[s["cell"]]) for s in scenarios["scenarios"]}
     table: dict[str, Any] = {}
     for name, run in runs.items():
         by_id = {o["cellId"]: o for o in run}
         totals: dict[str, list[int]] = {}
         failed = []
-        for sid, expect in expects.items():
-            result = grade_one(expect, by_id.get(sid, {}))
+        for sid, (expect, cell) in expects.items():
+            result = grade_one(expect, by_id.get(sid, {}), cell)
             for k, ok in result.items():
                 totals.setdefault(k, [0, 0])
                 totals[k][0] += ok
