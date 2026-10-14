@@ -273,3 +273,54 @@ def test_mcp_layer_imports_no_model_client_in_a_fresh_subprocess() -> None:
         "runtime (no API key) must never import the deployed-agent runtime (owns model "
         "access through `aix`) -- even transitively."
     )
+
+
+#: The modules a connector process can reach at *call* time (#133): every module
+#: in the package except the two runtimes that legitimately own model access --
+#: the deployed agent (ADR-0019) and the evaluation harness, whose model-based
+#: checkers ADR-0010 allows because a harness is offline and has a key.
+PACKAGE_DIR = Path(rubricator.__file__).parent
+MODEL_RUNTIMES = {"agent", "evaluation"}
+CONNECTOR_FILES = [
+    p for p in _python_files(PACKAGE_DIR)
+    if p.relative_to(PACKAGE_DIR).parts[0] not in MODEL_RUNTIMES
+]
+
+
+@pytest.mark.parametrize(
+    "path", CONNECTOR_FILES, ids=lambda p: str(p.relative_to(PACKAGE_DIR)).replace("\\", "/")
+)
+def test_no_connector_module_imports_a_model_client_even_at_call_time(path: Path) -> None:
+    """ADR-0019 per file, over the whole connector, function bodies included.
+
+    The fresh-subprocess test above sees what *importing* the server loads, so it
+    misses ``def make_server(): import aix`` -- the idiom ``mcp/server.py``
+    already uses, legitimately, for ``py2mcp``. The AST walk reaches into every
+    function body, so a call-time model import fails here, at CI time, instead
+    of at the first request in production.
+    """
+    offending = _imported_roots(path) & MODEL_MODULES
+    assert not offending, (
+        f"{path.relative_to(PACKAGE_DIR)} imports {sorted(offending)}, even if only inside a "
+        "function. ADR-0019: the connector has no API key, and only the deployed agent and "
+        "the evaluation harness may reach a model -- through `aix`."
+    )
+
+
+def test_the_connector_scan_covers_the_named_seams_and_spares_the_model_runtimes() -> None:
+    names = {str(p.relative_to(PACKAGE_DIR)).replace("\\", "/") for p in CONNECTOR_FILES}
+    assert {"compose.py", "surface/__init__.py", "mcp/server.py", "tools/search.py"} <= names
+    assert not {n for n in names if n.split("/")[0] in MODEL_RUNTIMES}
+
+
+def test_the_scan_catches_a_model_import_deferred_into_a_function(tmp_path: Path) -> None:
+    """The planted violation of #133: invisible to an import-time check, caught by the walk."""
+    planted = tmp_path / "server.py"
+    planted.write_text(
+        "def make_server(blobs):\n"
+        "    import py2mcp  # legitimate: the host framework\n"
+        "    from aix import chat  # not: a model client, reached only when a handler runs\n"
+        "    return chat\n",
+        encoding="utf-8",
+    )
+    assert _imported_roots(planted) & MODEL_MODULES == {"aix"}
