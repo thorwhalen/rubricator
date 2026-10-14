@@ -282,7 +282,7 @@ def test_times_are_ordered_by_instant_not_by_text(store) -> None:
     _score(store, BOT, 4, at="2026-10-12T11:00:00Z", procedure={"round": 2, "session": "fresh"})
     (procedure,) = _merged(store)["procedures"]
     assert (procedure["startedAt"], procedure["finishedAt"]) == (
-        "2026-10-12T11:00:00Z", "2026-10-12T12:00:00+02:00")
+        "2026-10-12T12:00:00+02:00", "2026-10-12T11:00:00Z")  # 10:00Z, then 11:00Z
 
 
 def test_a_persona_has_its_own_pass_numbers(store) -> None:
