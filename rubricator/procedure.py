@@ -244,7 +244,9 @@ def instant(text: str):
     from datetime import datetime, timezone
 
     try:
-        moment = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        # Python 3.10's parser takes only 3 or 6 fractional digits and no "Z".
+        padded = re.sub(r"\.(\d+)", lambda m: "." + (m.group(1) + "000000")[:6], text)
+        moment = datetime.fromisoformat(padded.replace("Z", "+00:00"))
     except ValueError:
         return None
     return moment if moment.tzinfo else moment.replace(tzinfo=timezone.utc)
