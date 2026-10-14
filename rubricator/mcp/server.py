@@ -27,6 +27,8 @@ whole reason the tool layer is denied a model client by a test.
 from __future__ import annotations
 
 import inspect
+import os
+from collections.abc import Sequence
 from typing import Any, Callable
 
 from rubricator.compose import Runtime, build_runtime
@@ -155,8 +157,12 @@ def _tool_from_row(spec: ToolSpec, verb: Callable[..., Any], *, retention_days: 
     return tool
 
 
-def main() -> None:  # pragma: no cover - process entry point
-    """Serve over stdio, which is how a desktop client attaches."""
+def main(argv: Sequence[str] | None = None) -> None:  # pragma: no cover - process entry point
+    """Serve over stdio, which is how a desktop client attaches.
+
+    stdout is the protocol channel, so nothing else may write to it: the
+    framework's start-up banner is switched off, and diagnostics go to stderr.
+    """
     import argparse
 
     parser = argparse.ArgumentParser(prog="rubricator-mcp")
@@ -165,5 +171,16 @@ def main() -> None:  # pragma: no cover - process entry point
         help="directory to store analyses in (default: the user-data working store, "
         "moved by RUBRICATOR_DATA_DIR)",
     )
-    args = parser.parse_args()
-    make_server(root=args.root).run()
+    args = parser.parse_args(argv)
+    if args.root is not None:
+        # An empty value is an unset variable in a client config, which would
+        # otherwise fall through to the default store without a word.
+        if not args.root.strip():
+            parser.error("--root is empty (an unset variable in the client config?)")
+        if os.path.exists(args.root) and not os.path.isdir(args.root):
+            parser.error(f"--root {args.root!r} exists and is not a directory")
+    make_server(root=args.root).run(transport="stdio", show_banner=False)
+
+
+if __name__ == "__main__":  # pragma: no cover
+    main()

@@ -79,6 +79,7 @@ Issues = "https://github.com/thorwhalen/rubricator/issues"
 
 [project.scripts]
 rubricator = "rubricator.cli:main"
+rubricator-mcp = "rubricator.mcp.server:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["rubricator"]

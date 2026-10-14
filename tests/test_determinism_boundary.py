@@ -216,6 +216,15 @@ def test_mcp_layer_imports_no_model_client_in_a_fresh_subprocess() -> None:
         "import json\n"
         "import sys\n"
         "import rubricator.mcp.server\n"
+        # The framework is imported lazily inside make_server, so importing the
+        # module alone loads none of it: build the server when it is installed
+        # (the connector job), so the check sees what a running server holds.
+        "try:\n"
+        "    import py2mcp\n"
+        "except ImportError:\n"
+        "    pass\n"
+        "else:\n"
+        "    rubricator.mcp.server.make_server(blobs={})\n"
         "print(json.dumps(sorted(sys.modules)))\n"
     )
     result = subprocess.run(
