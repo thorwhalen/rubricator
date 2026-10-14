@@ -63,8 +63,9 @@ async def _roundtrip(url: str):
     from mcp import ClientSession
     from mcp.client.streamable_http import streamable_http_client
 
-    async with streamable_http_client(url) as (read, write, _):
-        async with ClientSession(read, write) as session:
+    # Newer SDKs yield (read, write); older ones add a session-id getter.
+    async with streamable_http_client(url) as streams:
+        async with ClientSession(streams[0], streams[1]) as session:
             init = await session.initialize()
             tools = (await session.list_tools()).tools
             templates = (await session.list_resource_templates()).resourceTemplates
