@@ -657,7 +657,7 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
             "unless allow_contested_reduction is set, and is flagged contested. A mean is "
             "refused, naming the level of measurement; a nominal criterion gets modes only. "
             "Each cell carries agreement: its lowest independence rung and what that lets you "
-            "call it (self-consistency, test-retest, never inter-rater)."
+            "call it (self-consistency, test-retest; inter-rater only across distinct humans)."
         ),
         determinism="Order statistics over stored values.",
         failure="reduction=mean is refused naming the level of measurement; a polarised cell reduces to null, flagged.",
@@ -1034,11 +1034,11 @@ MEASURED: Mapping[str, Any] = {
 AWAITING_MEASUREMENT: Mapping[str, Any] | None = {
     "issue": 199,
     "advertised": {
-        "tools": 15, "bytes": 21343,
-        "sha256": "97059d639c477397f90a61a691284a1ac82322fa620cecb0fffdca5bafd19fe1",
+        "tools": 15, "bytes": 21365,
+        "sha256": "e3096578be403a2f4f5fcd9b86bc8187afdf3b0542a6d3099629609fef18b1ac",
     },
     "wholeSurface": {
-        "tools": 22, "bytes": 27556,
-        "sha256": "929c95cef20f2d659f255561db517b6fc44084b0b3c55bfbdc8d29556fce9e88",
+        "tools": 22, "bytes": 27578,
+        "sha256": "848ce4c982369df5e2d66ef9a5be75e5c4ec94be7694c93f8e17f7afda8d8beb",
     },
 }

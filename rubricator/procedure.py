@@ -27,7 +27,7 @@ Pure: functions of dicts, no store, no clock. The write path is
 >>> bot = {"id": "bot", "kind": "agent", "agent": {"name": "r", "model": "m1", "promptVersion": "v3"}}
 >>> procedure_id(facts, bot)
 'p-c1dd33d0'
->>> round_entry(facts, "bot")["feedback"]
+>>> round_entry(facts, "bot", "bot")["feedback"]
 'none'
 >>> derived_rung(facts, has_perturbation=False)
 'perturbed'
@@ -69,6 +69,12 @@ def check_facts(facts: Any) -> None:
             f"procedure has unknown key(s) {', '.join(unknown)}; allowed: {', '.join(FACTS)}. "
             "The tools count the repeats and read the model and seeds themselves."
         )
+    from rubricator.surface.frozen import PROCEDURE
+
+    for key in ("traversal", "reduction"):
+        allowed = PROCEDURE["properties"][key]["enum"]
+        if facts.get(key) is not None and facts[key] not in allowed:
+            raise ValueError(f"procedure.{key} is one of {', '.join(allowed)}; got {facts[key]!r}.")
     r = facts.get("round")
     if r is not None and (isinstance(r, bool) or not isinstance(r, int) or r < 1):
         raise ValueError(f"procedure.round is the pass number, 1 or more; got {r!r}.")
@@ -91,14 +97,19 @@ def procedure_id(facts: Mapping[str, Any], author: Mapping[str, Any]) -> str:
     return f"p-{digest[:8]}"
 
 
-def round_id(facts: Mapping[str, Any]) -> str | None:
-    return f"round-{facts['round']}" if facts.get("round") is not None else None
+def round_id(facts: Mapping[str, Any], author_id: str, contributor_id: str) -> str | None:
+    """The id of the pass: one per (signing author, number), so a persona's pass is its own."""
+    if facts.get("round") is None:
+        return None
+    suffix = "" if author_id == contributor_id else f"-{author_id}"
+    return f"round-{facts['round']}{suffix}"
 
 
-def round_entry(facts: Mapping[str, Any], contributor_id: str) -> dict[str, Any]:
+def round_entry(facts: Mapping[str, Any], author_id: str, contributor_id: str) -> dict[str, Any]:
     """The ``rounds[]`` entry for a pass: ``feedback`` is what the prior-handling fact says."""
     entry: dict[str, Any] = {
-        "id": round_id(facts), "index": facts["round"], "attribution": "attributed",
+        "id": round_id(facts, author_id, contributor_id), "index": facts["round"],
+        "attribution": "attributed",
     }
     label = []
     if facts.get("seed") is not None:
@@ -106,7 +117,7 @@ def round_entry(facts: Mapping[str, Any], contributor_id: str) -> dict[str, Any]
     if facts.get("prior"):
         label.append(f"prior {facts['prior']}")
         entry["feedback"] = _FEEDBACK[facts["prior"]]
-    label.append(f"{contributor_id}'s pass {facts['round']}")
+    label.append(f"{author_id}'s pass {facts['round']}")
     entry["label"] = ", ".join(label)
     return entry
 
@@ -165,25 +176,49 @@ def refresh_procedures(
     pid = procedure_id(facts, author)
     procedures = {p["id"]: p for p in contribution.get("procedures", [])}
     rounds = {r["id"]: r for r in contribution.get("rounds", [])}
-    rid = round_id(facts)
+    rid = round_id(facts, author["id"], contributor_id)
     if rid is not None:
-        entry = round_entry(facts, contributor_id)
+        entry = round_entry(facts, author["id"], contributor_id)
         old = rounds.get(rid)
-        if old is not None and old.get("feedback") != entry.get("feedback"):
+        if old is not None and "feedback" in old and "feedback" in entry and (
+            old["feedback"] != entry["feedback"]
+        ):
             raise ValueError(
                 f"refused, nothing was written: pass {facts['round']} was already recorded with "
-                f"prior {'withheld' if old.get('feedback') == 'none' else 'shown'} and cannot be "
+                f"prior {'withheld' if old['feedback'] == 'none' else 'shown'} and cannot be "
                 "restated; a draw that saw the prior is a different pass, so give it the next "
                 "round number."
             )
         rounds[rid] = {**(old or {}), **entry}
+        if "feedback" not in entry and old is not None and "feedback" in old:
+            rounds[rid]["label"] = old["label"]
     procedures[pid] = _procedure(pid, facts, author, contribution, procedures.get(pid))
     contribution["procedures"] = [procedures[k] for k in sorted(procedures)]
     contribution["rounds"] = [rounds[k] for k in sorted(rounds, key=lambda k: (rounds[k]["index"], k))]
     for rid_, entry in rounds.items():
-        times = sorted(a["at"] for _c, a in _draws(contribution) if a.get("roundId") == rid_)
-        if times:
-            entry["openedAt"], entry["closedAt"] = times[0], times[-1]
+        span = _span(a["at"] for _c, a in _draws(contribution) if a.get("roundId") == rid_)
+        if span:
+            entry["openedAt"], entry["closedAt"] = span
+
+
+def _instant(text: str):
+    """A timestamp as a point in time, so ``12:00+02:00`` sorts before ``11:00Z``."""
+    from datetime import datetime, timezone
+
+    try:
+        moment = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return moment if moment.tzinfo else moment.replace(tzinfo=timezone.utc)
+
+
+def _span(times) -> tuple[str, str] | None:
+    """The earliest and latest of ``times`` by instant, each as written; ``None`` when empty."""
+    times = list(times)
+    if not times:
+        return None
+    ordered = sorted(times, key=lambda t: (_instant(t) is None, _instant(t) or 0, t))
+    return ordered[0], ordered[-1]
 
 
 def _draws(contribution: Mapping[str, Any]):
@@ -229,7 +264,7 @@ def _procedure(
         entry["traversal"] = traversal
     if reduction:
         entry["reduction"] = reduction
-    times = sorted(a["at"] for _c, a in mine)
-    if times:
-        entry["startedAt"], entry["finishedAt"] = times[0], times[-1]
+    span = _span(a["at"] for _c, a in mine)
+    if span:
+        entry["startedAt"], entry["finishedAt"] = span
     return entry

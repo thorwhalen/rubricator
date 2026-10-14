@@ -263,3 +263,64 @@ def test_the_surface_accepts_the_procedure_argument_and_refuses_extras() -> None
     with pytest.raises(Exception, match="repeats"):
         verbs["measures_write"](analysis_id="a", contributor_id="bot", author=BOT, cells=[cell],
                                 procedure={"repeats": 5})
+
+
+# --- regressions from the adversarial review ----------------------------------------
+
+
+def test_the_record_reads_the_stored_author_not_the_argument(store) -> None:
+    _score(store, BOT, 3, procedure={"round": 1, "session": "fresh"})
+    drifted = agent("bot", "Bot", name="rubricator", model="model-z", prompt_version="v9", run_id="run-9")
+    _score(store, drifted, 4, procedure={"round": 2, "session": "fresh"})
+    merged = _merged(store)
+    assert len(merged["procedures"]) == 1
+    assert "model-z" not in merged["procedures"][0]["notes"] and merged["procedures"][0]["repeats"] == 2
+
+
+def test_times_are_ordered_by_instant_not_by_text(store) -> None:
+    _score(store, BOT, 3, at="2026-10-12T12:00:00+02:00", procedure={"round": 1, "session": "fresh"})
+    _score(store, BOT, 4, at="2026-10-12T11:00:00Z", procedure={"round": 2, "session": "fresh"})
+    (procedure,) = _merged(store)["procedures"]
+    assert (procedure["startedAt"], procedure["finishedAt"]) == (
+        "2026-10-12T11:00:00Z", "2026-10-12T12:00:00+02:00")
+
+
+def test_a_persona_has_its_own_pass_numbers(store) -> None:
+    from rubricator.contributors import persona
+
+    p = persona(BOT, "the buyer")
+    _score(store, BOT, 3, procedure={"round": 1, "prior": "withheld"}, independence="resampled")
+    measures_write(store, analysis_id="a", contributor_id="bot", author=p, at=AT,
+                   cells=[{"alternativeId": "x", "criterionId": "c", "value": 4, "justification": "j",
+                           "evidence": CITED}],
+                   procedure={"round": 1, "prior": "shown"})
+    ids = [r["id"] for r in _merged(store)["rounds"]]
+    assert ids == ["bot:round-1", "bot:round-1-bot:the-buyer"]
+
+
+def test_stating_the_prior_after_the_fact_completes_a_round_and_a_restatement_names_the_truth(store) -> None:
+    _score(store, BOT, 3, procedure={"round": 1, "session": "fresh"})
+    _score(store, BOT, 3, procedure={"round": 1, "session": "fresh", "prior": "withheld"})
+    assert _merged(store)["rounds"][0]["feedback"] == "none"
+    with pytest.raises(ValueError, match="prior withheld"):
+        _score(store, BOT, 3, procedure={"round": 1, "prior": "shown"})
+
+
+def test_only_a_perturbed_draw_gets_a_perturbation_record(store) -> None:
+    _score(store, BOT, 3, procedure={"round": 1, "session": "same", "seed": 5})
+    _score(store, BOT, 3, procedure={"round": 2, "session": "fresh", "seed": 5}, independence="resampled")
+    assert all("perturbation" not in a for a in _assertions(store))
+
+
+def test_traversal_and_reduction_are_checked_for_a_direct_caller(store) -> None:
+    with pytest.raises(ValueError, match="procedure.reduction"):
+        _score(store, BOT, 3, procedure={"reduction": "mean"})
+    with pytest.raises(ValueError, match="procedure.traversal"):
+        _score(store, BOT, 3, procedure={"traversal": "bogus"})
+
+
+def test_a_model_id_differing_only_in_case_or_space_is_the_same_model(store) -> None:
+    _score(store, BOT, 3, independence="resampled")
+    twin = agent("twin", "Twin", name="rubricator", model=" Model-A ")
+    with pytest.raises(ValueError, match="independent-agent-is-distinct"):
+        _score(store, twin, 4, independence="independent")

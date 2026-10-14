@@ -69,9 +69,9 @@ LABELS: Mapping[str, str] = {
 
 
 def agent_model(author: Mapping[str, Any] | None) -> str | None:
-    """The model id an agent author records, or ``None`` when it does not."""
+    """The model id an agent author records (trimmed, case-folded for comparison), or ``None``."""
     model = ((author or {}).get("agent") or {}).get("model")
-    return model if isinstance(model, str) and model else None
+    return model.strip().casefold() or None if isinstance(model, str) else None
 
 
 def policy_rung(assertion: Mapping[str, Any], authors: Mapping[str, Mapping[str, Any]]) -> str | None:

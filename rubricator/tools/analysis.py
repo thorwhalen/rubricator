@@ -611,6 +611,9 @@ def measures_write(
     mergeable, skipped = store.mergeable_contributions(analysis_id)
     _refuse_an_unread_own_file(store, analysis_id, contributor_id, skipped)
     contribution, introduced = _existing(store, analysis_id, contributor_id, author)
+    # The record the store holds for this author, not the argument: a later call cannot
+    # restate the model a stored assertion was signed under (#99).
+    signer = next(a for a in contribution["authors"] if a["id"] == author["id"])
     index = {
         (c["alternativeId"], c["criterionId"], c["measure"]): c
         for c in contribution["cells"]
@@ -647,9 +650,9 @@ def measures_write(
             criteria_version=criteria_version,
         )
         if facts is not None:
-            assertion["procedureId"] = procedure_id(facts, author)
-            if round_id(facts) is not None:
-                assertion["roundId"] = round_id(facts)
+            assertion["procedureId"] = procedure_id(facts, signer)
+            if round_id(facts, signer["id"], contributor_id) is not None:
+                assertion["roundId"] = round_id(facts, signer["id"], contributor_id)
         off_contract += [
             _ARGUMENT_FIELD.sub(lambda m: _ARGUMENT_PATHS[m.group(1)], line)
             for line in _contract().refusals(
@@ -663,7 +666,7 @@ def measures_write(
 
     contribution["cells"] = [index[k] for k in sorted(index)]
     if facts is not None:
-        refresh_procedures(contribution, facts=facts, author=author, contributor_id=contributor_id)
+        refresh_procedures(contribution, facts=facts, author=signer, contributor_id=contributor_id)
         off_contract += [
             line for field in ("procedures", "rounds")
             for line in _contract().refusals(
@@ -720,7 +723,7 @@ def _rung_for(
                          f"{cell['criterionId']}: {clash}")
     if independence is None:
         independence = derived_rung(facts, has_perturbation=perturbation is not None)
-    if independence is not None and perturbation is None and facts.get("seed") is not None:
+    if independence == "perturbed" and perturbation is None and facts.get("seed") is not None:
         perturbation = {"kind": "traversal-order", "seed": facts["seed"],
                         **({"detail": f"{facts['traversal']} traversal"} if facts.get("traversal") else {})}
     return independence, perturbation
