@@ -554,9 +554,10 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
             "evidence, or a qualified blank naming its missingness code. Writes only that "
             "contributor's file and never echoes a previously written score. Each assertion "
             "is stamped with the criteria-set version; pass expected_criteria_version to be "
-            "refused if the set moved since you read it. For a repeated or re-scoring pass an "
-            "agent passes procedure (traversal, reduction, plan seed, round number, same or "
-            "fresh session, whether the prior was withheld or shown): the tools record the "
+            "refused if the set moved since you read it. An agent passes procedure on every "
+            "pass, the first included (round number, same or fresh session, whether the prior "
+            "was withheld or shown, and the plan's traversal, reduction and seed when it has "
+            "one); a cell takes one draw per round: the tools record the "
             "procedure, count its repeats and derive each draw's independence rung, and refuse "
             "a rung the pass contradicts. Honesty rules run before the bytes land (ADR-0024)."
         ),
@@ -583,7 +584,11 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
             "named, against every criterion, or those named -- with a note saying why. The "
             "code must be one the analysis's own vocabulary resolves: the core six, or a code "
             "declared on the analysis or the criterion. This is what makes 'fill these two "
-            "criteria and mark the rest deferred' a first-class instruction."
+            "criteria and mark the rest deferred' a first-class instruction. A blank from a "
+            "pass takes the same procedure as measures_write, so it is counted and stamped "
+            "like any other draw; with a procedure it is for one cell (exactly one of "
+            "alternative_ids and one of criterion_ids) and its code is one that says someone "
+            "looked, not not-assessed or deferred."
         ),
         determinism="Set arithmetic over the frame, then measures_write.",
         failure="An undeclared code is refused, listing what is known and how to declare a new one.",
@@ -591,7 +596,7 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
             {"analysis_id": S, "contributor_id": S, "author": AUTHOR,
              "at": DATE_TIME, "code": S, "note": S,
              "criterion_ids": at_least_one(S), "alternative_ids": at_least_one(S),
-             "independence": INDEPENDENCE},
+             "independence": INDEPENDENCE, "procedure": PROCEDURE},
             ("analysis_id", "contributor_id", "author", "code", "note"),
         ),
         output_schema=obj(
@@ -1034,11 +1039,11 @@ MEASURED: Mapping[str, Any] = {
 AWAITING_MEASUREMENT: Mapping[str, Any] | None = {
     "issue": 199,
     "advertised": {
-        "tools": 15, "bytes": 21365,
-        "sha256": "e3096578be403a2f4f5fcd9b86bc8187afdf3b0542a6d3099629609fef18b1ac",
+        "tools": 15, "bytes": 22152,
+        "sha256": "35b2988518a91f9393ce6441592d330557e4a32cb4c10bcd58a6e1b386a2bdb1",
     },
     "wholeSurface": {
-        "tools": 22, "bytes": 27578,
-        "sha256": "848ce4c982369df5e2d66ef9a5be75e5c4ec94be7694c93f8e17f7afda8d8beb",
+        "tools": 22, "bytes": 28365,
+        "sha256": "81c4b561bb3ab87e13b48f0b2c5a0c048ad19bcf66284f5ed770096bccec6907",
     },
 }

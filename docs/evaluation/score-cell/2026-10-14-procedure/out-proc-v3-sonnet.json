@@ -1,0 +1,210 @@
+[
+ {
+  "cellId": "p2-repeat-same-conversation",
+  "output": {
+   "cell": {
+    "alternativeId": "quillbase",
+    "criterionId": "support-window",
+    "justification": "The vendor's own support page states a dated support end for the Team plan, 31 March 2030, more than 12 months out, which is the level-5 condition.",
+    "evidence": [
+     {"id": "s1", "target": "quillbase-support-page", "sourceType": "primary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "The Team plan is supported until 31 March 2030."}]}
+    ],
+    "value": 5
+   },
+   "confidence": "high",
+   "dependsOn": []
+  },
+  "call": {"tool": "measures_write", "procedure": {"traversal": "cell-wise", "reduction": "lower-median", "seed": 12, "round": 2, "session": "same", "prior": "shown"}}
+ },
+ {
+  "cellId": "p3-fresh-no-prior",
+  "output": {
+   "cell": {
+    "alternativeId": "quillbase",
+    "criterionId": "data-export",
+    "justification": "The vendor's help centre and API reference document export of every workspace to Markdown and JSON, with the JSON schema published and the bulk export in the open Notes Interchange schema, which is the level-5 condition.",
+    "evidence": [
+     {"id": "s1", "target": "quillbase-help-export", "sourceType": "primary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "Export every workspace to Markdown and JSON; the JSON schema is published in our API reference."}]},
+     {"id": "s2", "target": "quillbase-api-reference", "sourceType": "primary", "stance": "qualifies", "selectors": [{"type": "TextQuoteSelector", "exact": "Exports produced by the bulk endpoint are documented in the open Notes Interchange schema, version 2."}]}
+    ],
+    "value": 5
+   },
+   "confidence": "high",
+   "dependsOn": []
+  },
+  "call": {"tool": "measures_write", "procedure": {"traversal": "cell-wise", "reduction": "lower-median", "seed": 13, "round": 3, "session": "fresh", "prior": "withheld"}}
+ },
+ {
+  "cellId": "p4-no-plan-given",
+  "output": {
+   "cell": {
+    "alternativeId": "quillbase",
+    "criterionId": "data-export",
+    "justification": "The vendor's help centre and API reference document export of every workspace to Markdown and JSON, with the JSON schema published and the bulk export in the open Notes Interchange schema, which is the level-5 condition.",
+    "evidence": [
+     {"id": "s1", "target": "quillbase-help-export", "sourceType": "primary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "Export every workspace to Markdown and JSON; the JSON schema is published in our API reference."}]},
+     {"id": "s2", "target": "quillbase-api-reference", "sourceType": "primary", "stance": "qualifies", "selectors": [{"type": "TextQuoteSelector", "exact": "Exports produced by the bulk endpoint are documented in the open Notes Interchange schema, version 2."}]}
+    ],
+    "value": 5
+   },
+   "confidence": "high",
+   "dependsOn": []
+  },
+  "call": {"tool": "measures_write", "procedure": {"round": 2, "session": "fresh", "prior": "withheld"}}
+ },
+ {
+  "cellId": "p5-asked-for-independent",
+  "output": {
+   "cell": {
+    "alternativeId": "mossnote",
+    "criterionId": "data-export",
+    "justification": "Notes and folders export to open plain Markdown but comments and attachments only as a Mossnote-readable bundle, so it clears the level-3 anchor and falls short of level 5: a 4, between anchors 3 and 5.",
+    "evidence": [
+     {"id": "s1", "target": "mossnote-help-export", "sourceType": "primary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "Notes and folders export to plain Markdown. Comments and attachments export only as a .mossarchive bundle, readable by Mossnote."}]}
+    ],
+    "value": 4
+   },
+   "confidence": "high",
+   "dependsOn": []
+  },
+  "call": {"tool": "measures_write", "procedure": {"round": 2, "session": "same", "prior": "shown"}}
+ },
+ {
+  "cellId": "p6-blank-on-a-repeat",
+  "output": {
+   "cell": {
+    "alternativeId": "larkpad",
+    "criterionId": "support-window",
+    "missing": {
+     "code": "not-evidenced",
+     "note": "Retrieval covered the Larkpad website, the Larkpad changelog and two independent review sites and returned no spans on a support commitment, so nothing quotable places this cell."
+    }
+   },
+   "dependsOn": []
+  },
+  "call": {"tool": "measures_mark_missing", "procedure": {"seed": 22, "round": 2, "session": "same", "prior": "shown"}, "alternative_ids": ["larkpad"], "criterion_ids": ["support-window"]}
+ },
+ {
+  "cellId": "p7-counts-offered",
+  "output": {
+   "cell": {
+    "alternativeId": "mossnote",
+    "criterionId": "migration-effort",
+    "justification": "The vendor's own help centre states that leaving is handled by its paid Migration Services team, the level-1 condition, and a consultancy's blog says the same for organisations over 50 seats.",
+    "evidence": [
+     {"id": "s1", "target": "mossnote-help-leaving", "sourceType": "primary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "Moving an organisation off Mossnote is handled by our paid Migration Services team."}]},
+     {"id": "s2", "target": "consultancy-blog", "sourceType": "secondary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "Mossnote requires a paid engagement with its own services team to migrate an organisation of more than 50 seats."}]}
+    ],
+    "value": 1
+   },
+   "confidence": "high",
+   "dependsOn": []
+  },
+  "call": {"tool": "measures_write", "procedure": {"round": 2, "session": "fresh", "prior": "withheld"}}
+ },
+ {
+  "cellId": "p8-first-of-planned-repeats",
+  "output": {
+   "cell": {
+    "alternativeId": "larkpad",
+    "criterionId": "data-export",
+    "justification": "The vendor's developer docs state every workspace, including comments and attachments, exports as JSON following the published OpenNotes 1.2 schema, which is the level-5 condition.",
+    "evidence": [
+     {"id": "s1", "target": "larkpad-developer-docs", "sourceType": "primary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "Every workspace, including comments and attachments, exports as JSON that follows the published OpenNotes 1.2 schema."}]}
+    ],
+    "value": 5
+   },
+   "confidence": "high",
+   "dependsOn": []
+  },
+  "call": {"tool": "measures_write", "procedure": {"traversal": "cell-wise", "reduction": "lower-median", "seed": 11, "round": 1, "session": "fresh", "prior": "withheld"}}
+ },
+ {
+  "cellId": "p9-harness-says-fresh-but-prior-visible",
+  "output": {
+   "cell": {
+    "alternativeId": "quillbase",
+    "criterionId": "data-export",
+    "justification": "The vendor's help centre and API reference document export of every workspace to Markdown and JSON, with the JSON schema published and the bulk export in the open Notes Interchange schema, which is the level-5 condition.",
+    "evidence": [
+     {"id": "s1", "target": "quillbase-help-export", "sourceType": "primary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "Export every workspace to Markdown and JSON; the JSON schema is published in our API reference."}]},
+     {"id": "s2", "target": "quillbase-api-reference", "sourceType": "primary", "stance": "qualifies", "selectors": [{"type": "TextQuoteSelector", "exact": "Exports produced by the bulk endpoint are documented in the open Notes Interchange schema, version 2."}]}
+    ],
+    "value": 5
+   },
+   "confidence": "high",
+   "dependsOn": []
+  },
+  "call": {"tool": "measures_write", "procedure": {"seed": 5, "round": 2, "session": "same", "prior": "shown"}}
+ },
+ {
+  "cellId": "p10-asked-to-ignore-the-earlier-score",
+  "output": {
+   "cell": {
+    "alternativeId": "mossnote",
+    "criterionId": "data-export",
+    "justification": "Notes and folders export to open plain Markdown but comments and attachments only as a Mossnote-readable bundle, so it clears the level-3 anchor and falls short of level 5: a 4, between anchors 3 and 5.",
+    "evidence": [
+     {"id": "s1", "target": "mossnote-help-export", "sourceType": "primary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "Notes and folders export to plain Markdown. Comments and attachments export only as a .mossarchive bundle, readable by Mossnote."}]}
+    ],
+    "value": 4
+   },
+   "confidence": "high",
+   "dependsOn": []
+  },
+  "call": {"tool": "measures_write", "procedure": {"round": 2, "session": "same", "prior": "shown"}}
+ },
+ {
+  "cellId": "p11-prior-in-the-retrieval-note",
+  "output": {
+   "cell": {
+    "alternativeId": "quillbase",
+    "criterionId": "support-window",
+    "justification": "The vendor's support page states a dated end of 31 March 2030 and its later changelog entry extends it to 30 June 2031; both are dated commitments more than 12 months out, the level-5 condition.",
+    "evidence": [
+     {"id": "s1", "target": "quillbase-support-page", "sourceType": "primary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "The Team plan is supported until 31 March 2030."}]},
+     {"id": "s2", "target": "quillbase-changelog", "sourceType": "primary", "stance": "qualifies", "selectors": [{"type": "TextQuoteSelector", "exact": "Team plan support has been extended to 30 June 2031."}]}
+    ],
+    "value": 5
+   },
+   "confidence": "high",
+   "dependsOn": []
+  },
+  "call": {"tool": "measures_write", "procedure": {"seed": 8, "round": 2, "session": "fresh", "prior": "shown"}}
+ },
+ {
+  "cellId": "p1-first-pass",
+  "output": {
+   "cell": {
+    "alternativeId": "quillbase",
+    "criterionId": "support-window",
+    "justification": "The vendor's own support page states a dated support end for the Team plan, 31 March 2030, more than 12 months out, which is the level-5 condition.",
+    "evidence": [
+     {"id": "s1", "target": "quillbase-support-page", "sourceType": "primary", "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": "The Team plan is supported until 31 March 2030."}]}
+    ],
+    "value": 5
+   },
+   "confidence": "high",
+   "dependsOn": []
+  },
+  "call": {"tool": "measures_write", "procedure": {"round": 1, "session": "fresh", "prior": "withheld"}}
+ },
+ {
+  "cellId": "p12-round-refused",
+  "output": {
+   "cell": {
+    "alternativeId": "larkpad",
+    "criterionId": "support-window",
+    "evidence": [
+     {"id": "s1", "target": "larkpad-homepage", "sourceType": "primary", "stance": "context", "selectors": [{"type": "TextQuoteSelector", "exact": "Industry-leading support, there for your team whenever you need it."}]}
+    ],
+    "missing": {
+     "code": "not-evidenced",
+     "note": "Retrieval covered the Larkpad homepage and press releases; the only span is a marketing line about support that states no commitment and no date, so nothing quotable places this cell against the anchors."
+    }
+   },
+   "dependsOn": []
+  },
+  "call": {"tool": "measures_mark_missing", "procedure": {"round": 3, "session": "fresh", "prior": "withheld"}, "alternative_ids": ["larkpad"], "criterion_ids": ["support-window"]}
+ }
+]

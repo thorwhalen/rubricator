@@ -38,7 +38,7 @@ from rubricator.procedure import (
     contradiction,
     derived_rung,
     is_rfc3339,
-    procedure_id,
+    resolved_procedure_id,
     refresh_procedures,
     stored_prior_applied,
     round_id,
@@ -587,6 +587,11 @@ def measures_write(
     _refuse_malformed_author(author)
     facts = _checked_procedure(procedure, author, at)
     known = {c["id"]: c for c in frame.get("criteria", [])}
+    # A blank that says nobody looked is a placeholder, not a draw of the pass: it is not
+    # stamped with the procedure, derives no rung and is not counted among the repeats.
+    placeholder = [_is_placeholder(c, frame) for c in cells]
+    if all(placeholder):
+        facts = None
     rows = {a["id"]: a for a in frame.get("alternatives", [])}
     for axis, index, verb in (
         ("criteria", known, "criteria_set"), ("alternatives", rows, "alternatives_set")
@@ -639,7 +644,8 @@ def measures_write(
                 f"cell {'/'.join(key)}. Omit assertionId to get a fresh one, or choose another."
             )
         added.append((key, assertion_id))
-        independence, perturbation = _rung_for(cell, facts)
+        cell_facts = None if placeholder[i] else facts
+        independence, perturbation = _rung_for(cell, cell_facts)
         assertion = sign(
             author,
             at=at,
@@ -652,10 +658,17 @@ def measures_write(
             perturbation=perturbation,
             criteria_version=criteria_version,
         )
-        if facts is not None:
-            assertion["procedureId"] = procedure_id(facts, signer)
-            if round_id(facts, signer["id"], contributor_id) is not None:
-                assertion["roundId"] = round_id(facts, signer["id"], contributor_id)
+        if cell_facts is not None:
+            assertion["procedureId"] = resolved_procedure_id(facts, signer, contribution)
+            rid = round_id(facts, signer["id"], contributor_id)
+            if rid is not None:
+                if any(a.get("roundId") == rid for a in target["assertions"]):
+                    raise ValueError(
+                        f"refused, nothing was written: cell {'/'.join(key)} already holds a "
+                        f"draw from pass {facts['round']}. A cell's next pass is a new round "
+                        "number: give this one the next unused number."
+                    )
+                assertion["roundId"] = rid
         off_contract += [
             _ARGUMENT_FIELD.sub(lambda m: _ARGUMENT_PATHS[m.group(1)], line)
             for line in _contract().refusals(
@@ -693,6 +706,15 @@ def measures_write(
         "summary": f"{len(cells)} assertion(s) written for {contributor_id}: "
         f"{valued} valued, {len(cells) - valued} qualified blank(s)" + _skipped_clause(skipped),
     }
+
+
+def _is_placeholder(cell: Mapping[str, Any], frame: Mapping[str, Any]) -> bool:
+    """Whether ``cell`` is a blank whose code says nobody looked (``not-assessed``, ``deferred``, a kind of them)."""
+    code = (cell.get("missing") or {}).get("code") if isinstance(cell.get("missing"), Mapping) else None
+    if not isinstance(code, str):
+        return False
+    facts = vocabulary().resolve(code, declarations_for(frame, cell.get("criterionId"))).facts
+    return facts is not None and not facts.terminal
 
 
 def _checked_procedure(
@@ -749,6 +771,7 @@ def measures_mark_missing(
     criterion_ids: Sequence[str] = (),
     alternative_ids: Sequence[str] = (),
     independence: str | None = None,
+    procedure: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Mark a selection of cells as a qualified blank.
 
@@ -763,7 +786,21 @@ def measures_mark_missing(
 
     ``independence`` is needed when a marked cell already holds another live
     assertion (``independence-recorded``); a blank beside a score is two claims.
+
+    ``procedure`` is :func:`measures_write`'s: a blank from a repeated pass is a draw
+    like any other, so it is stamped with the same procedure and round, and counted
+    in the repeats (#218). It is for one named cell, so ``procedure`` requires exactly one
+    ``alternative_ids`` and one ``criterion_ids`` and a terminal code (someone looked): the
+    default selection is the whole matrix, which "mark the rest" wants and a repeat never
+    does, and ``not-assessed`` / ``deferred`` are placeholders, not draws.
     """
+    if procedure is not None and not (len(criterion_ids) == 1 and len(alternative_ids) == 1):
+        raise ValueError(
+            "refused, nothing was written: a blank from a repeated pass is for one cell: name "
+            "exactly one of alternative_ids and one of criterion_ids. A procedure on a wider "
+            "selection would put a second draw beside every score in it (and a first draw "
+            "where nothing was scored)."
+        )
     frame = store.frame(analysis_id)
     # The default selection is every *live* row and column: a tombstoned one
     # takes no new assertions, and "mark the rest" must not fail because a row
@@ -782,6 +819,16 @@ def measures_mark_missing(
                 "what it means, so that a reader which does not implement it can still classify "
                 "the blank."
             )
+
+    if procedure is not None:
+        for crit in criteria:
+            facts = vocabulary().resolve(code, declarations_for(frame, crit)).facts
+            if facts is not None and not facts.terminal:
+                raise ValueError(
+                    f'refused, nothing was written: "{code}" says nobody has looked at the cell '
+                    "(or that it was set aside), so it is not a draw of a pass and carries no "
+                    "procedure. Mark it without one."
+                )
 
     alternatives = list(alternative_ids) or [
         a["id"] for a in frame["alternatives"] if not a.get("tombstoned")
@@ -810,6 +857,7 @@ def measures_mark_missing(
         author=author,
         at=at,
         cells=cells,
+        procedure=procedure,
     )
     return {
         **result,
