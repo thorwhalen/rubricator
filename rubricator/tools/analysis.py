@@ -37,7 +37,7 @@ from rubricator.procedure import (
     check_facts,
     contradiction,
     derived_rung,
-    instant,
+    is_rfc3339,
     procedure_id,
     refresh_procedures,
     stored_prior_applied,
@@ -710,7 +710,7 @@ def _checked_procedure(
             "refused, nothing was written: a procedure record describes an agent's pass; a human "
             "states the independence of each assertion on the cell."
         )
-    if not (isinstance(at, str) and "T" in at and instant(at) is not None):
+    if not is_rfc3339(at):
         raise ValueError(
             f"refused, nothing was written: at={at!r} is not an RFC 3339 date-time, and a "
             "procedure record orders its passes by time."

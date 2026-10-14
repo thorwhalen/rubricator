@@ -221,7 +221,7 @@ def test_independent_on_the_same_model_is_refused_and_nothing_is_written(store) 
     _score(store, BOT, 3, independence="resampled")
     twin = agent("twin", "Twin", name="rubricator", model="model-a")
     before = list(store.contributions("a"))
-    with pytest.raises(ValueError, match="independent-agent-is-distinct"):
+    with pytest.raises(ValueError, match="independent-is-distinct"):
         _score(store, twin, 4, independence="independent")
     assert list(store.contributions("a")) == before
 
@@ -322,7 +322,7 @@ def test_traversal_and_reduction_are_checked_for_a_direct_caller(store) -> None:
 def test_a_model_id_differing_only_in_case_or_space_is_the_same_model(store) -> None:
     _score(store, BOT, 3, independence="resampled")
     twin = agent("twin", "Twin", name="rubricator", model=" Model-A ")
-    with pytest.raises(ValueError, match="independent-agent-is-distinct"):
+    with pytest.raises(ValueError, match="independent-is-distinct"):
         _score(store, twin, 4, independence="independent")
 
 
@@ -372,3 +372,25 @@ def test_a_procedure_needs_a_real_timestamp(store) -> None:
         _score(store, BOT, 3, at="not-a-time", procedure={"round": 1})
     with pytest.raises(ValueError, match="RFC 3339"):
         _score(store, BOT, 3, at="2026-10-12", procedure={"round": 1})
+
+
+# --- regressions from the third review ---------------------------------------------
+
+
+def test_a_consensus_cell_is_allowed_in_a_prior_shown_round(store) -> None:
+    _score(store, BOT, 3, procedure={"round": 2, "prior": "shown", "session": "fresh"},
+           independence="consensus")
+    assert _assertions(store)[0]["independence"] == "consensus"
+
+
+def test_an_all_human_cell_is_not_called_agent_self_consistency() -> None:
+    authors = {"ana": {"kind": "human"}, "ana:cfo": {"kind": "human", "principalId": "ana"}}
+    got = agreement([_a("1", "ana", "independent"), _a("2", "ana:cfo", "independent")], authors)
+    assert got["rung"] == "in-session" and "agent" not in got["label"] and "one rater" in got["label"]
+
+
+def test_only_an_rfc3339_timestamp_with_an_offset_is_accepted_with_a_procedure(store) -> None:
+    for bad in ("2026-10-12T12:00:00", "2026-10-12T12", "20261012T120000Z", "2026-W41-1T12:00:00Z"):
+        with pytest.raises(ValueError, match="RFC 3339"):
+            _score(store, BOT, 3, at=bad, procedure={"round": 1})
+    _score(store, BOT, 3, at="2026-10-12T12:00:00.5+02:00", procedure={"round": 1})

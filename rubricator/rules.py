@@ -47,7 +47,7 @@ __all__ = [
     "HONESTY_RULES",
     "honesty_problems",
     "independence_recorded",
-    "independent_agent_is_distinct",
+    "independent_is_distinct",
     "procedure_and_round_resolve",
     "unique_ids",
     "missing_rule_code_defined",
@@ -114,7 +114,7 @@ RULE_SOURCES: Mapping[str, str] = {
     "supersession-resolves": "comparanda ADR-0011",
     "supersession-acyclic": "comparanda ADR-0011",
     "independence-recorded": "ADR-0022",
-    "independent-agent-is-distinct": "ADR-0018",
+    "independent-is-distinct": "ADR-0018",
     "procedure-and-round-resolve": "ADR-0018",
     "missing-rule-code-defined": "comparanda ADR-0030",
     "unique-evidence-ids": "ADR-0015",
@@ -189,7 +189,7 @@ def independence_recorded(document: Mapping[str, Any]) -> Iterable[Problem]:
             )
 
 
-def independent_agent_is_distinct(document: Mapping[str, Any]) -> Iterable[Problem]:
+def independent_is_distinct(document: Mapping[str, Any]) -> Iterable[Problem]:
     """An agent that records ``independent`` differs, by a recorded model, from every other agent beside it.
 
     This repository's own rule (ADR-0018), not a mirror: the companion stores the
@@ -216,7 +216,7 @@ def independent_agent_is_distinct(document: Mapping[str, Any]) -> Iterable[Probl
                     'record "resampled" (or "perturbed" with a perturbation record) for another '
                     'draw of the same model, or record the distinct model on the author.'
                 ),
-                rule_id="independent-agent-is-distinct",
+                rule_id="independent-is-distinct",
             )
 
 
@@ -950,7 +950,7 @@ HONESTY_RULES: Sequence[Rule] = (
     unique_ids,
     supersession_resolves,
     independence_recorded,
-    independent_agent_is_distinct,
+    independent_is_distinct,
     procedure_and_round_resolve,
     missing_rule_code_defined,
     unique_evidence_ids,

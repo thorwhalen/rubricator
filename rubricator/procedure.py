@@ -44,6 +44,7 @@ from typing import Any
 __all__ = [
     "FACTS",
     "instant",
+    "is_rfc3339",
     "check_facts",
     "contradiction",
     "derived_rung",
@@ -162,7 +163,7 @@ def contradiction(facts: Mapping[str, Any], independence: str | None) -> str | N
     Understating is always allowed ("shared-context" is the honest choice when
     unsure); only a claim the declared facts rule out is refused. A *fresh* session
     caps nothing here: it says nothing about whether the model differs, which is
-    the cell's to show (``independent-agent-is-distinct``).
+    the cell's to show (``independent-is-distinct``).
     """
     if independence in (None, "consensus", "shared-context"):
         return None
@@ -212,7 +213,7 @@ def refresh_procedures(
             )
         if entry.get("feedback") == "full" and (old is None or "feedback" not in old):
             higher = [a["id"] for _c, a in _draws(contribution) if a.get("roundId") == rid
-                      and a.get("independence") not in (None, "shared-context")]
+                      and a.get("independence") not in (None, "shared-context", "consensus")]
             if higher:
                 raise ValueError(
                     f"refused, nothing was written: pass {facts['round']} already holds draw(s) "
@@ -228,6 +229,14 @@ def refresh_procedures(
         span = _span(a["at"] for _c, a in _draws(contribution) if a.get("roundId") == rid_)
         if span:
             entry["openedAt"], entry["closedAt"] = span
+
+
+_RFC3339 = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})")
+
+
+def is_rfc3339(text: Any) -> bool:
+    """Whether ``text`` is an RFC 3339 date-time with an offset, as the record's times need."""
+    return isinstance(text, str) and _RFC3339.fullmatch(text) is not None and instant(text) is not None
 
 
 def instant(text: str):

@@ -57,6 +57,10 @@ LABELS: Mapping[str, str] = {
         "as not independent"
     ),
     "in-session": "agent self-consistency (in-session draws); not inter-rater agreement",
+    "in-session:human": (
+        "one person's repeated scores (a person and their own persona are one rater); not "
+        "inter-rater agreement"
+    ),
     "fresh-session": (
         "test-retest reliability across fresh sessions of one model; not inter-rater agreement"
     ),
@@ -137,6 +141,10 @@ def agreement(
         return None
     lowest = lowest_rung(observed)
     label = LABELS[lowest]
+    if lowest == "in-session" and not any(
+        (authors.get(a.get("authorId")) or {}).get("kind") == "agent" for a in assertions
+    ):
+        label = LABELS["in-session:human"]
     if lowest == "distinct-model" and any(
         policy_rung(a, authors) == "distinct-model" and agent_model(authors.get(a.get("authorId"))) is None
         for a in assertions
@@ -171,15 +179,18 @@ def distinct_model_problem(
     if assertion.get("independence") != "independent":
         return None
     me = authors.get(assertion.get("authorId")) or {}
-    if me.get("kind") != "agent":
-        return None
-    model = agent_model(me)
+    model = agent_model(me) if me.get("kind") == "agent" else None
     for other in live:
         if other.get("id") == assertion.get("id"):
             continue
         theirs_id = other.get("authorId")
         theirs = authors.get(theirs_id) or {}
-        if principal(authors, theirs_id) == principal(authors, assertion.get("authorId")):
+        # Agents only. A person's personas claiming "independent" is accepted today (existing
+        # behaviour, ADR-0022's persona-independence rule is not built); agreement() still
+        # reads them as one rater, so the label is never overstated.
+        if me.get("kind") == "agent" and principal(authors, theirs_id) == principal(
+            authors, assertion.get("authorId")
+        ):
             return (
                 f'"{theirs_id}" is the same principal and also scored this cell, and a persona is '
                 'not a rater: another draw of one model is "resampled"'
