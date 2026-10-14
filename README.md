@@ -38,7 +38,7 @@ is the cheapest path to value and should work on day one.
     uv tool install "rubricator[mcp] @ git+https://github.com/thorwhalen/rubricator"
     claude mcp add rubricator -- rubricator-mcp      # Claude Code; Desktop: see the guide
 
-Not on PyPI yet, hence the GitHub URL. The `mcp` extra installs the MCP server framework and no model client; the model access lives in the separate `agent` extra. **Analyses are kept for 30 days after their last write**, then deleted; export one to keep it. Then ask Claude, e.g. *"Use rubricator to compare three note-taking apps for a two-person team. First call `prompts_list`, read the prompts you need with `prompts_get` and follow them; ask me what matters before you score anything."* Step-by-step setup for Claude Code and Claude Desktop, the first analysis, resuming and export: [docs/install.md](docs/install.md). `rubricator-mcp --transport http` serves Streamable HTTP on loopback with no authentication: [docs/connector-http.md](docs/connector-http.md).
+Not on PyPI yet, hence the GitHub URL. The `mcp` extra installs the MCP server framework and no model client; the model access lives in the separate `agent` extra. **Analyses are kept for 30 days after their last write**, then expire and may be deleted; export one to keep it. Then ask Claude, e.g. *"Use rubricator to compare three note-taking apps for a two-person team. First call `prompts_list`, read the prompts you need with `prompts_get` and follow them; ask me what matters before you score anything."* Step-by-step setup for Claude Code and Claude Desktop, the first analysis, resuming and export: [docs/install.md](docs/install.md). `rubricator-mcp --transport http` serves Streamable HTTP on loopback with no authentication: [docs/connector-http.md](docs/connector-http.md).
 
 **As a deployed agent.** A standalone service with its own model access, for scheduled or
 unattended runs. Python, on the official MCP SDK — an earlier draft named a different framework;
@@ -54,7 +54,7 @@ both a CLI and an MCP connector — and the first prompts ship with it. Most of 
 still specification: architecture decision records and research briefs.
 
 Analyses persist in `~/.local/share/rubricator/working/` (set `RUBRICATOR_DATA_DIR` to move the
-whole data root) and are kept for 30 days from their last write; an export is yours to keep.
+whole data root) and are kept for 30 days from their last write, after which they expire; an export is yours to keep.
 
 Start at **[BRIEF.md](./BRIEF.md)**. [`CHANGELOG.md`](./CHANGELOG.md) is not a release log; it
 records the boundaries across which a number stops meaning the same thing.
