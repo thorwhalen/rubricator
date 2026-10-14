@@ -35,13 +35,10 @@ Both are first-class, and the point of the architecture is that they share almos
 you are already in; `rubricator` supplies the tools, the schema, the prompts and the method. This
 is the cheapest path to value and should work on day one.
 
-    pip install "rubricator[mcp]"
-    rubricator-mcp                        # stdio; or: python -m rubricator.mcp
-    rubricator-mcp --root ./analyses      # keep analyses in this directory
-    rubricator-mcp --transport http       # Streamable HTTP on 127.0.0.1:8765, no auth: see docs/connector-http.md
+    uv tool install "rubricator[mcp] @ git+https://github.com/thorwhalen/rubricator"
+    claude mcp add rubricator -- rubricator-mcp      # Claude Code; Desktop: see the guide
 
-Point an MCP client at that command. The `mcp` extra installs the MCP server framework and no
-model client; the model access lives in the separate `agent` extra.
+Not on PyPI yet, hence the GitHub URL. The `mcp` extra installs the MCP server framework and no model client; the model access lives in the separate `agent` extra. **Analyses are kept for 30 days after their last write**, then deleted; export one to keep it. Step-by-step setup for Claude Code and Claude Desktop, a first analysis, resuming and export: [docs/install.md](docs/install.md). `rubricator-mcp --transport http` serves Streamable HTTP on loopback with no authentication: [docs/connector-http.md](docs/connector-http.md).
 
 **As a deployed agent.** A standalone service with its own model access, for scheduled or
 unattended runs. Python, on the official MCP SDK — an earlier draft named a different framework;
