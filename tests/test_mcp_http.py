@@ -123,10 +123,36 @@ def test_allow_host_adds_to_the_local_names_for_a_proxy(tmp_path) -> None:
         assert _post(port, f"evil.example:{port}") == 421
 
 
-def test_a_remote_bind_accepts_only_the_hosts_it_was_told(tmp_path) -> None:
-    with _serving(tmp_path, "--host", "0.0.0.0", "--allow-remote", "--allow-host", "proxy.example") as port:
-        assert _post(port, f"proxy.example:{port}") == 400
-        assert _post(port, f"evil.example:{port}") == 421
+def test_a_remote_bind_always_gets_an_explicit_host_list() -> None:
+    """In the framework's "auto" mode a connection arriving on a non-loopback address
+    is checked only against an explicit list; None would mean checked against nothing.
+    Unit-level, because a test must not itself expose an unauthenticated server."""
+    from rubricator.mcp.server import _allowed_hosts
+
+    assert _allowed_hosts("0.0.0.0", []) == ["0.0.0.0"]
+    assert _allowed_hosts("::", ["proxy.example"]) == ["::", "proxy.example"]
+    assert _allowed_hosts("10.1.2.3", []) == ["10.1.2.3"]
+    assert _allowed_hosts("127.0.0.1", []) is None
+    assert _allowed_hosts("127.0.0.1", ["p.example"]) == ["127.0.0.1", "p.example"]
+
+
+@pytest.mark.parametrize("name", ["*", "*.example", "a?b", "[x]", " "])
+def test_a_wildcard_allow_host_is_refused(tmp_path, name) -> None:
+    done = subprocess.run(
+        _argv(tmp_path, "--transport", "http", "--allow-host", name),
+        capture_output=True, text=True, timeout=60,
+    )
+    assert done.returncode == 2 and "plain host name" in done.stderr
+
+
+@pytest.mark.parametrize("host", ["0.0.0.0", "::"])
+def test_a_non_loopback_bind_is_refused_without_allow_remote(tmp_path, host) -> None:
+    done = subprocess.run(
+        _argv(tmp_path, "--transport", "http", "--host", host),
+        capture_output=True, text=True, timeout=60,
+    )
+    assert done.returncode == 2
+    assert "no authentication" in done.stderr and "--allow-remote" in done.stderr
 
 
 def test_a_foreign_origin_is_refused(tmp_path) -> None:
@@ -157,15 +183,6 @@ def _non_loopback_addresses() -> list[str]:
         s.connect(("192.0.2.1", 9))  # no packet is sent; this picks the outgoing interface
         found.append(s.getsockname()[0])
     return [a for a in found if not a.startswith("127.")]
-
-
-def test_a_non_loopback_bind_is_refused_without_allow_remote(tmp_path) -> None:
-    done = subprocess.run(
-        _argv(tmp_path, "--transport", "http", "--host", "0.0.0.0"),
-        capture_output=True, text=True, timeout=60,
-    )
-    assert done.returncode == 2
-    assert "no authentication" in done.stderr and "--allow-remote" in done.stderr
 
 
 @pytest.mark.parametrize("flags, message", [

@@ -11,7 +11,7 @@ The connector has two transports and one server. `rubricator-mcp` (stdio) is how
 
 - **It binds to loopback (`127.0.0.1`) by default**, and refuses to bind anything else unless you pass `--allow-remote`. The flag exists so that a remote bind is a decision, not an accident; it does not add protection.
 - **There is one store and one trust domain.** Anyone who can reach the port can list, read, write and overwrite every analysis in the `--root` directory. There is no per-user separation and no read-only mode.
-- **The Host and Origin headers are checked.** A page open in the user's browser cannot drive a loopback server through DNS rebinding or a cross-origin request: a foreign `Host` is answered `421`, a foreign `Origin` `403`. This guards the loopback case only; it is not authentication, and a non-browser client sets any header it likes.
+- **The Host and Origin headers are checked.** A page open in the user's browser cannot drive a loopback server through DNS rebinding or a cross-origin request from a remote site: a foreign `Host` is answered `421`, a foreign `Origin` `403`. It is not authentication (a non-browser client sets any header it likes), and a page served from *another local port* (`http://localhost:3000`) counts as local, so do not run untrusted web apps on the same machine while this is up.
 - **No TLS.** Traffic is plain HTTP. Fine on loopback; not across a network.
 
 ### Putting it on a network
@@ -20,7 +20,7 @@ Do not, without something in front that authenticates and terminates TLS (a reve
 
     rubricator-mcp --transport http --allow-host rubricator.example.org
 
-`--allow-host` adds to the loopback names; it does not replace them. A non-loopback bind (`--host 0.0.0.0 --allow-remote`) prints a warning to stderr and accepts, as `Host`, only the bound address and whatever `--allow-host` names, so a remote client reaching it by another name is answered `421` until the name is listed.
+`--allow-host` takes plain names (wildcards are refused: the check would otherwise be silently off) and adds to the loopback names. A non-loopback bind (`--host 0.0.0.0 --allow-remote`) prints a warning to stderr and accepts, as `Host`, the bound address, the loopback names and whatever `--allow-host` names; a remote client reaching it by any other name is answered `421` until the name is listed. The framework's `FASTMCP_HTTP_ALLOWED_HOSTS` environment variable is merged into that list, so keep it out of the environment unless you mean it.
 
 ## Options
 

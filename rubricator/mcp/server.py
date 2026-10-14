@@ -179,15 +179,17 @@ def _is_loopback(host: str) -> bool:
 
 
 def _allowed_hosts(host: str, extra: Sequence[str]) -> list[str] | None:
-    """The Host values to accept; ``None`` leaves the framework's rule for ``host``.
+    """The Host values to accept, or ``None`` to leave the framework's loopback rule.
 
-    An allowlist replaces that rule rather than adding to it, so the loopback
-    names are restated or a proxy flag would lock out ``localhost`` itself.
+    On a loopback bind the framework's own rule suffices unless the user adds
+    names (a proxy). On any other bind it must be explicit: in ``"auto"`` mode
+    the framework checks only connections that arrive on a loopback address, so
+    a remote client would otherwise be checked against nothing. The framework
+    adds its loopback names to any list it is given.
     """
-    if not extra:
-        return None
-    local = sorted(_LOOPBACK_NAMES) if _is_loopback(host) else [host]
-    return [*local, *extra]
+    if _is_loopback(host):
+        return [host, *extra] if extra else None
+    return [host, *extra]
 
 
 def _build_parser():
@@ -239,6 +241,11 @@ def _check_args(parser, args) -> None:
         parser.error(f"--port {args.port} is not a port")
     if not args.path.startswith("/"):
         parser.error(f"--path {args.path!r} must start with '/'")
+    for name in args.allow_host:
+        # The framework matches these as globs, so `*` would switch the
+        # DNS-rebinding check off without a word.
+        if not name.strip() or any(c in name for c in "*?[]"):
+            parser.error(f"--allow-host {name!r} must be a plain host name, without wildcards")
     if not _is_loopback(args.host) and not args.allow_remote:
         parser.error(
             f"--host {args.host!r} is not a loopback address and the server has no "
