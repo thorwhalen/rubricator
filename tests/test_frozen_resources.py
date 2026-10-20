@@ -39,7 +39,7 @@ def test_templates_are_level_one_only():
 def test_the_analysis_row_is_what_the_server_already_serves():
     row = next(r for r in FROZEN_RESOURCES if r.name == "analysis")
     assert row.status == "implemented"
-    assert row.uri_template.replace("{id}", "{analysis_id}") == analysis_uri("{analysis_id}")
+    assert row.uri_template == analysis_uri("{id}")
 
 
 def test_no_analysis_list_tool_exists_because_the_list_is_a_resource():

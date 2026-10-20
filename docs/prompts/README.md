@@ -14,10 +14,10 @@ This document is the **inventory and the contract**. The prompts themselves are 
 a prompt copied into two places is two prompts.
 
 `prompts_list` and `prompts_get` are ordinary deterministic verbs on the ADR-0003 registry, so the
-bundle is servable from the CLI and the connector today. Presenting them as native MCP `prompts/*` —
-which is what makes a Claude client show them as slash commands — is the upgrade tracked by
-[#80](https://github.com/thorwhalen/rubricator/issues/80); it changes how they are registered, not
-where they live or what they say.
+bundle is servable from the CLI and the connector today. The connector also serves every file as a native MCP prompt
+(`prompts/list`, `prompts/get`), which is what makes a Claude client show them as slash commands
+([#80](https://github.com/thorwhalen/rubricator/issues/80)). Both read the one accessor, so a new
+`.md` file is served by both with no code change.
 
 ## The set
 
