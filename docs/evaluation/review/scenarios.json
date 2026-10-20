@@ -1,0 +1,316 @@
+[
+ {
+  "id": "r1",
+  "toolResults": {
+   "report_weaknesses": {
+    "analysisId": "docks",
+    "uncited": [],
+    "thinEvidence": [
+     {
+      "alternativeId": "larkspur",
+      "criterionId": "theft-resistance",
+      "reason": "no primary or secondary ref with a span to check"
+     }
+    ],
+    "lowConfidence": [],
+    "staleCitations": [],
+    "agentInferenceOnly": [],
+    "dominatedAlternatives": [
+     "tessera"
+    ],
+    "vetoFlags": [],
+    "traversalLeakageDiagnostic": [
+     {
+      "criterionA": "theft-resistance",
+      "criterionB": "upkeep-cost",
+      "correlation": 0.816497,
+      "note": "Kendall tau-b over 3 alternatives. A scoring-run diagnostic, never a redundancy finding: a correlation between criteria scored by the same judge measures that judge's halo and carry-over as much as the alternatives. Redundancy is settled by the criteria's definitions (the ladder and the indifference probe), not by this number."
+     },
+     {
+      "criterionA": "upkeep-cost",
+      "criterionB": "weather-sealing",
+      "correlation": 0.816497,
+      "note": "Kendall tau-b over 3 alternatives. A scoring-run diagnostic, never a redundancy finding: a correlation between criteria scored by the same judge measures that judge's halo and carry-over as much as the alternatives. Redundancy is settled by the criteria's definitions (the ladder and the indifference probe), not by this number."
+     },
+     {
+      "criterionA": "theft-resistance",
+      "criterionB": "weather-sealing",
+      "correlation": 0.333333,
+      "note": "Kendall tau-b over 3 alternatives. A scoring-run diagnostic, never a redundancy finding: a correlation between criteria scored by the same judge measures that judge's halo and carry-over as much as the alternatives. Redundancy is settled by the criteria's definitions (the ladder and the indifference probe), not by this number."
+     }
+    ],
+    "rescoringPlan": {
+     "rescore": [
+      {
+       "alternativeId": "larkspur",
+       "criterionId": "theft-resistance",
+       "reason": "pivotal: -1 level (4 to 3) changes the non-dominated set"
+      },
+      {
+       "alternativeId": "larkspur",
+       "criterionId": "weather-sealing",
+       "reason": "pivotal: +1 level (3 to 4) changes the non-dominated set"
+      },
+      {
+       "alternativeId": "quillon",
+       "criterionId": "theft-resistance",
+       "reason": "pivotal: +1 level (3 to 4) changes the non-dominated set"
+      },
+      {
+       "alternativeId": "quillon",
+       "criterionId": "weather-sealing",
+       "reason": "pivotal: -1 level (4 to 3) changes the non-dominated set"
+      }
+     ],
+     "redefine": [],
+     "budget": 5
+    },
+    "summary": "9 scored cell(s); 0 uncited; 1 thinEvidence; 0 lowConfidence; 0 staleCitations; 0 agentInferenceOnly; no confidence measure recorded, so lowConfidence cannot be read; dominance over 3 criteria: 1 dominated, 2 on the front; 4 pivotal cell(s); 0 veto flag(s); 3 diagnostic correlation(s), none of them a redundancy finding; plan: 4 cell(s) to rescore within a budget of 5, 0 criteria to redefine rather than rescore."
+   }
+  },
+  "expected": {
+   "rescore": [
+    "larkspur/theft-resistance",
+    "larkspur/weather-sealing",
+    "quillon/theft-resistance",
+    "quillon/weather-sealing"
+   ],
+   "redefine": [],
+   "pivotal": [
+    "larkspur/theft-resistance",
+    "larkspur/weather-sealing",
+    "quillon/theft-resistance",
+    "quillon/weather-sealing"
+   ],
+   "mostLikely": [
+    "larkspur/theft-resistance"
+   ],
+   "vetoes": [],
+   "correlations": 3
+  }
+ },
+ {
+  "id": "r2",
+  "toolResults": {
+   "report_weaknesses": {
+    "analysisId": "docks",
+    "uncited": [],
+    "thinEvidence": [],
+    "lowConfidence": [],
+    "staleCitations": [],
+    "agentInferenceOnly": [],
+    "dominatedAlternatives": [
+     "larkspur",
+     "quillon"
+    ],
+    "vetoFlags": [],
+    "traversalLeakageDiagnostic": [
+     {
+      "criterionA": "theft-resistance",
+      "criterionB": "upkeep-cost",
+      "correlation": 0.333333,
+      "note": "Kendall tau-b over 3 alternatives. A scoring-run diagnostic, never a redundancy finding: a correlation between criteria scored by the same judge measures that judge's halo and carry-over as much as the alternatives. Redundancy is settled by the criteria's definitions (the ladder and the indifference probe), not by this number."
+     }
+    ],
+    "rescoringPlan": {
+     "rescore": [],
+     "redefine": [
+      "weather-sealing"
+     ],
+     "budget": 5
+    },
+    "summary": "7 scored cell(s); 0 uncited; 0 thinEvidence; 0 lowConfidence; 0 staleCitations; 0 agentInferenceOnly; no confidence measure recorded, so lowConfidence cannot be read; dominance over 3 criteria: 2 dominated, 1 on the front; 1 pivotal cell(s); 0 veto flag(s); 1 diagnostic correlation(s), none of them a redundancy finding; plan: 0 cell(s) to rescore within a budget of 5, 1 criteria to redefine rather than rescore."
+   }
+  },
+  "expected": {
+   "rescore": [],
+   "redefine": [
+    "weather-sealing"
+   ],
+   "pivotal": [],
+   "mostLikely": [
+    "weather-sealing"
+   ],
+   "vetoes": [],
+   "correlations": 1
+  }
+ },
+ {
+  "id": "r3",
+  "toolResults": {
+   "report_weaknesses": {
+    "analysisId": "docks",
+    "uncited": [],
+    "thinEvidence": [],
+    "lowConfidence": [],
+    "staleCitations": [],
+    "agentInferenceOnly": [],
+    "dominatedAlternatives": [
+     "quillon",
+     "tessera"
+    ],
+    "vetoFlags": [],
+    "traversalLeakageDiagnostic": [
+     {
+      "criterionA": "theft-resistance",
+      "criterionB": "upkeep-cost",
+      "correlation": 1.0,
+      "note": "Kendall tau-b over 3 alternatives. A scoring-run diagnostic, never a redundancy finding: a correlation between criteria scored by the same judge measures that judge's halo and carry-over as much as the alternatives. Redundancy is settled by the criteria's definitions (the ladder and the indifference probe), not by this number."
+     },
+     {
+      "criterionA": "theft-resistance",
+      "criterionB": "weather-sealing",
+      "correlation": 1.0,
+      "note": "Kendall tau-b over 3 alternatives. A scoring-run diagnostic, never a redundancy finding: a correlation between criteria scored by the same judge measures that judge's halo and carry-over as much as the alternatives. Redundancy is settled by the criteria's definitions (the ladder and the indifference probe), not by this number."
+     },
+     {
+      "criterionA": "upkeep-cost",
+      "criterionB": "weather-sealing",
+      "correlation": 1.0,
+      "note": "Kendall tau-b over 3 alternatives. A scoring-run diagnostic, never a redundancy finding: a correlation between criteria scored by the same judge measures that judge's halo and carry-over as much as the alternatives. Redundancy is settled by the criteria's definitions (the ladder and the indifference probe), not by this number."
+     }
+    ],
+    "rescoringPlan": {
+     "rescore": [],
+     "redefine": [],
+     "budget": 5
+    },
+    "summary": "9 scored cell(s); 0 uncited; 0 thinEvidence; 0 lowConfidence; 0 staleCitations; 0 agentInferenceOnly; no confidence measure recorded, so lowConfidence cannot be read; dominance over 3 criteria: 2 dominated, 1 on the front; 0 pivotal cell(s); 0 veto flag(s); 3 diagnostic correlation(s), none of them a redundancy finding; plan: 0 cell(s) to rescore within a budget of 5, 0 criteria to redefine rather than rescore."
+   }
+  },
+  "expected": {
+   "rescore": [],
+   "redefine": [],
+   "pivotal": [],
+   "mostLikely": [],
+   "vetoes": [],
+   "correlations": 3
+  }
+ },
+ {
+  "id": "r4",
+  "toolResults": {
+   "report_weaknesses": {
+    "analysisId": "docks",
+    "uncited": [],
+    "thinEvidence": [],
+    "lowConfidence": [
+     {
+      "alternativeId": "larkspur",
+      "criterionId": "upkeep-cost",
+      "reason": "confidence at the lowest level of its scale (1)"
+     },
+     {
+      "alternativeId": "quillon",
+      "criterionId": "weather-sealing",
+      "reason": "confidence at the lowest level of its scale (1)"
+     }
+    ],
+    "staleCitations": [],
+    "agentInferenceOnly": [],
+    "dominatedAlternatives": [],
+    "vetoFlags": [
+     {
+      "alternativeId": "quillon",
+      "criterionId": "theft-resistance",
+      "reason": "2 fails the floor 3: below 3 the insurer will not cover the docks"
+     },
+     {
+      "alternativeId": "tessera",
+      "criterionId": "theft-resistance",
+      "reason": "blank: the floor 3 was not tested, and an untested floor is not a passed one"
+     }
+    ],
+    "traversalLeakageDiagnostic": [
+     {
+      "criterionA": "upkeep-cost",
+      "criterionB": "weather-sealing",
+      "correlation": 1.0,
+      "note": "Kendall tau-b over 3 alternatives. A scoring-run diagnostic, never a redundancy finding: a correlation between criteria scored by the same judge measures that judge's halo and carry-over as much as the alternatives. Redundancy is settled by the criteria's definitions (the ladder and the indifference probe), not by this number."
+     }
+    ],
+    "rescoringPlan": {
+     "rescore": [
+      {
+       "alternativeId": "larkspur",
+       "criterionId": "theft-resistance",
+       "reason": "pivotal: +1 level (4 to 5) changes the non-dominated set"
+      }
+     ],
+     "redefine": [],
+     "budget": 5
+    },
+    "summary": "8 scored cell(s); 0 uncited; 0 thinEvidence; 2 lowConfidence; 0 staleCitations; 0 agentInferenceOnly; dominance over 3 criteria: 0 dominated, 3 on the front; 1 pivotal cell(s); 2 veto flag(s); 1 diagnostic correlation(s), none of them a redundancy finding; plan: 1 cell(s) to rescore within a budget of 5, 0 criteria to redefine rather than rescore."
+   }
+  },
+  "expected": {
+   "rescore": [
+    "larkspur/theft-resistance"
+   ],
+   "redefine": [],
+   "pivotal": [
+    "larkspur/theft-resistance"
+   ],
+   "mostLikely": [
+    "larkspur/theft-resistance"
+   ],
+   "vetoes": [
+    "quillon/theft-resistance",
+    "tessera/theft-resistance"
+   ],
+   "correlations": 1
+  }
+ },
+ {
+  "id": "r5",
+  "toolResults": {
+   "report_weaknesses": {
+    "analysisId": "docks",
+    "uncited": [],
+    "thinEvidence": [],
+    "lowConfidence": [],
+    "staleCitations": [],
+    "agentInferenceOnly": [],
+    "dominatedAlternatives": [
+     "quillon",
+     "tessera"
+    ],
+    "vetoFlags": [],
+    "traversalLeakageDiagnostic": [
+     {
+      "criterionA": "theft-resistance",
+      "criterionB": "weather-sealing",
+      "correlation": 1.0,
+      "note": "Kendall tau-b over 3 alternatives. A scoring-run diagnostic, never a redundancy finding: a correlation between criteria scored by the same judge measures that judge's halo and carry-over as much as the alternatives. Redundancy is settled by the criteria's definitions (the ladder and the indifference probe), not by this number."
+     },
+     {
+      "criterionA": "theft-resistance",
+      "criterionB": "upkeep-cost",
+      "correlation": 0.816497,
+      "note": "Kendall tau-b over 3 alternatives. A scoring-run diagnostic, never a redundancy finding: a correlation between criteria scored by the same judge measures that judge's halo and carry-over as much as the alternatives. Redundancy is settled by the criteria's definitions (the ladder and the indifference probe), not by this number."
+     },
+     {
+      "criterionA": "upkeep-cost",
+      "criterionB": "weather-sealing",
+      "correlation": 0.816497,
+      "note": "Kendall tau-b over 3 alternatives. A scoring-run diagnostic, never a redundancy finding: a correlation between criteria scored by the same judge measures that judge's halo and carry-over as much as the alternatives. Redundancy is settled by the criteria's definitions (the ladder and the indifference probe), not by this number."
+     }
+    ],
+    "rescoringPlan": {
+     "rescore": [],
+     "redefine": [],
+     "budget": 5
+    },
+    "summary": "9 scored cell(s); 0 uncited; 0 thinEvidence; 0 lowConfidence; 0 staleCitations; 0 agentInferenceOnly; no confidence measure recorded, so lowConfidence cannot be read; dominance over 3 criteria: 2 dominated, 1 on the front; 0 pivotal cell(s); 0 veto flag(s); 3 diagnostic correlation(s), none of them a redundancy finding; plan: 0 cell(s) to rescore within a budget of 5, 0 criteria to redefine rather than rescore."
+   }
+  },
+  "expected": {
+   "rescore": [],
+   "redefine": [],
+   "pivotal": [],
+   "mostLikely": [],
+   "vetoes": [],
+   "correlations": 3
+  }
+ }
+]
