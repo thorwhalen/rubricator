@@ -102,3 +102,14 @@ ADR-0024 rather than schema refinements.
   computation reads it.
 - *Verifying identity properly in v1.* The connector has no mechanism to; `unverified` recorded
   honestly is strictly better than an unrecorded assumption.
+
+## Amendments
+
+### 2026-10-20 — a contributed attestation reads as `unverified`; look-alike personas are the view's to expose (#163)
+
+- **Status:** accepted
+- **Date:** 2026-10-20
+
+**An attestation in a file is a claim the file makes about itself.** Any contributor can write `{"method": "signature"}` on their own author record, or on a persona's, and this package authenticates nobody. So the merge (`rubricator.merge`) now reads every author's `attestation` as `{"method": "unverified"}`, whatever the file says. The stored file is not rewritten. A host that does attest an identity will need a verifier, at the composition root, that says which attestations it performed; none exists yet, so none is declared.
+
+**Look-alike personas are not refused.** A contribution from `aaa` may declare personas `aaa:Ana` and `aaa:аna` (Cyrillic а), each displayed as "Ana" and acting as `ana`. `principalId` truthfully says `aaa`, and the merge already keeps a persona's id inside its principal's namespace. Refusing a `displayName` equal to another principal's would chase homoglyphs, case and spacing without end, and could still be evaded. What closes the gap is showing the principal wherever a persona is shown. That is the companion's view, requested in [thorwhalen/comparanda#243](https://github.com/thorwhalen/comparanda/issues/243).

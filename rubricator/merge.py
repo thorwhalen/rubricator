@@ -37,6 +37,9 @@ The two places where it is more than that:
   3. every assertion's ``authorId`` is one the file may speak for: its own id,
      an author it introduced, or a frame author whose principal it is.
 
+  An author's ``attestation`` is read as ``unverified`` whatever the file says
+  (#163): it is a claim the file makes about itself, and nothing here checks it.
+
   The frame is a file a person can edit like any other, so it is held to the
   same line (#195). It carries no assertions -- it has no contributor to speak
   for them -- and a persona it declares carries its principal in its id, as a
@@ -188,7 +191,7 @@ def merge_contributions(
             _check_identity(contributor_id, f"a {field[:-1]} id", [e.get("id") for e in entries])
             passes[field].extend({**e, "id": _namespaced(contributor_id, e["id"])} for e in entries)
 
-    merged["authors"] = [authors[k] for k in sorted(authors)]
+    merged["authors"] = [_unattested(authors[k]) for k in sorted(authors)]
     merged["cells"] = [cells[k] for k in sorted(cells)]
     merged["procedures"], merged["rounds"] = passes["procedures"], passes["rounds"]
 
@@ -197,6 +200,28 @@ def merge_contributions(
         dict(r) for r in renditions if r["id"] not in existing
     ]
     return merged
+
+
+#: The one attestation a read may report: this package authenticates nobody.
+UNVERIFIED = {"method": "unverified"}
+
+
+def _unattested(author: Mapping[str, Any]) -> Mapping[str, Any]:
+    """``author`` with any attestation it gives read as :data:`UNVERIFIED` (#163).
+
+    An attestation in a file is a claim the file makes about itself: any
+    contributor can write ``{"method": "signature"}``, and nothing on the read
+    path checks one. Reporting it as given would let a disclosure meant to say
+    how well the host knows an identity say what the contributor wanted it to.
+
+    >>> _unattested({"id": "a", "attestation": {"method": "signature", "issuer": "x"}})
+    {'id': 'a', 'attestation': {'method': 'unverified'}}
+    >>> _unattested({"id": "a"})
+    {'id': 'a'}
+    """
+    if "attestation" not in author or author["attestation"] == UNVERIFIED:
+        return author
+    return {**author, "attestation": dict(UNVERIFIED)}
 
 
 def _index_frame(
