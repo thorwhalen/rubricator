@@ -29,12 +29,18 @@ from typing import Any, Iterable, Literal
 
 __all__ = [
     "SchemaSource", "SchemaProblem", "SUPPORTED_SCHEMA_VERSIONS", "SchemaOrigin", "VENDORED_PATH",
-    "explain", "published_schema_text",
+    "explain", "published_schema_text", "EMITS", "emit_version", "vendored_schema",
 ]
 
 #: The schema versions this build can read and emit. Declared, not inferred, so
 #: a consumer can check compatibility before handing us a document.
-SUPPORTED_SCHEMA_VERSIONS: tuple[int, ...] = (1,)
+#: The version handshake's explicit set (#127; comparanda ``cross-repo-coordination``
+#: §3.3). A set, never a range: a range silently claims a version nobody tested.
+#: Adding a version means vendoring and pinning its file (:mod:`rubricator.schema.pins`),
+#: which :func:`published_schema_text` and a test hold to this set.
+EMITS: frozenset[int] = frozenset({1})
+
+SUPPORTED_SCHEMA_VERSIONS: tuple[int, ...] = tuple(sorted(EMITS))
 
 def published_schema_text(version: int) -> str:
     """The vendored comparanda JSON Schema at ``version``, byte-checked against its pin.
@@ -297,14 +303,45 @@ def explain(error: Any, *, root: str = "$") -> str:
     return line
 
 
-@lru_cache(maxsize=1)
-def _vendored() -> SchemaSource:
-    from rubricator.schema.pins import read_pinned
-
+@lru_cache(maxsize=None)
+def vendored_schema(version: int) -> SchemaSource:
+    """The vendored contract at one emittable ``version``, parsed once per process."""
     return SchemaSource(
-        schema=json.loads(read_pinned(VENDORED_PATH.name).decode("utf-8")),
+        schema=json.loads(published_schema_text(version)),
         origin="published",
-        located_at=VENDORED_PATH.name,
+        located_at=f"comparanda.v{version}.json",
+        supported_versions=(version,),
+    )
+
+
+def _vendored() -> SchemaSource:
+    return vendored_schema(1)
+
+
+def emit_version(document: dict[str, Any]) -> int:
+    """The lowest emittable version whose schema expresses ``document``.
+
+    Lowest, never newest: a document that uses nothing a later version added is
+    readable by the widest set of companion builds (§3.3). The document is judged
+    as it would be emitted at that version, so its own ``schemaVersion`` is
+    replaced, not trusted. Pure: vendored files only, no network.
+
+    >>> emit_version({"id": "x", "subject": {"question": "which?"}})
+    1
+    >>> emit_version({"id": "x", "subject": {"question": "which?"}, "bogus": 1})
+    Traceback (most recent call last):
+        ...
+    ValueError: no emittable schema version (1) expresses this document; against 1: $: Additional properties are not allowed ('bogus' was unexpected)
+    """
+    refused: list[str] = []
+    for version in sorted(EMITS):
+        found = vendored_schema(version).validate({**document, "schemaVersion": version})
+        if found.ok:
+            return version
+        refused.append(f"against {version}: " + "; ".join(f"{p.path or '$'}: {p.message}" for p in found.problems[:3]))
+    raise ValueError(
+        f"no emittable schema version ({', '.join(map(str, sorted(EMITS)))}) expresses this document; "
+        + " | ".join(refused)
     )
 
 
