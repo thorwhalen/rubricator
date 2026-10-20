@@ -245,3 +245,13 @@ Row 4 is implemented, in `rubricator/tools/search.py`, with no input change. Ret
 `rubricator/tools/disclosure.py`. It renders `data/disclosures/variance.md` from the stored document: scorings per cell are counted from live assertions (a placeholder blank is no scoring), traversal is read off the procedures the assertions point at, order from their perturbation seeds, independence from `agreement` over the cells holding two or more scorings. With no such cell it states `n = 1, unmeasured`; it estimates no stability figure and states no size for any mitigation. An analysis with no procedure record says "not recorded" and lists the procedure under `notMeasured`.
 
 **Not re-measured.** `MEASURED` below is still the 2026-10-12 count; `AWAITING_MEASUREMENT` in `frozen.py` pins what is now served (17 advertised tools, 24,053 bytes, digest `c5704dd44432`; the whole surface, 22 tools, 28,774 bytes, digest `9165078f8abc`, unchanged) and still names #199, which owes the count. No estimate is recorded as a count.
+
+### 2026-10-20 — The resource surface is frozen beside the tools (#66)
+
+- **Deciders:** Thor Whalen (contract only; serving stays #80)
+
+`rubricator/surface/resources.py` holds the eight resources as data, in the same spirit as `frozen.py`: `rubricator://method`, `://confidence-rubric`, `://missingness-codes` (assistant audience, priority 1.0 / 0.9 / 0.9), `://schema/comparanda/{version}`, `://analyses` (user audience: the host lists, there is no `analysis_list` tool), `://analysis/{id}`, `://analysis/{id}/document/{document_id}` and `://analysis/{id}/span/{span_id}`. Each row carries its URI template (level-1 `{variable}` only), media type, audience, priority, the reason it is a resource rather than a tool, and how an unknown target fails. Names and templates are frozen; descriptions may be reworded. Only `analysis` is served today.
+
+**The span resource and #50.** It resolves to the exact stored text of a span of the document's *persisted normalised rendition*, never of the original, which is #50's option (a). A span id is `{document_id}:{start}-{end}`: the document, and the `[start, end)` offsets the ingest record already stores (offsets mean nothing outside one rendition, so the document is part of the id); stored spans are never re-chunked, so the id is stable, and a malformed or unstored id is refused rather than rounded to the nearest span. This needed no schema change and no new stored field. Reversible: a later opaque id would be a new template, not an edit.
+
+The template variable is `{id}` in these rows and `{analysis_id}` in the one template served today; #80 aligns the served names, audience and priority with the rows. Tool definitions are unchanged, so nothing is re-measured.

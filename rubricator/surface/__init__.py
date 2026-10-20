@@ -47,11 +47,14 @@ from typing import Any, Callable, Mapping, Optional
 
 from rubricator.compose import Runtime
 from rubricator.surface.frozen import FROZEN_TOOLS, ToolSpec, advertised, describe, frozen
+from rubricator.surface.resources import (
+    FROZEN_RESOURCES, RESOURCE_URIS, ResourceSpec, frozen_resources, match_resource, parse_span_id, span_id,
+)
 from rubricator.surface.subset import subset_violations
 
 __all__ = [
     "TOOL_REFS", "NEEDS_CLOCK", "NEEDS_ID", "bind", "ContractViolation",
-    "FROZEN_TOOLS", "ToolSpec", "advertised", "describe", "frozen", "subset_violations",
+    "FROZEN_TOOLS", "ToolSpec", "FROZEN_RESOURCES", "RESOURCE_URIS", "ResourceSpec", "frozen_resources", "match_resource", "parse_span_id", "span_id", "advertised", "describe", "frozen", "subset_violations",
 ]
 
 #: The exposed verbs, as string references into the tool layer.
