@@ -213,6 +213,15 @@ The `procedure` record and the rung on every assertion needed no schema request:
 **Callers.** `score-cell` v4 (#218) teaches the facts, to be passed on every pass including the first, so that a later repeat finds a recorded rung beside it: `round` is the pass over the analysis (in the record a round is a number for draws made under one answer to `prior`, so a sweep that mixes cells scored with and without the prior in view is recorded as more than one round; #224), `session` and `prior` are read off what is in the model's context (an earlier pass in view is `same` and `shown`, whatever the harness or the user calls the pass), and the plan's facts are copied or left out. **Still open:** the run-analysis and rescore-criterion prompts do not exist yet; their acceptance lines are on #77 and #114. `disclose_variance` (#100) is the consumer of this record.
 
 
+### 2026-10-20 — a first pass's rung is relative to its own model, and the label says so (#222)
+
+- **Status:** accepted
+- **Date:** 2026-10-20
+
+A first pass in a fresh session derives `resampled` (or `perturbed`), which claims a relation to another draw of the same model that may not exist yet. That claim is kept rather than withheld. A first draw with no rung would fail `independence-recorded` when the repeat lands beside it, and the rung it carries is the one that becomes true at that moment. The cost shows up in the reader. Two agents with different models, each with one such draw on a cell, were labelled test-retest across fresh sessions of *one* model, which is false. `rubricator.independence.agreement` now labels a `fresh-session` set whose draws come from agents recording more than one model as **fresh-session draws of more than one model, each rung relative to its own model's draws**. That is neither test-retest of one model nor inter-rater agreement. The rung stays `fresh-session`, which understates, as this ADR allows.
+
+**What `session` means.** It is defined per cell: whether an earlier pass of *this* cell is in context. In the connector, the conversation also holds other cells' scores. That cross-cell carry-over is the in-session isolation caveat the disclosure carries, and it is not something a `fresh` rung disclaims. When #100 renders the disclosure, the caveat and this definition are stated together.
+
 ## References
 1. [Findings — comparison method and prompting (2026)](../research/findings-method.md) — in this repository, § 4.3
 2. [Does Scoring Order (Column-wise vs Row-wise) Change Multi-Criteria Evaluations — for Humans, and for LLMs? — Whalen (2026)](../research/scoring-order-effects.md) — in this repository, § 8

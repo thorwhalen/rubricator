@@ -64,6 +64,10 @@ LABELS: Mapping[str, str] = {
     "fresh-session": (
         "test-retest reliability across fresh sessions of one model; not inter-rater agreement"
     ),
+    "fresh-session:models": (
+        "fresh-session draws of more than one model, each rung relative to its own model's draws; "
+        "neither test-retest reliability of one model nor inter-rater agreement"
+    ),
     "distinct-model": (
         "agreement across distinct models; not independent raters, because confident errors "
         "are partly shared across providers"
@@ -145,6 +149,15 @@ def agreement(
         (authors.get(a.get("authorId")) or {}).get("kind") == "agent" for a in assertions
     ):
         label = LABELS["in-session:human"]
+    # A rung is stamped per draw, against that author's own draws: a first pass in a
+    # fresh session is "resampled" with no second draw of its model in the set. So
+    # fresh-session draws by agents recording different models are not one model's
+    # test-retest, whatever each rung says (#222).
+    if lowest == "fresh-session" and len({
+        model for a, r in zip(assertions, rungs) if r == "fresh-session"
+        if (model := agent_model(authors.get(a.get("authorId")))) is not None
+    }) > 1:
+        label = LABELS["fresh-session:models"]
     if lowest == "distinct-model" and any(
         policy_rung(a, authors) == "distinct-model" and agent_model(authors.get(a.get("authorId"))) is None
         for a in assertions
