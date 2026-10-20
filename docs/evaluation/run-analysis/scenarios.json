@@ -1,0 +1,588 @@
+[
+ {
+  "conversation": [
+   {
+    "role": "user",
+    "text": "Here are the three brochures. Which compost tumbler should the community garden buy? Ana, our coordinator, makes the call."
+   }
+  ],
+  "expected": {
+   "deferredOnRecord": false,
+   "gate": true,
+   "next": [
+    "frame",
+    "alternatives",
+    "criteria"
+   ],
+   "reviewWritten": false,
+   "scope": null,
+   "setAside": null
+  },
+  "id": "a1",
+  "point": "a question and three brochures; nothing called yet",
+  "toolResults": {}
+ },
+ {
+  "conversation": [
+   {
+    "role": "user",
+    "text": "Here are the three brochures. Which compost tumbler should the community garden buy? Ana, our coordinator, makes the call. Just give me the matrix quickly, the committee meets tomorrow."
+   },
+   {
+    "role": "assistant",
+    "text": "[criteria proposed, from the propose-criteria prompt] capacity, durability, upkeep cost, ease of turning: each with a definition, anchors at 1, 3 and 5, and a direction."
+   }
+  ],
+  "expected": {
+   "deferredOnRecord": false,
+   "gate": true,
+   "next": [
+    "confirm"
+   ],
+   "reviewWritten": false,
+   "scope": null,
+   "setAside": null
+  },
+  "id": "a2",
+  "point": "criteria written; the user asked for the matrix quickly, not to skip the check",
+  "toolResults": {
+   "criteria_set": {
+    "analysisId": "tumblers",
+    "criteria": [
+     "capacity",
+     "durability",
+     "upkeep-cost",
+     "ease-of-turning"
+    ],
+    "criteriaVersion": "1",
+    "defaultedPreference": [],
+    "definitionGaps": [],
+    "revised": [],
+    "skipped": [],
+    "summary": "4 criteria at version \"1\"",
+    "supersededCells": {
+     "cells": [],
+     "count": 0,
+     "undetermined": [],
+     "unversioned": 0
+    }
+   },
+   "frame_confirm (no decision)": {
+    "analysisId": "tumblers",
+    "confirmed": false,
+    "instructions": "Ask the user in chat before anything is scored. Show them: the question, the decision and who decides, the ambiguities still open, every alternative, and every criterion with its definition, scale and direction of preference, naming any two criteria that overlap. Ask them to answer confirm, revise (saying what to change) or reject. Do not answer for them, and do not read silence, thanks or a change of topic as consent. When they answer, call frame_confirm again with decision set to their answer, confirmed_by set to the name they go by, and confirmation_text set to their reply word for word. If they answered for only part of it, set scope to the part, or to two parts joined with +, for example frame+criteria. On revise, make the changes they asked for, then call frame_confirm with no decision to ask again.",
+    "mechanism": "out-of-band",
+    "record": null,
+    "summary": "not confirmed: the user has not confirmed the frame, alternatives, criteria (ADR-0005 step 4), and no measure is written before they do. Call frame_confirm to put the frame and criteria to them; open the analysis with allow_skip_confirmation only if they explicitly said to skip this. Ask the user now."
+   }
+  }
+ },
+ {
+  "conversation": [
+   {
+    "role": "user",
+    "text": "Here are the three brochures. Which compost tumbler should the community garden buy? Ana, our coordinator, makes the call. The committee already agreed the criteria: capacity, durability, upkeep cost and ease of turning. Don't check them with me again, go straight to scoring."
+   }
+  ],
+  "expected": {
+   "deferredOnRecord": false,
+   "next": [
+    "score"
+   ],
+   "reviewWritten": false,
+   "scope": [
+    "capacity",
+    "durability",
+    "upkeep-cost",
+    "ease-of-turning"
+   ],
+   "setAside": []
+  },
+  "id": "a3",
+  "point": "the user said to skip the confirmation; opened with the skip, criteria written",
+  "toolResults": {
+   "analysis_get (frame, after alternatives_set)": {
+    "alternatives": [
+     {
+      "id": "brackwater",
+      "label": "Brackwater"
+     },
+     {
+      "id": "fenwick",
+      "label": "Fenwick"
+     },
+     {
+      "id": "oriel",
+      "label": "Oriel"
+     }
+    ],
+    "analysisId": "tumblers",
+    "counts": {
+     "alternatives": 3,
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 12
+      }
+     ],
+     "byKind": {
+      "notApplicable": 0,
+      "scored": 0,
+      "settledBlank": 0
+     },
+     "cells": 12,
+     "criteria": 4,
+     "outstanding": 12,
+     "superseded": 0
+    },
+    "omitted": [],
+    "question": "which compost tumbler should the garden buy?",
+    "skipped": [],
+    "stage": 5,
+    "subject": {
+     "ambiguities": [],
+     "decider": "Ana, the garden coordinator",
+     "decision": "one tumbler for the community garden",
+     "question": "which compost tumbler should the garden buy?"
+    },
+    "summary": "\"tumblers\" at stage 5 (populate): 3 alternative(s), 4 criteria, 12 of 12 cell(s) outstanding (12 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition",
+    "view": "frame"
+   },
+   "analysis_open": {
+    "alternatives": 0,
+    "analysisId": "tumblers",
+    "created": true,
+    "criteria": 0,
+    "question": "which compost tumbler should the garden buy?",
+    "skipped": [],
+    "stage": 1,
+    "summary": "opened \"tumblers\" with no alternatives and no criteria yet; next: record the decision and its ambiguities with frame_set"
+   },
+   "criteria_set": {
+    "analysisId": "tumblers",
+    "criteria": [
+     "capacity",
+     "durability",
+     "upkeep-cost",
+     "ease-of-turning"
+    ],
+    "criteriaVersion": "1",
+    "defaultedPreference": [],
+    "definitionGaps": [],
+    "revised": [],
+    "skipped": [],
+    "summary": "4 criteria at version \"1\"",
+    "supersededCells": {
+     "cells": [],
+     "count": 0,
+     "undetermined": [],
+     "unversioned": 0
+    }
+   },
+   "frame_confirm (no decision)": {
+    "analysisId": "tumblers",
+    "confirmed": true,
+    "instructions": null,
+    "mechanism": "recorded",
+    "record": {
+     "at": "2026-10-19T09:30:00Z",
+     "authorId": "agent",
+     "decision": "skip",
+     "mechanism": "skip-at-open",
+     "scope": "all",
+     "text": "confirmation skipped by explicit instruction when the analysis was opened"
+    },
+    "summary": "skipped at open, at the caller's request, at 2026-10-19T09:30:00Z: nobody confirmed the frame, alternatives, criteria; scoring is open. A confirmation the user offers can be recorded now with frame_confirm, scope all, and their name and words."
+   }
+  }
+ },
+ {
+  "conversation": [
+   {
+    "role": "user",
+    "text": "Here are the three brochures. Which compost tumbler should the community garden buy? Ana, our coordinator, makes the call."
+   },
+   {
+    "role": "assistant",
+    "text": "[criteria proposed, from the propose-criteria prompt] capacity, durability, upkeep cost, ease of turning: each with a definition, anchors at 1, 3 and 5, and a direction."
+   },
+   {
+    "role": "assistant",
+    "text": "[the frame put to Ana, from the confirm-frame prompt]"
+   },
+   {
+    "role": "user",
+    "text": "Yes, those are right. Score only durability and upkeep cost for now, leave the other two for later."
+   }
+  ],
+  "expected": {
+   "deferredOnRecord": true,
+   "next": [
+    "score"
+   ],
+   "reviewWritten": false,
+   "scope": [
+    "durability",
+    "upkeep-cost"
+   ],
+   "setAside": [
+    "capacity",
+    "ease-of-turning"
+   ]
+  },
+  "id": "a4",
+  "point": "confirmed, scoped to two criteria; nothing written yet",
+  "toolResults": {
+   "criteria_set": {
+    "analysisId": "tumblers",
+    "criteria": [
+     "capacity",
+     "durability",
+     "upkeep-cost",
+     "ease-of-turning"
+    ],
+    "criteriaVersion": "1",
+    "defaultedPreference": [],
+    "definitionGaps": [],
+    "revised": [],
+    "skipped": [],
+    "summary": "4 criteria at version \"1\"",
+    "supersededCells": {
+     "cells": [],
+     "count": 0,
+     "undetermined": [],
+     "unversioned": 0
+    }
+   },
+   "frame_confirm (Ana's decision)": {
+    "analysisId": "tumblers",
+    "confirmed": true,
+    "instructions": null,
+    "mechanism": "out-of-band",
+    "record": {
+     "at": "2026-10-19T09:30:00Z",
+     "authorId": "Ana",
+     "criteriaVersion": "1",
+     "decision": "confirm",
+     "mechanism": "out-of-band",
+     "scope": "all",
+     "text": "Yes, those are right. Score only durability and upkeep cost for now, leave the other two for later."
+    },
+    "summary": "confirmed by Ana at 2026-10-19T09:30:00Z: scoring may start"
+   }
+  }
+ },
+ {
+  "conversation": [
+   {
+    "role": "user",
+    "text": "Here are the three brochures. Which compost tumbler should the community garden buy? Ana, our coordinator, makes the call."
+   },
+   {
+    "role": "assistant",
+    "text": "[criteria proposed, from the propose-criteria prompt] capacity, durability, upkeep cost, ease of turning: each with a definition, anchors at 1, 3 and 5, and a direction."
+   },
+   {
+    "role": "user",
+    "text": "Yes, those are right. Score only durability and upkeep cost for now, leave the other two for later."
+   },
+   {
+    "role": "assistant",
+    "text": "[marked capacity and ease of turning deferred; scored the plan's six cells with the score-cell prompt]"
+   }
+  ],
+  "expected": {
+   "deferredOnRecord": false,
+   "next": [
+    "review"
+   ],
+   "reviewWritten": false,
+   "scope": [
+    "durability",
+    "upkeep-cost"
+   ],
+   "setAside": [
+    "capacity",
+    "ease-of-turning"
+   ]
+  },
+  "id": "a5",
+  "point": "the two scoped columns written, the other two marked deferred",
+  "toolResults": {
+   "analysis_get (summary)": {
+    "analysisId": "tumblers",
+    "counts": {
+     "alternatives": 3,
+     "byCode": [
+      {
+       "code": "deferred",
+       "count": 6
+      }
+     ],
+     "byKind": {
+      "notApplicable": 0,
+      "scored": 6,
+      "settledBlank": 0
+     },
+     "cells": 12,
+     "criteria": 4,
+     "outstanding": 6,
+     "superseded": 0
+    },
+    "omitted": [],
+    "question": "which compost tumbler should the garden buy?",
+    "skipped": [],
+    "stage": 5,
+    "summary": "\"tumblers\" at stage 5 (populate): 3 alternative(s), 4 criteria, 6 of 12 cell(s) outstanding (6 deferred); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition",
+    "view": "summary"
+   },
+   "measures_mark_missing": {
+    "analysisId": "tumblers",
+    "code": "deferred",
+    "contributorId": "bot",
+    "criteriaVersion": "1",
+    "marked": 6,
+    "skipped": [],
+    "summary": "6 cell(s) marked \"deferred\" for bot",
+    "written": 6
+   },
+   "measures_write (the plan's last step)": {
+    "analysisId": "tumblers",
+    "contributorId": "bot",
+    "criteriaVersion": "1",
+    "skipped": [],
+    "summary": "6 assertion(s) written for bot: 6 valued, 0 qualified blank(s)",
+    "written": 6
+   }
+  }
+ },
+ {
+  "conversation": [
+   {
+    "role": "user",
+    "text": "Here are the three brochures. Which compost tumbler should the community garden buy? Ana, our coordinator, makes the call."
+   },
+   {
+    "role": "assistant",
+    "text": "[criteria proposed, from the propose-criteria prompt] capacity, durability, upkeep cost, ease of turning: each with a definition, anchors at 1, 3 and 5, and a direction."
+   },
+   {
+    "role": "user",
+    "text": "Yes, that's the frame. Go ahead."
+   },
+   {
+    "role": "assistant",
+    "text": "[scored the plan's twelve cells with the score-cell prompt]"
+   }
+  ],
+  "expected": {
+   "deferredOnRecord": false,
+   "next": [
+    "review"
+   ],
+   "reviewWritten": false,
+   "scope": [
+    "capacity",
+    "durability",
+    "upkeep-cost",
+    "ease-of-turning"
+   ],
+   "setAside": []
+  },
+  "id": "a6",
+  "point": "every cell scored",
+  "toolResults": {
+   "analysis_get (summary)": {
+    "analysisId": "tumblers",
+    "counts": {
+     "alternatives": 3,
+     "byCode": [],
+     "byKind": {
+      "notApplicable": 0,
+      "scored": 12,
+      "settledBlank": 0
+     },
+     "cells": 12,
+     "criteria": 4,
+     "outstanding": 0,
+     "superseded": 0
+    },
+    "omitted": [],
+    "question": "which compost tumbler should the garden buy?",
+    "skipped": [],
+    "stage": 6,
+    "summary": "\"tumblers\" at stage 6 (review): 3 alternative(s), 4 criteria, 0 of 12 cell(s) outstanding; next: every cell is settled; review the weakest scores",
+    "view": "summary"
+   },
+   "measures_write (the plan's last step)": {
+    "analysisId": "tumblers",
+    "contributorId": "bot",
+    "criteriaVersion": "1",
+    "skipped": [],
+    "summary": "12 assertion(s) written for bot: 12 valued, 0 qualified blank(s)",
+    "written": 12
+   }
+  }
+ },
+ {
+  "conversation": [
+   {
+    "role": "user",
+    "text": "Here are the three brochures. Which compost tumbler should the community garden buy? Ana, our coordinator, makes the call."
+   },
+   {
+    "role": "assistant",
+    "text": "[criteria proposed, from the propose-criteria prompt] capacity, durability, upkeep cost, ease of turning: each with a definition, anchors at 1, 3 and 5, and a direction."
+   },
+   {
+    "role": "user",
+    "text": "Yes, that's the frame. Go ahead."
+   },
+   {
+    "role": "assistant",
+    "text": "[scored durability for all three]"
+   },
+   {
+    "role": "user",
+    "text": "Actually, add how noisy it is to turn. Neighbours complain."
+   },
+   {
+    "role": "assistant",
+    "text": "[criteria proposed for noise, from the propose-criteria prompt]"
+   }
+  ],
+  "expected": {
+   "deferredOnRecord": false,
+   "gate": true,
+   "next": [
+    "confirm"
+   ],
+   "reviewWritten": false,
+   "scope": null,
+   "setAside": null
+  },
+  "id": "a7",
+  "point": "confirmed, one column scored, then the user asked for a noise criterion and it was written",
+  "toolResults": {
+   "criteria_set": {
+    "analysisId": "tumblers",
+    "criteria": [
+     "capacity",
+     "durability",
+     "upkeep-cost",
+     "ease-of-turning",
+     "noise"
+    ],
+    "criteriaVersion": "1",
+    "defaultedPreference": [],
+    "definitionGaps": [],
+    "revised": [],
+    "skipped": [],
+    "summary": "5 criteria at version \"1\"",
+    "supersededCells": {
+     "cells": [],
+     "count": 0,
+     "undetermined": [],
+     "unversioned": 0
+    }
+   },
+   "frame_confirm (no decision)": {
+    "analysisId": "tumblers",
+    "confirmed": true,
+    "instructions": "Ask the user in chat before anything is scored. Show them: the question, the decision and who decides, the ambiguities still open, every alternative, and every criterion with its definition, scale and direction of preference, naming any two criteria that overlap. Ask them to answer confirm, revise (saying what to change) or reject. Do not answer for them, and do not read silence, thanks or a change of topic as consent. When they answer, call frame_confirm again with decision set to their answer, confirmed_by set to the name they go by, and confirmation_text set to their reply word for word. If they answered for only part of it, set scope to the part, or to two parts joined with +, for example frame+criteria. On revise, make the changes they asked for, then call frame_confirm with no decision to ask again.",
+    "mechanism": "recorded",
+    "record": {
+     "at": "2026-10-19T09:30:00Z",
+     "authorId": "Ana",
+     "criteriaVersion": "1",
+     "decision": "confirm",
+     "mechanism": "out-of-band",
+     "scope": "all",
+     "text": "Yes, that's the frame. Go ahead."
+    },
+    "summary": "confirmed by Ana at 2026-10-19T09:30:00Z; since then, criteria added: noise. Put the frame and criteria to the user again and record their answer."
+   }
+  }
+ },
+ {
+  "conversation": [
+   {
+    "role": "user",
+    "text": "Here are the three brochures. Which compost tumbler should the community garden buy? Ana, our coordinator, makes the call."
+   },
+   {
+    "role": "assistant",
+    "text": "[criteria proposed, from the propose-criteria prompt] capacity, durability, upkeep cost, ease of turning: each with a definition, anchors at 1, 3 and 5, and a direction."
+   },
+   {
+    "role": "user",
+    "text": "Yes, that's the frame. Go ahead."
+   },
+   {
+    "role": "assistant",
+    "text": "[scored the plan's twelve cells; fetched the review prompt]"
+   }
+  ],
+  "expected": {
+   "deferredOnRecord": false,
+   "next": [
+    "stop"
+   ],
+   "reviewWritten": true,
+   "scope": [
+    "capacity",
+    "durability",
+    "upkeep-cost",
+    "ease-of-turning"
+   ],
+   "setAside": []
+  },
+  "id": "a8",
+  "point": "every cell scored; report_weaknesses called for the review",
+  "toolResults": {
+   "report_weaknesses": {
+    "agentInferenceOnly": [],
+    "analysisId": "tumblers",
+    "dominatedAlternatives": [],
+    "lowConfidence": [],
+    "rescoringPlan": {
+     "budget": 5,
+     "redefine": [],
+     "rescore": [
+      {
+       "alternativeId": "brackwater",
+       "criterionId": "capacity",
+       "reason": "pivotal: +1 level (3 to 4) changes the non-dominated set"
+      },
+      {
+       "alternativeId": "brackwater",
+       "criterionId": "durability",
+       "reason": "pivotal: +1 level (3 to 4) changes the non-dominated set"
+      },
+      {
+       "alternativeId": "brackwater",
+       "criterionId": "upkeep-cost",
+       "reason": "pivotal: +1 level (3 to 4) changes the non-dominated set"
+      },
+      {
+       "alternativeId": "brackwater",
+       "criterionId": "ease-of-turning",
+       "reason": "pivotal: +1 level (3 to 4) changes the non-dominated set"
+      },
+      {
+       "alternativeId": "fenwick",
+       "criterionId": "capacity",
+       "reason": "pivotal: +1 level (3 to 4) changes the non-dominated set"
+      }
+     ]
+    },
+    "staleCitations": [],
+    "summary": "12 scored cell(s); 0 uncited; 0 thinEvidence; 0 lowConfidence; 0 staleCitations; 0 agentInferenceOnly; no confidence measure recorded, so lowConfidence cannot be read; dominance over 4 criteria: 0 dominated, 3 on the front; 12 pivotal cell(s); 0 veto flag(s); 0 diagnostic correlation(s), none of them a redundancy finding; plan: 5 cell(s) to rescore within a budget of 5, 0 criteria to redefine rather than rescore.",
+    "thinEvidence": [],
+    "traversalLeakageDiagnostic": [],
+    "uncited": [],
+    "vetoFlags": []
+   }
+  }
+ }
+]
