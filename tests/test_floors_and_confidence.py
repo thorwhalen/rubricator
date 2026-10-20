@@ -114,3 +114,81 @@ def test_an_emptied_measures_list_keeps_score_beside_confidence() -> None:
     criteria_set(store, analysis_id="a", criteria=[{"id": "c1", "label": "C1", "anchors": ANCHORS}],
                  confidence_scale="confidence-1-3")
     assert [m["name"] for m in store.frame("a")["measures"]] == ["score", "confidence"]
+
+
+# --- changing or removing a declared confidence scale (#239) -------------------
+
+
+def _criteria(store, **kw):
+    return criteria_set(store, analysis_id="a", criteria=[{"id": "c1", "label": "C1", "anchors": ANCHORS,
+                                                           "acceptability": FLOOR},
+                                                          {"id": "c2", "label": "C2", "anchors": ANCHORS}], **kw)
+
+
+def test_declaring_confidence_after_scoring_supersedes_no_score() -> None:
+    store = _store()
+    _write(store, *[(a, c, "score", 3) for a in "xy" for c in ("c1", "c2")])
+    out = _criteria(store, confidence_scale="confidence-1-3")
+    assert out["supersededCells"]["count"] == 0
+    assert out["criteriaVersion"] == "2"
+    assert [(r["criterionId"], r["fields"], r["material"]) for r in out["revised"]] == [
+        ("c1", ["measurements"], False), ("c2", ["measurements"], False)]
+
+
+def test_a_confidence_scale_with_no_cells_can_be_removed() -> None:
+    store = _store(confidence_scale="confidence-1-3")
+    _write(store, ("x", "c1", "score", 3))
+    out = _criteria(store, confidence_scale="none")
+    frame = store.frame("a")
+    assert all("confidence" not in (c.get("measurements") or {}) for c in frame["criteria"])
+    assert [m["name"] for m in frame["measures"]] == ["score"]
+    assert [d["id"] for d in frame["scales"]] == ["ordinal-1-5-anchored"]
+    assert out["supersededCells"]["count"] == 0
+    with pytest.raises(ValueError, match='measure "confidence" is not one this analysis declares'):
+        _write(store, ("x", "c2", "confidence", 1))
+
+
+@pytest.mark.parametrize("scale, change", [("none", "remove it"), ("confidence-1-5", "change it")])
+def test_a_confidence_scale_with_cells_is_kept(scale, change, monkeypatch) -> None:
+    from rubricator.tools import analysis
+
+    wider = {**analysis.SCALE_PRESETS["confidence-1-3"], "measurement": {
+        **analysis.SCALE_PRESETS["confidence-1-3"]["measurement"], "range": {"min": 1, "max": 5}}}
+    monkeypatch.setitem(analysis.SCALE_PRESETS, "confidence-1-5", wider)
+    store = _store(confidence_scale="confidence-1-3")
+    _write(store, ("x", "c1", "confidence", 2))
+    before = store.frame("a")
+    with pytest.raises(ValueError, match=f"refused, nothing was written.*cannot {change}"):
+        _criteria(store, confidence_scale=scale)
+    assert store.frame("a") == before
+
+
+def test_a_confidence_blank_counts_as_a_cell_on_the_scale() -> None:
+    from rubricator.tools.analysis import measures_mark_missing
+
+    store = _store(confidence_scale="confidence-1-3")
+    measures_mark_missing(store, analysis_id="a", contributor_id="bot", author=BOT, at="2026-10-12T12:00:00Z",
+                          code="not-assessed", note="not yet", measure="confidence", criterion_ids=["c1"])
+    with pytest.raises(ValueError, match="records confidence cells"):
+        _criteria(store, confidence_scale="none")
+
+
+def test_re_declaring_the_same_confidence_scale_is_no_change() -> None:
+    store = _store(confidence_scale="confidence-1-3")
+    _write(store, ("x", "c1", "confidence", 2))
+    assert _criteria(store, confidence_scale="confidence-1-3")["revised"] == []
+
+
+def test_a_confidence_scale_with_no_cells_can_be_changed(monkeypatch) -> None:
+    from rubricator.tools import analysis
+
+    wider = {**analysis.SCALE_PRESETS["confidence-1-3"], "measurement": {
+        **analysis.SCALE_PRESETS["confidence-1-3"]["measurement"], "range": {"min": 1, "max": 5}}}
+    monkeypatch.setitem(analysis.SCALE_PRESETS, "confidence-1-5", wider)
+    store = _store(confidence_scale="confidence-1-3")
+    _write(store, ("x", "c1", "score", 3))
+    out = _criteria(store, confidence_scale="confidence-1-5")
+    frame = store.frame("a")
+    assert {c["measurements"]["confidence"]["scale"] for c in frame["criteria"]} == {"confidence-1-5"}
+    assert sorted(d["id"] for d in frame["scales"]) == ["confidence-1-5", "ordinal-1-5-anchored"]
+    assert out["supersededCells"]["count"] == 0 and not any(r["material"] for r in out["revised"])
