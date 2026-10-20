@@ -19,7 +19,7 @@ the duplicate-id refusal are the prompts' own. It lives apart from them because
 a prompt is handed to a model and a disclosure to a person: the prompt suite's
 rules (the honesty clause, the vocabulary check) are about the first.
 
-Rendering is ``disclose_variance``'s job (tool 17 in the frozen surface, planned),
+Rendering is ``disclose_variance``'s job (tool 17 in the frozen surface, `rubricator.tools.disclosure`),
 which fills the placeholders from what was actually recorded.
 This module only serves the text.
 

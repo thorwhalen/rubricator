@@ -237,3 +237,11 @@ Row 4 is implemented, in `rubricator/tools/search.py`, with no input change. Ret
 **The row's text.** The contract said alternatives with no source were flagged. Nothing computed that, and nothing can yet: the input `Alternative` (comparanda v1's, closed) has no slot for where an alternative came from, so there is nothing to read "unsourced" off. The sentence now promises only what is returned, and the unsourced half stays open on #55 as an input-and-schema question.
 
 **Not re-measured.** `MEASURED` below is still the 2026-10-12 count; `AWAITING_MEASUREMENT` in `frozen.py` pins the digest and byte size of what is now served (16 advertised tools, 23,450 bytes, digest `521313484f78`; the whole surface, 22 tools, 28,774 bytes, digest `9165078f8abc`) and still names #199, which owes the count. No estimate is recorded as a count.
+
+### 2026-10-20 — Row 17, `disclose_variance`, is implemented (#100)
+
+- **Deciders:** Thor Whalen (no definition changed; the row moves from planned to implemented and is exposed)
+
+`rubricator/tools/disclosure.py`. It renders `data/disclosures/variance.md` from the stored document: scorings per cell are counted from live assertions (a placeholder blank is no scoring), traversal is read off the procedures the assertions point at, order from their perturbation seeds, independence from `agreement` over the cells holding two or more scorings. With no such cell it states `n = 1, unmeasured`; it estimates no stability figure and states no size for any mitigation. An analysis with no procedure record says "not recorded" and lists the procedure under `notMeasured`.
+
+**Not re-measured.** `MEASURED` below is still the 2026-10-12 count; `AWAITING_MEASUREMENT` in `frozen.py` pins what is now served (17 advertised tools, 24,053 bytes, digest `c5704dd44432`; the whole surface, 22 tools, 28,774 bytes, digest `9165078f8abc`, unchanged) and still names #199, which owes the count. No estimate is recorded as a count.

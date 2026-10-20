@@ -769,7 +769,7 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
         ),
     ),
     ToolSpec(
-        name="disclose_variance", family="report", stage="6", status="planned",
+        name="disclose_variance", family="report", stage="6", status="implemented",
         minimum_viable=False, cut_rank=2, research_row=17, issue=100,
         contract=(
             "Render the variance disclosure from what the procedure record says actually "
@@ -1048,8 +1048,8 @@ MEASURED: Mapping[str, Any] = {
 AWAITING_MEASUREMENT: Mapping[str, Any] | None = {
     "issue": 199,
     "advertised": {
-        "tools": 16, "bytes": 23450,
-        "sha256": "521313484f780b0c4a53c503c0465af82f521c45b6eba92aa7e785e5d309dfca",
+        "tools": 17, "bytes": 24053,
+        "sha256": "c5704dd44432f84770008793b21ddd0ea666f8136efd282fd97bbb45e6394f0a",
     },
     "wholeSurface": {
         "tools": 22, "bytes": 28774,

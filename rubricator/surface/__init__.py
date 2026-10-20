@@ -76,6 +76,7 @@ TOOL_REFS: tuple[str, ...] = (
     "rubricator.tools.aggregate:aggregate_assertions",
     "rubricator.tools.citations:check_citations",
     "rubricator.tools.traversal:plan_traversal",
+    "rubricator.tools.disclosure:disclose_variance",
     "rubricator.tools.prompts:prompts_list",
     "rubricator.tools.prompts:prompts_get",
 )
@@ -98,7 +99,7 @@ NEEDS_ID: frozenset[str] = frozenset({"analysis_open"})
 _NEEDS_STORE: frozenset[str] = frozenset({
     "analysis_open", "analysis_get", "frame_set", "alternatives_set", "frame_confirm", "criteria_set",
     "measures_write", "measures_mark_missing", "report_completeness", "aggregate_assertions",
-    "corpus_add", "corpus_search",
+    "corpus_add", "corpus_search", "disclose_variance",
 })
 
 
