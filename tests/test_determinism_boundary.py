@@ -300,7 +300,19 @@ def _imported_modules(path: Path) -> set[str]:
             module = ".".join([*base, *([node.module] if node.module else [])])
             names.add(module)
             names.update(f"{module}.{alias.name}" for alias in node.names)
+        elif isinstance(node, ast.Call) and _is_dynamic_import(node.func) and node.args:
+            # ``importlib.import_module("aix")`` and ``__import__("aix")``: a module
+            # named by a string escapes the statement walk above (#227).
+            first = node.args[0]
+            if isinstance(first, ast.Constant) and isinstance(first.value, str):
+                names.add(first.value)
     return names
+
+
+def _is_dynamic_import(func: ast.expr) -> bool:
+    """``import_module``, ``importlib.import_module`` or ``__import__``, however reached."""
+    name = func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", None)
+    return name in {"import_module", "__import__"}
 
 
 def _reaches_a_model(path: Path) -> list[str]:
@@ -357,6 +369,9 @@ def test_the_scan_catches_a_model_import_deferred_into_a_function(tmp_path: Path
     ("from ..agent import loop", "mcp/server.py"),
     ("from ..evaluation.harness import judge", "tools/x.py"),
     ("from . import agent", "agent_shim.py"),
+    ("importlib.import_module('aix')", "server.py"),
+    ("import_module('rubricator.evaluation.harness')", "tools/x.py"),
+    ("__import__('anthropic')", "server.py"),
 ])
 def test_the_scan_resolves_relative_imports_and_refuses_the_model_runtimes(
     tmp_path: Path, monkeypatch, statement: str, where: str

@@ -55,6 +55,9 @@ __all__ = [
     "DEFAULT_WINDOW_CHARS",
     "DEFAULT_OVERLAP_CHARS",
     "CHARS_PER_TOKEN",
+    "NON_ASCII_TOKENS_PER_CHAR",
+    "TOKEN_ESTIMATE_RULE",
+    "token_estimate",
     "AGENT_PRODUCED_DETECTORS",
     "INGEST_RECORD",
     "MARKER_RECORD",
@@ -77,9 +80,22 @@ CHUNKER_ID = "chunk-v1"
 DEFAULT_WINDOW_CHARS = 400
 DEFAULT_OVERLAP_CHARS = 0
 
-#: The ratio behind ``tokenEstimate``. An estimate, said to be one: a real count
-#: is model-specific and would need the provider's counter, which no tool may call.
+#: The ratio behind ``tokenEstimate`` for ASCII text. An estimate, said to be one: a
+#: real count is model-specific and would need the provider's counter, which no
+#: tool may call.
 CHARS_PER_TOKEN = 4
+
+#: What one character outside ASCII counts for in ``tokenEstimate``. CJK text runs
+#: at about a token a character or more, so four characters a token estimated
+#: 90,000 CJK characters at 22,500 tokens and the ADR-0010 inline threshold let a
+#: client truncate them silently (#227). A whole token each over-counts accented
+#: Latin, Cyrillic and Greek, which errs toward a refusal, never a truncation.
+NON_ASCII_TOKENS_PER_CHAR = 1
+
+#: The rule behind every token estimate, as summaries state it.
+TOKEN_ESTIMATE_RULE = (
+    f"{CHARS_PER_TOKEN} ASCII characters a token, {NON_ASCII_TOKENS_PER_CHAR} a character otherwise"
+)
 
 #: The names of the two corpus records kept beside a rendition.
 INGEST_RECORD = "ingest"
@@ -402,22 +418,22 @@ def corpus_add(
     cleaned = sum(1 for d in unique if d["cleaned"])
     agent = sum(1 for d in unique if d["agentProduced"])
     span_count = sum(d["spanCount"] for d in unique)
-    token_estimate = sum(d["tokenEstimate"] for d in unique)
-    corpus_tokens = sum(_tokens(r.get("content") or "") for r in renditions.values())
+    estimated = sum(d["tokenEstimate"] for d in unique)
+    corpus_tokens = sum(token_estimate(r.get("content") or "") for r in renditions.values())
     return {
         "analysisId": analysis_id,
         "documentIds": [d["documentId"] for d in documents],
         "documents": documents,
         "spanCount": span_count,
-        "tokenEstimate": token_estimate,
+        "tokenEstimate": estimated,
         "corpusTokenEstimate": corpus_tokens,
         "warnings": warnings,
         "summary": (
             f"{added} document(s) added, {len(rows) - added} already present; {cleaned} cleaned "
             f"by {CURRENT}; {agent} marked agent-produced (measures_write refuses a primary "
             f"reference naming those); {span_count} span(s) by {CHUNKER_ID}; about "
-            f"{token_estimate} tokens in these, {corpus_tokens} in the corpus (estimated at "
-            f"{CHARS_PER_TOKEN} characters a token)"
+            f"{estimated} tokens in these, {corpus_tokens} in the corpus (estimated at "
+            f"{TOKEN_ESTIMATE_RULE})"
         ),
     }
 
@@ -508,7 +524,7 @@ def _add_one(
         "cleaned": bool(ingest.get("cleaned", plan["cleaned"])),
         "agentProduced": MARKER_RECORD in stored,
         "spanCount": len(ingest.get("spans") or []),
-        "tokenEstimate": _tokens(content),
+        "tokenEstimate": token_estimate(content),
     }
 
 
@@ -739,8 +755,16 @@ def _cited_as_primary(store: AnalysisStore, analysis_id: str, marked: set[str]) 
     ]
 
 
-def _tokens(text: str) -> int:
-    return math.ceil(len(text) / CHARS_PER_TOKEN)
+def token_estimate(text: str) -> int:
+    """About how many tokens ``text`` is, by :data:`TOKEN_ESTIMATE_RULE`.
+
+    >>> token_estimate("abcdefgh"), token_estimate("abcde"), token_estimate("数据存储")
+    (2, 2, 4)
+    """
+    ascii_chars = len(text.encode("ascii", "ignore"))
+    return math.ceil(ascii_chars / CHARS_PER_TOKEN) + (
+        len(text) - ascii_chars
+    ) * NON_ASCII_TOKENS_PER_CHAR
 
 
 def _same_content(
