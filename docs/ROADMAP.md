@@ -381,7 +381,8 @@ Recorded because a deferral nobody wrote down becomes a mystery later.
 `BRIEF.md` asks for this by name. In cut order — first to go at the top.
 
 1. **The pairwise escalation and the coupling probes** — `fit_bradley_terry` and
-   `compute_coupling_matrix`. Not built in v1 at all.
+   `compute_coupling_matrix`. Not built in v1 at all: cut, per ADR-0011 (#65); their rows stay in
+   the frozen surface with status `cut`.
 2. **The deployed agent (Phase 5), except the one CLI verb projection needs.** The connector is the
    product for the primary user, and stopping after the two v1 surfaces is a legitimate outcome —
    ADR-0007 says so.

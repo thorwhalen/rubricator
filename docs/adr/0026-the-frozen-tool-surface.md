@@ -13,7 +13,7 @@ One more force. The closed comparanda v1 schema refuses unknown keys, and the wr
 
 ## Decision
 
-**The surface is twenty tools plus two transitional verbs, listed in `rubricator/surface/frozen.py`, and that module is the single source of truth.** Every row carries the name, the family, the ADR-0005 stage, the status (`implemented`, `planned`, `transitional`), whether it is in the minimum viable set, its cut rank, a one-paragraph contract, a one-line determinism justification, a one-line failure mode, the `inputSchema`, the `outputSchema`, and — for anything not yet implemented — the issue that tracks it. The research's nineteen all have rows, mapped by `research_row`; `report_completeness` is the twentieth; `prompts_list` and `prompts_get` are transitional, retired when native MCP prompts land (#80). The rows:
+**The surface is eighteen tools plus two transitional verbs, listed in `rubricator/surface/frozen.py`, and that module is the single source of truth; two more rows are specified and cut (see the 2026-10-20 amendment, #65).** Every row carries the name, the family, the ADR-0005 stage, the status (`implemented`, `planned`, `transitional`, `cut`), whether it is in the minimum viable set, its cut rank, a one-paragraph contract, a one-line determinism justification, a one-line failure mode, the `inputSchema`, the `outputSchema`, and — for anything not yet implemented — the issue that tracks it. The research's nineteen all have rows, mapped by `research_row`; `report_completeness` is the twentieth; `prompts_list` and `prompts_get` are transitional, retired when native MCP prompts land (#80). The rows:
 
 | # | Tool | Family | Stage | Status | MVP | Cut | Research row |
 |---|---|---|---|---|---|---|---|
@@ -34,13 +34,13 @@ One more force. The closed comparanda v1 schema refuses unknown keys, and the wr
 | 15 | `stability_report` | report | 6 | implemented (#98) | no | 3 | 15 |
 | 16 | `report_weaknesses` | report | 6 | implemented (#64) | no | 5 | 16 |
 | 17 | `disclose_variance` | report | 6 | implemented (#100) | no | 2 | 17 |
-| 18 | `compute_coupling_matrix` | criteria | 3 | planned (#65) | no | 1 | 18 |
-| 19 | `fit_bradley_terry` | measures | 5 | planned (#65) | no | 1 | 19 |
+| 18 | `compute_coupling_matrix` | criteria | 3 | cut (#65) | no | 1 | 18 |
+| 19 | `fit_bradley_terry` | measures | 5 | cut (#65) | no | 1 | 19 |
 | 20 | `report_completeness` | report | 5, 6, resume | implemented | yes | — | — |
 | 21 | `prompts_list` | prompts | all | transitional (#80) | yes | — | — |
 | 22 | `prompts_get` | prompts | all | transitional (#80) | yes | — | — |
 
-**Cut order.** 1 is cut first. Rank 1: the two deferred tools. Rank 2: `disclose_variance`, only if k > 1 is always used — it is most needed at k = 1, the connector's normal case. Rank 3: `aggregate_assertions` and `stability_report` together, if there are never repeats. Rank 4: `measures_mark_missing`, only at the price of partial-fill instructions, a visible product regression. Rank 5, cut last: `report_weaknesses`, without which "self-critique is part of the deliverable" (ADR-0006) degrades to unaided opinion. Everything with no rank is the minimum viable set and is not cut. The research listed `check_citations` outside its minimum set while calling it "not cuttable — it is the product"; the second statement is the decision, so it is in the minimum set here. Fifteen tools are minimum viable: the research's eleven, plus `check_citations`, `report_completeness` and the two transitional verbs.
+**Cut order.** 1 is cut first. Rank 1: the two deferred tools, now cut (#65). Rank 2: `disclose_variance`, only if k > 1 is always used — it is most needed at k = 1, the connector's normal case. Rank 3: `aggregate_assertions` and `stability_report` together, if there are never repeats. Rank 4: `measures_mark_missing`, only at the price of partial-fill instructions, a visible product regression. Rank 5, cut last: `report_weaknesses`, without which "self-critique is part of the deliverable" (ADR-0006) degrades to unaided opinion. Everything with no rank is the minimum viable set and is not cut. The research listed `check_citations` outside its minimum set while calling it "not cuttable — it is the product"; the second statement is the decision, so it is in the minimum set here. Fifteen tools are minimum viable: the research's eleven, plus `check_citations`, `report_completeness` and the two transitional verbs.
 
 **Naming.** `snake_case`, no server prefix. Everything that acts on a stored analysis is noun-first — family, then verb: `analysis_*`, `corpus_*`, `frame_*`, `alternatives_*`, `criteria_*`, `measures_*`, `report_*`, `prompts_*`. Pure functions over caller-supplied data keep the research's names, which the ADRs already cite verbatim — ADR-0011's `plan_traversal`, ADR-0014's `check_citations`, and the five analytic tools of rows 14–19. Renaming those to satisfy a convention would cost every citation for no gain in selection accuracy.
 
@@ -312,3 +312,13 @@ The template variable is `{id}` in these rows and `{analysis_id}` in the one tem
 **A closing decision needs no fresh question, under any name.** A `revise` or `reject` can be recorded without a pending request. It is free text in `confirmed_by`, so it can carry a name nobody gave, and it replaces a person's `confirm` as the record that decides its parts. This stays as it is, on purpose. All a fabricated closing decision can do is close the gate and have the user asked again, which is more caution, never less. Requiring `confirmed_by` to match an earlier author would only check a string the model also supplies. It would also stop a second person from rejecting what the first confirmed, which is the case the gate exists for.
 
 **A joined-scope decision is two writes.** If a crash or a branch merge falls between them, one part is left recorded and the other is not. That fails toward caution. Making it one atomic write waits on a batch write in the store ([#270](https://github.com/thorwhalen/rubricator/issues/270)).
+
+### 2026-10-20 — Rows 18 and 19 are cut, per ADR-0011 (#65)
+
+- **Status:** accepted
+- **Date:** 2026-10-20
+
+**`compute_coupling_matrix` and `fit_bradley_terry` are cut, per ADR-0011.** ADR-0011 decided that pairwise is not the default and is not built in v1, and both rows held cut rank 1. A new status, `cut`, marks them. They keep their rows, so the specification that made the cut a decision rather than an omission stays where a later reader will look, and they are never advertised. The surface is now eighteen tools plus two transitional verbs, with two more specified and cut. Nothing advertised changes, so the definitions digests and the token measurement stand.
+
+**Reversing it** is a row edit back to `planned` with a new issue, plus the implementation and its determinism tests. A Bradley–Terry fit is reached only through ADR-0011's four-condition escalation, and the coupling probes cost 3n² judgements, so the case for reversing must come from an analysis that needed one of them.
+
