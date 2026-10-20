@@ -36,7 +36,7 @@ from rubricator.stats import kendall_tau_b, wilson_interval
 
 __all__ = [
     "LEVELS", "MAX_CONFIDENCE_INFLATION_RATE", "DISCRIMINATION_SUITE", "confidence_report",
-    "gate_failures",
+    "correct_scores", "gate_failures",
 ]
 
 #: Confidence level names by value on the ``confidence-1-3`` scale.
@@ -88,15 +88,22 @@ def _supported(assertion: Mapping[str, Any]) -> bool:
     return bool(refs) and not all(r.get("sourceType") == _INFERENCE for r in refs) and _citable(assertion)
 
 
+def correct_scores(fixture: Fixture, produced: Mapping[str, Any]) -> dict[Key, bool]:
+    """Whether each produced score is right, for every cell whose expected analysis has a value.
+
+    The one definition of *correct* both families grade against: the produced cell's live value
+    equals the expected cell's. A produced blank, or a cell the fixture leaves blank, is not here.
+    """
+    truth = {k: a["value"] for k, a in _cells(fixture.expected, _SCORE).items() if _has_value(a)}
+    return {k: a["value"] == truth[k] for k, a in _cells(produced, _SCORE).items()
+            if _has_value(a) and k in truth}
+
+
 def graded_cells(fixture: Fixture, produced: Mapping[str, Any]) -> list[tuple[int, bool]]:
     """``(confidence level, correct)`` for every produced score that has a level and a known answer."""
-    truth = {k: a["value"] for k, a in _cells(fixture.expected, _SCORE).items() if _has_value(a)}
     levels = {k: _level(a) for k, a in _cells(produced, _CONFIDENCE).items()}
-    return [
-        (levels[k], a["value"] == truth[k])
-        for k, a in _cells(produced, _SCORE).items()
-        if _has_value(a) and k in truth and levels.get(k) is not None
-    ]
+    return [(levels[k], ok) for k, ok in correct_scores(fixture, produced).items()
+            if levels.get(k) is not None]
 
 
 def _share(hits: int, total: int) -> float | None:
