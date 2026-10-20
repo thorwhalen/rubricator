@@ -671,3 +671,25 @@ def test_a_fence_full_of_whitespace_is_linear() -> None:
     started = time.perf_counter()
     assert _as_json(text) is None
     assert time.perf_counter() - started < 1.0
+
+
+def test_a_pasted_variance_disclosure_is_marked_whatever_the_caller_says() -> None:
+    from rubricator.tools.disclosure import disclose_variance
+
+    runtime, verbs = _verbs()
+    rendered = disclose_variance(runtime.store, analysis_id="a1")["text"]
+    result = verbs["corpus_add"](analysis_id="a1",
+                                 sources=[{"text": rendered, "agentProduced": False}])
+    assert result["documents"][0]["agentProduced"] is True
+    assert any("although not declared" in w for w in result["warnings"])
+    # a Markdown-stripped paste (no bold) is still recognised
+    plain = rendered.replace("**", "")
+    again = verbs["corpus_add"](analysis_id="a1", sources=[{"text": plain, "agentProduced": False}])
+    assert again["documents"][0]["agentProduced"] is True
+
+
+def test_prose_that_only_mentions_variance_is_not_marked() -> None:
+    _, verbs = _verbs()
+    text = "## How this comparison was produced\nScorings per cell: we asked once."
+    result = verbs["corpus_add"](analysis_id="a1", sources=[{"text": text, "agentProduced": False}])
+    assert result["documents"][0]["agentProduced"] is False

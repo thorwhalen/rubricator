@@ -208,7 +208,8 @@ def _rubricator_output(text: str) -> str | None:
 
     Recognised as JSON, as the entire text, behind at most a BOM and one code
     fence. Prose around the JSON, or a list of results, is not recognised: the
-    caller's ``agentProduced`` is what marks those (#202 extends this).
+    caller's ``agentProduced`` is what marks those, except the rendered
+    variance disclosure, which :func:`_variance_disclosure` recognises (#202).
     """
     parsed = _as_json(text)
     if not isinstance(parsed, dict):
@@ -219,11 +220,41 @@ def _rubricator_output(text: str) -> str | None:
     return None
 
 
+@lru_cache(maxsize=1)
+def _disclosure_marks() -> tuple[str, ...]:
+    """The fixed wording of the variance disclosure, read off its shipped template.
+
+    The heading and the literal label before each placeholder (``Scorings per
+    cell:`` and the like). Taken from the template so a reworded disclosure
+    moves its recogniser with it, rather than drifting from a copied string.
+    """
+    from rubricator.disclosures import disclosures
+
+    body = disclosures()["variance"].body
+    heading = next(line for line in body.splitlines() if line.startswith("## "))
+    labels = [re.sub(r"^[-*]\s*", "", line.split("{", 1)[0]) for line in body.splitlines()
+              if "{" in line and line.lstrip().startswith("-")]
+    return tuple(" ".join(m.split()) for m in (heading, *labels))
+
+
+def _variance_disclosure(text: str) -> str | None:
+    """A pasted ``disclose_variance`` text: its heading and every one of its field labels.
+
+    Prose, not JSON, so the JSON recogniser cannot see it. Needs the whole set,
+    in the tool's own wording; a document that merely discusses variance does not
+    carry all of it.
+    """
+    flat = " ".join(re.sub(r"[*_`]", "", text).split())
+    if all(mark in flat for mark in _disclosure_marks()):
+        return "the text is a variance disclosure, which only disclose_variance renders"
+    return None
+
+
 #: Deterministic recognisers of rubricator's own output. Each returns why the
 #: text is agent-produced, or ``None``. They can only *set* the marker; a source
 #: none of them recognises is marked or not on the caller's word. Data, so a
 #: new output format adds a recogniser here without touching the verb.
-AGENT_PRODUCED_DETECTORS: tuple[Callable[[str], str | None], ...] = (_rubricator_output,)
+AGENT_PRODUCED_DETECTORS: tuple[Callable[[str], str | None], ...] = (_rubricator_output, _variance_disclosure)
 
 
 def _refuse(message: str) -> ValueError:
