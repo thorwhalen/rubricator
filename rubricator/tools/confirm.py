@@ -135,8 +135,8 @@ def covered(frame: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _moved(state: Mapping[str, Any], frame: Mapping[str, Any]) -> list[str]:
-    """How each part moved past the confirmation that decides it, in words; empty when none did.
+def _moved(state: Mapping[str, Any], frame: Mapping[str, Any]) -> list[tuple[str, str]]:
+    """Each part that moved past the confirmation deciding it, with how, in words; empty when none did.
 
     The frame moved when its wording did. A row or column moved in when it is
     live now and was not then; one retired since was confirmed, and narrowing
@@ -154,14 +154,14 @@ def _moved(state: Mapping[str, Any], frame: Mapping[str, Any]) -> list[str]:
         then = kept.get(part) if isinstance(kept, Mapping) else None
         if part == "frame":
             if then != now[part]:
-                out.append("the frame's question, decision, decider, context or ambiguities changed")
+                out.append((part, "the frame's question, decision, decider, context or ambiguities changed"))
             continue
         seen = {json.dumps(x, default=str) for x in then} if isinstance(then, list) else None
         new = [x for x in now[part] if seen is None or json.dumps(x) not in seen]
         if new:
             names = ", ".join(x[0] if isinstance(x, list) else x for x in new)
-            out.append(f"alternatives added or changed: {names}" if part == "alternatives"
-                       else f"criteria added: {names}")
+            out.append((part, f"alternatives added or changed: {names}" if part == "alternatives"
+                        else f"criteria added: {names}"))
     return out
 
 
@@ -406,17 +406,25 @@ def frame_confirm(
                 return result(True, "recorded", deciding, None, f"already {standing}; nothing to ask")
             # Something moved since: scoring stays open (ADR-0005's gate opens
             # both ways, #152), but the question is put again so a fresh confirm
-            # of what is there now can be recorded.
-            ask()
+            # of what is there now can be recorded -- for the parts that moved only,
+            # so a frame a person confirmed is not re-invited when only the
+            # alternatives moved (#212).
+            again = scope_of(
+                {part for part, _ in moved}
+                | ({"criteria"} if version not in (None, current) else set())
+            )
+            ask(again)
+            named = ", ".join(parts_of(again))
             # What stands is said part by part (``_standing``): a part that rests on the skip is
             # never reported as confirmed by whoever confirmed another (#206 review).
             return result(
                 True, "recorded", deciding, OUT_OF_BAND_INSTRUCTIONS,
-                f'{standing}; the criteria are now at "{current}", not "{version}", so put them to '
-                "the user again and record their answer."
+                f'{standing}; the criteria are now at "{current}", not "{version}"'
+                + (f"; since then, {'; '.join(how for _, how in moved)}" if moved else "")
+                + f". Put the {named} to the user again (scope {again}) and record their answer."
                 if version not in (None, current) else
-                f"{standing}; since then, {'; '.join(moved)}. Put the frame and criteria "
-                "to the user again and record their answer.",
+                f"{standing}; since then, {'; '.join(how for _, how in moved)}. Put the {named} "
+                f"to the user again (scope {again}) and record their answer.",
             )
         ask()
         last = next((r for r in reversed(records) if _kind(r) != "request"), None)

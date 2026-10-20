@@ -414,7 +414,7 @@
      "mechanism": "out-of-band"
     },
     "instructions": "Ask the user in chat before anything is scored. Show them: the question, the decision and who decides, the ambiguities still open, every alternative, and every criterion with its definition, scale and direction of preference, naming any two criteria that overlap. Ask them to answer confirm, revise (saying what to change) or reject. Do not answer for them, and do not read silence, thanks or a change of topic as consent. When they answer, call frame_confirm again with decision set to their answer, confirmed_by set to the name they go by, and confirmation_text set to their reply word for word. If they answered for only part of it, set scope to the part, or to two parts joined with +, for example frame+criteria. On revise, make the changes they asked for, then call frame_confirm with no decision to ask again.",
-    "summary": "confirmed by Ana at 2026-10-12T09:30:00Z; the criteria are now at \"2\", not \"1\", so put them to the user again and record their answer."
+    "summary": "confirmed by Ana at 2026-10-12T09:30:00Z; the criteria are now at \"2\", not \"1\". Put the criteria to the user again (scope criteria) and record their answer."
    }
   },
   "expected": {
@@ -999,11 +999,11 @@
      "text": "Yes, the new noise anchors are right.",
      "criteriaVersion": "2",
      "decision": "confirm",
-     "scope": "all",
+     "scope": "criteria",
      "mechanism": "out-of-band"
     },
     "instructions": null,
-    "summary": "already confirmed by Ana at 2026-10-12T09:30:00Z; nothing to ask"
+    "summary": "already frame, alternatives: confirmed by Ana at 2026-10-12T09:30:00Z; criteria: confirmed by Ana at 2026-10-12T09:30:00Z; nothing to ask"
    }
   },
   "expected": {
