@@ -185,6 +185,16 @@ def _import(store, file: str, analysis_id: str | None) -> int:
     return 0
 
 
+def _repair(store, analysis_id: str, contributor_id: str, *, apply: bool) -> int:
+    result = store.repair_contribution(analysis_id, contributor_id, apply=apply)
+    for path in result["dropped"]:
+        print(f"  drop {path}")
+    for line in result["remaining"]:
+        print(f"  cannot repair: {line}", file=sys.stderr)
+    print(result["summary"])
+    return 1 if result["remaining"] else 0
+
+
 _ROOT_HELP = "directory the analyses are in (default: the user-data working store)"
 
 
@@ -210,6 +220,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     p_import.add_argument("--analysis-id", default=None, help="id to store it under (default: its own id)")
     p_import.add_argument("--root", default=None, help=_ROOT_HELP)
 
+    p_repair = sub.add_parser(
+        "repair",
+        help="drop the keys the comparanda contract refuses from one contributor's own file "
+             "(a dry run unless --apply)")
+    p_repair.add_argument("analysis_id")
+    p_repair.add_argument("contributor_id", help="whose file: only that file is touched")
+    p_repair.add_argument("--apply", action="store_true", help="write the repaired file")
+    p_repair.add_argument("--root", default=None, help=_ROOT_HELP)
+
     args = parser.parse_args(argv)
 
     if args.command == "demo":
@@ -232,6 +251,8 @@ def _read_command(args: argparse.Namespace) -> int:
         return _show(runtime.store, args.analysis_id)
     if args.command == "import":
         return _import(runtime.store, args.file, args.analysis_id)
+    if args.command == "repair":
+        return _repair(runtime.store, args.analysis_id, args.contributor_id, apply=args.apply)
     # Through the surface, not the raw verb: the CLI validates against the
     # frozen row exactly as the connector does (ADR-0026). `demo` above calls
     # the verbs directly on purpose -- it is the Python-level chain.

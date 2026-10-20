@@ -72,6 +72,7 @@ __all__ = [
     "structural_refines_not_applicable",
     "no_redeclaring_core",
     "unique_declarations",
+    "cell_coordinates_exist",
     "blank_is_defined",
     "assertion_attributed",
     "agent_is_typed",
@@ -134,6 +135,7 @@ RULE_SOURCES: Mapping[str, str] = {
     "structural-refines-not-applicable": "comparanda ADR-0009",
     "no-redeclaring-core": "comparanda ADR-0009",
     "unique-declarations": "comparanda ADR-0030",
+    "cell-coordinates-exist": "comparanda",
     "blank-is-defined": "comparanda ADR-0030",
     "assertion-attributed": "comparanda ADR-0012",
     "agent-is-typed": "comparanda ADR-0012",
@@ -986,10 +988,39 @@ def unique_declarations(document: Mapping[str, Any]) -> Iterable[Problem]:
 
 
 #: The structural rules over declarations, in the companion's order.
+def cell_coordinates_exist(document: Mapping[str, Any]) -> Iterable[Problem]:
+    """Every cell names an alternative and a criterion the document declares.
+
+    Mirrors `comparanda`'s ``cell-coordinates-exist``. The write path refuses an
+    undeclared row or column, but a read keeps any schema-valid file (#159), and a
+    hand edit, an import or a branch merge can leave a cell naming nothing (#166):
+    a measure on no alternative, which no view can place.
+    """
+    for axis, key, verb in (
+        ("alternative", "alternativeId", "alternatives_set"),
+        ("criterion", "criterionId", "criteria_set"),
+    ):
+        declared = {
+            row.get("id") for row in document.get(f"{axis}s" if axis == "alternative" else "criteria", [])
+            if isinstance(row, Mapping)
+        }
+        for i, cell in enumerate(document.get("cells", [])):
+            if not isinstance(cell, Mapping) or cell.get(key) in declared:
+                continue
+            yield Problem(
+                path=f"cells[{i}].{key}",
+                message=f'unknown {axis} "{cell.get(key)}": the cell names a {axis} the analysis does not declare.',
+                fix=f"declare the {axis} with {verb}, or correct the cell's {key}.",
+                rule_id="cell-coordinates-exist",
+                family="schema",
+            )
+
+
 SCHEMA_RULES: Sequence[Rule] = (
     structural_refines_not_applicable,
     no_redeclaring_core,
     unique_declarations,
+    cell_coordinates_exist,
 )
 
 

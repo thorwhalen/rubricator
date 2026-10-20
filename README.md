@@ -59,6 +59,8 @@ Its output is a **comparanda** analysis. That schema is the contract between the
 
 An analysis made elsewhere comes in the same way it goes out: `rubricator import colleague.json` validates the comparanda document, splits it into a frame and one file per contributor, and stores it so it can be read and audited (the `audit-existing` prompt). A document the merge would refuse is refused whole, with the reason.
 
+A contributor's own file that the comparanda contract refuses (one written by an older build, say) is left out of every read until it is repaired: `rubricator repair <analysis> <contributor>` names the keys it would drop, and `--apply` drops exactly those, from that file only.
+
 ## Two ways to run it
 
 Both are first-class, and the point of the architecture is that they share almost everything.
