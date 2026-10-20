@@ -58,13 +58,13 @@ Use the **full path** from `which rubricator-mcp` (on Windows write the backslas
 
 ## 3. Run a first analysis
 
-Start a new chat, make sure the rubricator tools are on, and ask in plain words. Name the method, because the server does not yet tell Claude to read its prompts on its own ([#216](https://github.com/thorwhalen/rubricator/issues/216)):
+Start a new chat, make sure the rubricator tools are on, and ask in plain words. The server's instructions tell Claude to read the `run-analysis` prompt before it writes anything, and to ask you about the frame first ([#216](https://github.com/thorwhalen/rubricator/issues/216)):
 
-> Use rubricator to compare three note-taking apps for a two-person team, in an analysis called `notes-apps`. First call `prompts_list` and read the prompts you will need with `prompts_get`, and follow them. Ask me what matters before you score anything.
+> Use rubricator to compare three note-taking apps for a two-person team, in an analysis called `notes-apps`.
 
 The method the prompts ask of Claude (it is a model, so steer it if it drifts):
 
-1. **The frame comes first.** Nothing makes Claude ask about the frame yet, which is why the message above does. A good frame says what is being compared, for what decision and who decides. The tools refuse to write a score until the frame, alternatives and criteria are confirmed (step 2), unless the analysis was opened with the confirmation explicitly skipped, which Claude should do only if you told it to; so skipping the conversation normally costs you a refused write, not a wrong score.
+1. **The frame comes first.** Claude should ask what the comparison is for before it writes anything; if it starts writing a frame you did not describe, stop it. A good frame says what is being compared, for what decision and who decides. The tools refuse to write a score until the frame, alternatives and criteria are confirmed (step 2), unless the analysis was opened with the confirmation explicitly skipped, which Claude should do only if you told it to; so skipping the conversation normally costs you a refused write, not a wrong score.
 2. **It proposes criteria** with a definition and the evidence that would justify each score, and **asks you to confirm** them in chat before any cell is scored. Say what you would change.
 3. **It scores one cell at a time**, each with a confidence, a justification and a quoted span of the source, not a whole document. Where it cannot score, the cell is left blank *with a reason*, and the reasons mean different things: `not-evidenced` (the sources are silent) and `indeterminate` (they conflict) are findings about the subject, finished work; `not-assessed` only means nobody has looked yet, and is still to do. A qualified blank beats a plausible guess.
 4. **What Claude has written through the tools is saved as it goes**, so a closed chat loses that; criteria you discussed but Claude had not yet recorded are lost. Ask for the completeness counts at any point.
