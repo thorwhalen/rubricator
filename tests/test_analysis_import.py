@@ -131,3 +131,39 @@ def test_the_cli_imports_and_refuses_without_a_traceback(tmp_path, capsys) -> No
     (tmp_path / "bad.json").write_text("{not json")
     assert main(["import", str(tmp_path / "bad.json"), "--root", root]) == 1
     assert "could not be read as JSON" in capsys.readouterr().err
+
+
+def test_a_cell_field_the_merge_would_drop_is_refused() -> None:
+    doc = _plain()
+    doc["cells"][0]["readOnly"] = True
+    with pytest.raises(ValueError, match="readOnly, which a contributor's cell cannot hold"):
+        analysis_import(_store(), document=doc)
+
+
+def test_a_cell_with_no_assertions_is_kept_in_the_frame() -> None:
+    doc = _plain()
+    doc["cells"].append({"alternativeId": "sprigg", "criterionId": "ease-of-use", "measure": "score",
+                         "reduction": "latest", "assertions": []})
+    store = _store()
+    analysis_import(store, document=doc)
+    kept = [c for c in store.read("seed-library")["cells"]
+            if (c["alternativeId"], c["criterionId"], c["measure"]) == ("sprigg", "ease-of-use", "score")]
+    assert kept and kept[0]["reduction"] == "latest"
+
+
+def test_an_undeclared_author_is_refused() -> None:
+    doc = _plain()
+    doc["cells"][0]["assertions"][0]["authorId"] = "zed"
+    with pytest.raises(ValueError, match='"zed", who is not in the document'):
+        analysis_import(_store(), document=doc)
+
+
+def test_records_that_collide_once_unprefixed_are_refused() -> None:
+    doc = _plain()
+    doc["procedures"] = [{"id": "p1", "describedAs": "x"}, {"id": "pat:p1", "describedAs": "y"}]
+    first, second = doc["cells"][0]["assertions"][0], doc["cells"][1]["assertions"][0]
+    first["procedureId"], second["procedureId"] = "p1", "pat:p1"
+    store = _store()
+    with pytest.raises(ValueError, match="two procedures records with id p1"):
+        analysis_import(store, document=doc)
+    assert not store.exists("seed-library")

@@ -12,6 +12,7 @@ every check on the way in rather than on some later read:
    travel in that contributor's file; every other author stays in the frame. Each
    ``procedures`` / ``rounds`` record goes with the contributors whose assertions
    point at it, because the merge namespaces those references per contributor.
+   A cell with no assertions stays in the frame as it is.
 3. **Refused, naming why, wherever the merge would refuse**: the split is merged on
    trial before anything is written, and what the merge cannot represent -- a
    ``supersededBy`` that crosses contributors, a principal that is not a usable id
@@ -42,6 +43,8 @@ __all__ = ["analysis_import"]
 _REFUSED = "refused, nothing was written: "
 _PASS_FIELDS = ("procedures", "rounds")
 _PASS_REFS = {"procedures": "procedureId", "rounds": "roundId"}
+#: The cell fields the merge carries from a contribution; any other would be lost on read.
+_CELL_FIELDS = frozenset({"alternativeId", "criterionId", "measure", "assertions", "reduction"})
 
 
 def analysis_import(
@@ -107,8 +110,23 @@ def _split(document: dict[str, Any], check_id) -> tuple[dict[str, Any], dict[str
     authors = {a["id"]: a for a in document.get("authors", [])}
     owner_of: dict[str, str] = {}  # assertion id per contributor, for supersededBy
     contributions: dict[str, dict[str, Any]] = {}
+    unowned: list[dict[str, Any]] = []  # cells nobody asserted in: the frame keeps them as they are
     for cell in document.get("cells", []):
+        if not cell.get("assertions"):
+            unowned.append(cell)
+            continue
+        dropped = sorted(set(cell) - _CELL_FIELDS)
+        if dropped:
+            raise ValueError(
+                _REFUSED + f"cell {cell['alternativeId']}/{cell['criterionId']}/{cell['measure']} "
+                f"carries {', '.join(dropped)}, which a contributor's cell cannot hold: the merge "
+                "would drop it on read. Remove it, or record what it says as an assertion.")
         for assertion in cell.get("assertions", []):
+            if assertion["authorId"] not in authors:
+                raise ValueError(
+                    _REFUSED + f'assertion "{assertion["id"]}" names author "{assertion["authorId"]}", '
+                    "who is not in the document's authors. Declare the author, so the claim is "
+                    "attributed to someone a reader can see.")
             who = principal(authors, assertion["authorId"])
             if not isinstance(who, str):
                 raise ValueError(_REFUSED + f'assertion "{assertion["id"]}" has no usable author.')
@@ -151,10 +169,17 @@ def _split(document: dict[str, Any], check_id) -> tuple[dict[str, Any], dict[str
             used = {a.get(_PASS_REFS[field]) for c in file["cells"] for a in c["assertions"]}
             file[field] = [e for e in (_unprefixed(who, e, ("id",)) for e in document.get(field, []))
                            if e.get("id") in used]
+            ids = [e["id"] for e in file[field]]
+            twice = sorted({i for i in ids if ids.count(i) > 1})
+            if twice:
+                raise ValueError(
+                    _REFUSED + f'contributor "{who}" would hold two {field} records with id '
+                    f'{", ".join(twice)} (one given as "{who}:{twice[0]}"): rename one, so each '
+                    "assertion points at one record.")
 
     frame = {k: v for k, v in document.items() if k not in ("cells", *_PASS_FIELDS)}
     frame["authors"] = [a for a in document.get("authors", []) if a["id"] not in moved]
-    frame["cells"] = []
+    frame["cells"] = unowned
     claimed = {(who, e["id"]) for who, f in contributions.items() for field in _PASS_FIELDS
                for e in f[field]}
     for field in _PASS_FIELDS:
