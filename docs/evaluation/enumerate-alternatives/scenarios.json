@@ -1,0 +1,82 @@
+[
+  {
+    "id": "e1",
+    "question": "I'm choosing between the Aldous 4, the Brandt 6 and the Corvin 5 ovens for the bread line.",
+    "point": "three named: all three written, nothing added to the set",
+    "expected": {
+      "stated": [
+        "Aldous",
+        "Brandt",
+        "Corvin"
+      ],
+      "exact": true,
+      "duplicates": null,
+      "sourced": null,
+      "inferred": "proposed"
+    }
+  },
+  {
+    "id": "e2",
+    "question": "Compare Postgres, PostgreSQL, MySQL and SQLite for our reporting app.",
+    "point": "Postgres and PostgreSQL probably coincide, but that is the user's call: both rows stay, the pair is asked about",
+    "expected": {
+      "stated": [
+        "Postgres\\b",
+        "PostgreSQL",
+        "MySQL",
+        "SQLite"
+      ],
+      "exact": true,
+      "duplicates": [
+        "Postgres\\b",
+        "PostgreSQL"
+      ],
+      "sourced": null,
+      "inferred": "proposed"
+    }
+  },
+  {
+    "id": "e3",
+    "question": "Which of the Brandt 6 and the Corvin 5 should replace our oven?",
+    "source": "Review notes, March: we looked at the Brandt 6 and the Corvin 5. The Delmar 3 was also reviewed and withdrawn from sale in April.",
+    "point": "a supplied source mentions a third oven the user did not name: proposed with its span, not written",
+    "expected": {
+      "stated": [
+        "Brandt",
+        "Corvin"
+      ],
+      "exact": true,
+      "duplicates": null,
+      "sourced": {
+        "label": "Delmar",
+        "span": "Delmar 3 was also reviewed"
+      },
+      "inferred": "proposed"
+    }
+  },
+  {
+    "id": "e4",
+    "question": "Which note-taking app should I use?",
+    "point": "nothing named: the set is empty, any suggestion is a proposal marked as the model's own",
+    "expected": {
+      "stated": [],
+      "exact": true,
+      "duplicates": null,
+      "sourced": null,
+      "inferred": "proposed"
+    }
+  },
+  {
+    "id": "e5",
+    "question": "Suggest three plausible static site generators for a docs site and compare them.",
+    "point": "the user asked for candidates: they may enter the set, each marked as the model's own inference",
+    "expected": {
+      "stated": [],
+      "exact": false,
+      "minimum": 2,
+      "duplicates": null,
+      "sourced": null,
+      "inferred": "described"
+    }
+  }
+]
