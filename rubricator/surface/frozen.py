@@ -707,7 +707,7 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
         ),
     ),
     ToolSpec(
-        name="stability_report", family="report", stage="6", status="planned",
+        name="stability_report", family="report", stage="6", status="implemented",
         minimum_viable=False, cut_rank=3, research_row=15, issue=98,
         contract=(
             "How stable the picture is. Weight-free first: dominance survival per alternative "
@@ -725,20 +725,29 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
         output_schema=obj(
             {
                 "analysisId": S,
+                "repeatedMatrices": I,
+                "basis": arr(S),
                 "dominanceSurvival": arr(obj({"alternativeId": S, "rate": N}, ("alternativeId", "rate"))),
                 "paretoChurn": N,
+                "blankDensity": N,
+                "perCell": arr(obj(
+                    {"alternativeId": S, "criterionId": S, "n": I, "span": opt(N), "polarised": B},
+                    ("alternativeId", "criterionId", "n", "span", "polarised"))),
                 "perCriterion": arr(obj(
                     {"criterionId": S, "agreement": opt(N), "lowestRung": opt(INDEPENDENCE),
+                     "agreementLabel": opt(S), "repeatedCells": I,
                      "histogram": arr(obj({"level": S, "count": I}, ("level", "count"))),
                      "compression": N},
-                    ("criterionId", "agreement", "lowestRung", "histogram", "compression"))),
+                    ("criterionId", "agreement", "lowestRung", "agreementLabel", "repeatedCells",
+                     "histogram", "compression"))),
                 "weighted": opt(obj(
                     {"tauDistribution": arr(N), "top1Churn": N, "top3Churn": N,
                      "band": enum("stable", "borderline", "unstable")},
                     ("tauDistribution", "top1Churn", "top3Churn", "band"))),
                 "summary": S,
             },
-            ("analysisId", "dominanceSurvival", "paretoChurn", "perCriterion", "weighted", "summary"),
+            ("analysisId", "repeatedMatrices", "basis", "dominanceSurvival", "paretoChurn",
+             "blankDensity", "perCell", "perCriterion", "weighted", "summary"),
         ),
     ),
     ToolSpec(
@@ -1056,8 +1065,8 @@ MEASURED: Mapping[str, Any] = {
 AWAITING_MEASUREMENT: Mapping[str, Any] | None = {
     "issue": 199,
     "advertised": {
-        "tools": 18, "bytes": 25736,
-        "sha256": "861746f5e9b820858845052b323a41b2e024341c81b543bdf82e16a3f12ef8d7",
+        "tools": 19, "bytes": 26835,
+        "sha256": "4ba22aceb3275644f1df8fa90fe3429b8bebdca00b7448a8792700621b3ddf21",
     },
     "wholeSurface": {
         "tools": 22, "bytes": 29456,

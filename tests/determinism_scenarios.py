@@ -74,6 +74,7 @@ def every_verb() -> dict[str, Any]:
     out["aggregate_assertions"] = v["aggregate_assertions"](analysis_id=aid)
     out["disclose_variance"] = v["disclose_variance"](analysis_id=aid)
     out["report_weaknesses"] = v["report_weaknesses"](analysis_id=aid, budget=3)
+    out["stability_report"] = v["stability_report"](analysis_id=aid)
     out["analysis_get"] = {view: v["analysis_get"](analysis_id=aid, view=view)
                            for view in ("summary", "frame", "criteria", "outstanding", "full")}
     out["check_citations"] = v["check_citations"](citations=[

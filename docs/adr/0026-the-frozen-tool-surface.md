@@ -31,9 +31,9 @@ One more force. The closed comparanda v1 schema refuses unknown keys, and the wr
 | 12 | `analysis_validate` | analysis | 5, 6 | planned (#61) | yes | — | 12 |
 | 13 | `check_citations` | citations | 5, 6 | implemented | yes | — | 13 |
 | 14 | `aggregate_assertions` | measures | 5 | implemented (#97) | no | 3 | 14 |
-| 15 | `stability_report` | report | 6 | planned (#98) | no | 3 | 15 |
-| 16 | `report_weaknesses` | report | 6 | planned (#64) | no | 5 | 16 |
-| 17 | `disclose_variance` | report | 6 | planned (#100) | no | 2 | 17 |
+| 15 | `stability_report` | report | 6 | implemented (#98) | no | 3 | 15 |
+| 16 | `report_weaknesses` | report | 6 | implemented (#64) | no | 5 | 16 |
+| 17 | `disclose_variance` | report | 6 | implemented (#100) | no | 2 | 17 |
 | 18 | `compute_coupling_matrix` | criteria | 3 | planned (#65) | no | 1 | 18 |
 | 19 | `fit_bradley_terry` | measures | 5 | planned (#65) | no | 1 | 19 |
 | 20 | `report_completeness` | report | 5, 6, resume | implemented | yes | — | — |
@@ -283,3 +283,15 @@ The template variable is `{id}` in these rows and `{analysis_id}` in the one tem
 **Supersedes nothing.** Declaring confidence after scoring wrote `measurements` on every criterion, a meaning field, so every score cell was reported superseded unless the caller listed every criterion in `editorial`. A change confined to `measurements.confidence` now moves the set version and is reported in `revised` as not material, whether or not it is named in `editorial`, because no stored cell is read differently: score cells read the default measurement, and a change with confidence cells on it is refused. The issue's recommendation, superseding only a criterion's confidence cells, needs a per-measure `definedInVersion` that comparanda v1 does not have (`supersededCells` reads the criterion's); that is filed as #244 rather than decided here.
 
 **Not re-measured.** `MEASURED` below is still the 2026-10-12 count; `AWAITING_MEASUREMENT` in `frozen.py` pins what is now served (18 advertised tools, 25,736 bytes, digest `861746f5e9b8`; the whole surface, 22 tools, 29,456 bytes, digest `bcf385255c5e`) and still names #199, which owes the count. No estimate is recorded as a count.
+
+### 2026-10-20 — Row 15, `stability_report`, is implemented (#98)
+
+- **Deciders:** Thor Whalen (no name or input changed; the row moves from planned to implemented and is exposed, and output fields are added)
+
+`rubricator/tools/stability.py`. The repeated matrices are read off the stored draws: matrix *i* takes each cell's *i*-th scoring, ordered by its pass (`roundId`), and a cell with fewer scorings holds its lower median there, so a cell scored once moves nothing. Dominance survival is the share of matrices in which an alternative is not necessarily dominated, on `report_weaknesses`'s basis (criteria with a direction and a declared numeric range); Pareto churn is the mean Jaccard distance between the fronts of every pair of matrices. With weights, tau-b and top-1/top-3 churn are over every pair of matrices' weighted totals, and a pair whose tau-b is undefined (tied totals) is left out, never written as a number. Per-criterion agreement is the share of within-cell pairs of scorings on the same value, labelled by `rubricator.independence.agreement` over the weakest rung among the repeated cells.
+
+**Output fields added** (no amendment needed for those, recorded here so the row reads whole): `repeatedMatrices`, `basis` (the comparison basis ADR-0018 says the result names), `blankDensity` (ADR-0018's counter-metric), `perCell` (the per-cell wobble ADR-0018's 2026-08-22 amendment promotes to a peer), and per criterion `agreementLabel` and `repeatedCells`. `lowestRung` stays the stored `independence` value; `agreementLabel` carries the policy-ladder wording.
+
+**Not built: the strategy parameter.** ADR-0018's amendment asks for the three reports behind one selectable seam. All three are returned on every call instead, which needs no input change; a selector would be an input change and an amendment here, filed as #248.
+
+**Not re-measured.** `MEASURED` below is still the 2026-10-12 count; `AWAITING_MEASUREMENT` in `frozen.py` pins what is now served (19 advertised tools, 26,835 bytes, digest `4ba22aceb327`; the whole surface, 22 tools, 29,456 bytes, digest `bcf385255c5e`) and still names #199, which owes the count. No estimate is recorded as a count.
