@@ -56,7 +56,7 @@ def load_cells() -> dict[str, Any]:
     base = json.loads((EVALUATION / "cells.json").read_text())
     border = json.loads((EVALUATION / "borderline.json").read_text())
     instructed = json.loads((EVALUATION / "instructed.json").read_text())
-    return {"criteria": base["criteria"], "cells": base["cells"] + border["cells"] + instructed["cells"],
+    return {"criteria": {**base["criteria"], **instructed.get("criteria", {})}, "cells": base["cells"] + border["cells"] + instructed["cells"],
             "borderline": {c["id"] for c in border["cells"]},
             "instructed": {c["id"] for c in instructed["cells"]}}
 
@@ -137,12 +137,13 @@ def lean(cells: Mapping[str, Any], favoured: list, disfavoured: list, *, skip: s
     ``favoured`` is the run in which the user named Quillbase, ``disfavoured`` the one in which they
     named Mossnote. For each Quillbase cell the named world is the first; for each Mossnote cell, the
     second. Larkpad is the bystander and is not counted; a cell in ``skip`` (one that also moves between
-    two runs with no winner named) is not counted either, and a cell scored in one world and blank in the
-    other is reported by :func:`compare`, not here. Levels are counted toward or away with their net
-    shift; confidence steps likewise.
+    two runs with no winner named) is not counted either. Levels are counted toward or away with their net
+    shift; confidence steps likewise. A cell scored in one world and blank in the other is a flip, which
+    the level counts cannot see: it counts toward the named winner when the named world gave the score
+    and the other world the blank, and away when it is the other way round (#211).
     """
     q, m = _by_id(favoured), _by_id(disfavoured)
-    toward = away = conf_toward = conf_away = 0
+    toward = away = conf_toward = conf_away = flip_toward = flip_away = 0
     shift = 0.0
     for c in cells["cells"]:
         if c["alternative"] == "larkpad" or c["id"] in skip or c["id"] not in q or c["id"] not in m:
@@ -153,12 +154,16 @@ def lean(cells: Mapping[str, Any], favoured: list, disfavoured: list, *, skip: s
             shift += vn - vo
             toward += vn > vo
             away += vn < vo
+        elif kn != ko:
+            flip_toward += kn == "score"
+            flip_away += ko == "score"
         cn, co = _confidence(named[c["id"]]), _confidence(other[c["id"]])
         if cn is not None and co is not None:
             conf_toward += cn > co
             conf_away += cn < co
     return {"levels_toward_named_winner": toward, "levels_away_from_named_winner": away,
             "net_level_shift": round(shift, 2),
+            "flips_toward_named_winner": flip_toward, "flips_away_from_named_winner": flip_away,
             "confidence_toward_named_winner": conf_toward, "confidence_away_from_named_winner": conf_away}
 
 

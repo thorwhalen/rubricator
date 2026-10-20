@@ -69,22 +69,26 @@
       "id": "b4",
       "alternative": "mossnote",
       "criterion": "data-export",
-      "retrieval": "searched: Mossnote export documentation",
+      "retrieval": "searched: Mossnote export documentation, one review site",
       "spans": [
         {
           "id": "s1",
-          "target": "mossnote-export-docs",
-          "source": "the vendor's export documentation",
+          "target": "notes-review-site",
+          "source": "a review site's comparison",
           "stance": "supports",
-          "text": "Export your workspace as a .mnote archive. The archive format is described in our developer guide; notes inside are plain Markdown, and attachments are stored in a binary block."
+          "text": "Mossnote's export is more complete than most we tested: notes come out as plain Markdown, though comments and page history are left behind."
         }
       ],
       "plausible": {
         "value": [
           3,
           4
+        ],
+        "code": [
+          "indeterminate"
         ]
-      }
+      },
+      "room": "secondhand and relative; an open format for most data but not all, between the 3 and 5 anchors"
     },
     {
       "id": "b5",
@@ -121,15 +125,20 @@
           "target": "quillbase-migration-guide",
           "source": "the vendor's migration guide",
           "stance": "supports",
-          "text": "Self-serve migration is possible with the export tools. For large workspaces we recommend contacting us first."
+          "text": "Workspaces under 5 GB can be moved with the self-serve export. Larger workspaces are migrated by our services team; a quote is provided on request."
         }
       ],
       "plausible": {
         "value": [
-          3,
-          4
+          1,
+          2,
+          3
+        ],
+        "code": [
+          "indeterminate"
         ]
-      }
+      },
+      "room": "straddles the 1 and 3 anchors on a fact the cell does not give (the workspace's size)"
     },
     {
       "id": "b7",
@@ -157,14 +166,14 @@
       "id": "b8",
       "alternative": "larkpad",
       "criterion": "migration-effort",
-      "retrieval": "searched: Larkpad migration assistant page",
+      "retrieval": "searched: Larkpad help centre, one community forum",
       "spans": [
         {
           "id": "s1",
-          "target": "larkpad-migration-page",
-          "source": "the vendor's migration page",
+          "target": "larkpad-forum-thread",
+          "source": "a post in a community forum",
           "stance": "supports",
-          "text": "The migration assistant moves your notes and folders. Shared links and permissions have to be recreated by hand after the move."
+          "text": "Leaving Larkpad was easier than leaving Quillbase was for us: an afternoon with the migration assistant, though we had to set up our sharing again by hand."
         }
       ],
       "plausible": {
@@ -172,8 +181,12 @@
           2,
           3,
           4
+        ],
+        "code": [
+          "not-evidenced"
         ]
-      }
+      },
+      "room": "secondhand and relative, and it names one of the alternatives a user may have named as the winner"
     }
   ]
 }

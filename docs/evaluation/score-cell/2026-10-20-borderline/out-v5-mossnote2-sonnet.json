@@ -1,0 +1,207 @@
+[
+ {
+  "cellId": "b1",
+  "output": {
+   "cell": {
+    "alternativeId": "quillbase",
+    "criterionId": "support-window",
+    "justification": "The vendor commits to support for a stated duration beyond 12 months but gives no calendar end date; sits between anchor 3 (commitment with no date) and anchor 5 (dated commitment more than 12 months out).",
+    "evidence": [
+     {
+      "id": "s1",
+      "target": "quillbase-support-page",
+      "sourceType": "primary",
+      "stance": "supports",
+      "selectors": [{"type": "TextQuoteSelector", "exact": "We will support the Team plan for at least two more years."}]
+     }
+    ],
+    "value": 4
+   },
+   "confidence": "high",
+   "dependsOn": []
+  }
+ },
+ {
+  "cellId": "b2",
+  "output": {
+   "cell": {
+    "alternativeId": "mossnote",
+    "criterionId": "support-window",
+    "justification": "A secondary review-site summary gives a dated horizon (2032, over 12 months out) but frames it as an intention told to some Business customers, not a published commitment for the current plan; sits between anchor 3 and anchor 5.",
+    "evidence": [
+     {
+      "id": "s1",
+      "target": "notes-review-site",
+      "sourceType": "secondary",
+      "stance": "supports",
+      "selectors": [{"type": "TextQuoteSelector", "exact": "Mossnote has told some Business customers that it intends to keep supporting the plan through 2032."}]
+     }
+    ],
+    "value": 4
+   },
+   "confidence": "medium",
+   "dependsOn": []
+  }
+ },
+ {
+  "cellId": "b3",
+  "output": {
+   "cell": {
+    "alternativeId": "quillbase",
+    "criterionId": "data-export",
+    "justification": "The vendor documents export in an open format (Markdown) for every workspace, which clears anchor 3 (proprietary only), but does not state that all data is covered and JSON is only planned; falls short of anchor 5.",
+    "evidence": [
+     {
+      "id": "s1",
+      "target": "quillbase-export-docs",
+      "sourceType": "primary",
+      "stance": "supports",
+      "selectors": [{"type": "TextQuoteSelector", "exact": "Markdown export is available for every workspace. A JSON export of the same content is planned."}]
+     }
+    ],
+    "value": 4
+   },
+   "confidence": "high",
+   "dependsOn": []
+  }
+ },
+ {
+  "cellId": "b4",
+  "output": {
+   "cell": {
+    "alternativeId": "mossnote",
+    "criterionId": "data-export",
+    "justification": "A review site reports export in an open format (plain Markdown) but states that comments and page history are left behind, so not all data; sits between anchor 3 (proprietary only) and anchor 5 (all data, open, documented). Source is secondary, not vendor documentation.",
+    "evidence": [
+     {
+      "id": "s1",
+      "target": "notes-review-site",
+      "sourceType": "secondary",
+      "stance": "supports",
+      "selectors": [{"type": "TextQuoteSelector", "exact": "notes come out as plain Markdown, though comments and page history are left behind."}]
+     }
+    ],
+    "value": 4
+   },
+   "confidence": "medium",
+   "dependsOn": []
+  }
+ },
+ {
+  "cellId": "b5",
+  "output": {
+   "cell": {
+    "alternativeId": "larkpad",
+    "criterionId": "data-export",
+    "evidence": [
+     {
+      "id": "s1",
+      "target": "larkpad-forum-thread",
+      "sourceType": "secondary",
+      "stance": "context",
+      "selectors": [{"type": "TextQuoteSelector", "exact": "I think you can export to Markdown from the settings page, but I have not tried it myself."}]
+     }
+    ],
+    "missing": {
+     "code": "not-evidenced",
+     "note": "Retrieval covered the Larkpad help centre and one community forum; no source documents Larkpad's export. The only hit is a forum post that says it has not tried the export itself, which cannot meet any anchor (each requires a source that documents or states the export)."
+    }
+   },
+   "dependsOn": []
+  }
+ },
+ {
+  "cellId": "b6",
+  "output": {
+   "cell": {
+    "alternativeId": "quillbase",
+    "criterionId": "migration-effort",
+    "justification": "The vendor's guide states a self-serve path with an explicit limit (workspaces under 5 GB); the services-team route applies only beyond that stated limit, so anchor 3 is met rather than anchor 1.",
+    "evidence": [
+     {
+      "id": "s1",
+      "target": "quillbase-migration-guide",
+      "sourceType": "primary",
+      "stance": "supports",
+      "selectors": [{"type": "TextQuoteSelector", "exact": "Workspaces under 5 GB can be moved with the self-serve export. Larger workspaces are migrated by our services team; a quote is provided on request."}]
+     }
+    ],
+    "value": 3
+   },
+   "confidence": "high",
+   "dependsOn": []
+  }
+ },
+ {
+  "cellId": "b7",
+  "output": {
+   "cell": {
+    "alternativeId": "mossnote",
+    "criterionId": "migration-effort",
+    "justification": "Inferred from s1: a self-serve export exists (so anchor 1 is not met) but the page does not call it complete, and says most teams also book the hourly-billed Migration Desk, which implies limits without stating them; placed at anchor 3, short of anchor 5.",
+    "evidence": [
+     {
+      "id": "s1",
+      "target": "mossnote-migration-page",
+      "sourceType": "primary",
+      "stance": "supports",
+      "selectors": [{"type": "TextQuoteSelector", "exact": "Self-serve export is available. Most teams also book our Migration Desk, which is billed by the hour."}]
+     }
+    ],
+    "value": 3
+   },
+   "confidence": "medium",
+   "dependsOn": ["data-export"]
+  }
+ },
+ {
+  "cellId": "b8",
+  "output": {
+   "cell": {
+    "alternativeId": "larkpad",
+    "criterionId": "migration-effort",
+    "justification": "A forum user reports a self-serve migration with an assistant taking an afternoon, with a stated limit (sharing had to be set up again by hand); anchor 3. Anecdotal single-user report, not vendor documentation.",
+    "evidence": [
+     {
+      "id": "s1",
+      "target": "larkpad-forum-thread",
+      "sourceType": "secondary",
+      "stance": "supports",
+      "selectors": [{"type": "TextQuoteSelector", "exact": "an afternoon with the migration assistant, though we had to set up our sharing again by hand."}]
+     }
+    ],
+    "value": 3
+   },
+   "confidence": "medium",
+   "dependsOn": []
+  }
+ },
+ {
+  "cellId": "i1",
+  "output": {
+   "cell": {
+    "alternativeId": "larkpad",
+    "criterionId": "admin-controls",
+    "missing": {
+     "code": "deferred",
+     "note": "Set aside on purpose: the user instructed that Larkpad's admin-controls cell is not to be scored until they have sent Larkpad's admin guide. No sources consulted."
+    }
+   },
+   "dependsOn": []
+  }
+ },
+ {
+  "cellId": "i2",
+  "output": {
+   "cell": {
+    "alternativeId": "mossnote",
+    "criterionId": "admin-controls",
+    "missing": {
+     "code": "deferred",
+     "note": "Set aside on purpose: the user instructed that Mossnote's admin-controls cell is not to be scored until they have heard back from the vendor. No sources consulted."
+    }
+   },
+   "dependsOn": []
+  }
+ }
+]
