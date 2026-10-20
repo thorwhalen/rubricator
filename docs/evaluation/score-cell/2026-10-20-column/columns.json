@@ -1,0 +1,289 @@
+{
+ "domain": "Invented: three fictional cloud note-taking services (Quillbase, Larkpad, Mossnote) compared for a small team. No real vendor is named or described.",
+ "criteria": {
+  "support-window": {
+   "question": "Does the service commit to a dated end of support for the current plan?",
+   "scale": "1-5",
+   "anchors": {
+    "1": "a source states support for the current plan ends within 12 months",
+    "3": "a source states a support commitment with no date",
+    "5": "a source states a dated support commitment more than 12 months out"
+   }
+  },
+  "data-export": {
+   "question": "Can a team export all of its data in an open, documented format?",
+   "scale": "1-5",
+   "anchors": {
+    "1": "a source states no export exists",
+    "3": "a source documents export in a proprietary format only",
+    "5": "a source documents export of all data in an open, documented format"
+   }
+  },
+  "migration-effort": {
+   "question": "How much effort does leaving the service take?",
+   "scale": "1-5",
+   "anchors": {
+    "1": "a source states migration requires the vendor's paid professional services",
+    "3": "a source states a self-serve migration path exists with stated limits",
+    "5": "a source states a complete self-serve migration path with no stated limits"
+   }
+  }
+ },
+ "columns": [
+  {
+   "columnId": "col1",
+   "criterion": "support-window",
+   "criterionDefinition": {
+    "question": "Does the service commit to a dated end of support for the current plan?",
+    "scale": "1-5",
+    "anchors": {
+     "1": "a source states support for the current plan ends within 12 months",
+     "3": "a source states a support commitment with no date",
+     "5": "a source states a dated support commitment more than 12 months out"
+    }
+   },
+   "alternatives": [
+    {
+     "cellId": "c1",
+     "alternative": "quillbase",
+     "retrieval": "searched: Quillbase support page, Quillbase changelog",
+     "spans": [
+      {
+       "id": "s1",
+       "target": "quillbase-support-page",
+       "source": "the vendor's own support page",
+       "stance": "supports",
+       "text": "The Team plan is supported until 31 March 2030."
+      }
+     ]
+    },
+    {
+     "cellId": "c2",
+     "alternative": "larkpad",
+     "retrieval": "searched: Larkpad website, Larkpad changelog, two independent review sites",
+     "spans": []
+    },
+    {
+     "cellId": "c3",
+     "alternative": "mossnote",
+     "retrieval": "searched: Mossnote pricing page, a reseller catalogue",
+     "spans": [
+      {
+       "id": "s1",
+       "target": "mossnote-pricing-page",
+       "source": "the vendor's own pricing page",
+       "stance": "supports",
+       "text": "Business plan customers are supported through December 2029."
+      },
+      {
+       "id": "s2",
+       "target": "reseller-catalogue",
+       "source": "a reseller's catalogue entry, same quarter",
+       "stance": "contradicts",
+       "text": "Mossnote Business: end of support announced for June 2026."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "columnId": "col2",
+   "criterion": "support-window",
+   "criterionDefinition": {
+    "question": "Does the service commit to a dated end of support for the current plan?",
+    "scale": "1-5",
+    "anchors": {
+     "1": "a source states support for the current plan ends within 12 months",
+     "3": "a source states a support commitment with no date",
+     "5": "a source states a dated support commitment more than 12 months out"
+    }
+   },
+   "alternatives": [
+    {
+     "cellId": "c12",
+     "alternative": "quillbase",
+     "retrieval": "searched: Quillbase support page, Quillbase changelog",
+     "spans": [
+      {
+       "id": "s1",
+       "target": "quillbase-support-page",
+       "source": "the vendor's own support page",
+       "stance": "supports",
+       "text": "The Team plan is supported until 31 March 2030."
+      },
+      {
+       "id": "s2",
+       "target": "quillbase-changelog",
+       "source": "the vendor's own changelog, a later entry",
+       "stance": "qualifies",
+       "text": "Team plan support has been extended to 30 June 2031."
+      }
+     ]
+    },
+    {
+     "cellId": "c8",
+     "alternative": "larkpad",
+     "retrieval": "searched: Larkpad homepage, Larkpad press releases",
+     "spans": [
+      {
+       "id": "s1",
+       "target": "larkpad-homepage",
+       "source": "the vendor's own homepage",
+       "stance": "context",
+       "text": "Industry-leading support, there for your team whenever you need it."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "columnId": "col3",
+   "criterion": "data-export",
+   "criterionDefinition": {
+    "question": "Can a team export all of its data in an open, documented format?",
+    "scale": "1-5",
+    "anchors": {
+     "1": "a source states no export exists",
+     "3": "a source documents export in a proprietary format only",
+     "5": "a source documents export of all data in an open, documented format"
+    }
+   },
+   "alternatives": [
+    {
+     "cellId": "c4",
+     "alternative": "quillbase",
+     "retrieval": "searched: Quillbase help centre, Quillbase API reference",
+     "spans": [
+      {
+       "id": "s1",
+       "target": "quillbase-help-export",
+       "source": "the vendor's own help centre",
+       "stance": "supports",
+       "text": "Export every workspace to Markdown and JSON; the JSON schema is published in our API reference."
+      },
+      {
+       "id": "s2",
+       "target": "quillbase-api-reference",
+       "source": "the vendor's own API reference",
+       "stance": "qualifies",
+       "text": "Exports produced by the bulk endpoint are documented in the open Notes Interchange schema, version 2."
+      }
+     ]
+    },
+    {
+     "cellId": "c5",
+     "alternative": "larkpad",
+     "retrieval": "no retrieval record for this cell",
+     "spans": []
+    },
+    {
+     "cellId": "c6",
+     "alternative": "mossnote",
+     "retrieval": "searched: Mossnote help centre",
+     "spans": [
+      {
+       "id": "s1",
+       "target": "mossnote-help-export",
+       "source": "the vendor's own help centre",
+       "stance": "supports",
+       "text": "Notes and folders export to plain Markdown. Comments and attachments export only as a .mossarchive bundle, readable by Mossnote."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "columnId": "col4",
+   "criterion": "data-export",
+   "criterionDefinition": {
+    "question": "Can a team export all of its data in an open, documented format?",
+    "scale": "1-5",
+    "anchors": {
+     "1": "a source states no export exists",
+     "3": "a source documents export in a proprietary format only",
+     "5": "a source documents export of all data in an open, documented format"
+    }
+   },
+   "alternatives": [
+    {
+     "cellId": "c11",
+     "alternative": "larkpad",
+     "retrieval": "searched: Larkpad help centre, Larkpad developer docs",
+     "spans": [
+      {
+       "id": "s1",
+       "target": "larkpad-developer-docs",
+       "source": "the vendor's own developer documentation",
+       "stance": "supports",
+       "text": "Every workspace, including comments and attachments, exports as JSON that follows the published OpenNotes 1.2 schema."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "columnId": "col5",
+   "criterion": "migration-effort",
+   "criterionDefinition": {
+    "question": "How much effort does leaving the service take?",
+    "scale": "1-5",
+    "anchors": {
+     "1": "a source states migration requires the vendor's paid professional services",
+     "3": "a source states a self-serve migration path exists with stated limits",
+     "5": "a source states a complete self-serve migration path with no stated limits"
+    }
+   },
+   "alternatives": [
+    {
+     "cellId": "c7",
+     "alternative": "quillbase",
+     "retrieval": "searched: Quillbase help centre",
+     "spans": [
+      {
+       "id": "s1",
+       "target": "quillbase-help-leaving",
+       "source": "the vendor's own help centre",
+       "stance": "supports",
+       "text": "You can move your team off Quillbase yourself at any time. How complete the move is depends on the export formats your data supports; see the export guide."
+      }
+     ]
+    },
+    {
+     "cellId": "c9",
+     "alternative": "mossnote",
+     "retrieval": "searched: Mossnote help centre, a migration consultancy's blog",
+     "spans": [
+      {
+       "id": "s1",
+       "target": "mossnote-help-leaving",
+       "source": "the vendor's own help centre",
+       "stance": "supports",
+       "text": "Moving an organisation off Mossnote is handled by our paid Migration Services team."
+      },
+      {
+       "id": "s2",
+       "target": "consultancy-blog",
+       "source": "a migration consultancy's blog post",
+       "stance": "supports",
+       "text": "Mossnote requires a paid engagement with its own services team to migrate an organisation of more than 50 seats."
+      }
+     ]
+    },
+    {
+     "cellId": "c10",
+     "alternative": "larkpad",
+     "retrieval": "searched: Larkpad help centre",
+     "spans": [
+      {
+       "id": "s1",
+       "target": "larkpad-help-migration",
+       "source": "the vendor's own help centre",
+       "stance": "supports",
+       "text": "Larkpad's migration assistant moves your workspace without any help from us, and it carries across exactly what the export tool can produce, nothing more."
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
