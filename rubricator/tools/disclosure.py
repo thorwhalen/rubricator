@@ -14,7 +14,7 @@ document, never from the plan or from a default:
 
 No cell with two scorings means ``n = 1, unmeasured``. No stability number is ever
 estimated here: a figure for the spread between scorings is the job of
-``stability_report`` (planned), and a size for what a mitigation removes has not
+``stability_report``, and a size for what a mitigation removes has not
 been measured for this tool. An analysis with no procedure record says so; it is
 never given a figure it does not have.
 
