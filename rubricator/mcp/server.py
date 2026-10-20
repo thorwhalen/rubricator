@@ -70,7 +70,70 @@ def make_server(runtime: Runtime | None = None, **kwargs: Any):
     for name, verb in bind(runtime).items():
         server.add_tool(_tool_from_row(rows[name], verb, retention_days=retention_days))
     server.add_template(_analysis_resource(runtime))
+    for template in _content_resources(runtime):
+        server.add_template(template)
+    for prompt in _prompts():
+        server.add_prompt(prompt)
     return server
+
+
+def _prompts():
+    """Every prompt file as a native MCP prompt: what a client shows as a slash command.
+
+    Read from :func:`rubricator.prompts.prompts` at build time, the one accessor
+    both runtimes share, so no prompt text lives in Python and a new ``.md`` file
+    is served with no change here. The body is the message; the header is not
+    (``Prompt.body``). The version rides in ``meta`` so a run can record which
+    wording it was given.
+    """
+    from fastmcp.prompts import Prompt as McpPrompt
+
+    from rubricator.prompts import prompts
+
+    def serve(prompt):
+        def render() -> str:
+            return prompt.body
+
+        render.__annotations__ = {"return": str}
+        return McpPrompt.from_function(
+            render, name=prompt.id, title=prompt.title,
+            description=f"{prompt.title} (v{prompt.version}, stage {prompt.stage})"
+            if prompt.stage is not None else f"{prompt.title} (v{prompt.version})",
+            meta={"version": prompt.version, "stage": prompt.stage, "updated": prompt.updated},
+        )
+
+    return [serve(p) for p in prompts().values()]
+
+
+def _content_resources(runtime: Runtime):
+    """The document and span resources: what makes an evidence reference a followable URI."""
+    from fastmcp.resources import ResourceContent, ResourceResult, ResourceTemplate
+
+    from rubricator.mcp.resolve import read_document, read_span
+    from rubricator.surface.resources import frozen_resources
+
+    rows = frozen_resources()
+
+    def result(found) -> ResourceResult:
+        text, meta = found
+        return ResourceResult([ResourceContent(text, mime_type="text/plain", meta=meta)])
+
+    # `id` is the template variable the frozen rows name; the host binds by parameter name.
+    def document(id: str, document_id: str) -> ResourceResult:
+        return result(read_document(runtime.store, id, document_id))
+
+    def span(id: str, span_id: str) -> ResourceResult:
+        return result(read_span(runtime.store, id, span_id))
+
+    templates = []
+    for fn, row in ((document, rows["document"]), (span, rows["span"])):
+        fn.__annotations__ = {**{k: str for k in fn.__code__.co_varnames[: fn.__code__.co_argcount]},
+                              "return": ResourceResult}
+        templates.append(ResourceTemplate.from_function(
+            fn, uri_template=row.uri_template, name=row.name, description=row.description,
+            mime_type=row.mime_type,
+        ))
+    return templates
 
 
 def _analysis_resource(runtime: Runtime):
@@ -87,24 +150,24 @@ def _analysis_resource(runtime: Runtime):
 
     from rubricator.tools.views import analysis_uri
 
-    def analysis_document(analysis_id: str) -> ResourceResult:
+    def analysis_document(id: str) -> ResourceResult:
         # The mime type is stated on the content, because a template's own
         # mime_type does not reach a function's plain-string result.
         # A file that cannot be merged is left out of the body and named in the
         # content's metadata (#151): the body is a closed comparanda document
         # with no slot for it, and leaving it out silently is not an option.
-        document, skipped = runtime.store.read_skipping(analysis_id)
+        document, skipped = runtime.store.read_skipping(id)
         body = json.dumps(document, ensure_ascii=False, sort_keys=True)
         meta = {"skipped": skipped} if skipped else None
         return ResourceResult([ResourceContent(body, mime_type=_JSON, meta=meta)])
 
     # Concrete, not the postponed strings: the host resolves annotations in this
     # module's globals, where the locally imported names do not exist.
-    analysis_document.__annotations__ = {"analysis_id": str, "return": ResourceResult}
+    analysis_document.__annotations__ = {"id": str, "return": ResourceResult}
 
     return ResourceTemplate.from_function(
         analysis_document,
-        uri_template=analysis_uri("{analysis_id}"),
+        uri_template=analysis_uri("{id}"),
         name="analysis",
         description="One analysis as a comparanda document: the frame and every contribution, merged.",
         mime_type=_JSON,

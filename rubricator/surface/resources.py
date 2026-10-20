@@ -6,7 +6,7 @@ resource.** That is why there is no ``analysis_list`` tool: the host lists, the
 model does not browse (``DELIBERATELY_ABSENT`` in :mod:`rubricator.surface.frozen`).
 
 Like :mod:`rubricator.surface.frozen`, this module is **data** and fixes the
-contract only; serving the resources is #80. Each row has a URI template, a
+contract only; serving them is #80 (the remaining rows are planned). Each row has a URI template, a
 media type, an audience, a priority and the reason it is a resource. Names and
 URI templates are frozen (changing one is an amendment to ADR-0026); the
 description may be reworded.
@@ -145,6 +145,7 @@ FROZEN_RESOURCES: tuple[ResourceSpec, ...] = (
         description="One corpus document's persisted normalised rendition: the text quotes in this analysis resolve against.",
         why_resource="Evidence is checked by reading the source; a person follows a citation to here.",
         failure=_UNKNOWN_ANALYSIS + " An unknown document id is refused, listing the ids the analysis holds.",
+        status="implemented",
         notes=("The rendition, not the original (#50): the original is named by its locator and hash in the document's metadata.",),
     ),
     ResourceSpec(
@@ -162,10 +163,8 @@ FROZEN_RESOURCES: tuple[ResourceSpec, ...] = (
             _UNKNOWN_ANALYSIS + " A span id that is not {document_id}:{start}-{end}, or is not a stored span of any document in the analysis, "
             "is refused saying which; it is never rounded to the nearest span."
         ),
-        notes=(
-            "Resolves to the exact stored text of [start, end) in the document's rendition (#50 option a).",
-            "The template variable is {id} here and {analysis_id} in the served analysis template; #80 aligns the served names with these rows.",
-        ),
+        status="implemented",
+        notes=("Resolves to the exact stored text of [start, end) in the document's rendition (#50 option a).",),
     ),
 )
 

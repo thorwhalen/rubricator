@@ -90,7 +90,7 @@ def test_http_serves_the_same_surface_as_stdio(over_http) -> None:
     for tool in tools:
         assert tool.inputSchema == rows[tool.name].input_schema, tool.name
         assert tool.outputSchema == rows[tool.name].output_schema, tool.name
-    assert [t.name for t in templates] == ["analysis"]
+    assert {t.name for t in templates} == {"analysis", "document", "span"}
     assert not opened.isError and opened.structuredContent["analysisId"] == "a1"
 
 
