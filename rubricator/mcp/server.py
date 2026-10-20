@@ -72,6 +72,9 @@ def make_server(runtime: Runtime | None = None, **kwargs: Any):
     server.add_template(_analysis_resource(runtime))
     for template in _content_resources(runtime):
         server.add_template(template)
+    for resource in _fixed_resources(runtime):
+        server.add_resource(resource)
+    server.add_template(_schema_resource())
     for prompt in _prompts():
         server.add_prompt(prompt)
     return server
@@ -134,6 +137,56 @@ def _content_resources(runtime: Runtime):
             mime_type=row.mime_type,
         ))
     return templates
+
+
+def _fixed_resources(runtime: Runtime):
+    """The resources with no variable in their URI: method, rubric, codes, the analyses list."""
+    from fastmcp.resources import Resource, ResourceContent, ResourceResult
+
+    from rubricator.mcp import resolve
+    from rubricator.surface.resources import frozen_resources
+
+    rows = frozen_resources()
+    readers = {
+        "method": lambda: resolve.read_shipped("method"),
+        "confidence-rubric": lambda: resolve.read_shipped("confidence-rubric"),
+        "missingness-codes": resolve.read_missingness_codes,
+        "analyses": lambda: resolve.read_analyses(runtime.store),
+    }
+
+    def serve(name: str, read) -> Resource:
+        row = rows[name]
+
+        def content() -> ResourceResult:
+            return ResourceResult([ResourceContent(read(), mime_type=row.mime_type)])
+
+        content.__annotations__ = {"return": ResourceResult}
+        return Resource.from_function(
+            content, uri=row.uri_template, name=row.name, description=row.description,
+            mime_type=row.mime_type,
+            annotations={"audience": list(row.audience), "priority": row.priority},
+        )
+
+    return [serve(name, read) for name, read in readers.items()]
+
+
+def _schema_resource():
+    """The published comparanda schema at one version: read, never computed."""
+    from fastmcp.resources import ResourceContent, ResourceResult, ResourceTemplate
+
+    from rubricator.mcp.resolve import read_comparanda_schema
+    from rubricator.surface.resources import frozen_resources
+
+    row = frozen_resources()["comparanda-schema"]
+
+    def comparanda_schema(version: str) -> ResourceResult:
+        return ResourceResult([ResourceContent(read_comparanda_schema(version), mime_type=row.mime_type)])
+
+    comparanda_schema.__annotations__ = {"version": str, "return": ResourceResult}
+    return ResourceTemplate.from_function(
+        comparanda_schema, uri_template=row.uri_template, name=row.name,
+        description=row.description, mime_type=row.mime_type,
+    )
 
 
 def _analysis_resource(runtime: Runtime):

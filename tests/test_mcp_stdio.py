@@ -117,7 +117,7 @@ def test_the_listed_surface_is_the_frozen_rows_over_the_wire(roundtrip) -> None:
 
 def test_the_analysis_resource_is_listed(roundtrip) -> None:
     _, _, templates, _ = roundtrip
-    assert {t.name for t in templates} == {"analysis", "document", "span"}
+    assert {t.name for t in templates} == {"analysis", "document", "span", "comparanda-schema"}
 
 
 def test_a_call_round_trips_summary_beside_structured_content(roundtrip) -> None:

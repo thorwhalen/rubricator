@@ -1,4 +1,4 @@
-"""Resolving a document or span URI to the stored text it names (#80).
+"""Resolving a resource URI to the content it names (#80, #230).
 
 Pure functions over the store, with no MCP import, so the connector and a test
 read the same thing. A span id is ``{document_id}:{start}-{end}`` and indexes
@@ -16,13 +16,21 @@ citation that quietly resolves to different text is worse than one that fails.
 
 from __future__ import annotations
 
+import json
+import re
+from pathlib import Path
 from typing import Any
 
+from rubricator.schema.source import published_schema_text
+from rubricator.schema.vocabulary import vocabulary
 from rubricator.store import AnalysisStore
 from rubricator.surface.resources import parse_span_id
 from rubricator.tools.corpus import INGEST_RECORD
 
-__all__ = ["read_document", "read_span"]
+__all__ = [
+    "read_document", "read_span", "read_shipped", "read_missingness_codes", "read_comparanda_schema",
+    "read_analyses",
+]
 
 
 def _renditions(store: AnalysisStore, analysis_id: str) -> dict[str, dict[str, Any]]:
@@ -62,3 +70,65 @@ def read_span(store: AnalysisStore, analysis_id: str, span: str) -> tuple[str, d
             f"That document has {len(stored)} stored span(s); spans are never re-chunked or rounded."
         )
     return text[start:end], {**meta, "start": start, "end": end}
+
+
+# -- the fixed and listed resources (#230) -----------------------------------
+
+_SHIPPED = Path(__file__).resolve().parent.parent / "data" / "resources"
+
+
+def read_shipped(name: str) -> str:
+    """One shipped content file (``method``, ``confidence-rubric``): content, not code.
+
+    >>> read_shipped("method").startswith("# The rubricator method")
+    True
+    """
+    return (_SHIPPED / f"{name}.md").read_text(encoding="utf-8")
+
+
+def read_missingness_codes() -> str:
+    """The core missingness vocabulary as JSON: each code, its three flags and what it means.
+
+    Core only: the frozen URI names no analysis, so an analysis's own extensions
+    are read from its document (``rubricator://analysis/{id}``, ``missingCodes``).
+
+    >>> [c["code"] for c in json.loads(read_missingness_codes())["codes"]][:2]
+    ['not-applicable', 'not-assessed']
+    """
+    vocab = vocabulary()
+    codes = [
+        {"code": code, "structural": f.structural, "terminal": f.terminal,
+         "informative": f.informative, "means": f.means}
+        for code, f in vocab.missing_codes.items()
+    ]
+    return json.dumps({"vocabularyVersion": vocab.version, "codes": codes}, ensure_ascii=False)
+
+
+def read_comparanda_schema(version: str) -> str:
+    """The published schema at one version; a non-integer or unsupported one is refused."""
+    if not re.fullmatch(r"0|[1-9][0-9]*", version):
+        raise ValueError(f'a schema version is a whole number; got "{version}".')
+    return published_schema_text(int(version))
+
+
+def read_analyses(store: AnalysisStore) -> str:
+    """The live analyses, newest change first: id, question, stage, last change.
+
+    Never an error for an empty store. An analysis whose files cannot be read is
+    listed by id with ``unreadable`` set, rather than hiding it or failing the list.
+    """
+    from rubricator.tools.confirm import gate
+    from rubricator.tools.views import stage_of
+
+    rows = []
+    for analysis_id in store.analyses():
+        row: dict[str, Any] = {"id": analysis_id, "lastChange": store.last_write(analysis_id)}
+        try:
+            document, _ = store.read_skipping(analysis_id)
+            row["question"] = str((document.get("subject") or {}).get("question", ""))
+            row["stage"] = stage_of(document, confirmed=gate(store.confirmations(analysis_id))["open"])
+        except Exception as error:  # a bad analysis must not hide the others
+            row.update(question="", stage=None, unreadable=f"{type(error).__name__}: {error}")
+        rows.append(row)
+    rows.sort(key=lambda r: (r["lastChange"] or "", r["id"]), reverse=True)
+    return json.dumps({"analyses": rows}, ensure_ascii=False)

@@ -6,7 +6,7 @@ resource.** That is why there is no ``analysis_list`` tool: the host lists, the
 model does not browse (``DELIBERATELY_ABSENT`` in :mod:`rubricator.surface.frozen`).
 
 Like :mod:`rubricator.surface.frozen`, this module is **data** and fixes the
-contract only; serving them is #80 (the remaining rows are planned). Each row has a URI template, a
+contract only; serving them is #80 and #230. Each row has a URI template, a
 media type, an audience, a priority and the reason it is a resource. Names and
 URI templates are frozen (changing one is an amendment to ADR-0026); the
 description may be reworded.
@@ -83,6 +83,8 @@ FROZEN_RESOURCES: tuple[ResourceSpec, ...] = (
         description="The method in one page: the elicitation stages, the honesty clauses and what each tool is for.",
         why_resource="The host should put it in the model's context before any tool call; the model would not know to fetch it.",
         failure="Cannot fail: it ships in the wheel.",
+        status="implemented",
+        issue=230,
     ),
     ResourceSpec(
         name="confidence-rubric",
@@ -93,6 +95,8 @@ FROZEN_RESOURCES: tuple[ResourceSpec, ...] = (
         description="What each confidence level means, and the two uncertainties it must not blur (ADR-0012).",
         why_resource="Scoring reads it every time; making the model decide to fetch it would make a skipped fetch a silent change of meaning.",
         failure="Cannot fail: it ships in the wheel.",
+        status="implemented",
+        issue=230,
     ),
     ResourceSpec(
         name="missingness-codes",
@@ -100,9 +104,11 @@ FROZEN_RESOURCES: tuple[ResourceSpec, ...] = (
         mime_type=JSON,
         audience=("assistant",),
         priority=0.9,
-        description="The closed vocabulary of reasons a cell is blank, with the meaning of each, including the analysis's own extensions.",
+        description="The closed vocabulary of reasons a cell is blank, with the meaning and flags of each. An analysis's own extensions are in its document.",
         why_resource="A blank without a reason is not allowed; the codes are the vocabulary the model writes in.",
-        failure="Cannot fail for the core codes; an extension is read from the analysis, so an unknown analysis id refused as below.",
+        failure="Cannot fail: the core codes ship in the wheel.",
+        status="implemented",
+        issue=230,
     ),
     ResourceSpec(
         name="comparanda-schema",
@@ -113,6 +119,8 @@ FROZEN_RESOURCES: tuple[ResourceSpec, ...] = (
         description="The comparanda JSON Schema at one version: the contract this server validates every write against.",
         why_resource="The boundary contract is published data, versioned by the companion repo; it is read, never computed.",
         failure="An unsupported version is refused, listing the versions this build can emit.",
+        status="implemented",
+        issue=230,
     ),
     ResourceSpec(
         name="analyses",
@@ -123,6 +131,8 @@ FROZEN_RESOURCES: tuple[ResourceSpec, ...] = (
         description="The analyses this server holds: id, question, stage and last change, newest first.",
         why_resource="The host lists, the model does not browse: there is deliberately no analysis_list tool.",
         failure="An empty store is an empty list, not an error.",
+        status="implemented",
+        issue=230,
     ),
     ResourceSpec(
         name="analysis",
