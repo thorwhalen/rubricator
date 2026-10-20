@@ -42,7 +42,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from rubricator.criteria_versions import answers_an_older_definition
-from rubricator.independence import RUNGS, agreement, policy_rung
+from rubricator.independence import RUNGS, agreement
 from rubricator.rules import live_assertions
 from rubricator.stats import kendall_tau_b
 from rubricator.store import AnalysisStore
@@ -54,6 +54,11 @@ DEFAULT_TAU_BANDS = {"low": 0.7, "high": 0.9}
 
 _SCORE = "score"
 _ROUND = re.compile(r"^round-(\d+)")
+#: The stored ``independence`` value that reads as each policy rung. Mapped from the rung
+#: ``agreement`` settled on, which may sit below every draw's own claim (one principal
+#: behind two ``independent`` draws is in-session); ``unrecorded`` has no stored value.
+_STORED_RUNG = {"in-session": "shared-context", "fresh-session": "resampled",
+                "distinct-model": "independent", "distinct-human": "independent"}
 
 Key = tuple[str, str]
 
@@ -198,8 +203,7 @@ def _criterion(cid, keys, draws, rows, measurement, authors, steps) -> dict[str,
     if found:
         weakest = min(found, key=lambda r: RUNGS.index(r["rung"]))
         rung, label = weakest["rung"], weakest["label"]
-        stored = next((a.get("independence") for d in repeated for a in d
-                       if policy_rung(a, authors) == rung and a.get("independence")), None)
+        stored = _STORED_RUNG.get(rung)
     elif repeated:
         label = "not assessable: the repeated scorings are agreed values (consensus), not observations"
     levels = steps(measurement)

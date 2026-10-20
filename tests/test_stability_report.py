@@ -219,3 +219,26 @@ def test_passes_written_through_the_store_pair_by_round() -> None:
     out = stability_report(s, analysis_id="a")
     assert out["repeatedMatrices"] == 2 and out["perCriterion"][0]["repeatedCells"] == 2
     assert "test-retest" in out["perCriterion"][0]["agreementLabel"]
+
+
+def test_one_principal_claiming_independence_reads_in_session_in_both_fields() -> None:
+    doc = _document({})
+    doc["alternatives"] = [{"id": "x", "label": "x"}]
+    doc["criteria"] = [_criterion("c1")]
+    doc["cells"] = [_cell("x", "c1", [3, 3], rung="independent")]
+    c1 = _report(doc)["perCriterion"][0]
+    assert c1["lowestRung"] == "shared-context" and "self-consistency" in c1["agreementLabel"]
+
+
+def test_a_nominal_wobble_has_no_span_and_meets_the_row() -> None:
+    jsonschema = pytest.importorskip("jsonschema")
+    from rubricator.surface.frozen import FROZEN_TOOLS
+
+    nominal = {"id": "n", "label": "N", "defaultMeasurement": {"level": "nominal", "levels": ["a", "b"]}}
+    out = _report(_document({("x", "n"): ["a", "b"], ("y", "n"): ["a", "a"]}, criteria=[nominal]),
+                  )
+    assert out["perCell"][0]["span"] is None
+    row = next(t for t in FROZEN_TOOLS if t.name == "stability_report")
+    jsonschema.validate(out, row.output_schema)
+    jsonschema.validate(_report(_document(THREE), weights=[{"criterionId": "c1", "weight": 1}]),
+                        row.output_schema)

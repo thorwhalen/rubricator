@@ -731,7 +731,7 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
                 "paretoChurn": N,
                 "blankDensity": N,
                 "perCell": arr(obj(
-                    {"alternativeId": S, "criterionId": S, "n": I, "span": N, "polarised": B},
+                    {"alternativeId": S, "criterionId": S, "n": I, "span": opt(N), "polarised": B},
                     ("alternativeId", "criterionId", "n", "span", "polarised"))),
                 "perCriterion": arr(obj(
                     {"criterionId": S, "agreement": opt(N), "lowestRung": opt(INDEPENDENCE),
