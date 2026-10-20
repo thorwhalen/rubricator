@@ -144,6 +144,7 @@ CRITERION = obj(
         "anchors": arr(obj({"level": S, "text": S}, ("level", "text"))),
         "missingCodes": arr(MISSING_DECLARATION),
         "definition": DEFINITION,
+        "acceptability": obj({"threshold": N, "rationale": S}, ("threshold", "rationale")),
         "tombstoned": B, "supersededBy": arr(S),
     },
     ("id", "label"),
@@ -457,17 +458,21 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
             "requires anchors at levels 1, 3 and 5), a direction of preference, and may carry "
             "a structured definition and its own missingness codes. A change of meaning moves "
             "the set version and reports which cells now answer an older definition; name the "
-            "changed criteria whose edit moves no boundary in editorial. Under-defined "
-            "criteria are reported in definitionGaps, not refused."
+            "changed criteria whose edit moves no boundary in editorial. acceptability is a "
+            "floor {threshold, rationale} whose failure is a veto; confidence_scale "
+            "(confidence-1-3) declares a confidence measure on every criterion, kept once "
+            "declared. Under-defined criteria are reported in definitionGaps, not refused."
         ),
         determinism="Schema checks, a versioned diff of definitions, and a lexical anchor check.",
         failure=(
             "Refused with nothing written: an unknown scale, a missing required anchor, an "
             "anchor on a level the scale cannot take, an undeclared missing-rule code, a "
-            "target with no target preference, or dropping a criterion that cells refer to."
+            "target with no target preference, a floor off the scale or with no rationale, an "
+            "anchored confidence_scale, or dropping a criterion that cells refer to."
         ),
         input_schema=obj(
-            {"analysis_id": S, "criteria": arr(CRITERION), "editorial": arr(S)},
+            {"analysis_id": S, "criteria": arr(CRITERION), "editorial": arr(S),
+             "confidence_scale": S},
             ("analysis_id", "criteria"),
         ),
         output_schema=obj(
@@ -1048,11 +1053,11 @@ MEASURED: Mapping[str, Any] = {
 AWAITING_MEASUREMENT: Mapping[str, Any] | None = {
     "issue": 199,
     "advertised": {
-        "tools": 18, "bytes": 25054,
-        "sha256": "61be5694ca158a5b299b0e2aa02f69292d793d598b90ae1e54715e5bb4660429",
+        "tools": 18, "bytes": 25517,
+        "sha256": "6c2be3d5e72e5bb6a31f223e135a44eb73629c17549252ab656204671fedcfef",
     },
     "wholeSurface": {
-        "tools": 22, "bytes": 28774,
-        "sha256": "9165078f8abca48f3c4b2e926fe8b7c88c9fe3644c61eef212470cbaf149eb72",
+        "tools": 22, "bytes": 29237,
+        "sha256": "5af1d924fa3fd242d659fcaf03575307013c8b18ebe90f8e5722e9ea4957f713",
     },
 }

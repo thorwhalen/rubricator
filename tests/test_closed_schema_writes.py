@@ -119,7 +119,7 @@ def test_a_criterion_key_the_verb_would_drop_is_refused(runtime) -> None:
         lambda: criteria_set(runtime.store, analysis_id="a1", criteria=[
             {"id": "c", "label": "C", "anchors": ANCHORS, "weight": 2}]),
         r"refused, nothing was written: at \$\.criteria\[0\]: 'weight' is not recorded anywhere\. "
-        r"Allowed here: anchors, ",
+        r"Allowed here: acceptability, anchors, ",
     )
 
 
