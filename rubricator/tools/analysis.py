@@ -90,6 +90,9 @@ SCALE_PRESETS: Mapping[str, Mapping[str, Any]] = {
 
 DEFAULT_SCALE = "ordinal-1-5-anchored"
 
+#: The ``confidence_scale`` value that removes a declared confidence measure (#239).
+NO_CONFIDENCE_SCALE = "none"
+
 #: The measure a ``confidence_scale`` declares (comparanda v1 stores confidence
 #: as a measure, not a field), as the analysis-level row ``measures`` carries.
 CONFIDENCE_MEASURE: Mapping[str, str] = {
@@ -479,8 +482,12 @@ def criteria_set(
     measure on every criterion, so ``measures_write`` can record confidence as
     cells and ``report_weaknesses`` can read ``lowConfidence``. Once declared it
     is kept by a later call that omits it: confidence cells must not be read
-    against the score scale. Both are meaning fields, so adding either after
-    scoring supersedes the criterion's cells unless named in ``editorial``.
+    against the score scale. Another preset changes it and ``"none"`` removes it,
+    both refused once any confidence cell is stored (#239). A change confined to
+    the confidence measure supersedes nothing: it is reported in ``revised`` as
+    not material, since no stored cell is read differently. ``acceptability`` is
+    a meaning field, so adding a floor after scoring supersedes the criterion's
+    cells unless named in ``editorial``.
     """
     frame = store.frame(analysis_id)
     declared: dict[str, dict[str, Any]] = {d["id"]: d for d in frame.get("scales", [])}
@@ -490,9 +497,14 @@ def criteria_set(
     defaulted: list[str] = []
 
     _refuse_unknown_keys(criteria, "CRITERION", root="$.criteria")
+    kept = _declared_confidence_scale(frame)
     if confidence_scale is None:
-        confidence_scale = _declared_confidence_scale(frame)
+        confidence_scale = kept
+    elif confidence_scale == NO_CONFIDENCE_SCALE:
+        confidence_scale = None
     confidence = _confidence_measurement(confidence_scale) if confidence_scale is not None else None
+    if kept is not None and confidence_scale != kept:
+        _refuse_rescaling_confidence(store, analysis_id, kept, confidence_scale)
     for c in criteria:
         scale_id = c.get("scale", DEFAULT_SCALE)
         preset = SCALE_PRESETS.get(scale_id)
@@ -607,6 +619,8 @@ def criteria_set(
         })
         if not any(m.get("name") == CONFIDENCE_MEASURE["name"] for m in frame.get("measures", [])):
             frame["measures"] = [*(frame.get("measures") or [{"name": "score"}]), dict(CONFIDENCE_MEASURE)]
+    elif kept is not None:
+        frame["measures"] = [m for m in frame.get("measures", []) if m.get("name") != CONFIDENCE_MEASURE["name"]]
     frame["scales"] = [declared[k] for k in sorted(declared)]
     # Merged before the write, so anything that can raise does so with nothing
     # stored: a retry then sees the same before-state and the same revision.
@@ -665,6 +679,40 @@ def _declared_confidence_scale(frame: Mapping[str, Any]) -> str | None:
         if isinstance(own, Mapping) and isinstance(own.get("scale"), str):
             return own["scale"]
     return None
+
+
+def _refuse_rescaling_confidence(
+    store: AnalysisStore, analysis_id: str, kept: str, wanted: str | None
+) -> None:
+    """Refuse changing or removing a confidence scale that stored cells were recorded on.
+
+    ``definedInVersion`` is per criterion in comparanda v1, so a rescaled
+    confidence measure could only be versioned by superseding the criterion's
+    score cells too (#239, #244). A confidence cell stays readable on the scale it
+    was given, the way a criterion with cells is never dropped. A file that cannot
+    be read might hold one, so it refuses as well.
+    """
+    name = CONFIDENCE_MEASURE["name"]
+    holding, unread = [], []
+    for contributor_id in store.contributors(analysis_id):
+        file = store.contribution_key(analysis_id, contributor_id)
+        try:
+            measures = [cell.get("measure", "score") for cell in store._read(file).get("cells", [])]
+        except (AttributeError, KeyError, TypeError, ValueError, RecursionError):
+            unread.append(file)
+            continue
+        if name in measures:
+            holding.append(file)
+    if not (holding or unread):
+        return
+    change = "remove it" if wanted is None else f'change it to "{wanted}"'
+    why = (f"{', '.join(holding)} records confidence cells on it" if holding else
+           f"{', '.join(unread)} cannot be read to tell whether it records confidence cells")
+    raise ValueError(
+        f'refused, nothing was written: confidence_scale "{kept}" is declared and {why}, so this '
+        f"call cannot {change}: those cells would be read on a scale they were not given. Omit "
+        "confidence_scale to keep it."
+    )
 
 
 def _confidence_measurement(scale_id: str) -> dict[str, Any]:
@@ -1185,11 +1233,18 @@ def _revise_versions(
             "leave them be; a criterion with history is never deleted."
         )
     _refuse_a_blind_drop("criteria", set(before) - after_ids, unread)
+    by_id = {c["id"]: c for c in out}
     changed = {
         c["id"]: fields
         for c in out
         if c["id"] in before and (fields := meaning_changed(before[c["id"]], c))
     }
+    # A change confined to the confidence measurement re-reads no stored cell:
+    # changing or removing one with cells is refused above (#239), and score
+    # cells read the default measurement. So it moves the set version and
+    # supersedes nothing, whether or not the caller named it editorial.
+    confined = {cid for cid, fields in changed.items()
+                if fields == ["measurements"] and _confidence_only(before[cid], by_id[cid])}
     stray = sorted(set(editorial) - set(changed))
     if stray:
         raise ValueError(
@@ -1204,7 +1259,7 @@ def _revise_versions(
         version = "1"
     frame["criteriaVersion"] = version
     for c in out:
-        if c["id"] in changed and c["id"] not in editorial:
+        if c["id"] in changed and c["id"] not in editorial and c["id"] not in confined:
             c["definedInVersion"] = version
         elif before.get(c["id"], {}).get("definedInVersion") is not None:
             c["definedInVersion"] = before[c["id"]]["definedInVersion"]
@@ -1214,9 +1269,24 @@ def _revise_versions(
             # dropped-then-re-added column -- answered some other question.
             c["definedInVersion"] = version
     return {
-        cid: {"fields": fields, "material": cid not in editorial}
+        cid: {"fields": fields, "material": cid not in editorial and cid not in confined}
         for cid, fields in sorted(changed.items())
     }
+
+
+def _confidence_only(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
+    """Whether two criteria's ``measurements`` differ only in the confidence measure.
+
+    >>> _confidence_only({}, {"measurements": {"confidence": {"scale": "confidence-1-3"}}})
+    True
+    >>> _confidence_only({"measurements": {"speed": {}}}, {"measurements": {}})
+    False
+    """
+    def rest(c):
+        m = c.get("measurements")
+        return {k: v for k, v in m.items() if k != CONFIDENCE_MEASURE["name"]} if isinstance(m, Mapping) else m or {}
+
+    return rest(before) == rest(after)
 
 
 #: Directions of preference (the companion's closed enum, ADR-0018 there).

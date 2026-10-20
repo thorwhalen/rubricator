@@ -460,15 +460,17 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
             "the set version and reports which cells now answer an older definition; name the "
             "changed criteria whose edit moves no boundary in editorial. acceptability is a "
             "floor {threshold, rationale} whose failure is a veto; confidence_scale "
-            "(confidence-1-3) declares a confidence measure on every criterion, kept once "
-            "declared. Under-defined criteria are reported in definitionGaps, not refused."
+            "(confidence-1-3) declares a confidence measure on every criterion, kept when "
+            "omitted; another preset changes it and none removes it, superseding no cell. "
+            "Under-defined criteria are reported in definitionGaps, not refused."
         ),
         determinism="Schema checks, a versioned diff of definitions, and a lexical anchor check.",
         failure=(
             "Refused with nothing written: an unknown scale, a missing required anchor, an "
             "anchor on a level the scale cannot take, an undeclared missing-rule code, a "
             "target with no target preference, a floor off the scale or with no rationale, an "
-            "anchored confidence_scale, or dropping a criterion that cells refer to."
+            "anchored confidence_scale, changing or removing one that cells were recorded on, "
+            "or dropping a criterion that cells refer to."
         ),
         input_schema=obj(
             {"analysis_id": S, "criteria": arr(CRITERION), "editorial": arr(S),
@@ -1054,11 +1056,11 @@ MEASURED: Mapping[str, Any] = {
 AWAITING_MEASUREMENT: Mapping[str, Any] | None = {
     "issue": 199,
     "advertised": {
-        "tools": 18, "bytes": 25615,
-        "sha256": "9431e93e75aedab9cdac63ce2de6bc0c697e0af1f1a32a3b76f3f05c028c4fc7",
+        "tools": 18, "bytes": 25736,
+        "sha256": "861746f5e9b820858845052b323a41b2e024341c81b543bdf82e16a3f12ef8d7",
     },
     "wholeSurface": {
-        "tools": 22, "bytes": 29335,
-        "sha256": "bff024391135ac0a1ef7ff4a7c70daac7191600becb2d093256d61820f7129de",
+        "tools": 22, "bytes": 29456,
+        "sha256": "bcf385255c5e2434f9fd406090b92c93bbe3e50555ad06d2b97ed91164d30891",
     },
 }
