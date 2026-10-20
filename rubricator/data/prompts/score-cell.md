@@ -1,9 +1,9 @@
 ---
 id: score-cell
-version: 4
+version: 5
 stage: 5
 title: Score one cell
-updated: 2026-10-14
+updated: 2026-10-20
 missing-codes:
   - not-applicable
   - not-assessed
@@ -12,6 +12,7 @@ missing-codes:
   - indeterminate
   - withheld
 changelog:
+  - 5 (2026-10-20) — A score cites at least one span with stance `supports`, the one the level rests on; `qualifies`, `contradicts` and `context` cannot carry a score alone, and a span that ties this criterion to another supports the level it was placed from while the tie goes in `dependsOn` (#208). Hypothesis: on the dependence cells (c7, c10) Sonnet stops citing its one span as `qualifies`, so the write it emits is accepted with no repair (12/12 in both models), with refusal to guess and dependence caught unchanged.
   - 4 (2026-10-14) — The pass is described to the write call (#218). New section "Describing the pass": the scorer passes `procedure` through `measures_write` or `measures_mark_missing` on every pass, the first included, because a first pass with no record leaves the cell with an unrecorded draw once a second arrives, and states only what is true: `round` is the pass over the analysis (the next unused number if the tool says the cell already has a draw in it or the round said otherwise about the prior); `session` and `prior` are read off what is in the model's context, not off what the harness or the user calls the pass (an earlier pass in view is `same` and `shown`, and "forget it" leaves it shown); the plan's traversal, reduction and seed are copied or left out, never invented; no count, model or independence claim is ever passed; a blank from a repeat names its one cell and is a draw only when someone looked. The emission is unchanged. Hypothesis: the variance disclosure (#100) describes the passes that happened, because the connector's model, which is the caller there, no longer claims `fresh`/`withheld` for a pass whose context held the earlier score and no longer lets a request for an "independent second opinion" raise a rung. Revised twice after adversarial reviews that found the earlier drafts ("a single pass passes nothing"; "round is per cell"; `{round}` alone as a legal repeat) taught calls the tools refuse or record short. Measured, and it does NOT separate v4 from v3: on twelve constructed scenarios (docs/evaluation/score-cell/procedure.json), with the revised tool descriptions in view (they now say the same thing), v3 and v4 both pass 12/12 on validity, truth, no invented fact and no claim of independence, in Sonnet and in Haiku; an earlier run, against a tool description that said "a repeated pass", had v3 passing nothing on a first pass and v3 Haiku leaving out facts, which is the tool description's doing now. So v4 restates the rule in the prompt, a precaution for runtimes whose tool descriptions are not read, and is not a measured improvement. No regression on the twelve usual cells, both models: refusal to guess 4/4, right blank 4/4, right level 6/6, writes with no repair 12/12, dependence caught 2/2.
   - 3 (2026-10-13) — A hoped-for winner the user stated earlier in the conversation is named as not evidence (#205). In the connector scoring runs in the same conversation as the step-4 confirmation, so a winner the user named there is still in context; confirm-frame (#71) tells the model it will not be used, and nothing here said so. One paragraph after the rule that outranks the rest: a stated expectation about the winner moves neither level, confidence nor the choice of blank, in either direction; a span that leaves room is resolved by the anchor's wording and the blank rules, not by who it favours; and what the user confirmed or instructed about the analysis itself (criteria, a cell set aside, declared codes) is still followed. Revised once after an adversarial review that found the first wording ("on nothing the user has said") broad enough to exclude exactly those instructions. Measured, not confirmed: no consistent lean toward the named winner was found in v2 or v3 (docs/evaluation/score-cell/README.md), and a stated expectation of either kind moved borderline cells beyond the rerun noise floor in both versions without a direction, so v3 is a precaution, not a measured fix. Nothing about blank selection changed and refusal to guess held at 4/4 everywhere.
   - 2 (2026-10-13) — The emission is now the measures_write cell itself, field for field, with confidence and dependsOn beside it rather than inside it, because the closed comparanda v1 cell has no slot for either and a caller that mapped v1's output onto a cell was refused (#154). The plan is still written first and is no longer emitted: its value is that it is written before the value, not that it is stored. Every cell now declares which other criteria its level turns on, empty when none, expected to surface preference dependence as a declared signal where v1 let the model fold it into the score silently. Revised once before landing, against a blind run in which both models read "consulted" literally and let a span that ties one criterion to another pass as an anchor's stated limit; and once after an adversarial review, which found that the prose allowed evidence the stored cell cannot honestly carry and gave the downgrade reason nowhere to go: evidence is now only spans the scorer was handed, an inference is stated in the justification with the spans it is drawn from, the downgrade reason opens the justification in a fixed countable form, and the value is a number. Hypothesis: schema validity of the emitted cell rises to every time with no repair, and refusal to guess does not move, since none of the blank-selection text changed.
@@ -291,6 +292,13 @@ For a score, `cell` carries:
   and `selectors`, holding one `TextQuoteSelector` whose `exact` is the words you rely on, quoted
   exactly as they appear
 - `value` — the level, from the criterion's own scale, as a number: `4`, not `"4"`
+
+**A score cites at least one span with stance `supports`: the span the level rests on.** `qualifies`
+is for a span that limits or conditions that level, `contradicts` for one that argues against it, and
+`context` for background; none of them can carry a score alone, and a score whose every span is one of
+them is refused at the write. A span that ties this criterion to another is no exception: if it is
+what you placed the level from, it `supports` that level, and the tie goes in `dependsOn` (below), not
+into the stance. If nothing you were handed supports any level, the cell is a blank, not a score.
 
 Evidence here is only ever spans you were handed. **Your own inference is never an evidence entry**:
 it has no source to quote and no id to copy, and dressed as a span it reads as something a source

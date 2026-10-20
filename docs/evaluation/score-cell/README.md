@@ -78,3 +78,21 @@ v4 adds one section, "Describing the pass": a scorer states to `measures_write` 
 - **What this does not establish:** one run per arm; all scenarios in one context per arm; scenarios written by the prompt's author; the model asked what it *would* pass rather than making the call; and that the facts stated are useful rests on the tools, which are tested separately.
 
 **Regression on the usual twelve cells** (`cells.json`, neutral world, one run per model, on the final text): refusal to guess 4/4, right blank 4/4, right level 6/6, writes with no repair 12/12, `dependsOn` right 12/12, dependence caught 2/2, right confidence 4/4, downgrade counted 1/1, plan emitted 0/12, in Sonnet and in Haiku. Same as v3 (the neutral rows above).
+
+## 2026-10-20 — v4 → v5: a score rests on a `supports` span ([#208](https://github.com/thorwhalen/rubricator/issues/208))
+
+v5 adds one paragraph to the emission section: a score cites at least one span with stance `supports`, the one the level rests on; `qualifies`, `contradicts` and `context` cannot carry a score alone; a span that ties this criterion to another `supports` the level it was placed from, and the tie goes in `dependsOn`. In the #205 runs Sonnet cited the one span of each dependence cell (c7, c10) as `qualifies` in 3 of 4 runs, and `measures_write` refused the cell.
+
+The usual twelve cells (`cells.json`, neutral world), two runs per model on the final text, outputs in `2026-10-20-supports/`:
+
+| arm | refusal to guess | right blank | right level | writes with no repair | dependsOn right | dependence caught | right confidence | downgrade counted |
+|---|---|---|---|---|---|---|---|---|
+| v5, Sonnet a | 4/4 | 4/4 | 6/6 | **12/12** | 12/12 | 2/2 | 4/4 | 1/1 |
+| v5, Sonnet b | 4/4 | 4/4 | 6/6 | **12/12** | 12/12 | 2/2 | 4/4 | 1/1 |
+| v5, Haiku a | 4/4 | 4/4 | 6/6 | **12/12** | 12/12 | 2/2 | 2/4 | 1/1 |
+| v5, Haiku b | 4/4 | 4/4 | 6/6 | **12/12** | 12/12 | 2/2 | 4/4 | 1/1 |
+
+- **Refusal to guess, read first: 4/4 and the right blank 4/4 in every run.** Nothing in the blank-selection text changed.
+- **Writes with no repair 12/12 in all four runs**, against Sonnet's 9–10/12 in 3 of 4 #205 runs. c7 and c10 cite their span as `supports` with `dependsOn: ["data-export"]` in every run, so the dependence is still caught (2/2).
+- **Right confidence 2/4 in one Haiku run.** The confidence text did not change; Haiku has ranged 1/4 to 4/4 across earlier versions on the same cells, so this is read as the model's run-to-run spread, not an effect of v5.
+- **What this does not establish:** two runs per model, all twelve cells in one context per run, cells written by the prompt's author.
