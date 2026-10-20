@@ -22,6 +22,7 @@ somewhere a caller can read it, not in a comment.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from functools import cached_property, lru_cache
 from pathlib import Path
@@ -222,6 +223,28 @@ class SchemaSource:
             )
             for e in errors
         ]
+
+    def unknown_keys(self, value: Any, *, pointer: str = "") -> list[tuple[tuple[Any, ...], str]]:
+        """Each key a closed object in ``value`` does not allow, as ``(path, key)``.
+
+        Only the objects the schema closes outright: a key refused inside an
+        ``anyOf`` branch is not named, because which branch the value meant is
+        a judgement, not a lookup. :meth:`refusals` still reports it.
+
+        >>> SchemaSource.vendored().unknown_keys(
+        ...     [{"id": "x", "label": "X", "url": "u"}], pointer="/properties/alternatives")
+        [((0,), 'url')]
+        """
+        validator = self._fragment_validator(pointer)
+        found = {
+            (tuple(e.path), key)
+            for e in validator.iter_errors(value)
+            if e.validator == "additionalProperties" and isinstance(e.instance, dict)
+            for key in e.instance
+            if key not in e.schema.get("properties", {})
+            and not any(re.search(p, key) for p in e.schema.get("patternProperties", {}))
+        }
+        return sorted(found, key=repr)
 
     def _fragment_validator(self, pointer: str) -> Any:
         # Evolved from the whole-schema validator rather than built on the bare

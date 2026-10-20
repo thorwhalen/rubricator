@@ -833,6 +833,80 @@ class AnalysisStore:
         if verdicts[digest] is not None:
             raise OffContract(verdicts[digest])
 
+    # -- repair -------------------------------------------------------------
+
+    def repair_contribution(
+        self, analysis_id: str, contributor_id: str, *, apply: bool = False
+    ) -> dict[str, Any]:
+        """Drop exactly the keys the contract refuses from one contributor's own file (#166).
+
+        A file the contract refuses is left out of every read, and its contributor
+        cannot write until it is repaired (#156). The realistic case is a file from
+        a build before #155, an author record carrying an ``email``, say. This drops
+        the keys a closed object in the file does not allow -- nothing else, and
+        no other file -- and says which.
+
+        A dry run unless ``apply``. Even then it writes only when what remains
+        fits the contract: a refusal it cannot repair by dropping a key (a wrong
+        type, a key refused inside an ``anyOf``) is named in ``remaining`` and
+        left for a person, so a repair never writes a file that is still refused.
+        """
+        import copy
+
+        from rubricator.schema.source import SchemaSource
+
+        self._require(analysis_id)
+        key = self.contribution_key(analysis_id, contributor_id)
+        if key not in self.blobs:
+            raise KeyError(
+                f'contributor "{contributor_id}" has no file in analysis "{analysis_id}"; '
+                f"contributors here: {', '.join(self._contributor_ids(analysis_id)) or 'none'}."
+            )
+        document = self._read(key)
+        if not isinstance(document, dict):
+            raise ValueError(f"{key} is not a JSON object, so there are no keys to drop. Remove the file.")
+        contract = self.contract if self.contract is not None else SchemaSource.vendored()
+        repaired = copy.deepcopy(document)
+        dropped: list[str] = []
+        fragments = (("authors", "/properties/authors"), ("cells", "/properties/cells"))
+        # Repeat: a closed object can sit inside one whose unknown key hid it.
+        for _ in range(16):
+            found = [
+                (field, path, extra)
+                for field, pointer in fragments
+                for path, extra in contract.unknown_keys(repaired.get(field, []), pointer=pointer)
+            ]
+            if not found:
+                break
+            for field, path, extra in found:
+                target: Any = repaired[field]
+                for step in path:
+                    target = target[step]
+                del target[extra]
+                dropped.append(f"$.{field}" + "".join(
+                    f"[{p}]" if isinstance(p, int) else f".{p}" for p in path) + f".{extra}")
+        remaining = [
+            line
+            for field, pointer in fragments
+            for line in contract.refusals(repaired.get(field, []), pointer=pointer, root=f"$.{field}")
+        ]
+        written = bool(apply and dropped and not remaining)
+        if written:
+            self._write(key, repaired)
+        verb = "dropped" if written else "would drop"
+        return {
+            "file": key,
+            "dropped": dropped,
+            "remaining": remaining,
+            "written": written,
+            "summary": (
+                (f"{verb} {len(dropped)} key(s) from {key}" if dropped else f"nothing to drop in {key}")
+                + (f"; {len(remaining)} refusal(s) a dropped key cannot fix, so nothing was written"
+                   if remaining else "")
+                + ("; pass --apply to write it" if dropped and not apply and not remaining else "")
+            ),
+        }
+
     # -- writing ------------------------------------------------------------
 
     # Ids are checked on the write path only. A read lists the keys that exist
