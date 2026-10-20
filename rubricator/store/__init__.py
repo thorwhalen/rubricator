@@ -448,6 +448,10 @@ class AnalysisStore:
     # Built here and nowhere else. A key format computed in two places is a
     # format that diverges in one of them.
 
+    #: Whether a value can name an analysis or a contributor's file, for a tool that must
+    #: know before it writes anything (``ValueError`` naming the rule otherwise).
+    check_id = staticmethod(check_id)
+
     @staticmethod
     def frame_key(analysis_id: str) -> str:
         return f"analyses/{analysis_id}/frame.json"
