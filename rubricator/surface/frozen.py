@@ -734,7 +734,7 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
         ),
     ),
     ToolSpec(
-        name="report_weaknesses", family="report", stage="6", status="planned",
+        name="report_weaknesses", family="report", stage="6", status="implemented",
         minimum_viable=False, cut_rank=5, research_row=16, issue=64,
         contract=(
             "The deterministic half of the review stage: which cells are uncited, thinly "
@@ -1048,8 +1048,8 @@ MEASURED: Mapping[str, Any] = {
 AWAITING_MEASUREMENT: Mapping[str, Any] | None = {
     "issue": 199,
     "advertised": {
-        "tools": 17, "bytes": 24053,
-        "sha256": "c5704dd44432f84770008793b21ddd0ea666f8136efd282fd97bbb45e6394f0a",
+        "tools": 18, "bytes": 25054,
+        "sha256": "61be5694ca158a5b299b0e2aa02f69292d793d598b90ae1e54715e5bb4660429",
     },
     "wholeSurface": {
         "tools": 22, "bytes": 28774,
