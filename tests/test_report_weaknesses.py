@@ -220,3 +220,42 @@ def test_through_the_real_store_end_to_end() -> None:
     assert out["dominatedAlternatives"] == ["y"]
     assert [(r["alternativeId"], r["criterionId"]) for r in out["rescoringPlan"]["rescore"]] == [("x", "c1"), ("z", "c1")]
     assert report_weaknesses(store, analysis_id="a", budget=5) == out
+
+
+def _ratio(cid: str, **thresholds: float) -> dict[str, Any]:
+    measurement = {"level": "ratio", "range": {"min": 0, "max": 100}, "preference": "increasing",
+                   **({"thresholds": thresholds} if thresholds else {})}
+    return {"id": cid, "label": cid.upper(), "definition": {"question": "how much?"},
+            "defaultMeasurement": measurement}
+
+
+#: x and z are incomparable: z leads c1 by 5, x leads c2. A 10-point move on c1 either way settles it.
+RATIO = {("x", "c1"): 50, ("x", "c2"): 3, ("z", "c1"): 55, ("z", "c2"): 2}
+
+
+@pytest.mark.parametrize("thresholds, step", [({"preference": 10}, "preference"),
+                                              ({"indifference": 10}, "indifference"),
+                                              ({"preference": 10, "indifference": 1}, "preference")])
+def test_a_criterion_without_levels_moves_by_its_declared_threshold(thresholds, step) -> None:
+    document = _document(RATIO)
+    document["criteria"][0] = _ratio("c1", **thresholds)
+    out = _report(document, budget=5)
+    pivotal = [r for r in out["rescoringPlan"]["rescore"] if r["criterionId"] == "c1"]
+    assert [r["alternativeId"] for r in pivotal] == ["x", "z"]
+    assert pivotal[0]["reason"].startswith(f"pivotal: +10 ({step} threshold) (50 to 60)")
+    assert "declare no levels" not in out["summary"]
+
+
+def test_a_threshold_move_is_clamped_to_the_range() -> None:
+    document = _document({("x", "c1"): 95, ("x", "c2"): 2, ("z", "c1"): 98, ("z", "c2"): 3})
+    document["criteria"][0] = _ratio("c1", preference=10)
+    reason = _report(document, budget=5)["rescoringPlan"]["rescore"][0]["reason"]
+    assert reason.startswith("pivotal: +10 (preference threshold) (95 to 100)")
+
+
+def test_a_criterion_with_neither_levels_nor_thresholds_is_named() -> None:
+    document = _document(RATIO)
+    document["criteria"][0] = _ratio("c1")
+    out = _report(document, budget=5)
+    assert all(r["criterionId"] != "c1" or not r["reason"].startswith("pivotal") for r in out["rescoringPlan"]["rescore"])
+    assert "c1 declare no levels and no threshold" in out["summary"]

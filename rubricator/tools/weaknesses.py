@@ -22,7 +22,9 @@ is in. The basis is fixed for the whole analysis: criteria with a direction
 is moved one declared level up and one down (never off the scale), and the cell is
 pivotal when that changes the non-dominated set -- or, with ``weights``, the top-1
 or the top-3 of the weighted sum over range-normalised values. A criterion with no
-declared levels has no level to move by and is named, not guessed at.
+declared levels (interval or ratio) moves by its declared ``thresholds.preference``,
+else ``indifference``, clamped to its range (#237); one that declares neither has no
+step to move by and is named, not guessed at.
 
 **traversalLeakageDiagnostic** is Kendall's tau-b between two criteria's reduced
 scores across the alternatives scored on both. Every row carries, in its ``note``,
@@ -320,26 +322,54 @@ def _ranking(alternatives, weighted, measurements, values) -> list[tuple[float, 
 
 
 def _pivotal(order, basis, measurements, values, picture: Callable, steps) -> tuple[list[dict[str, str]], list[str]]:
-    """Cells whose ±1-level move changes the picture, with the move and what changed in the reason."""
+    """Cells whose one-step move changes the picture, with the move and what changed in the reason.
+
+    A step is one declared level; on a criterion with no levels it is the declared
+    ``thresholds.preference`` (else ``indifference``), comparanda's own size of a
+    meaningful difference, clamped to the range. A criterion with neither is named.
+    """
     baseline = picture(values)
     names = ("the non-dominated set", "the weighted top-1", "the weighted top-3")
     found = []
-    unlevelled = [c for c in basis if not steps(measurements[c])]
+    unlevelled = [c for c in basis if not steps(measurements[c]) and _threshold_step(measurements[c]) is None]
     for key in order:
         v = values[key]
-        levels = steps(measurements[key[1]]) if key[1] in basis else None
-        if v is None or not levels or v not in levels:
+        if v is None or key[1] not in basis or key[1] in unlevelled:
             continue
-        i = levels.index(v)
-        for j, sign in ((i + 1, "+1"), (i - 1, "-1")):
-            if not 0 <= j < len(levels):
-                continue
-            moved = picture({**values, key: levels[j]})
+        for target, move in _moves(measurements[key[1]], v, steps):
+            moved = picture({**values, key: target})
             changed = [n for n, before, after in zip(names, baseline, moved) if before != after]
             if changed:
-                found.append(_ref(key, f"pivotal: {sign} level ({v} to {levels[j]}) changes {' and '.join(changed)}"))
+                found.append(_ref(key, f"pivotal: {move} ({v} to {target}) changes {' and '.join(changed)}"))
                 break
     return found, unlevelled
+
+
+def _threshold_step(m: Mapping[str, Any]) -> tuple[float, str] | None:
+    """The declared size of a meaningful difference, and which threshold it is."""
+    for name in ("preference", "indifference"):
+        step = _number((m.get("thresholds") or {}).get(name))
+        if step is not None and step > 0 and math.isfinite(step):
+            return step, name
+    return None
+
+
+def _moves(m: Mapping[str, Any], v: float, steps) -> list[tuple[float, str]]:
+    """The one-step moves up then down from ``v``, never off the scale."""
+    levels = steps(m)
+    if levels:
+        if v not in levels:
+            return []
+        i = levels.index(v)
+        return [(levels[j], f"{sign} level") for j, sign in ((i + 1, "+1"), (i - 1, "-1")) if 0 <= j < len(levels)]
+    step, name = _threshold_step(m)
+    lo, hi = m["range"]["min"], m["range"]["max"]
+    out = []
+    if v < hi:
+        out.append((min(v + step, hi), f"+{step} ({name} threshold)"))
+    if v > lo:
+        out.append((max(v - step, lo), f"-{step} ({name} threshold)"))
+    return out
 
 
 def _checked_weights(weights, criteria, basis) -> list[tuple[str, float]]:
@@ -366,10 +396,23 @@ def _checked_weights(weights, criteria, basis) -> list[tuple[str, float]]:
 # --- criteria -----------------------------------------------------------------------------
 
 
+def _written(definition: Any) -> bool:
+    """comparanda v1's definition is an object of fields; any non-blank field is a definition.
+
+    >>> _written({"question": "how fast?"}), _written({"question": " "}), _written(None)
+    (True, False, False)
+    """
+    if isinstance(definition, Mapping):
+        return any(_written(v) for v in definition.values())
+    if isinstance(definition, (list, tuple)):
+        return any(_written(v) for v in definition)
+    return isinstance(definition, str) and bool(definition.strip())
+
+
 def _under_defined(criteria, measurements, rows) -> list[str]:
     out = []
     for cid, criterion in criteria.items():
-        unwritten = not (criterion.get("definition") or "").strip() and not measurements[cid].get("anchors")
+        unwritten = not _written(criterion.get("definition")) and not measurements[cid].get("anchors")
         repeated = [r for (_, c), r in rows.items() if c == cid and r and r["n"] >= 2]
         polarised = sum(r["polarised"] for r in repeated)
         unstable = polarised >= MIN_UNSTABLE_CELLS and polarised >= UNSTABLE_SHARE * len(repeated)
@@ -435,7 +478,7 @@ def _summary(*, scored, lists, top_k, front, dominated, basis, excluded, pivotal
         parts.append("no criterion has a direction and a declared range, so dominance was not computed")
     parts.append(f"{len(pivotal)} pivotal cell(s)" + (" under weights too" if weighted else ""))
     if unlevelled:
-        parts.append(f"{', '.join(unlevelled)} declare no levels, so no cell there was perturbed")
+        parts.append(f"{', '.join(unlevelled)} declare no levels and no threshold, so no cell there was perturbed")
     parts.append(count("veto flag(s)", vetoes))
     parts.append(count("diagnostic correlation(s), none of them a redundancy finding", leakage))
     if plan is not None:
