@@ -602,7 +602,8 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
             "pass takes the same procedure as measures_write, so it is counted and stamped "
             "like any other draw; with a procedure it is for one cell (exactly one of "
             "alternative_ids and one of criterion_ids) and its code is one that says someone "
-            "looked, not not-assessed or deferred."
+            "looked, not not-assessed or deferred. measure defaults to score; name confidence "
+            "to blank confidence cells."
         ),
         determinism="Set arithmetic over the frame, then measures_write.",
         failure="An undeclared code is refused, listing what is known and how to declare a new one.",
@@ -610,7 +611,7 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
             {"analysis_id": S, "contributor_id": S, "author": AUTHOR,
              "at": DATE_TIME, "code": S, "note": S,
              "criterion_ids": at_least_one(S), "alternative_ids": at_least_one(S),
-             "independence": INDEPENDENCE, "procedure": PROCEDURE},
+             "independence": INDEPENDENCE, "procedure": PROCEDURE, "measure": S},
             ("analysis_id", "contributor_id", "author", "code", "note"),
         ),
         output_schema=obj(
@@ -1053,11 +1054,11 @@ MEASURED: Mapping[str, Any] = {
 AWAITING_MEASUREMENT: Mapping[str, Any] | None = {
     "issue": 199,
     "advertised": {
-        "tools": 18, "bytes": 25517,
-        "sha256": "6c2be3d5e72e5bb6a31f223e135a44eb73629c17549252ab656204671fedcfef",
+        "tools": 18, "bytes": 25615,
+        "sha256": "9431e93e75aedab9cdac63ce2de6bc0c697e0af1f1a32a3b76f3f05c028c4fc7",
     },
     "wholeSurface": {
-        "tools": 22, "bytes": 29237,
-        "sha256": "5af1d924fa3fd242d659fcaf03575307013c8b18ebe90f8e5722e9ea4957f713",
+        "tools": 22, "bytes": 29335,
+        "sha256": "bff024391135ac0a1ef7ff4a7c70daac7191600becb2d093256d61820f7129de",
     },
 }

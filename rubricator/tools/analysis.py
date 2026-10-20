@@ -490,8 +490,9 @@ def criteria_set(
     defaulted: list[str] = []
 
     _refuse_unknown_keys(criteria, "CRITERION", root="$.criteria")
-    confidence_scale = confidence_scale or _declared_confidence_scale(frame)
-    confidence = _confidence_measurement(confidence_scale) if confidence_scale else None
+    if confidence_scale is None:
+        confidence_scale = _declared_confidence_scale(frame)
+    confidence = _confidence_measurement(confidence_scale) if confidence_scale is not None else None
     for c in criteria:
         scale_id = c.get("scale", DEFAULT_SCALE)
         preset = SCALE_PRESETS.get(scale_id)
@@ -605,7 +606,7 @@ def criteria_set(
             "means": SCALE_PRESETS[confidence_scale]["means"], "params": {},
         })
         if not any(m.get("name") == CONFIDENCE_MEASURE["name"] for m in frame.get("measures", [])):
-            frame["measures"] = [*frame.get("measures", [{"name": "score"}]), dict(CONFIDENCE_MEASURE)]
+            frame["measures"] = [*(frame.get("measures") or [{"name": "score"}]), dict(CONFIDENCE_MEASURE)]
     frame["scales"] = [declared[k] for k in sorted(declared)]
     # Merged before the write, so anything that can raise does so with nothing
     # stored: a retry then sees the same before-state and the same revision.
@@ -685,13 +686,20 @@ def _confidence_measurement(scale_id: str) -> dict[str, Any]:
 def _floor_problems(criterion_id: str, measurement: Mapping[str, Any], floor: Mapping[str, Any]) -> list[str]:
     """A floor no value on the scale could test, or one with no stated reason.
 
-    >>> m = {"range": {"min": 1, "max": 5}}
+    >>> m = {"range": {"min": 1, "max": 5}, "preference": "increasing"}
     >>> _floor_problems("c", m, {"threshold": 3, "rationale": "below 3 is unsafe"})
     []
     >>> _floor_problems("c", m, {"threshold": 7, "rationale": "r"})
     ['criterion "c": acceptability threshold 7 is off its scale (1 to 5), so no value could test it.']
     """
+    if not isinstance(floor, Mapping):
+        return [f'criterion "{criterion_id}": acceptability is {{threshold, rationale}}, not {floor!r}.']
     out = []
+    if measurement.get("preference") not in ("increasing", "decreasing"):
+        out.append(
+            f'criterion "{criterion_id}": a floor needs a direction to be on the wrong side of; '
+            f'preference "{measurement.get("preference")}" has none. Use increasing or decreasing.'
+        )
     threshold, rng = floor.get("threshold"), measurement.get("range") or {}
     if not isinstance(threshold, (int, float)) or isinstance(threshold, bool):
         out.append(f'criterion "{criterion_id}": acceptability threshold {threshold!r} is not a number.')
@@ -934,6 +942,7 @@ def measures_mark_missing(
     alternative_ids: Sequence[str] = (),
     independence: str | None = None,
     procedure: Mapping[str, Any] | None = None,
+    measure: str = "score",
 ) -> dict[str, Any]:
     """Mark a selection of cells as a qualified blank.
 
@@ -945,6 +954,9 @@ def measures_mark_missing(
     This is what makes "fill these two criteria and mark the rest deferred" a
     first-class instruction rather than a prompt hope, and it is what makes a
     partial analysis a valid, resumable document rather than a broken one.
+
+    ``measure`` is the measure the blanks are on: ``score`` unless the analysis
+    declares a ``confidence`` measure (#236) and those are the cells owed.
 
     ``independence`` is needed when a marked cell already holds another live
     assertion (``independence-recorded``); a blank beside a score is two claims.
@@ -999,7 +1011,7 @@ def measures_mark_missing(
         {
             "alternativeId": alt,
             "criterionId": crit,
-            "measure": "score",
+            "measure": measure,
             "missing": {"code": code, "note": note},
             "justification": note,
             **({"independence": independence} if independence else {}),

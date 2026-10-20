@@ -82,3 +82,35 @@ def test_a_floor_nobody_could_test_or_explain_is_refused(floor, match) -> None:
 def test_an_unknown_or_anchored_confidence_scale_is_refused(scale, error) -> None:
     with pytest.raises(error):
         _store(confidence_scale=scale)
+
+
+def test_confidence_cells_can_be_marked_missing() -> None:
+    from rubricator.tools.analysis import measures_mark_missing
+    from rubricator.tools.views import outstanding_cells
+
+    store = _store(confidence_scale="confidence-1-3")
+    _write(store, *[(a, c, "score", 3) for a in "xy" for c in ("c1", "c2")])
+    measures_mark_missing(store, analysis_id="a", contributor_id="bot", author=BOT, at="2026-10-12T12:00:00Z",
+                          code="not-assessed", note="confidence not recorded on this pass", measure="confidence")
+    owed = outstanding_cells(store.read("a"))
+    assert {o["measure"] for o in owed} == {"confidence"} and all(o["code"] == "not-assessed" for o in owed)
+
+
+def test_a_floor_on_a_criterion_with_no_direction_is_refused() -> None:
+    store = _store()
+    with pytest.raises(ValueError, match="a floor needs a direction"):
+        criteria_set(store, analysis_id="a", criteria=[{"id": "c1", "label": "C1", "anchors": ANCHORS,
+                                                        "preference": "target", "target": 3,
+                                                        "acceptability": FLOOR}])
+
+
+def test_an_emptied_measures_list_keeps_score_beside_confidence() -> None:
+    store = _store()
+    frame = store.frame("a")
+    frame["measures"] = []
+    from rubricator.tools.analysis import _put_frame
+
+    _put_frame(store, "a", frame)
+    criteria_set(store, analysis_id="a", criteria=[{"id": "c1", "label": "C1", "anchors": ANCHORS}],
+                 confidence_scale="confidence-1-3")
+    assert [m["name"] for m in store.frame("a")["measures"]] == ["score", "confidence"]
