@@ -14,9 +14,10 @@ from __future__ import annotations
 
 import math
 import random
+from statistics import NormalDist
 from typing import Sequence
 
-__all__ = ["kendall_tau_b", "bootstrap_interval"]
+__all__ = ["kendall_tau_b", "bootstrap_interval", "wilson_interval"]
 
 
 def kendall_tau_b(x: Sequence[float], y: Sequence[float]) -> float:
@@ -99,3 +100,32 @@ def _quantile(ordered: Sequence[float], q: float) -> float:
     low = math.floor(position)
     high = min(low + 1, len(ordered) - 1)
     return ordered[low] + (ordered[high] - ordered[low]) * (position - low)
+
+
+def wilson_interval(successes: int, n: int, *, level: float = 0.95) -> tuple[float, float]:
+    """The Wilson score interval for a proportion.
+
+    Per-level counts here are small (three confidence levels share a few dozen cells), and a bare
+    proportion reads as precision it does not have; Wilson stays inside [0, 1] and is not
+    degenerate at 0 or ``n`` successes. ``(0.0, 1.0)`` for ``n == 0``: nothing was observed.
+
+    >>> wilson_interval(0, 0)
+    (0.0, 1.0)
+    >>> lo, hi = wilson_interval(8, 10)
+    >>> round(lo, 3), round(hi, 3)
+    (0.49, 0.943)
+    >>> wilson_interval(10, 10)[1]
+    1.0
+    >>> wilson_interval(0, 10)[0]
+    0.0
+    """
+    if not 0 <= successes <= n:
+        raise ValueError(f"wilson_interval needs 0 <= successes <= n; got {successes} of {n}")
+    if n == 0:
+        return (0.0, 1.0)
+    z = NormalDist().inv_cdf(0.5 + level / 2)
+    p = successes / n
+    centre = (p + z * z / (2 * n)) / (1 + z * z / n)
+    half = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / (1 + z * z / n)
+    return (0.0 if successes == 0 else max(0.0, centre - half),
+            1.0 if successes == n else min(1.0, centre + half))
