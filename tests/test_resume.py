@@ -160,8 +160,9 @@ def test_the_recorded_evaluation_still_grades_as_recorded(arm) -> None:
 
 @pytest.mark.parametrize("arm", ["sonnet", "haiku"])
 def test_the_recorded_v2_evaluation_still_grades_as_recorded(arm) -> None:
-    scenarios = json.loads(SCENARIOS.read_text())
     outputs = json.loads((ROOT / f"docs/evaluation/resume/2026-10-13-v2/out-v2-{arm}.json").read_text())
+    answered = {o["scenarioId"] for o in outputs}  # s1-s12: s13 and s14 came later (#194)
+    scenarios = [s for s in json.loads(SCENARIOS.read_text()) if s["id"] in answered]
     row = grader.grade(scenarios, outputs)
     assert row.pop("settled_counted_as_work").startswith("0/")
     assert row["names_a_real_place"] == "5/5" and row["adds_up"] == "12/12"

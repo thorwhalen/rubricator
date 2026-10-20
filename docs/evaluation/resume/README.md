@@ -23,6 +23,8 @@ The v1 runs were graded against `2026-10-13/scenarios-v1.json` (what the tools r
 | s10 | two raters on one cell, and an alternative removed after it was scored: claims outnumber live cells (v1's units; v2 counts only the six live cells) | `score` |
 | s11 | only the criteria were confirmed (`scope: criteria`) | `confirm` |
 | s12 | a `not-applicable` cell beside scores and a silent blank | `score` |
+| s13 | two columns of three settled (scores and both blanks); every unlooked-at cell is in the third, so a `score` step that names a column can only be right one way | `score` |
+| s14 | three raters, two or three of them on the same cells: two cells carry five scores between them, so a block that counts claims is off | `score` |
 
 ## 2026-10-13 — v2, one unit and the cells named ([#186](https://github.com/thorwhalen/rubricator/issues/186), [#188](https://github.com/thorwhalen/rubricator/issues/188))
 
@@ -59,3 +61,16 @@ What this run does not establish: each arm saw all twelve scenarios in one conte
 ## 2026-10-13 — v2 re-run against changed tool text ([#206](https://github.com/thorwhalen/rubricator/issues/206))
 
 The prompt did not change. Five of the twelve stored scenarios (s2, s3, s8, s9, s11) were regenerated because `frame_confirm`'s own text changed (its `instructions` now mention the joined scopes, and a read on a skipped analysis says a confirmation can be recorded), so both models were run again on the regenerated set (three times, as the tool text changed after each review; the stored outputs are from the last, and the counts were identical each time) (`2026-10-13-v2-rerun-206/`). The row is the same as the first v2 run: every metric at the same count in both models (blanks kept apart 12/12, confirmation read right 12/12, no re-ask 8/8, re-ask when needed 4/4, counts right 12/12, next step right 12/12, settled counted as work 0/6). One run per arm.
+
+## 2026-10-20 — s13 and s14 ([#194](https://github.com/thorwhalen/rubricator/issues/194))
+
+The v2 metrics had two weak spots: **names a real place** told a right name from a wrong one in only three scenarios (s5, s10, s12), and the states had at most two raters. s13 puts every unlooked-at cell in one column of three; s14 has three raters, with brindle's repair-policy cell scored by all three and copperleaf's by two. Both were run blind on the unchanged v2 prompt, one run per model (outputs in `2026-10-20-s13-s14/`):
+
+| arm | blanks kept apart | settled counted as work | block complete | confirmation read right | no re-ask | counts right | adds up | next right | names a real place |
+|---|---|---|---|---|---|---|---|---|---|
+| v2, Sonnet | 2/2 | 0/2 | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 |
+| v2, Haiku | 2/2 | 0/2 | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 |
+
+- Both arms name `noise` in s13 (the only column with an unlooked-at cell) and count s14 in cells (2 scored, 1 blank, 6 nobody has looked), not in claims.
+- **Adds up** still cannot fail when **counts right** passes: it checks that the lines sum to the cell count, which is only informative when a count is wrong. It is kept as the check that catches a block whose lines double-count, not as an independent metric.
+- The recorded v2 runs (`2026-10-13-v2/`) answered s1–s12 and are graded on those; `tests/test_resume.py` scopes them so.

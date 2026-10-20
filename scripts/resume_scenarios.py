@@ -204,10 +204,38 @@ def s12_not_applicable():
                                       rescore=0, na=1, next="score")
 
 
+def s13_two_columns_settled():
+    """Two columns of three settled; every unlooked-at cell is in the third (#194)."""
+    verbs, clock = _analysis()
+    _write(verbs, [_score("brindle", "repair-policy"), _score("copperleaf", "repair-policy"),
+                   _blank("tamsin", "repair-policy", "not-evidenced", SILENT),
+                   _score("brindle", "spare-parts"),
+                   _blank("copperleaf", "spare-parts", "indeterminate", CONFLICT),
+                   _score("tamsin", "spare-parts")])
+    return _reads(verbs, clock), dict(confirmation="confirmed", nobody=3, aside=0, blank=2, scored=4,
+                                      rescore=0, na=0, next="score")
+
+
+def s14_several_raters():
+    """Three raters, two of them on the same cells: the block counts cells, never claims (#194)."""
+    verbs, clock = _analysis()
+    ben = {"id": "ben", "displayName": "Ben", "kind": "human"}
+    cleo = {"id": "cleo", "displayName": "Cleo", "kind": "human"}
+    _write(verbs, [{**_score("brindle", "repair-policy"), "independence": "independent"},
+                   {**_score("copperleaf", "repair-policy"), "independence": "independent"}])
+    _write(verbs, [{**_score("brindle", "repair-policy"), "value": 3, "independence": "independent"},
+                   {**_score("copperleaf", "repair-policy"), "value": 2, "independence": "independent"},
+                   {**_blank("tamsin", "repair-policy", "not-evidenced", SILENT), "independence": "independent"}], ben)
+    _write(verbs, [{**_score("brindle", "repair-policy"), "value": 5, "independence": "independent"}], cleo)
+    return _reads(verbs, clock), dict(confirmation="confirmed", nobody=6, aside=0, blank=1, scored=2,
+                                      rescore=0, na=0, next="score")
+
+
 SCENARIOS = {f.__name__.split("_", 1)[0]: f for f in (
     s1_mixed, s2_never_confirmed, s3_criteria_changed, s4_only_deferred_left, s5_declared_code,
     s6_settled, s7_reconfirmed_rescore, s8_skipped, s9_revise_asked,
-    s10_two_raters_and_a_removed_row, s11_not_applicable_and_partial_scope, s12_not_applicable)}
+    s10_two_raters_and_a_removed_row, s11_not_applicable_and_partial_scope, s12_not_applicable,
+    s13_two_columns_settled, s14_several_raters)}
 
 
 def _check(sid: str, reads: dict, want: dict) -> None:
