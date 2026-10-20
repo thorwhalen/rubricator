@@ -76,9 +76,27 @@ SCALE_PRESETS: Mapping[str, Mapping[str, Any]] = {
         },
         "anchorsRequiredAt": ["1", "3", "5"],
     },
+    "confidence-1-3": {
+        "means": "Three ordinal levels of confidence in a cell's score: 1 low, 2 moderate, 3 high.",
+        "measurement": {
+            "level": "ordinal",
+            "preference": "increasing",
+            "range": {"min": 1, "max": 3},
+            "levels": [1, 2, 3],
+        },
+        "anchorsRequiredAt": [],
+    },
 }
 
 DEFAULT_SCALE = "ordinal-1-5-anchored"
+
+#: The measure a ``confidence_scale`` declares (comparanda v1 stores confidence
+#: as a measure, not a field), as the analysis-level row ``measures`` carries.
+CONFIDENCE_MEASURE: Mapping[str, str] = {
+    "name": "confidence",
+    "label": "Confidence",
+    "description": "How confident the scorer is in the cell's score, on the criterion's confidence scale.",
+}
 
 #: The fields of a criterion's structured definition, in the companion's
 #: spelling (comparanda #61). The shape is closed: any other key is refused.
@@ -410,6 +428,7 @@ def criteria_set(
     analysis_id: str,
     criteria: Sequence[Mapping[str, Any]],
     editorial: Sequence[str] = (),
+    confidence_scale: str | None = None,
 ) -> dict[str, Any]:
     """Declare the criteria, expanding each one's named scale.
 
@@ -451,6 +470,17 @@ def criteria_set(
     assertion written afterwards records the version it was scored against.
     Dropping a criterion that any cell refers to is refused: removing it and
     adding it back with a new meaning would otherwise slip past the version.
+
+    **Floors and confidence (#236).** A criterion may carry ``acceptability``
+    (``{threshold, rationale}``), comparanda's screen: a value on the wrong side
+    of the threshold, given the direction, is a veto. A threshold off the
+    score scale is refused, since no value could test it. ``confidence_scale``
+    names a scale preset (``confidence-1-3``) and declares a ``confidence``
+    measure on every criterion, so ``measures_write`` can record confidence as
+    cells and ``report_weaknesses`` can read ``lowConfidence``. Once declared it
+    is kept by a later call that omits it: confidence cells must not be read
+    against the score scale. Both are meaning fields, so adding either after
+    scoring supersedes the criterion's cells unless named in ``editorial``.
     """
     frame = store.frame(analysis_id)
     declared: dict[str, dict[str, Any]] = {d["id"]: d for d in frame.get("scales", [])}
@@ -460,6 +490,9 @@ def criteria_set(
     defaulted: list[str] = []
 
     _refuse_unknown_keys(criteria, "CRITERION", root="$.criteria")
+    if confidence_scale is None:
+        confidence_scale = _declared_confidence_scale(frame)
+    confidence = _confidence_measurement(confidence_scale) if confidence_scale is not None else None
     for c in criteria:
         scale_id = c.get("scale", DEFAULT_SCALE)
         preset = SCALE_PRESETS.get(scale_id)
@@ -530,6 +563,11 @@ def criteria_set(
         }
         if isinstance(definition, Mapping):
             emitted["definition"] = _copy_definition(definition)
+        if "acceptability" in c:
+            problems.extend(_floor_problems(c["id"], measurement, c["acceptability"]))
+            emitted["acceptability"] = dict(c["acceptability"])
+        if confidence is not None:
+            emitted["measurements"] = {CONFIDENCE_MEASURE["name"]: dict(confidence)}
         # Retired, never deleted (ADR-0016): the two comparanda fields for a
         # column that stays in the set because cells refer to it.
         if c.get("tombstoned"):
@@ -562,6 +600,13 @@ def criteria_set(
     from rubricator.merge import merge_contributions
 
     frame["criteria"] = out
+    if confidence is not None:
+        declared.setdefault(confidence_scale, {
+            "id": confidence_scale, "broader": "stevens",
+            "means": SCALE_PRESETS[confidence_scale]["means"], "params": {},
+        })
+        if not any(m.get("name") == CONFIDENCE_MEASURE["name"] for m in frame.get("measures", [])):
+            frame["measures"] = [*(frame.get("measures") or [{"name": "score"}]), dict(CONFIDENCE_MEASURE)]
     frame["scales"] = [declared[k] for k in sorted(declared)]
     # Merged before the write, so anything that can raise does so with nothing
     # stored: a retry then sees the same before-state and the same revision.
@@ -608,6 +653,64 @@ def criteria_set(
         "skipped": skipped,
         "summary": summary,
     }
+
+
+def _declared_confidence_scale(frame: Mapping[str, Any]) -> str | None:
+    """The confidence scale an earlier call declared, so omitting it never drops it."""
+    stored = frame.get("criteria")
+    # A hand-edited list may be any shape (#169); one that cannot be read declares nothing.
+    for c in stored.values() if isinstance(stored, Mapping) else stored if isinstance(stored, list) else ():
+        measurements = c.get("measurements") if isinstance(c, Mapping) else None
+        own = measurements.get(CONFIDENCE_MEASURE["name"]) if isinstance(measurements, Mapping) else None
+        if isinstance(own, Mapping) and isinstance(own.get("scale"), str):
+            return own["scale"]
+    return None
+
+
+def _confidence_measurement(scale_id: str) -> dict[str, Any]:
+    """The preset's measurement for the confidence measure; an anchored or unknown scale raises."""
+    preset = SCALE_PRESETS.get(scale_id)
+    if preset is None:
+        raise KeyError(
+            f'unknown confidence_scale "{scale_id}". Known scales: {", ".join(sorted(SCALE_PRESETS))}.'
+        )
+    if preset["anchorsRequiredAt"]:
+        raise ValueError(
+            f'refused, nothing was written: confidence_scale "{scale_id}" requires anchors, and a '
+            "confidence measure has nowhere to declare them. Use a scale that requires none "
+            f'({", ".join(k for k, p in sorted(SCALE_PRESETS.items()) if not p["anchorsRequiredAt"])}).'
+        )
+    return {**preset["measurement"], "scale": scale_id}
+
+
+def _floor_problems(criterion_id: str, measurement: Mapping[str, Any], floor: Mapping[str, Any]) -> list[str]:
+    """A floor no value on the scale could test, or one with no stated reason.
+
+    >>> m = {"range": {"min": 1, "max": 5}, "preference": "increasing"}
+    >>> _floor_problems("c", m, {"threshold": 3, "rationale": "below 3 is unsafe"})
+    []
+    >>> _floor_problems("c", m, {"threshold": 7, "rationale": "r"})
+    ['criterion "c": acceptability threshold 7 is off its scale (1 to 5), so no value could test it.']
+    """
+    if not isinstance(floor, Mapping):
+        return [f'criterion "{criterion_id}": acceptability is {{threshold, rationale}}, not {floor!r}.']
+    out = []
+    if measurement.get("preference") not in ("increasing", "decreasing"):
+        out.append(
+            f'criterion "{criterion_id}": a floor needs a direction to be on the wrong side of; '
+            f'preference "{measurement.get("preference")}" has none. Use increasing or decreasing.'
+        )
+    threshold, rng = floor.get("threshold"), measurement.get("range") or {}
+    if not isinstance(threshold, (int, float)) or isinstance(threshold, bool):
+        out.append(f'criterion "{criterion_id}": acceptability threshold {threshold!r} is not a number.')
+    elif "min" in rng and "max" in rng and not rng["min"] <= threshold <= rng["max"]:
+        out.append(
+            f'criterion "{criterion_id}": acceptability threshold {threshold} is off its scale '
+            f'({rng["min"]} to {rng["max"]}), so no value could test it.'
+        )
+    if _is_blank(floor.get("rationale")):
+        out.append(f'criterion "{criterion_id}": acceptability needs a rationale -- a veto nobody can explain is not one.')
+    return out
 
 
 def measures_write(
@@ -839,6 +942,7 @@ def measures_mark_missing(
     alternative_ids: Sequence[str] = (),
     independence: str | None = None,
     procedure: Mapping[str, Any] | None = None,
+    measure: str = "score",
 ) -> dict[str, Any]:
     """Mark a selection of cells as a qualified blank.
 
@@ -850,6 +954,9 @@ def measures_mark_missing(
     This is what makes "fill these two criteria and mark the rest deferred" a
     first-class instruction rather than a prompt hope, and it is what makes a
     partial analysis a valid, resumable document rather than a broken one.
+
+    ``measure`` is the measure the blanks are on: ``score`` unless the analysis
+    declares a ``confidence`` measure (#236) and those are the cells owed.
 
     ``independence`` is needed when a marked cell already holds another live
     assertion (``independence-recorded``); a blank beside a score is two claims.
@@ -904,7 +1011,7 @@ def measures_mark_missing(
         {
             "alternativeId": alt,
             "criterionId": crit,
-            "measure": "score",
+            "measure": measure,
             "missing": {"code": code, "note": note},
             "justification": note,
             **({"independence": independence} if independence else {}),
@@ -1258,8 +1365,8 @@ def _cell_problems(
             out.append(f'{where}: {label} "{item["id"]}" is tombstoned and takes no new assertions')
     # An undeclared missingness code is the ``blank-is-defined`` rule's, at the
     # honesty stage, so it is refused with the rule and its source like the others (#184).
-    if measure == "score":
-        problem = _off_scale(cell, criteria[cell["criterionId"]])
+    if measure == "score" or measure in (criteria[cell["criterionId"]].get("measurements") or {}):
+        problem = _off_scale(cell, criteria[cell["criterionId"]], measure)
         if problem:
             out.append(problem)
     out += [f"{where}: {p}" for p in profile_problems(cell.get("evidence") or [])]
@@ -1290,8 +1397,8 @@ def _primary_into_agent_produced(
     return out
 
 
-def _off_scale(cell: Mapping[str, Any], criterion: Mapping[str, Any]) -> str | None:
-    """Why ``cell``'s score is one its criterion's scale cannot take, or ``None``.
+def _off_scale(cell: Mapping[str, Any], criterion: Mapping[str, Any], measure: str = "score") -> str | None:
+    """Why ``cell``'s value is one its criterion's scale for ``measure`` cannot take, or ``None``.
 
     The frozen surface cannot bound ``value`` in the schema -- the scale is data
     (ADR-0021) and is not known when the schema is written -- so ADR-0013's
@@ -1311,7 +1418,7 @@ def _off_scale(cell: Mapping[str, Any], criterion: Mapping[str, Any]) -> str | N
     if "value" not in cell or cell["value"] is None:
         return None
     value = cell["value"]
-    measurement = criterion.get("defaultMeasurement", {})
+    measurement = (criterion.get("measurements") or {}).get(measure) or criterion.get("defaultMeasurement", {})
     where = f"cell {cell['alternativeId']}/{cell['criterionId']}"
 
     def same(a: Any, b: Any) -> bool:

@@ -144,6 +144,7 @@ CRITERION = obj(
         "anchors": arr(obj({"level": S, "text": S}, ("level", "text"))),
         "missingCodes": arr(MISSING_DECLARATION),
         "definition": DEFINITION,
+        "acceptability": obj({"threshold": N, "rationale": S}, ("threshold", "rationale")),
         "tombstoned": B, "supersededBy": arr(S),
     },
     ("id", "label"),
@@ -457,17 +458,21 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
             "requires anchors at levels 1, 3 and 5), a direction of preference, and may carry "
             "a structured definition and its own missingness codes. A change of meaning moves "
             "the set version and reports which cells now answer an older definition; name the "
-            "changed criteria whose edit moves no boundary in editorial. Under-defined "
-            "criteria are reported in definitionGaps, not refused."
+            "changed criteria whose edit moves no boundary in editorial. acceptability is a "
+            "floor {threshold, rationale} whose failure is a veto; confidence_scale "
+            "(confidence-1-3) declares a confidence measure on every criterion, kept once "
+            "declared. Under-defined criteria are reported in definitionGaps, not refused."
         ),
         determinism="Schema checks, a versioned diff of definitions, and a lexical anchor check.",
         failure=(
             "Refused with nothing written: an unknown scale, a missing required anchor, an "
             "anchor on a level the scale cannot take, an undeclared missing-rule code, a "
-            "target with no target preference, or dropping a criterion that cells refer to."
+            "target with no target preference, a floor off the scale or with no rationale, an "
+            "anchored confidence_scale, or dropping a criterion that cells refer to."
         ),
         input_schema=obj(
-            {"analysis_id": S, "criteria": arr(CRITERION), "editorial": arr(S)},
+            {"analysis_id": S, "criteria": arr(CRITERION), "editorial": arr(S),
+             "confidence_scale": S},
             ("analysis_id", "criteria"),
         ),
         output_schema=obj(
@@ -597,7 +602,8 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
             "pass takes the same procedure as measures_write, so it is counted and stamped "
             "like any other draw; with a procedure it is for one cell (exactly one of "
             "alternative_ids and one of criterion_ids) and its code is one that says someone "
-            "looked, not not-assessed or deferred."
+            "looked, not not-assessed or deferred. measure defaults to score; name confidence "
+            "to blank confidence cells."
         ),
         determinism="Set arithmetic over the frame, then measures_write.",
         failure="An undeclared code is refused, listing what is known and how to declare a new one.",
@@ -605,7 +611,7 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
             {"analysis_id": S, "contributor_id": S, "author": AUTHOR,
              "at": DATE_TIME, "code": S, "note": S,
              "criterion_ids": at_least_one(S), "alternative_ids": at_least_one(S),
-             "independence": INDEPENDENCE, "procedure": PROCEDURE},
+             "independence": INDEPENDENCE, "procedure": PROCEDURE, "measure": S},
             ("analysis_id", "contributor_id", "author", "code", "note"),
         ),
         output_schema=obj(
@@ -1048,11 +1054,11 @@ MEASURED: Mapping[str, Any] = {
 AWAITING_MEASUREMENT: Mapping[str, Any] | None = {
     "issue": 199,
     "advertised": {
-        "tools": 18, "bytes": 25054,
-        "sha256": "61be5694ca158a5b299b0e2aa02f69292d793d598b90ae1e54715e5bb4660429",
+        "tools": 18, "bytes": 25615,
+        "sha256": "9431e93e75aedab9cdac63ce2de6bc0c697e0af1f1a32a3b76f3f05c028c4fc7",
     },
     "wholeSurface": {
-        "tools": 22, "bytes": 28774,
-        "sha256": "9165078f8abca48f3c4b2e926fe8b7c88c9fe3644c61eef212470cbaf149eb72",
+        "tools": 22, "bytes": 29335,
+        "sha256": "bff024391135ac0a1ef7ff4a7c70daac7191600becb2d093256d61820f7129de",
     },
 }
