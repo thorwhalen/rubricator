@@ -29,12 +29,13 @@ def store():
     return s
 
 
-def _pass(store, n, *, procedure=True, **facts):
+def _pass(store, n, *, procedure=True, independence=None, **facts):
     measures_write(
         store, analysis_id="a", contributor_id="bot", author=BOT, at=f"2026-10-12T12:0{n}:00Z",
         procedure={"round": n, "session": "fresh", **facts} if procedure else None,
         cells=[{"alternativeId": "x", "criterionId": "c", "value": 3, "justification": "j",
-                "evidence": CITED}])
+                "evidence": CITED,
+                **({"independence": independence} if independence else {})}])
 
 
 def test_one_pass_discloses_n_equals_one_unmeasured(store) -> None:
@@ -73,3 +74,20 @@ def test_it_is_deterministic_and_surface_bound(store) -> None:
     verbs = bind(runtime)
     assert "disclose_variance" in verbs
     assert disclose_variance(store, analysis_id="a") == disclose_variance(store, analysis_id="a")
+
+
+def test_a_terminal_blank_beside_a_score_is_not_a_repeat(store) -> None:
+    _pass(store, 1, traversal="cell-wise")
+    from rubricator.tools.analysis import measures_mark_missing
+    measures_mark_missing(store, analysis_id="a", contributor_id="bot", author=BOT,
+                          at="2026-10-12T12:09:00Z", code="not-evidenced", note="silent", independence="shared-context",
+                          criterion_ids=["c"], alternative_ids=["x"])
+    out = disclose_variance(store, analysis_id="a")
+    assert "n = 1, unmeasured" in out["text"]
+
+
+def test_partial_provenance_is_said_to_be_partial(store) -> None:
+    _pass(store, 1, traversal="cell-wise")
+    _pass(store, 2, procedure=False, independence="shared-context")
+    assert "only 1 of 2 scorings carry a procedure record" in disclose_variance(
+        store, analysis_id="a")["text"]

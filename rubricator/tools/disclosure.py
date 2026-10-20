@@ -55,6 +55,8 @@ def disclose_variance(store: AnalysisStore, *, analysis_id: str) -> dict[str, An
             continue
         draws = [a for a in live_assertions(cell) if not _is_placeholder(
             {**cell, "missing": a.get("missing")}, document)]
+        # A scoring is a value: a terminal blank is a claim about the cell, not a second reading.
+        draws = [a for a in draws if a.get("value") is not None]
         if draws:
             per_cell.append(draws)
 
@@ -67,8 +69,11 @@ def disclose_variance(store: AnalysisStore, *, analysis_id: str) -> dict[str, An
 
     fields = {
         "scorings": _scorings(counts, len(repeated)),
-        "traversal": _traversal([procedures[p] for p in used]),
-        "order": f"seeded order, seeds {', '.join(seeds)}" if seeds else _NOT_RECORDED,
+        "traversal": _traversal([procedures[p] for p in used]) + _partial(
+            sum(a.get("procedureId") in procedures for a in every), len(every), "a procedure record"),
+        "order": (f"seeded order, seeds {', '.join(seeds)}" if seeds else _NOT_RECORDED) + _partial(
+            sum((a.get("perturbation") or {}).get("seed") is not None for a in every),
+            len(every), "a seed") if seeds else _NOT_RECORDED,
         "independence": _independence(repeated, authors),
     }
     template = disclosures()["variance"].body
@@ -94,6 +99,11 @@ def _scorings(counts: list[int], repeated: int) -> str:
     return f"{span} per cell, counted from the stored scorings ({repeated} of {len(counts)} cells hold two or more)"
 
 
+def _partial(have: int, total: int, what: str) -> str:
+    """A caveat when only some scorings carry ``what``, so a union never reads as universal."""
+    return "" if have in (0, total) else f" (only {have} of {total} scorings carry {what})"
+
+
 def _traversal(used: list[Mapping[str, Any]]) -> str:
     plans = sorted({p["traversal"] for p in used if p.get("traversal")})
     return ", ".join(plans) if plans else _NOT_RECORDED
@@ -104,6 +114,8 @@ def _independence(repeated: list[list[Mapping[str, Any]]], authors: Mapping[str,
         return _UNMEASURED
     found = [agreement(d, authors) for d in repeated]
     found = [f for f in found if f]
+    if not found:
+        return "not assessable: the repeated scorings are agreed values (consensus), not observations"
     rung = lowest_rung(f["rung"] for f in found)
     label = next(f["label"] for f in found if f["rung"] == rung)
     return f"{label} (weakest rung among {len(found)} cells with repeats: {rung})"
