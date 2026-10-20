@@ -207,3 +207,31 @@ def test_a_frame_persona_carrying_its_principal_signs_beside_other_contributors(
     frame = {**FRAME, "authors": [_human("ana:cfo", "CFO", principalId="ana")]}
     merged = merge_contributions(frame, [("ana", _contribution([], "ana:cfo")), ("ben", BEN)])
     assert [a["authorId"] for a in merged["cells"][0]["assertions"]] == ["ana:cfo", "ben"]
+
+
+# --- a self-declared attestation and a look-alike persona (#163) ------------------
+
+
+def test_a_contributed_attestation_reads_as_unverified() -> None:
+    """The look-alike case from the issue: the attestation is the contributor's own claim."""
+    signed = {"method": "signature", "issuer": "aaa", "at": MOMENT}
+    aaa = _contribution(
+        [_human("aaa:ana", "Ana", principalId="aaa", actingAs="ana", attestation=signed),
+         _human("aaa:аna", "Ana", principalId="aaa", actingAs="ana", attestation=signed)],
+        "aaa:ana", "aaa:аna",
+    )
+    ana = _contribution([_human("ana", "Ana", attestation={"method": "oauth"})], "ana")
+    merged = merge_contributions(FRAME, [("aaa", aaa), ("ana", ana)])
+    assert {a["id"]: a["attestation"] for a in merged["authors"]} == {
+        "aaa:ana": {"method": "unverified"},
+        "aaa:аna": {"method": "unverified"},
+        "ana": {"method": "unverified"},
+    }
+    # The principal is what tells the look-alikes apart, and it survives the merge.
+    assert {a["id"]: a.get("principalId") for a in merged["authors"]} == {
+        "aaa:ana": "aaa", "aaa:аna": "aaa", "ana": None}
+
+
+def test_an_author_with_no_attestation_is_not_given_one() -> None:
+    merged = merge_contributions(FRAME, [("ben", BEN)])
+    assert "attestation" not in merged["authors"][0]
