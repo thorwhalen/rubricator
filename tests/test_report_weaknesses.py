@@ -86,16 +86,37 @@ def test_budget_truncates_with_pivotal_cells_first() -> None:
 
 def test_weights_add_top_one_pivots() -> None:
     # x (1, 5) and y (5, 1) are incomparable, and one level moves neither past the other.
-    # Weighted 0.5 / 0.5 they tie at 0.5 and row order puts x first; x.c2 -1 (0.375) and
-    # y.c2 +1 (0.625) each hand the top-1 to y; x.c1 +1 and y.c1 -1 leave x first.
+    # Weighted 0.45 / 0.55: x = 0.55, y = 0.45. x.c2 -1 gives x 0.4125 and y.c2 +1 gives
+    # y 0.5875, each handing y the top-1; x.c1 +1 and y.c1 -1 only widen x's lead.
     document = _document({("x", "c1"): 1, ("x", "c2"): 5, ("y", "c1"): 5, ("y", "c2"): 1})
     unweighted = _report(document, budget=10)["rescoringPlan"]["rescore"]
     assert not [r for r in unweighted if r["reason"].startswith("pivotal")]
-    halves = [{"criterionId": "c1", "weight": 0.5}, {"criterionId": "c2", "weight": 0.5}]
-    rescore = _report(document, budget=10, weights=halves)["rescoringPlan"]["rescore"]
+    weights = [{"criterionId": "c1", "weight": 0.45}, {"criterionId": "c2", "weight": 0.55}]
+    rescore = _report(document, budget=10, weights=weights)["rescoringPlan"]["rescore"]
     hits = {(r["alternativeId"], r["criterionId"]): r["reason"] for r in rescore if r["reason"].startswith("pivotal")}
     assert set(hits) == {("x", "c2"), ("y", "c2")}
     assert all("the weighted top-1" in reason and "non-dominated" not in reason for reason in hits.values())
+
+
+def test_a_tie_at_the_top_is_a_tie_not_row_order() -> None:
+    from rubricator.tools.weaknesses import _top
+
+    assert _top([(0.5, "x"), (0.5, "y"), (0.1, "z")], 1) == {"x", "y"}
+    assert _top([(0.9, "x"), (0.5, "y"), (0.5, "z"), (0.5, "w")], 2) == {"x", "y", "z", "w"}
+    assert _top([], 3) == frozenset()
+
+
+def test_a_declared_inapplicable_group_pair_leaves_the_comparison() -> None:
+    document = _document({("x", "c1"): 4, ("y", "c1"): 3, ("x", "c2"): 4})
+    document["cells"].append(_cell("y", "c2", missing={"code": "not-evidenced", "note": "n"}, evidence=None))
+    assert _report(document)["dominatedAlternatives"] == []
+    document["groups"] = [{"id": "G1", "label": "G1", "axis": "alternatives"},
+                          {"id": "G0", "label": "G0", "axis": "criteria"},
+                          {"id": "G2", "label": "G2", "axis": "criteria", "parentId": "G0"}]
+    document["alternatives"][1]["groupIds"] = ["G1"]
+    document["criteria"][1]["groupIds"] = ["G2"]
+    document["inapplicable"] = [{"alternativeGroupId": "G1", "criterionGroupId": "G0"}]  # by closure
+    assert _report(document)["dominatedAlternatives"] == ["y"]
 
 
 def test_the_diagnostic_says_it_is_not_a_redundancy_finding_in_the_payload() -> None:
@@ -144,6 +165,11 @@ def test_low_confidence_reads_the_confidence_measure() -> None:
     assert [(r["alternativeId"], r["criterionId"]) for r in out["lowConfidence"]] == [("x", "c1")]
     assert "no confidence measure recorded" not in out["summary"]
     assert "no confidence measure recorded" in _report(_document(PIVOT))["summary"]
+    # A confidence cell on a criterion that declares no confidence scale is not read off the score scale.
+    undeclared = _document({("x", "c1"): 3})
+    undeclared["cells"].append(_cell("x", "c1", 1, measure="confidence"))
+    out = _report(undeclared)
+    assert out["lowConfidence"] == [] and "no confidence measure recorded" in out["summary"]
 
 
 def test_veto_flags_mirror_comparanda_screen() -> None:

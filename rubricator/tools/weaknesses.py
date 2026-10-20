@@ -113,10 +113,12 @@ def report_weaknesses(
     order = [(a, c) for a in alternatives for c in criteria]
     rows = {k: reduced(k, _SCORE) for k in order}
     values = {k: _number(r["reduced"]) if r else None for k, r in rows.items()}
-    structural = {k for k in order if _structural_blank(cells.get((*k, _SCORE)), document, values[k])}
+    inapplicable = _inapplicability(document)
+    structural = {k for k in order
+                  if inapplicable(*k) or _structural_blank(cells.get((*k, _SCORE)), document, values[k])}
 
     evidence = _evidence_findings(order, cells)
-    low_confidence, confidence_seen = _low_confidence(order, cells, criteria, reduced, _measurement_for, _steps)
+    low_confidence, confidence_seen = _low_confidence(order, cells, criteria, reduced, _steps)
 
     basis = [c for c in criteria if _admits_dominance(measurements[c])]
     weighted = _checked_weights(weights, criteria, basis)
@@ -127,7 +129,7 @@ def report_weaknesses(
         if not weighted:
             return (front,)
         ranked = _ranking(alternatives, weighted, measurements, vals)
-        return front, frozenset(ranked[:1]), frozenset(ranked[:3])
+        return front, _top(ranked, 1), _top(ranked, 3)
 
     front, dominated = _dominance(alternatives, basis, measurements, values, structural)
     pivotal, unlevelled = _pivotal(order, basis, measurements, values, picture, _steps)
@@ -216,14 +218,16 @@ def _evidence_findings(order: Sequence[Key], cells: Mapping[tuple, Any]) -> dict
     return found
 
 
-def _low_confidence(order, cells, criteria, reduced, measurement_for, steps) -> tuple[list[dict[str, str]], bool]:
+def _low_confidence(order, cells, criteria, reduced, steps) -> tuple[list[dict[str, str]], bool]:
+    """Read only off a declared ``confidence`` measurement: the score scale is not a confidence scale."""
     found, seen = [], False
     for key in order:
-        if (*key, _CONFIDENCE) not in cells:
+        own = (criteria[key[1]].get("measurements") or {}).get(_CONFIDENCE)
+        if (*key, _CONFIDENCE) not in cells or not own:
             continue
         seen = True
         row = reduced(key, _CONFIDENCE)
-        levels = steps(measurement_for(criteria[key[1]], _CONFIDENCE))
+        levels = steps(own)
         if row and row["reduced"] is not None and levels and row["reduced"] == levels[0]:
             found.append(_ref(key, f"confidence at the lowest level of its scale ({levels[0]})"))
     return found, seen
@@ -262,8 +266,45 @@ def _dominance(alternatives, basis, measurements, values, structural) -> tuple[f
     return frozenset(a for a in alternatives if a not in dominated), dominated
 
 
-def _ranking(alternatives, weighted, measurements, values) -> list[str]:
-    """Weighted sum over range-normalised values; an alternative blank on a weighted criterion is unranked."""
+def _inapplicability(document: Mapping[str, Any]) -> Callable[[str, str], bool]:
+    """comparanda's ``makeInapplicability``: is the cell inside a declared inapplicable group pair?
+
+    Membership is by closure on both axes, so a block on a group covers its sub-groups' members.
+    """
+    blocks = [(b.get("alternativeGroupId"), b.get("criterionGroupId")) for b in document.get("inapplicable") or []]
+    if not blocks:
+        return lambda alt, crit: False
+
+    def closure(axis: str) -> dict[str, set[str]]:
+        groups = {g["id"]: g for g in document.get("groups") or [] if g.get("axis") == axis and not g.get("tombstoned")}
+        out = {}
+        for entity in document.get(axis) or []:
+            found: set[str] = set()
+            todo = [g for g in entity.get("groupIds") or [] if g in groups]
+            while todo:
+                g = todo.pop()
+                if g not in found:
+                    found.add(g)
+                    parent = groups[g].get("parentId")
+                    if parent in groups:
+                        todo.append(parent)
+            out[entity["id"]] = found
+        return out
+
+    alts, crits = closure("alternatives"), closure("criteria")
+    return lambda alt, crit: any(a in alts.get(alt, ()) and c in crits.get(crit, ()) for a, c in blocks)
+
+
+def _top(ranked: Sequence[tuple[float, str]], k: int) -> frozenset[str]:
+    """The first ``k`` and everything tied with the k-th, so breaking a tie is never a change."""
+    if not ranked:
+        return frozenset()
+    cut = ranked[min(k, len(ranked)) - 1][0]
+    return frozenset(alt for total, alt in ranked if total >= cut)
+
+
+def _ranking(alternatives, weighted, measurements, values) -> list[tuple[float, str]]:
+    """Weighted sum over range-normalised values, best first; an alternative blank on a weighted criterion is unranked."""
     scores = []
     for i, alt in enumerate(alternatives):
         if any(values[(alt, c)] is None for c, _ in weighted):
@@ -275,7 +316,7 @@ def _ranking(alternatives, weighted, measurements, values) -> list[str]:
             share = (values[(alt, crit)] - lo) / (hi - lo) if hi != lo else 0.0
             total += w * (share if m["preference"] == "increasing" else 1 - share)
         scores.append((-round(total, 12), i, alt))
-    return [alt for *_, alt in sorted(scores)]
+    return [(-negated, alt) for negated, _, alt in sorted(scores)]
 
 
 def _pivotal(order, basis, measurements, values, picture: Callable, steps) -> tuple[list[dict[str, str]], list[str]]:
