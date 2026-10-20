@@ -44,6 +44,7 @@ from rubricator.procedure import (
     round_id,
 )
 from rubricator.rules import declaration_entries, declarations_for
+from rubricator.schema.source import EMITS
 from rubricator.schema.vocabulary import vocabulary
 from rubricator.store import AnalysisNotFound, AnalysisStore
 from rubricator.tools.corpus import agent_produced_names, cited_document
@@ -211,7 +212,7 @@ def analysis_open(
         raise ValueError("refused: a skipped confirmation is dated; pass at.")
     frame = {
         "id": analysis_id,
-        "schemaVersion": 1,
+        "schemaVersion": min(EMITS),
         "subject": {"question": question},
         "measures": [{"name": "score"}],
         "defaultReduction": "single",
