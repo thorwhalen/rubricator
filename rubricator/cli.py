@@ -171,6 +171,20 @@ def _show(store, analysis_id: str) -> int:
     return 0
 
 
+def _import(store, file: str, analysis_id: str | None) -> int:
+    from pathlib import Path
+
+    from rubricator.tools.importing import analysis_import
+
+    try:
+        document = json.loads(Path(file).read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError(f"refused, nothing was written: {file} could not be read as JSON ({error}).") from None
+    result = analysis_import(store, document=document, analysis_id=analysis_id)
+    print(result["summary"])
+    return 0
+
+
 _ROOT_HELP = "directory the analyses are in (default: the user-data working store)"
 
 
@@ -189,6 +203,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     p_report = sub.add_parser("report", help="completeness counts for one analysis")
     p_report.add_argument("analysis_id")
     p_report.add_argument("--root", default=None, help=_ROOT_HELP)
+
+    p_import = sub.add_parser(
+        "import", help="store a comparanda analysis made elsewhere, so it can be read and audited")
+    p_import.add_argument("file", help="the comparanda JSON document")
+    p_import.add_argument("--analysis-id", default=None, help="id to store it under (default: its own id)")
+    p_import.add_argument("--root", default=None, help=_ROOT_HELP)
 
     args = parser.parse_args(argv)
 
@@ -210,6 +230,8 @@ def _read_command(args: argparse.Namespace) -> int:
     runtime = build_runtime(root=args.root)
     if args.command == "show":
         return _show(runtime.store, args.analysis_id)
+    if args.command == "import":
+        return _import(runtime.store, args.file, args.analysis_id)
     # Through the surface, not the raw verb: the CLI validates against the
     # frozen row exactly as the connector does (ADR-0026). `demo` above calls
     # the verbs directly on purpose -- it is the Python-level chain.

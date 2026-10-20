@@ -57,6 +57,8 @@ It is opinionated about method and flexible about instruction. "Only fill Pain a
 
 Its output is a **comparanda** analysis. That schema is the contract between the two projects, and the reason they are separate repositories: `comparanda` renders and persists comparisons no matter who made them, and `rubricator` makes them whether or not anyone renders them.
 
+An analysis made elsewhere comes in the same way it goes out: `rubricator import colleague.json` validates the comparanda document, splits it into a frame and one file per contributor, and stores it so it can be read and audited (the `audit-existing` prompt). A document the merge would refuse is refused whole, with the reason.
+
 ## Two ways to run it
 
 Both are first-class, and the point of the architecture is that they share almost everything.
