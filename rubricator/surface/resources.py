@@ -21,10 +21,11 @@ references in an analysis **resolvable URIs**, which is what comparanda's
 host-supplied evidence resolver needs. It resolves to the exact stored span, as
 decided in #50: a span indexes into the document's *persisted normalised
 rendition*, never into the original, so the URI names text that cannot have
-moved since the quote was checked. A span id is ``{start}-{end}``: the
-``[start, end)`` character offsets of the stored span in the rendition's
-``content`` (:mod:`rubricator.tools.corpus`), self-describing and stable
-because stored spans are never re-chunked.
+moved since the quote was checked. A span id is ``{document_id}:{start}-{end}``: the
+document and the ``[start, end)`` character offsets of the stored span in its
+rendition's ``content`` (:mod:`rubricator.tools.corpus`). Offsets mean nothing
+outside one rendition, so the document is part of the id; it is self-describing
+and stable because stored spans are never re-chunked.
 """
 
 from __future__ import annotations
@@ -33,7 +34,9 @@ import re
 from dataclasses import dataclass, field
 from typing import Literal, Mapping
 
-__all__ = ["ResourceSpec", "FROZEN_RESOURCES", "RESOURCE_URIS", "frozen_resources", "match_resource", "span_id", "parse_span_id"]
+__all__ = [
+    "ResourceSpec", "FROZEN_RESOURCES", "RESOURCE_URIS", "frozen_resources", "match_resource", "span_id", "parse_span_id",
+]
 
 Audience = Literal["assistant", "user"]
 Status = Literal["implemented", "planned"]
@@ -152,16 +155,16 @@ FROZEN_RESOURCES: tuple[ResourceSpec, ...] = (
         priority=0.8,
         description=(
             "One stored span of a document's normalised rendition, with its document id, offsets, normaliser id and "
-            "the original's hash in the content's metadata. A span id is {start}-{end}."
+            "the original's hash in the content's metadata. A span id is {document_id}:{start}-{end}."
         ),
         why_resource="It makes evidence references resolvable URIs, which is what the companion repo's host-supplied evidence resolver needs.",
         failure=(
-            _UNKNOWN_ANALYSIS + " A span id that is not {start}-{end}, or is not a stored span of any document in the analysis, "
+            _UNKNOWN_ANALYSIS + " A span id that is not {document_id}:{start}-{end}, or is not a stored span of any document in the analysis, "
             "is refused saying which; it is never rounded to the nearest span."
         ),
         notes=(
-            "Resolves to the exact stored text of [start, end) in the rendition (#50 option a); a span in more than "
-            "one document is addressed by the document's own resource.",
+            "Resolves to the exact stored text of [start, end) in the document's rendition (#50 option a).",
+            "The template variable is {id} here and {analysis_id} in the served analysis template; #80 aligns the served names with these rows.",
         ),
     ),
 )
@@ -176,7 +179,7 @@ def frozen_resources() -> Mapping[str, ResourceSpec]:
 
 
 def _pattern(template: str) -> re.Pattern[str]:
-    return re.compile("^" + re.sub(r"\\\{(\w+)\\\}", r"(?P<\1>[^/]+)", re.escape(template)) + "$")
+    return re.compile(re.sub(r"\\\{(\w+)\\\}", r"(?P<\1>[^/]+)", re.escape(template)))
 
 
 _PATTERNS = tuple((r, _pattern(r.uri_template)) for r in FROZEN_RESOURCES)
@@ -194,32 +197,37 @@ def match_resource(uri: str) -> tuple[ResourceSpec, dict[str, str]] | None:
     True
     """
     for row, pattern in _PATTERNS:
-        found = pattern.match(uri)
+        found = pattern.fullmatch(uri)
         if found:
             return row, found.groupdict()
     return None
 
 
-def span_id(start: int, end: int) -> str:
-    """The id of the stored span ``[start, end)``.
+def span_id(document_id: str, start: int, end: int) -> str:
+    """The id of the stored span ``[start, end)`` of one document.
 
-    >>> span_id(10, 42)
-    '10-42'
+    >>> span_id("doc-ab", 10, 42)
+    'doc-ab:10-42'
     """
-    return f"{start}-{end}"
+    return f"{document_id}:{start}-{end}"
 
 
-def parse_span_id(value: str) -> tuple[int, int]:
-    """The offsets a span id names; a malformed one is refused, never repaired.
+_CANONICAL = r"(?P<document>[^/:\s]+):(?P<start>0|[1-9][0-9]*)-(?P<end>[1-9][0-9]*)"
 
+
+def parse_span_id(value: str) -> tuple[str, int, int]:
+    """The document and offsets a span id names; a malformed one is refused, never repaired.
+
+    >>> parse_span_id("doc-ab:10-42")
+    ('doc-ab', 10, 42)
     >>> parse_span_id("10-42")
-    (10, 42)
-    >>> parse_span_id("10:42")
     Traceback (most recent call last):
         ...
-    ValueError: a span id is {start}-{end}, two whole numbers with start before end; got '10:42'.
+    ValueError: a span id is {document_id}:{start}-{end}, canonical whole numbers with start before end; got '10-42'.
     """
-    found = re.fullmatch(r"(\d+)-(\d+)", value)
-    if found and int(found[1]) < int(found[2]):
-        return int(found[1]), int(found[2])
-    raise ValueError(f"a span id is {{start}}-{{end}}, two whole numbers with start before end; got {value!r}.")
+    found = re.fullmatch(_CANONICAL, value)
+    if found and int(found["start"]) < int(found["end"]):
+        return found["document"], int(found["start"]), int(found["end"])
+    raise ValueError(
+        f"a span id is {{document_id}}:{{start}}-{{end}}, canonical whole numbers with start before end; got {value!r}."
+    )

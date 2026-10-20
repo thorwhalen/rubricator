@@ -57,7 +57,7 @@ def test_no_analysis_list_tool_exists_because_the_list_is_a_resource():
         ("rubricator://analyses", "analyses", {}),
         ("rubricator://analysis/a-1", "analysis", {"id": "a-1"}),
         ("rubricator://analysis/a-1/document/doc-x", "document", {"id": "a-1", "document_id": "doc-x"}),
-        ("rubricator://analysis/a-1/span/3-9", "span", {"id": "a-1", "span_id": "3-9"}),
+        ("rubricator://analysis/a-1/span/doc-x:3-9", "span", {"id": "a-1", "span_id": "doc-x:3-9"}),
     ],
 )
 def test_a_concrete_uri_resolves_to_exactly_one_row(uri, name, variables):
@@ -65,8 +65,16 @@ def test_a_concrete_uri_resolves_to_exactly_one_row(uri, name, variables):
     assert (row.name, found) == (name, variables)
 
 
-def test_span_ids_round_trip_and_malformed_ones_are_refused():
-    assert parse_span_id(span_id(10, 42)) == (10, 42)
-    for bad in ("10:42", "42-10", "10-10", "-3", "a-b", ""):
-        with pytest.raises(ValueError, match="span id"):
-            parse_span_id(bad)
+def test_span_ids_name_their_document_and_round_trip():
+    assert parse_span_id(span_id("doc-x", 10, 42)) == ("doc-x", 10, 42)
+    assert span_id("doc-a", 1, 2) != span_id("doc-b", 1, 2)
+
+
+@pytest.mark.parametrize("bad", ["10-42", "doc-x:42-10", "doc-x:10-10", "doc-x:007-9", "doc-x:\u0661-\u0663", "doc-x:a-b", ""])
+def test_malformed_span_ids_are_refused(bad):
+    with pytest.raises(ValueError, match="span id"):
+        parse_span_id(bad)
+
+
+def test_a_trailing_newline_is_not_the_uri():
+    assert match_resource("rubricator://method\n") is None
