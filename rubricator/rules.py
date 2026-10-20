@@ -66,6 +66,7 @@ __all__ = [
     "declarations_for",
     "supersession_resolves",
     "live_assertions",
+    "drawn_assertions",
     "SCHEMA_RULES",
     "schema_problems",
     "structural_refines_not_applicable",
@@ -157,16 +158,43 @@ def live_assertions(cell: Mapping[str, Any]) -> list[Mapping[str, Any]]:
     return [a for a in cell.get("assertions", []) if not a.get("supersededBy")]
 
 
+def drawn_assertions(
+    cell: Mapping[str, Any], document: Mapping[str, Any]
+) -> list[Mapping[str, Any]]:
+    """The live assertions of a cell that are draws: every one but a placeholder blank.
+
+    A blank whose code is not terminal (``not-assessed``, ``deferred``, or a declared
+    code that refines one) says nobody has looked yet. It is not a second claim
+    about the cell, so it is nothing a score beside it could be independent *of*
+    (#225). A terminal blank (``not-evidenced``, ``indeterminate``) is a finding and
+    counts. Found by the code's ``terminal`` fact, never its spelling.
+    """
+    from rubricator.schema.vocabulary import vocabulary
+
+    declarations = declarations_for(document, cell.get("criterionId"))
+
+    def is_placeholder(assertion: Mapping[str, Any]) -> bool:
+        missing = assertion.get("missing")
+        code = missing.get("code") if isinstance(missing, Mapping) else None
+        if not isinstance(code, str) or assertion.get("value") is not None:
+            return False
+        facts = vocabulary().resolve(code, declarations).facts
+        return facts is not None and not facts.terminal
+
+    return [a for a in live_assertions(cell) if not is_placeholder(a)]
+
+
 def independence_recorded(document: Mapping[str, Any]) -> Iterable[Problem]:
-    """A cell holding two or more live assertions records ``independence`` on each.
+    """A cell holding two or more drawn assertions records ``independence`` on each.
 
     Mirrors `comparanda`'s ``independence-recorded`` (its ADR-0031, ADR-0022).
     Without the rung, five draws of one model and five people who argued in a
     room are the same bytes, and the reader is shown "5 raters" for both. A
-    single assertion is exempt: there is nothing to be independent *of*.
+    single assertion is exempt: there is nothing to be independent *of*; so is a
+    placeholder blank, which is no draw (:func:`drawn_assertions`).
     """
     for cell in document.get("cells", []):
-        live = live_assertions(cell)
+        live = drawn_assertions(cell, document)
         if len(live) < 2:
             continue
         for assertion in live:
@@ -197,13 +225,13 @@ def independent_is_distinct(document: Mapping[str, Any]) -> Iterable[Problem]:
     rung and cannot see whether two agents were one model. A fresh session of the
     same model is ``resampled``; labelling it ``independent`` is how five draws
     of one model come to read as five raters. Only a cell holding two or more
-    live assertions can fail, as for ``independence-recorded``.
+    drawn assertions can fail, as for ``independence-recorded``.
     """
     from rubricator.independence import distinct_model_problem
 
     authors = {a.get("id"): a for a in document.get("authors", []) if isinstance(a, Mapping)}
     for cell in document.get("cells", []):
-        live = live_assertions(cell)
+        live = drawn_assertions(cell, document)
         if len(live) < 2:
             continue
         for assertion in live:

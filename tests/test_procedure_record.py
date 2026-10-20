@@ -22,6 +22,7 @@ from rubricator.tools.analysis import (
     analysis_open,
     criteria_set,
     frame_set,
+    measures_mark_missing,
     measures_write,
 )
 
@@ -534,3 +535,32 @@ def test_a_placeholder_blank_in_a_write_is_no_draw_of_the_pass(store) -> None:
                 "missing": {"code": "not-assessed", "note": "not yet"}}])
     (procedure,) = _merged(store)["procedures"]
     assert procedure["repeats"] == 1
+
+
+# --- a placeholder blank is no draw for the independence rule (#225) -------------
+
+
+def _deferred_everywhere(store):
+    measures_mark_missing(store, analysis_id="a", contributor_id="bot", author=BOT, at=AT,
+                          code="deferred", note="scored next session")
+
+
+def test_a_score_beside_a_placeholder_needs_no_recorded_independence(store) -> None:
+    _deferred_everywhere(store)
+    _score(store, BOT, 3)
+    assert len(_assertions(store)) == 2
+    assert honesty_problems(_merged(store)) == []
+
+
+def test_a_score_with_a_procedure_beside_a_placeholder_leaves_no_problem_on_it(store) -> None:
+    _deferred_everywhere(store)
+    _score(store, BOT, 3, procedure={"round": 1, "session": "fresh", "prior": "withheld"})
+    assert honesty_problems(_merged(store)) == []
+
+
+def test_a_terminal_blank_beside_a_score_is_still_a_second_claim(store) -> None:
+    measures_mark_missing(store, analysis_id="a", contributor_id="bot", author=BOT, at=AT,
+                          code="not-evidenced", note="the spec is silent",
+                          alternative_ids=["x"], criterion_ids=["c"])
+    with pytest.raises(ValueError, match="independence"):
+        _score(store, human("ana", "Ana"), 3)
