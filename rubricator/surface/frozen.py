@@ -1,7 +1,7 @@
 """The frozen tool surface (ADR-0026): names, signatures, envelopes, and the cut order.
 
 **This module is data.** Every tool the surface will ever advertise is a row
-here -- implemented or not -- with its name, its ``inputSchema`` and
+here -- implemented or not, and a cut one keeps its row -- with its name, its ``inputSchema`` and
 ``outputSchema`` in the ADR-0013 subset, the contract the model reads, the
 ADR-0005 stage it serves, why it needs no inference, how it fails, whether it
 is in the minimum viable set, and when it is cut. The tests in
@@ -34,7 +34,7 @@ __all__ = [
     "MEASURED", "AWAITING_MEASUREMENT", "RETENTION_DAYS",
 ]
 
-Status = Literal["implemented", "planned", "transitional"]
+Status = Literal["implemented", "planned", "transitional", "cut"]
 
 
 @dataclass(frozen=True)
@@ -54,7 +54,8 @@ class ToolSpec:
     failure: str
     input_schema: Mapping[str, Any]
     output_schema: Mapping[str, Any]
-    #: The issue that tracks implementation, for a planned or transitional tool.
+    #: The issue that tracks implementation, for a planned or transitional tool, or that
+    #: records the cut, for a cut one.
     issue: int | None = None
     #: The research table's row number, for the mapping in ADR-0026.
     research_row: int | None = None
@@ -803,7 +804,7 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
         ),
     ),
     ToolSpec(
-        name="compute_coupling_matrix", family="criteria", stage="3", status="planned",
+        name="compute_coupling_matrix", family="criteria", stage="3", status="cut",
         minimum_viable=False, cut_rank=1, research_row=18, issue=65,
         contract=(
             "Arithmetic over probe scores the model supplied (probe generation and scoring are "
@@ -829,7 +830,7 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
         ),
     ),
     ToolSpec(
-        name="fit_bradley_terry", family="measures", stage="5", status="planned",
+        name="fit_bradley_terry", family="measures", stage="5", status="cut",
         minimum_viable=False, cut_rank=1, research_row=19, issue=65,
         contract=(
             "Latent strengths from pairwise comparisons, with bootstrap intervals. Reached "
@@ -929,7 +930,7 @@ def frozen() -> Mapping[str, ToolSpec]:
 
 def advertised() -> tuple[ToolSpec, ...]:
     """The rows a surface exposes today: implemented and transitional."""
-    return tuple(spec for spec in FROZEN_TOOLS if spec.status != "planned")
+    return tuple(spec for spec in FROZEN_TOOLS if spec.status in ("implemented", "transitional"))
 
 
 def describe(spec: ToolSpec, *, retention_days: int = RETENTION_DAYS) -> str:

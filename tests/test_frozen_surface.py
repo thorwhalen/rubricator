@@ -130,12 +130,15 @@ def test_every_row_states_its_contract(spec) -> None:
         assert spec.issue, f"{spec.name} is {spec.status} and must name the issue tracking it"
 
 
-def test_the_surface_is_twenty_tools_plus_two_transitional() -> None:
+def test_the_surface_is_eighteen_tools_plus_two_transitional_and_two_cut() -> None:
     by_status = {}
     for spec in FROZEN_TOOLS:
         by_status.setdefault(spec.status, []).append(spec.name)
     assert len(FROZEN_TOOLS) == 22
     assert sorted(by_status["transitional"]) == ["prompts_get", "prompts_list"]
+    # Cut per ADR-0011 (#65); their rows keep the specification.
+    assert sorted(by_status["cut"]) == ["compute_coupling_matrix", "fit_bradley_terry"]
+    assert not {s.name for s in advertised()} & set(by_status["cut"])
     assert sum(1 for s in FROZEN_TOOLS if s.minimum_viable) == 15
     rows = {s.research_row for s in FROZEN_TOOLS if s.research_row}
     assert rows == set(range(1, 20)), "every one of the research's 19 has a row"
