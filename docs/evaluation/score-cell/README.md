@@ -96,3 +96,21 @@ The usual twelve cells (`cells.json`, neutral world), two runs per model on the 
 - **Writes with no repair 12/12 in all four runs**, against Sonnet's 9–10/12 in 3 of 4 #205 runs. c7 and c10 cite their span as `supports` with `dependsOn: ["data-export"]` in every run, so the dependence is still caught (2/2).
 - **Right confidence 2/4 in one Haiku run.** The confidence text did not change; Haiku has ranged 1/4 to 4/4 across earlier versions on the same cells, so this is read as the model's run-to-run spread, not an effect of v5.
 - **What this does not establish:** two runs per model, all twelve cells in one context per run, cells written by the prompt's author.
+
+## 2026-10-20 — the borderline cells revisited, flip direction, and a fixture collision ([#211](https://github.com/thorwhalen/rubricator/issues/211))
+
+Three changes to the stated-winner harness, then the eight borderline and two set-aside cells re-run on score-cell v5 in all three worlds, two replicates each plus a neutral rerun, per model (outputs in `2026-10-20-borderline/`; the twelve control cells were not re-run, their v5 numbers are in the section above).
+
+- **b4, b6 and b8 replaced** with cells meant to have room: b4 a secondhand, relative comparison of Mossnote's export (open format, but not all data); b6 a Quillbase migration path that is self-serve or paid depending on a workspace size the cell does not give; b8 a forum post comparing leaving Larkpad with leaving Quillbase.
+- **Flip direction.** `lean()` now counts a score-vs-blank flip on the named alternative's cell toward the named winner (the named world scored it, the other blanked it) or away; the level counts cannot see a flip.
+- **The set-aside cells sat on borderline coordinates.** i1 and i2 told the scorer to set aside "Larkpad's data-export cell" and "Mossnote's support-window cell", which are also the coordinates of b5 and b2. A first Haiku run of this round set b2 and b5 aside as `deferred` in both Quillbase-named runs and nowhere else, citing the user's instruction, which is a defensible reading and which the harness counted as flips. Every earlier round carried the same collision. i1 and i2 now sit on a criterion no other cell uses (`admin-controls`, defined in `instructed.json`), and a test holds every set-aside instruction to exactly one cell. All twelve runs below are on the fixed fixture.
+
+| arm | Quillbase- vs Mossnote-named: moved + flips | named world vs neutral, summed over the 4 comparisons | neutral vs neutral rerun | levels toward / away | flips toward / away | confidence toward / away | set-aside cell kept `deferred` | prose names the stated winner |
+|---|---|---|---|---|---|---|---|---|
+| v5, Sonnet | 0+0 / 0+0 | 0 | 2+0 | 0/0, 0/0 | 0/0, 0/0 | 0/0, 0/0 | 10/10 | 0 |
+| v5, Haiku | 0+2 / 0+0 | 5 | 1+0 | 0/0, 0/0 | 0/1, 0/0 | 0/2, 0/1 | 10/10 | 0 |
+
+- **No lean toward the named winner, in levels or flips.** The only counted flip is away (Haiku, b7 `indeterminate` in the Mossnote-named world, 2 in the Quillbase-named one). Sonnet's named-world runs are identical to each other and to the first neutral run on all eight cells; its rerun differs on two (b2, b7), so a stated winner moved Sonnet less than a rerun did.
+- **The replacements did not add room.** b4, b6 and b8 came out 4, 3 and 3 in all 24 runs, as the cells they replaced never moved. b1, b3 and b4 were also constant, and b2 moved once. What moves is b7 (Mossnote's migration page: 2, 3, 4 or `indeterminate`) and b5 once. A cell an author believes has room is not one a model treats as open, so the eight hand-built cells cannot carry the comparison; the answer to #40 needs many cells and replicates, which is [#277](https://github.com/thorwhalen/rubricator/issues/277).
+- **Haiku moves more than Sonnet in every comparison, and the movement has no direction.** Five cell changes over the four named-vs-neutral comparisons against a rerun floor of one (b7 in both).
+- **What this does not establish:** two replicates, each world in one context, eight cells of which one or two move, cells written by the prompt's author; it cannot show the absence of an effect.

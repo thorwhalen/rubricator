@@ -66,6 +66,22 @@ def test_the_cells_are_the_ones_a_scorer_has_room_on():
     assert all(len(c["plausible"].get("value", [])) + len(c["plausible"].get("code", [])) >= 2 for c in border)
 
 
+def test_a_set_aside_instruction_names_exactly_one_cell():
+    """The user names a cell by alternative and criterion; no other cell may sit at those coordinates.
+
+    Until #211 the two instructed cells shared coordinates with borderline cells b2 and b5, so a
+    scorer that set those aside too was following the instruction, and the stated-winner comparison
+    read it as a flip.
+    """
+    at = {}
+    for c in CELLS["cells"]:
+        at.setdefault((c["alternative"], c["criterion"]), []).append(c["id"])
+    for c in CELLS["cells"]:
+        if c["id"] in CELLS["instructed"]:
+            assert at[(c["alternative"], c["criterion"])] == [c["id"]]
+            assert c["criterion"] in CELLS["criteria"]
+
+
 def test_identical_runs_do_not_diverge():
     run = _run({"b1": 3, "b2": 4, "b3": "indeterminate"})
     d = prior.compare(CELLS, run, run)
@@ -107,6 +123,19 @@ def test_a_score_against_a_blank_is_a_flip_not_a_lean():
     a, b = _run({"b1": 4}), _run({"b1": "not-evidenced"})
     assert prior.compare(CELLS, a, b)["score_vs_blank_flipped"] == 1
     assert prior.lean(CELLS, a, b)["levels_toward_named_winner"] == 0
+
+
+def test_a_flip_is_counted_by_its_direction_toward_or_away_from_the_named_winner():
+    # b1 is Quillbase's, b2 Mossnote's, b5 Larkpad's (never counted). The first run names Quillbase.
+    quill_world = _run({"b1": 4, "b2": 3, "b5": 3})
+    moss_world = _run({"b1": "not-evidenced", "b2": "indeterminate", "b5": "not-evidenced"})
+    got = prior.lean(CELLS, quill_world, moss_world)
+    assert (got["flips_toward_named_winner"], got["flips_away_from_named_winner"]) == (1, 1)
+    assert got["levels_toward_named_winner"] == got["levels_away_from_named_winner"] == 0
+    reversed_ = prior.lean(CELLS, moss_world, quill_world)
+    assert (reversed_["flips_toward_named_winner"], reversed_["flips_away_from_named_winner"]) == (1, 1)
+    both_blank = prior.lean(CELLS, moss_world, _run({"b1": "indeterminate"}))
+    assert both_blank["flips_toward_named_winner"] == both_blank["flips_away_from_named_winner"] == 0
 
 
 @pytest.mark.parametrize("prose", [

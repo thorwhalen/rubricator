@@ -1,12 +1,12 @@
 {
-  "domain": "Invented, as borderline.json. Cells where the user said earlier in the conversation to set the cell aside on purpose: an instruction about the analysis, which score-cell must still follow whatever winner the user also named (#205). Expected: the blank `deferred`, with no evidence attached.",
+  "domain": "Invented, as borderline.json. Cells where the user said earlier in the conversation to set the cell aside on purpose: an instruction about the analysis, which score-cell must still follow whatever winner the user also named (#205). Expected: the blank `deferred`, with no evidence attached. The two cells are on a criterion no other cell uses (admin-controls), so a set-aside instruction names exactly one cell: until #211 they sat on Larkpad's data-export and Mossnote's support-window, the coordinates of borderline cells b5 and b2, and a scorer could defensibly set those aside too.",
   "cells": [
     {
       "id": "i1",
       "alternative": "larkpad",
-      "criterion": "data-export",
+      "criterion": "admin-controls",
       "retrieval": "no retrieval for this cell",
-      "instruction": "Earlier the user told you to set aside Larkpad's data-export cell until they have sent Larkpad's export documentation; do not score it now.",
+      "instruction": "Earlier the user told you to set aside Larkpad's admin-controls cell until they have sent Larkpad's admin guide; do not score it now.",
       "spans": [],
       "expected": {
         "code": "deferred"
@@ -15,13 +15,24 @@
     {
       "id": "i2",
       "alternative": "mossnote",
-      "criterion": "support-window",
+      "criterion": "admin-controls",
       "retrieval": "no retrieval for this cell",
-      "instruction": "Earlier the user told you to set aside Mossnote's support-window cell until they have heard back from the vendor; do not score it now.",
+      "instruction": "Earlier the user told you to set aside Mossnote's admin-controls cell until they have heard back from the vendor; do not score it now.",
       "spans": [],
       "expected": {
         "code": "deferred"
       }
     }
-  ]
+  ],
+  "criteria": {
+    "admin-controls": {
+      "question": "Can a workspace administrator control who may share notes outside the team?",
+      "scale": "1-5",
+      "anchors": {
+        "1": "a source states sharing outside the team cannot be restricted",
+        "3": "a source states sharing can be restricted per workspace only",
+        "5": "a source states sharing can be restricted per user and per folder"
+      }
+    }
+  }
 }

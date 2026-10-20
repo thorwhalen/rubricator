@@ -1,0 +1,206 @@
+[
+  {
+    "cellId": "b1",
+    "output": {
+      "cell": {
+        "alternativeId": "quillbase",
+        "criterionId": "support-window",
+        "justification": "Vendor support page states two years of Team-plan support with no calendar end date: a commitment with a horizon beyond 12 months, so above anchor 3 (commitment with no date) and short of anchor 5 (dated beyond 12 months), so between anchors 3 and 5; the span does not name the Team plan as the current plan, which is taken as read.",
+        "evidence": [
+          {
+            "id": "s1",
+            "target": "quillbase-support-page",
+            "sourceType": "primary",
+            "stance": "supports",
+            "selectors": [{"type": "TextQuoteSelector", "exact": "We will support the Team plan for at least two more years."}]
+          }
+        ],
+        "value": 4
+      },
+      "confidence": "high",
+      "dependsOn": []
+    }
+  },
+  {
+    "cellId": "b2",
+    "output": {
+      "cell": {
+        "alternativeId": "mossnote",
+        "criterionId": "support-window",
+        "justification": "Only span is a secondary review-site summary: Mossnote reportedly intends to support the plan through 2032, told to some Business customers. That is a dated horizon beyond 12 months but an intention reported second-hand, not a vendor commitment, so it sits between anchor 3 (commitment with no date) and anchor 5 (dated commitment beyond 12 months). The Mossnote support page was searched and no span from it was handed over.",
+        "evidence": [
+          {
+            "id": "s1",
+            "target": "notes-review-site",
+            "sourceType": "secondary",
+            "stance": "supports",
+            "selectors": [{"type": "TextQuoteSelector", "exact": "Mossnote has told some Business customers that it intends to keep supporting the plan through 2032."}]
+          }
+        ],
+        "value": 4
+      },
+      "confidence": "medium",
+      "dependsOn": []
+    }
+  },
+  {
+    "cellId": "b3",
+    "output": {
+      "cell": {
+        "alternativeId": "quillbase",
+        "criterionId": "data-export",
+        "justification": "Vendor export documentation states Markdown export for every workspace, with a JSON export planned: not anchor 3 (proprietary only) as far as the span goes, but the span does not say Markdown is an open format, so that reading is my inference. Not anchor 5 because the span does not state that all data is exported. Placed between anchors 3 and 5.",
+        "evidence": [
+          {
+            "id": "s1",
+            "target": "quillbase-export-docs",
+            "sourceType": "primary",
+            "stance": "supports",
+            "selectors": [{"type": "TextQuoteSelector", "exact": "Markdown export is available for every workspace."}]
+          }
+        ],
+        "value": 4
+      },
+      "confidence": "low",
+      "dependsOn": []
+    }
+  },
+  {
+    "cellId": "b4",
+    "output": {
+      "cell": {
+        "alternativeId": "mossnote",
+        "criterionId": "data-export",
+        "justification": "Review-site comparison says notes come out as plain Markdown with comments and page history left behind: an explicit scope limit, so not anchor 5 (all data). The span does not state the format is open, which I read from plain Markdown; it is not anchor 3 (proprietary only). Placed between anchors 3 and 5.",
+        "evidence": [
+          {
+            "id": "s1",
+            "target": "notes-review-site",
+            "sourceType": "secondary",
+            "stance": "supports",
+            "selectors": [{"type": "TextQuoteSelector", "exact": "notes come out as plain Markdown, though comments and page history are left behind."}]
+          }
+        ],
+        "value": 4
+      },
+      "confidence": "medium",
+      "dependsOn": []
+    }
+  },
+  {
+    "cellId": "b5",
+    "output": {
+      "cell": {
+        "alternativeId": "larkpad",
+        "criterionId": "data-export",
+        "justification": "Single untested forum hearsay ('I think you can export to Markdown... I have not tried it myself') says a Markdown export exists: clears anchor 1 (no export exists) but gives no documented format or scope, so it cannot reach anchor 3 (documented export). Placed between anchors 1 and 3. No help-centre span was handed over.",
+        "evidence": [
+          {
+            "id": "s1",
+            "target": "larkpad-forum-thread",
+            "sourceType": "secondary",
+            "stance": "supports",
+            "selectors": [{"type": "TextQuoteSelector", "exact": "I think you can export to Markdown from the settings page, but I have not tried it myself."}]
+          }
+        ],
+        "value": 2
+      },
+      "confidence": "low",
+      "dependsOn": []
+    }
+  },
+  {
+    "cellId": "b6",
+    "output": {
+      "cell": {
+        "alternativeId": "quillbase",
+        "criterionId": "migration-effort",
+        "justification": "Vendor migration guide states a self-serve export path for workspaces under 5 GB, with larger workspaces moved by the services team: meets anchor 3 (self-serve path with stated limits). Not anchor 1, since paid services are required only above the 5 GB limit, and not anchor 5, since limits are stated.",
+        "evidence": [
+          {
+            "id": "s1",
+            "target": "quillbase-migration-guide",
+            "sourceType": "primary",
+            "stance": "supports",
+            "selectors": [{"type": "TextQuoteSelector", "exact": "Workspaces under 5 GB can be moved with the self-serve export."}]
+          }
+        ],
+        "value": 3
+      },
+      "confidence": "high",
+      "dependsOn": ["data-export"]
+    }
+  },
+  {
+    "cellId": "b7",
+    "output": {
+      "cell": {
+        "alternativeId": "mossnote",
+        "criterionId": "migration-effort",
+        "justification": "Vendor migration page states self-serve export is available and that most teams also book a paid Migration Desk. Paid services are not stated as required, so it clears anchor 1; but no migration limits are stated, so it falls short of anchor 3 (self-serve path with stated limits). Placed between anchors 1 and 3.",
+        "evidence": [
+          {
+            "id": "s1",
+            "target": "mossnote-migration-page",
+            "sourceType": "primary",
+            "stance": "supports",
+            "selectors": [{"type": "TextQuoteSelector", "exact": "Self-serve export is available."}]
+          }
+        ],
+        "value": 2
+      },
+      "confidence": "medium",
+      "dependsOn": ["data-export"]
+    }
+  },
+  {
+    "cellId": "b8",
+    "output": {
+      "cell": {
+        "alternativeId": "larkpad",
+        "criterionId": "migration-effort",
+        "justification": "Single secondary forum account of a self-serve migration that took an afternoon with the migration assistant, with sharing settings re-entered by hand: a self-serve path with a stated limit, meeting anchor 3. Completeness is not stated, so not anchor 5.",
+        "evidence": [
+          {
+            "id": "s1",
+            "target": "larkpad-forum-thread",
+            "sourceType": "secondary",
+            "stance": "supports",
+            "selectors": [{"type": "TextQuoteSelector", "exact": "an afternoon with the migration assistant, though we had to set up our sharing again by hand."}]
+          }
+        ],
+        "value": 3
+      },
+      "confidence": "medium",
+      "dependsOn": []
+    }
+  },
+  {
+    "cellId": "i1",
+    "output": {
+      "cell": {
+        "alternativeId": "larkpad",
+        "criterionId": "admin-controls",
+        "missing": {
+          "code": "deferred",
+          "note": "Set aside on the user's instruction until they send Larkpad's admin guide; not retrieved and not scored."
+        }
+      },
+      "dependsOn": []
+    }
+  },
+  {
+    "cellId": "i2",
+    "output": {
+      "cell": {
+        "alternativeId": "mossnote",
+        "criterionId": "admin-controls",
+        "missing": {
+          "code": "deferred",
+          "note": "Set aside on the user's instruction until the user has heard back from the Mossnote vendor; not retrieved and not scored."
+        }
+      },
+      "dependsOn": []
+    }
+  }
+]

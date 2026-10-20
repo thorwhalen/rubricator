@@ -1,0 +1,207 @@
+[
+  {
+    "cellId": "b1",
+    "output": {
+      "cell": {
+        "alternativeId": "quillbase",
+        "criterionId": "support-window",
+        "justification": "The vendor's own page commits to support for 'at least two more years', a commitment with no calendar date: it clears the level-3 anchor (support commitment, no date) and falls short of the level-5 anchor (dated, more than 12 months out); placed at 4 between anchors 3 and 5.",
+        "evidence": [
+          {
+            "id": "s1",
+            "target": "quillbase-support-page",
+            "sourceType": "primary",
+            "stance": "supports",
+            "selectors": [{"type": "TextQuoteSelector", "exact": "We will support the Team plan for at least two more years."}]
+          }
+        ],
+        "value": 4
+      },
+      "confidence": "high",
+      "dependsOn": []
+    }
+  },
+  {
+    "cellId": "b2",
+    "output": {
+      "cell": {
+        "alternativeId": "mossnote",
+        "criterionId": "support-window",
+        "justification": "A review site reports that Mossnote intends to keep supporting the plan through 2032, a dated statement more than 12 months out; it is relayed secondhand as an intention told to some customers rather than a stated commitment, so it clears level 3 and falls short of level 5; placed at 4 between anchors 3 and 5. No vendor-page span was handed to me.",
+        "evidence": [
+          {
+            "id": "s1",
+            "target": "notes-review-site",
+            "sourceType": "secondary",
+            "stance": "supports",
+            "selectors": [{"type": "TextQuoteSelector", "exact": "Mossnote has told some Business customers that it intends to keep supporting the plan through 2032."}]
+          }
+        ],
+        "value": 4
+      },
+      "confidence": "medium",
+      "dependsOn": []
+    }
+  },
+  {
+    "cellId": "b3",
+    "output": {
+      "cell": {
+        "alternativeId": "quillbase",
+        "criterionId": "data-export",
+        "justification": "The vendor's export documentation states Markdown export is available for every workspace, an open documented format, so it clears the level-3 anchor (proprietary format only); it does not state that all data is exported and JSON is only planned, so it falls short of the level-5 anchor; placed at 4 between anchors 3 and 5.",
+        "evidence": [
+          {
+            "id": "s1",
+            "target": "quillbase-export-docs",
+            "sourceType": "primary",
+            "stance": "supports",
+            "selectors": [{"type": "TextQuoteSelector", "exact": "Markdown export is available for every workspace."}]
+          }
+        ],
+        "value": 4
+      },
+      "confidence": "high",
+      "dependsOn": []
+    }
+  },
+  {
+    "cellId": "b4",
+    "output": {
+      "cell": {
+        "alternativeId": "mossnote",
+        "criterionId": "data-export",
+        "justification": "A review site reports that Mossnote's export yields plain Markdown, which clears the level-3 anchor (proprietary format only), but comments and page history are left behind, so the all-data condition of level 5 is not met; placed at 4 between anchors 3 and 5.",
+        "evidence": [
+          {
+            "id": "s1",
+            "target": "notes-review-site",
+            "sourceType": "secondary",
+            "stance": "supports",
+            "selectors": [{"type": "TextQuoteSelector", "exact": "notes come out as plain Markdown, though comments and page history are left behind."}]
+          }
+        ],
+        "value": 4
+      },
+      "confidence": "medium",
+      "dependsOn": []
+    }
+  },
+  {
+    "cellId": "b5",
+    "output": {
+      "cell": {
+        "alternativeId": "larkpad",
+        "criterionId": "data-export",
+        "evidence": [
+          {
+            "id": "s1",
+            "target": "larkpad-forum-thread",
+            "sourceType": "primary",
+            "stance": "context",
+            "selectors": [{"type": "TextQuoteSelector", "exact": "I think you can export to Markdown from the settings page, but I have not tried it myself."}]
+          }
+        ],
+        "missing": {
+          "code": "not-evidenced",
+          "note": "Searched the Larkpad help centre and one community forum. No help-centre span was handed to me. The only span is a forum user's hedged recollection, which cites no source and meets no anchor, so no level can be placed."
+        }
+      },
+      "dependsOn": []
+    }
+  },
+  {
+    "cellId": "b6",
+    "output": {
+      "cell": {
+        "alternativeId": "quillbase",
+        "criterionId": "migration-effort",
+        "justification": "The vendor's migration guide states a self-serve export for workspaces under 5 GB, a self-serve path with a stated limit, which is the level-3 condition; larger workspaces must go through the vendor's services team, so the path is not complete with no stated limits and level 5 is not met.",
+        "evidence": [
+          {
+            "id": "s1",
+            "target": "quillbase-migration-guide",
+            "sourceType": "primary",
+            "stance": "supports",
+            "selectors": [{"type": "TextQuoteSelector", "exact": "Workspaces under 5 GB can be moved with the self-serve export. Larger workspaces are migrated by our services team; a quote is provided on request."}]
+          }
+        ],
+        "value": 3
+      },
+      "confidence": "high",
+      "dependsOn": []
+    }
+  },
+  {
+    "cellId": "b7",
+    "output": {
+      "cell": {
+        "alternativeId": "mossnote",
+        "criterionId": "migration-effort",
+        "justification": "The vendor's migration page states self-serve export is available, so migration does not require paid services (clears level 1); no limit on that path is stated, which level 3 requires, and the Migration Desk is an optional paid service that most teams book, which hints at limits without stating any; placed at 2 between anchors 1 and 3.",
+        "evidence": [
+          {
+            "id": "s1",
+            "target": "mossnote-migration-page",
+            "sourceType": "primary",
+            "stance": "supports",
+            "selectors": [{"type": "TextQuoteSelector", "exact": "Self-serve export is available. Most teams also book our Migration Desk, which is billed by the hour."}]
+          }
+        ],
+        "value": 2
+      },
+      "confidence": "medium",
+      "dependsOn": []
+    }
+  },
+  {
+    "cellId": "b8",
+    "output": {
+      "cell": {
+        "alternativeId": "larkpad",
+        "criterionId": "migration-effort",
+        "justification": "A forum poster describes a first-hand migration using the migration assistant in an afternoon, with sharing set up again by hand: a self-serve path with a stated limit, which is the level-3 condition, and not a complete path with no limits, so level 5 is not met. This is a single anecdote in a community forum, not vendor documentation.",
+        "evidence": [
+          {
+            "id": "s1",
+            "target": "larkpad-forum-thread",
+            "sourceType": "primary",
+            "stance": "supports",
+            "selectors": [{"type": "TextQuoteSelector", "exact": "an afternoon with the migration assistant, though we had to set up our sharing again by hand."}]
+          }
+        ],
+        "value": 3
+      },
+      "confidence": "medium",
+      "dependsOn": []
+    }
+  },
+  {
+    "cellId": "i1",
+    "output": {
+      "cell": {
+        "alternativeId": "larkpad",
+        "criterionId": "admin-controls",
+        "missing": {
+          "code": "deferred",
+          "note": "Set aside on purpose: the user asked that this cell wait until they send Larkpad's admin guide. No retrieval was run for this cell."
+        }
+      },
+      "dependsOn": []
+    }
+  },
+  {
+    "cellId": "i2",
+    "output": {
+      "cell": {
+        "alternativeId": "mossnote",
+        "criterionId": "admin-controls",
+        "missing": {
+          "code": "deferred",
+          "note": "Set aside on purpose: the user asked that this cell wait until they hear back from the Mossnote vendor. No retrieval was run for this cell."
+        }
+      },
+      "dependsOn": []
+    }
+  }
+]
