@@ -25,7 +25,7 @@ Ten prompts, mapped to the ADR-0005 stages. "Shipped" means the file exists and 
 
 | Prompt | Stage | Shipped | Job |
 |---|---|---|---|
-| `frame` | 1 | — | Establish subject, decision, decider; surface ambiguity instead of resolving it silently |
+| `frame` | 1 | **yes** | Subject, decision and decider as the user stated them, and every ambiguity named as a question a person could answer, in the one JSON block `frame_set` takes with no repair. A decider nobody named is left out and listed, never filled in; an empty list is a claim that someone looked. Evaluated by `scripts/frame_adherence.py` over `docs/evaluation/frame/` |
 | `enumerate-alternatives` | 2 | — | Extract candidates from context; flag omissions and near-duplicates |
 | `propose-criteria` | 3 | **yes** | Criteria with every definition field, anchors as evidence conditions and a stated direction of preference, plus the objective ladder that produced them, rejects with a closed reason code, overlaps flagged from the ladder, and group sizes. The criteria go to `criteria_set` as they stand; the rest is checked by `rubricator.ladder` |
 | `confirm-frame` | 4 | **yes** | The checkpoint's discussion, in chat: the question and decider, every alternative, every criterion with its definition, scale, anchors and direction, and the overlap probes put to the *user* in both directions. Records the user's answer through `frame_confirm` in their name and words, or nothing; reads a form's answer as the record where the client elicits it. A stated expectation about the winner changes nothing in the frame. Evaluated by `scripts/confirm_frame_adherence.py` over `docs/evaluation/confirm-frame/` |
