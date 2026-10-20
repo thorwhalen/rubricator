@@ -240,16 +240,36 @@ def file_store(root: str | os.PathLike[str]) -> BytesStore:
     into every caller, including the ones that will not be filesystems.
 
     Refuses a root inside the installed package directory (ADR-0017).
+
+    Offers ``keys_under(prefix)``, which lists only the directory a prefix names,
+    so reading one analysis does not walk every analysis in the store (#146).
+    Still a plain ``MutableMapping``: a store without the method is walked whole.
     """
     from dol import Files
     from dol.filesys import mk_dirs_if_missing
+
+    class _ListsOneDirectory(Files):
+        def keys_under(self, prefix: str) -> Iterator[str]:
+            # Only a prefix ending at a directory boundary names a directory;
+            # anything else falls back to the whole walk, filtered by the caller.
+            if not prefix.endswith("/"):
+                yield from self
+                return
+            # A walk from the root never yields a key with an empty, "." or ".."
+            # segment, so such a prefix matches nothing -- and must not be let
+            # list a directory outside the root.
+            if prefix.startswith("/") or {"", ".", ".."} & set(prefix[:-1].split("/")):
+                return
+            directory = os.path.join(self.rootdir, prefix)
+            if os.path.isdir(directory):
+                yield from (prefix + k for k in Files(directory))
 
     resolved = _refuse_inside_package(root)
     # The wrapper only creates paths *below* the root, so the root itself is
     # ours to ensure. Stated rather than assumed: this is exactly the kind of
     # split responsibility that produces a confusing FileNotFoundError.
     os.makedirs(resolved, exist_ok=True)
-    return mk_dirs_if_missing(Files(str(resolved)))
+    return mk_dirs_if_missing(_ListsOneDirectory(str(resolved)))
 
 
 class AnalysisNotFound(KeyError):
@@ -494,8 +514,8 @@ class AnalysisStore:
         """
         now = _instant(self.now())
         latest: dict[str, datetime | None] = {}
-        for key in self.blobs:
-            if not key.startswith(prefix) or key.count("/") < 2:
+        for key in self._keys(prefix):
+            if key.count("/") < 2:
                 continue
             _, analysis_id, rest = key.split("/", 2)
             latest.setdefault(analysis_id, None)
@@ -534,7 +554,7 @@ class AnalysisStore:
 
     def _purge(self, analysis_id: str) -> None:
         prefix = f"analyses/{analysis_id}/"
-        for key in [k for k in self.blobs if k.startswith(prefix)]:
+        for key in self._keys(prefix):
             del self.blobs[key]
 
     def _live(self, analysis_id: str) -> bool:
@@ -582,8 +602,8 @@ class AnalysisStore:
         # report a file that does not exist.
         return sorted(
             k[len(prefix):].removesuffix(".json")
-            for k in self.blobs
-            if k.startswith(prefix) and k.endswith(".json")
+            for k in self._keys(prefix)
+            if k.endswith(".json")
         )
 
     def contributions(self, analysis_id: str) -> Iterator[tuple[str, dict[str, Any]]]:
@@ -601,7 +621,7 @@ class AnalysisStore:
     def renditions(self, analysis_id: str) -> list[dict[str, Any]]:
         self._require(analysis_id)
         prefix = f"analyses/{analysis_id}/renditions/"
-        return [self._read(k) for k in sorted(k for k in self.blobs if k.startswith(prefix))]
+        return [self._read(k) for k in sorted(self._keys(prefix))]
 
     def read(self, analysis_id: str) -> dict[str, Any]:
         """The whole analysis: the frame and every contribution, merged.
@@ -672,7 +692,7 @@ class AnalysisStore:
 
         kept = {
             key: r
-            for key in sorted(k for k in self.blobs if k.startswith(prefix))
+            for key in sorted(self._keys(prefix))
             if (r := self._mergeable(key, lambda d, k=key: rendition_trial(k, d), skipped))
             is not None
         }
@@ -854,7 +874,7 @@ class AnalysisStore:
         self._require(analysis_id)
         prefix = f"analyses/{analysis_id}/corpus/"
         records: dict[str, dict[str, Any]] = {}
-        for key in sorted(k for k in self.blobs if k.startswith(prefix) and k.endswith(".json")):
+        for key in sorted(k for k in self._keys(prefix) if k.endswith(".json")):
             rendition_id, _, name = key[len(prefix):-len(".json")].partition("/")
             try:
                 record = self._read(key)
@@ -870,8 +890,8 @@ class AnalysisStore:
         self._require(analysis_id)
         prefix, suffix = f"analyses/{analysis_id}/corpus/", f"/{record}.json"
         return {
-            k[len(prefix):-len(suffix)] for k in self.blobs
-            if k.startswith(prefix) and k.endswith(suffix) and "/" not in k[len(prefix):-len(suffix)]
+            k[len(prefix):-len(suffix)] for k in self._keys(prefix)
+            if k.endswith(suffix) and "/" not in k[len(prefix):-len(suffix)]
         }
 
     def put_corpus_record(
@@ -885,7 +905,7 @@ class AnalysisStore:
 
     def _confirmation_keys(self, analysis_id: str) -> list[str]:
         prefix = f"analyses/{analysis_id}/confirmations/"
-        return sorted(k for k in self.blobs if k.startswith(prefix) and k.endswith(".json"))
+        return sorted(k for k in self._keys(prefix) if k.endswith(".json"))
 
     def confirmations(self, analysis_id: str) -> list[dict[str, Any]]:
         """The step-4 records (ADR-0005), in write order; empty when none was given.
@@ -927,7 +947,7 @@ class AnalysisStore:
         """Remove every record: a new analysis inherits no gate from a leftover file."""
         for key in self._confirmation_keys(analysis_id):
             del self.blobs[key]
-            for stamp in [k for k in self.blobs if k.startswith(self.stamp_prefix(key))]:
+            for stamp in self._keys(self.stamp_prefix(key)):
                 del self.blobs[stamp]
 
     def exists(self, analysis_id: str) -> bool:
@@ -935,6 +955,18 @@ class AnalysisStore:
         return self._live(analysis_id)
 
     # -- bytes --------------------------------------------------------------
+
+    def _keys(self, prefix: str) -> list[str]:
+        """Every key under ``prefix``, as a list a caller may delete from while looping.
+
+        Asks the bytes store for just that prefix when it offers ``keys_under``
+        (the filesystem store does, by listing one directory), and walks every
+        key otherwise. The working store holds a month of every analysis, so a
+        read or write of one analysis must not cost a walk of all of them (#146).
+        """
+        under = getattr(self.blobs, "keys_under", None)
+        keys = under(prefix) if callable(under) else self.blobs
+        return [k for k in keys if k.startswith(prefix)]
 
     def _read(self, key: str) -> dict[str, Any]:
         try:
@@ -959,5 +991,5 @@ class AnalysisStore:
         prefix = self.stamp_prefix(key)
         stamp = prefix + _stamp_name(self.now())
         self.blobs[stamp] = b""
-        for old in [k for k in self.blobs if k.startswith(prefix) and k != stamp]:
+        for old in [k for k in self._keys(prefix) if k != stamp]:
             del self.blobs[old]
