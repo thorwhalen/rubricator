@@ -619,8 +619,12 @@ def criteria_set(
         })
         if not any(m.get("name") == CONFIDENCE_MEASURE["name"] for m in frame.get("measures", [])):
             frame["measures"] = [*(frame.get("measures") or [{"name": "score"}]), dict(CONFIDENCE_MEASURE)]
-    elif kept is not None:
-        frame["measures"] = [m for m in frame.get("measures", []) if m.get("name") != CONFIDENCE_MEASURE["name"]]
+    if kept is not None and confidence_scale != kept:
+        if confidence is None:
+            frame["measures"] = [m for m in frame.get("measures", []) if m.get("name") != CONFIDENCE_MEASURE["name"]]
+        # The old declaration goes with it unless a score scale still uses it.
+        if all(c["defaultMeasurement"]["scale"] != kept for c in out):
+            declared.pop(kept, None)
     frame["scales"] = [declared[k] for k in sorted(declared)]
     # Merged before the write, so anything that can raise does so with nothing
     # stored: a retry then sees the same before-state and the same revision.

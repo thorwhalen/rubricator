@@ -142,6 +142,7 @@ def test_a_confidence_scale_with_no_cells_can_be_removed() -> None:
     frame = store.frame("a")
     assert all("confidence" not in (c.get("measurements") or {}) for c in frame["criteria"])
     assert [m["name"] for m in frame["measures"]] == ["score"]
+    assert [d["id"] for d in frame["scales"]] == ["ordinal-1-5-anchored"]
     assert out["supersededCells"]["count"] == 0
     with pytest.raises(ValueError, match='measure "confidence" is not one this analysis declares'):
         _write(store, ("x", "c2", "confidence", 1))
@@ -176,3 +177,18 @@ def test_re_declaring_the_same_confidence_scale_is_no_change() -> None:
     store = _store(confidence_scale="confidence-1-3")
     _write(store, ("x", "c1", "confidence", 2))
     assert _criteria(store, confidence_scale="confidence-1-3")["revised"] == []
+
+
+def test_a_confidence_scale_with_no_cells_can_be_changed(monkeypatch) -> None:
+    from rubricator.tools import analysis
+
+    wider = {**analysis.SCALE_PRESETS["confidence-1-3"], "measurement": {
+        **analysis.SCALE_PRESETS["confidence-1-3"]["measurement"], "range": {"min": 1, "max": 5}}}
+    monkeypatch.setitem(analysis.SCALE_PRESETS, "confidence-1-5", wider)
+    store = _store(confidence_scale="confidence-1-3")
+    _write(store, ("x", "c1", "score", 3))
+    out = _criteria(store, confidence_scale="confidence-1-5")
+    frame = store.frame("a")
+    assert {c["measurements"]["confidence"]["scale"] for c in frame["criteria"]} == {"confidence-1-5"}
+    assert sorted(d["id"] for d in frame["scales"]) == ["confidence-1-5", "ordinal-1-5-anchored"]
+    assert out["supersededCells"]["count"] == 0 and not any(r["material"] for r in out["revised"])
