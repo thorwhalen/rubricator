@@ -1,0 +1,36 @@
+{
+ "schemaVersion": 1,
+ "id": "seed-library",
+ "createdAt": "2026-09-30T10:00:00Z",
+ "subject": {"question": "Which catalogue app should the Thornbury seed library adopt?", "decision": "one catalogue app for the lending desk and the website", "decider": "the seed library's steering group"},
+ "alternatives": [
+  {"id": "sprigg", "label": "Sprigg"},
+  {"id": "kernelry", "label": "Kernelry"},
+  {"id": "loamly", "label": "Loamly"}
+ ],
+ "criteria": [
+  {"id": "yearly-cost", "label": "Yearly cost", "missingCodes": [],
+   "definition": {"question": "What does the app cost per year, at the published price for a library of our size?"},
+   "defaultMeasurement": {"level": "ordinal", "levels": [1, 2, 3, 4, 5], "range": {"min": 1, "max": 5}, "preference": "none", "scale": "ordinal-1-5"},
+   "measurements": {"confidence": {"level": "ordinal", "levels": [1, 2, 3], "range": {"min": 1, "max": 3}, "preference": "increasing", "scale": "confidence-1-3"}}},
+  {"id": "volunteer-effort", "label": "Volunteer effort", "missingCodes": [],
+   "definition": {"question": "How many volunteer hours a week does running the app take, including learning it?"},
+   "defaultMeasurement": {"level": "ordinal", "levels": [1, 2, 3, 4, 5], "range": {"min": 1, "max": 5}, "preference": "increasing", "scale": "ordinal-1-5"},
+   "measurements": {"confidence": {"level": "ordinal", "levels": [1, 2, 3], "range": {"min": 1, "max": 3}, "preference": "increasing", "scale": "confidence-1-3"}}},
+  {"id": "ease-of-use", "label": "Ease of use", "missingCodes": [],
+   "definition": {"question": "How quickly can a new volunteer learn to lend and return seed packets with it?"},
+   "defaultMeasurement": {"level": "ordinal", "levels": [1, 2, 3, 4, 5], "range": {"min": 1, "max": 5}, "preference": "increasing", "scale": "ordinal-1-5"},
+   "measurements": {"confidence": {"level": "ordinal", "levels": [1, 2, 3], "range": {"min": 1, "max": 3}, "preference": "increasing", "scale": "confidence-1-3"}}},
+  {"id": "offline-mode", "label": "Offline mode", "missingCodes": [],
+   "defaultMeasurement": {"level": "ordinal", "levels": [1, 2, 3, 4, 5], "range": {"min": 1, "max": 5}, "preference": "increasing", "scale": "ordinal-1-5"},
+   "measurements": {"confidence": {"level": "ordinal", "levels": [1, 2, 3], "range": {"min": 1, "max": 3}, "preference": "increasing", "scale": "confidence-1-3"}}}
+ ],
+ "measures": [{"name": "score"}, {"name": "confidence", "label": "Confidence"}],
+ "scales": [
+  {"id": "ordinal-1-5", "broader": "stevens", "means": "Five ordered levels, 5 best, as the consultant used them.", "params": {}},
+  {"id": "confidence-1-3", "broader": "stevens", "means": "Three ordered levels of confidence.", "params": {}}
+ ],
+ "authors": [], "cells": [], "groups": [], "inapplicable": [], "missingCodes": [], "procedures": [],
+ "reductions": [], "rejectedCriteria": [], "renditions": [], "rounds": [], "suggestions": [], "threads": [],
+ "defaultReduction": "single"
+}
