@@ -4,6 +4,7 @@ See :mod:`rubricator.evaluation.harness` for the runner and what a report record
 """
 
 from rubricator.evaluation.adherence import ADHERENCE_SUITE, DEFERRAL_ADHERENCE, INVENTED_CRITERIA
+from rubricator.evaluation.discrimination import DISCRIMINATION_SUITE, confidence_report, gate_failures
 from rubricator.evaluation.harness import (
     HARNESS_VERSION,
     MIN_ANALYSES_FOR_INTERVAL,
@@ -20,6 +21,7 @@ from rubricator.evaluation.harness import (
 )
 
 __all__ = [
+    "DISCRIMINATION_SUITE", "confidence_report", "gate_failures",
     "ADHERENCE_SUITE", "DEFERRAL_ADHERENCE", "INVENTED_CRITERIA",
     "HARNESS_VERSION", "MIN_ANALYSES_FOR_INTERVAL", "Fixture", "Metric", "Subject", "expected_subject", "load_fixtures",
     "report_store", "run_key", "run_suite", "save_report", "version_inputs",

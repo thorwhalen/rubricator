@@ -105,7 +105,8 @@ class Metric:
     ``None`` when the check does not apply to this fixture (a citation check on a
     fixture with no citations). Bump ``version`` whenever the definition
     changes: it is part of the run key, and a silently redefined metric is a
-    trend line that lies. The source of ``measure`` is fingerprinted into the key
+    trend line that lies. ``ordinal=True`` marks a measure whose numbers are ranks (``confidence``,
+    ADR-0012): the runner refuses it, because it would report a mean of them. The source of ``measure`` is fingerprinted into the key
     as well, where Python can read it, for the time the bump is forgotten.
 
     Each call gets its own copy of the fixture and of the produced analysis, so a
@@ -117,6 +118,7 @@ class Metric:
     tier: Tier
     measure: Callable[[Fixture, Mapping[str, Any]], float | None]
     description: str = ""
+    ordinal: bool = False
 
 
 @dataclass(frozen=True)
@@ -426,6 +428,13 @@ def _check_suite(suite: Sequence[Metric]) -> None:
     duplicates = sorted({n for n in names if names.count(n) > 1})
     if duplicates:
         raise ValueError(f"refused: metric names must be unique; repeated: {duplicates}")
+    ordinal = [m.name for m in suite if m.ordinal]
+    if ordinal:
+        raise ValueError(
+            f"refused: {ordinal} measure an ordinal scale, and the report averages each metric. "
+            "A mean of ordinal levels is meaningless (ADR-0008, ADR-0012): report the distribution "
+            "(rubricator.evaluation.discrimination.confidence_report) or a rate over it."
+        )
 
 
 def _value(metric: Metric, value: Any) -> float | None:
