@@ -50,6 +50,17 @@ document. A blank names WHICH kind it is -- `not-evidenced` when the sources are
 silent, `indeterminate` when they conflict, `not-assessed` when nobody has looked
 -- because those lead to different next actions and only the first two say
 anything about the subject.
+
+The method lives in this server's prompts, not in the tool descriptions. Before
+the first write, read `run-analysis` (`prompts_get` with name `run-analysis`, or
+the `run-analysis` prompt) and follow it: it hands each stage to its own prompt
+(`frame`, `enumerate-alternatives`, `propose-criteria`, `confirm-frame`,
+`score-cell`, `review`), read with `prompts_get` when that stage starts.
+
+The frame comes from the user, not from you: ask what decision the comparison
+serves, who decides, and what is still unclear, and call `frame_set` only with
+what they said. Nothing is scored until the user confirms the frame, the
+alternatives and the criteria (`frame_confirm`).
 """
 
 
