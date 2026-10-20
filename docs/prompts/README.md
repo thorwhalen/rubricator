@@ -21,7 +21,7 @@ bundle is servable from the CLI and the connector today. The connector also serv
 
 ## The set
 
-Ten prompts, mapped to the ADR-0005 stages. "Shipped" means the file exists and is served.
+Eleven prompts, mapped to the ADR-0005 stages. "Shipped" means the file exists and is served.
 
 | Prompt | Stage | Shipped | Job |
 |---|---|---|---|
@@ -36,6 +36,7 @@ Ten prompts, mapped to the ADR-0005 stages. "Shipped" means the file exists and 
 | `run-analysis` | — | **yes** | The whole pipeline, for a caller who wants one instruction: the six stages in order, each handed to its own prompt where one is shipped, the step-4 checkpoint skipped only on an explicit instruction (never on a hurry), a partial instruction honoured on the record (the rest marked `deferred` at once, never scored unasked), and the run closed by the review, not by a filled matrix. Every reply ends with a Stage / Scope / Next block. Evaluated by `scripts/run_analysis_adherence.py` over `docs/evaluation/run-analysis/` |
 | `resume` | — | **yes** | Pick up a durable partial analysis (ADR-0017): read the stored confirmation instead of re-asking it, restate the counts, all in cells, in a fixed block that keeps nobody-has-looked, set-aside-on-purpose and looked-and-blank apart (by what a code means, not its spelling), and propose one next step without starting it. Evaluated by `scripts/resume_adherence.py` over `docs/evaluation/resume/` |
 | `audit-existing` | — | **yes** | Given an analysis someone else made, find its weaknesses through three reads (`analysis_get` criteria view, `report_weaknesses`, `aggregate_assertions`) and no writes: uncited and thin cells, inference-only cells, recorded confidence above its evidence, criteria with no direction, overlap judged from the definitions and put to the author (never from the correlations), and criteria to redefine. The block ends `Changed: nothing`. Evaluated by `scripts/audit_existing_adherence.py` over `docs/evaluation/audit-existing/`, on a hand-authored analysis no verb here produced |
+| `add-criterion` | 3 | **yes** | One more criterion after the framing: the request laddered against the criteria already there (a duplicate, a revision of an existing one, a means or a vague wish becomes a question, not a column), the new one defined in full like a `propose-criteria` criterion, and the existing criteria sent back to `criteria_set` exactly as `analysis_get` returned them, so nothing is superseded. No cell is written: the new column is `not-assessed` because nobody has looked, and no existing cell is re-scored or blanked (ADR-0016 as amended: an addition changes what no stored score asserts). The criteria go back to the user before any of the column is scored. Evaluated by `scripts/add_criterion_adherence.py` over `docs/evaluation/add-criterion/`, which replays each `criteria_set` call against the real verb |
 
 ## The file contract
 

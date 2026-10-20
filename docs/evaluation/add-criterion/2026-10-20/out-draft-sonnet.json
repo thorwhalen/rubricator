@@ -1,0 +1,386 @@
+[
+ {
+  "scenarioId": "a1",
+  "calls": [
+   {
+    "tool": "criteria_set",
+    "arguments": {
+     "analysis_id": "kettles",
+     "criteria": [
+      {
+       "id": "repair-policy",
+       "label": "Repair policy",
+       "scale": "ordinal-1-5-anchored",
+       "preference": "increasing",
+       "anchors": [
+        {
+         "level": "1",
+         "text": "A source states the maker repairs nothing."
+        },
+        {
+         "level": "3",
+         "text": "A source states a repair policy that names some parts and no period."
+        },
+        {
+         "level": "5",
+         "text": "A source states a dated repair policy naming every part it covers."
+        }
+       ],
+       "missingCodes": [],
+       "definition": {
+        "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+        "exclusions": [
+         "How long spare parts are stocked; that is spare-parts."
+        ],
+        "missingRules": [
+         {
+          "code": "not-evidenced",
+          "when": "No source the maker publishes says."
+         },
+         {
+          "code": "indeterminate",
+          "when": "The maker's sources disagree."
+         }
+        ],
+        "objective": "A broken kettle is fixed rather than replaced",
+        "question": "What does the maker commit to repairing, and for how long?"
+       }
+      },
+      {
+       "id": "spare-parts",
+       "label": "Spare parts",
+       "scale": "ordinal-1-5-anchored",
+       "preference": "increasing",
+       "anchors": [
+        {
+         "level": "1",
+         "text": "A source states no spare parts are sold."
+        },
+        {
+         "level": "3",
+         "text": "A source states parts are stocked for under five years."
+        },
+        {
+         "level": "5",
+         "text": "A source states parts are stocked for ten years or more."
+        }
+       ],
+       "missingCodes": [],
+       "definition": {
+        "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+        "exclusions": [
+         "What the maker repairs itself; that is repair-policy."
+        ],
+        "missingRules": [
+         {
+          "code": "not-evidenced",
+          "when": "No source the maker publishes says."
+         },
+         {
+          "code": "indeterminate",
+          "when": "The maker's sources disagree."
+         }
+        ],
+        "objective": "A broken kettle is fixed rather than replaced",
+        "question": "For how long does the maker state it stocks spare parts?"
+       }
+      },
+      {
+       "id": "quietness",
+       "label": "Quietness",
+       "scale": "ordinal-1-5-anchored",
+       "preference": "increasing",
+       "anchors": [
+        {
+         "level": "1",
+         "text": "A source states a boiling noise above 65 dB."
+        },
+        {
+         "level": "3",
+         "text": "A source states a boiling noise between 50 and 65 dB."
+        },
+        {
+         "level": "5",
+         "text": "A source states a boiling noise below 50 dB."
+        }
+       ],
+       "missingCodes": [],
+       "definition": {
+        "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+        "exclusions": [
+         "Noise from the lid or switch."
+        ],
+        "missingRules": [
+         {
+          "code": "not-evidenced",
+          "when": "No source the maker publishes says."
+         },
+         {
+          "code": "indeterminate",
+          "when": "The maker's sources disagree."
+         }
+        ],
+        "objective": "The kitchen stays usable for calls",
+        "question": "How loud is the kettle while boiling, as the maker states it?"
+       }
+      },
+      {
+       "id": "boil-time",
+       "label": "Boil time, full kettle",
+       "preference": "decreasing",
+       "anchors": [
+        {
+         "level": "1",
+         "text": "A source states a full kettle boils in under 3 minutes."
+        },
+        {
+         "level": "3",
+         "text": "A source states a full kettle boils in 3 to 5 minutes."
+        },
+        {
+         "level": "5",
+         "text": "A source states a full kettle takes more than 5 minutes to boil."
+        }
+       ],
+       "definition": {
+        "objective": "The kettle is quick enough that the morning queue does not build up",
+        "question": "How long does this kettle take to boil a full kettle of water, as the maker states it?",
+        "evidenceRule": "The maker's manual or specification page stating the boil time for a full fill; an independent test timing a full fill counts as secondary; a general claim such as 'rapid boil' with no time does not count.",
+        "missingRules": [
+         {
+          "when": "No source gives a boil time for a full fill.",
+          "code": "not-evidenced"
+         },
+         {
+          "when": "Sources give different boil times for a full fill, or give a time only for part of a fill.",
+          "code": "indeterminate"
+         }
+        ],
+        "exclusions": [
+         "Noise while boiling; that is quietness.",
+         "Kettle capacity, i.e. how many cups a full kettle holds; this scores time, not volume.",
+         "Waiting caused by other people at the kettle."
+        ]
+       },
+       "provenance": {
+        "kind": "user-stated",
+        "quotes": [
+         "how long each one takes to boil a full kettle",
+         "Faster is better, obviously."
+        ]
+       }
+      }
+     ]
+    }
+   },
+   {
+    "tool": "frame_confirm",
+    "arguments": {
+     "analysis_id": "kettles",
+     "scope": "criteria"
+    }
+   }
+  ],
+  "reply": "Here is the new criterion, for you to confirm before anything is scored.\n\nBoil time, full kettle (boil-time), direction: decreasing.\nAnchors (1-5 scale, levels 1, 3, 5):\n- 1: A source states a full kettle boils in under 3 minutes.\n- 3: A source states a full kettle boils in 3 to 5 minutes.\n- 5: A source states a full kettle takes more than 5 minutes to boil.\nObjective: The kettle is quick enough that the morning queue does not build up\nQuestion: How long does this kettle take to boil a full kettle of water, as the maker states it?\nEvidence rule: The maker's manual or specification page stating the boil time for a full fill; an independent test timing a full fill counts as secondary; a general claim such as 'rapid boil' with no time does not count.\nIf missing: not-evidenced when no source gives a boil time for a full fill. indeterminate when sources give different boil times for a full fill, or give a time only for part of a fill.\nExclusions: Noise while boiling; that is quietness. Kettle capacity, i.e. how many cups a full kettle holds; this scores time, not volume. Waiting caused by other people at the kettle.\n\nYour words, quoted: \"how long each one takes to boil a full kettle\" and \"Faster is better, obviously.\" You stated the direction yourself (shorter is better).\nOverlap check: none of Repair policy, Spare parts or Quietness asks this, so I found nothing to put an indifference question about. The nearest is Quietness (same moment, boiling), kept apart by the first exclusion.\nMy proposals, not yours: the 3 and 5 minute thresholds in the anchors (I do not know the real spread of these three kettles, so please correct them), the evidence rule, the missing rules, the exclusions, and the wording of the objective, which I derived from \"The morning queue is awful\". Is this what you meant, and are the thresholds right?\nThe three existing criteria were written back exactly as they were; nothing in the new column is scored.\n\nAdded: boil-time — Boil time, full kettle (user-stated)\nCriteria version: 1\nNew column: 3 cells, not-assessed — nobody has looked\nExisting cells: unchanged — none re-scored, none blanked, none superseded\nYours to confirm: the anchor thresholds (3 and 5 minutes), the evidence rule, the missing rules, the exclusions, the objective wording\nNext: confirm the criteria (frame_confirm, scope criteria)"
+ },
+ {
+  "scenarioId": "a2",
+  "calls": [],
+  "reply": "I can't add \"sustainability\" yet: it could mean energy use, materials, recyclability or how long the kettle lasts, and I would be inventing the definition if I picked one (repair life is already covered by Repair policy and Spare parts). What do you mean by it here, and why does it matter for this decision, for example a report you have to file or something you want to avoid buying?"
+ },
+ {
+  "scenarioId": "a3",
+  "calls": [],
+  "reply": "I haven't added this, because the Spare parts criterion already asks it: \"For how long does the maker state it stocks spare parts?\", with anchors at under five years and ten years or more. Here is the question I need answered: picture two kettles identical in everything except that one maker stocks parts for more years. Spare parts already scores that difference, so is Spare parts what you want, and you are indifferent to a second column? If you want something different, such as the exact number of years instead of the bands, that would be a revision of Spare parts, and any cell already recorded under it would then answer the older definition and need re-scoring. Tell me the reason it should be separate and I will use it to keep the two apart."
+ },
+ {
+  "scenarioId": "a4",
+  "calls": [],
+  "reply": "That is a revision of Repair policy rather than a new criterion, so I have not added a column or changed anything. Making a policy that excludes the heating element count as bad changes what Repair policy means (its anchors and question), so every cell already recorded under it would answer the older definition and need re-scoring. Is that what you want? If so, tell me and we'll do it as a revision."
+ },
+ {
+  "scenarioId": "a5",
+  "calls": [
+   {
+    "tool": "criteria_set",
+    "arguments": {
+     "analysis_id": "kettles",
+     "criteria": [
+      {
+       "id": "repair-policy",
+       "label": "Repair policy",
+       "scale": "ordinal-1-5-anchored",
+       "preference": "increasing",
+       "anchors": [
+        {
+         "level": "1",
+         "text": "A source states the maker repairs nothing."
+        },
+        {
+         "level": "3",
+         "text": "A source states a repair policy that names some parts and no period."
+        },
+        {
+         "level": "5",
+         "text": "A source states a dated repair policy naming every part it covers."
+        }
+       ],
+       "missingCodes": [],
+       "definition": {
+        "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+        "exclusions": [
+         "How long spare parts are stocked; that is spare-parts."
+        ],
+        "missingRules": [
+         {
+          "code": "not-evidenced",
+          "when": "No source the maker publishes says."
+         },
+         {
+          "code": "indeterminate",
+          "when": "The maker's sources disagree."
+         }
+        ],
+        "objective": "A broken kettle is fixed rather than replaced",
+        "question": "What does the maker commit to repairing, and for how long?"
+       }
+      },
+      {
+       "id": "spare-parts",
+       "label": "Spare parts",
+       "scale": "ordinal-1-5-anchored",
+       "preference": "increasing",
+       "anchors": [
+        {
+         "level": "1",
+         "text": "A source states no spare parts are sold."
+        },
+        {
+         "level": "3",
+         "text": "A source states parts are stocked for under five years."
+        },
+        {
+         "level": "5",
+         "text": "A source states parts are stocked for ten years or more."
+        }
+       ],
+       "missingCodes": [],
+       "definition": {
+        "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+        "exclusions": [
+         "What the maker repairs itself; that is repair-policy."
+        ],
+        "missingRules": [
+         {
+          "code": "not-evidenced",
+          "when": "No source the maker publishes says."
+         },
+         {
+          "code": "indeterminate",
+          "when": "The maker's sources disagree."
+         }
+        ],
+        "objective": "A broken kettle is fixed rather than replaced",
+        "question": "For how long does the maker state it stocks spare parts?"
+       }
+      },
+      {
+       "id": "quietness",
+       "label": "Quietness",
+       "scale": "ordinal-1-5-anchored",
+       "preference": "increasing",
+       "anchors": [
+        {
+         "level": "1",
+         "text": "A source states a boiling noise above 65 dB."
+        },
+        {
+         "level": "3",
+         "text": "A source states a boiling noise between 50 and 65 dB."
+        },
+        {
+         "level": "5",
+         "text": "A source states a boiling noise below 50 dB."
+        }
+       ],
+       "missingCodes": [],
+       "definition": {
+        "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+        "exclusions": [
+         "Noise from the lid or switch."
+        ],
+        "missingRules": [
+         {
+          "code": "not-evidenced",
+          "when": "No source the maker publishes says."
+         },
+         {
+          "code": "indeterminate",
+          "when": "The maker's sources disagree."
+         }
+        ],
+        "objective": "The kitchen stays usable for calls",
+        "question": "How loud is the kettle while boiling, as the maker states it?"
+       }
+      },
+      {
+       "id": "energy-use",
+       "label": "Energy use per boil",
+       "preference": "decreasing",
+       "anchors": [
+        {
+         "level": "1",
+         "text": "A source states an energy use of under 105 Wh per litre boiled."
+        },
+        {
+         "level": "3",
+         "text": "A source states an energy use of 105 to 120 Wh per litre boiled."
+        },
+        {
+         "level": "5",
+         "text": "A source states an energy use of more than 120 Wh per litre boiled."
+        }
+       ],
+       "definition": {
+        "objective": "The kitchen uses little electricity, as the sustainability report counts it",
+        "question": "How much electricity does this kettle use to boil a litre of water, as the maker states it?",
+        "evidenceRule": "The maker's manual or specification page stating watt-hours per litre, or energy per boil together with the volume boiled; an independent test is secondary; a general claim such as 'energy efficient' with no figure does not count.",
+        "missingRules": [
+         {
+          "when": "No source gives watt-hours per litre or an energy-per-boil figure with its volume.",
+          "code": "not-evidenced"
+         },
+         {
+          "when": "Sources give different figures, or the test conditions do not settle which level applies.",
+          "code": "indeterminate"
+         }
+        ],
+        "exclusions": [
+         "Longevity, repairability and spare parts, even though a sustainability report may count them; those are repair-policy and spare-parts.",
+         "Standby or keep-warm consumption.",
+         "How long the boil takes."
+        ]
+       },
+       "provenance": {
+        "kind": "user-stated",
+        "quotes": [
+         "energy use per boil",
+         "Our sustainability report counts kitchen electricity, so lower is better",
+         "the makers publish watt-hours per litre"
+        ]
+       }
+      }
+     ]
+    }
+   },
+   {
+    "tool": "frame_confirm",
+    "arguments": {
+     "analysis_id": "kettles",
+     "scope": "criteria"
+    }
+   }
+  ],
+  "reply": "Here is the new criterion, for you to confirm before anything is scored.\n\nEnergy use per boil (energy-use), direction: decreasing.\nAnchors (1-5 scale, levels 1, 3, 5):\n- 1: A source states an energy use of under 105 Wh per litre boiled.\n- 3: A source states an energy use of 105 to 120 Wh per litre boiled.\n- 5: A source states an energy use of more than 120 Wh per litre boiled.\nObjective: The kitchen uses little electricity, as the sustainability report counts it\nQuestion: How much electricity does this kettle use to boil a litre of water, as the maker states it?\nEvidence rule: The maker's manual or specification page stating watt-hours per litre, or energy per boil together with the volume boiled; an independent test is secondary; a general claim such as 'energy efficient' with no figure does not count.\nIf missing: not-evidenced when no source gives watt-hours per litre or an energy-per-boil figure with its volume. indeterminate when sources give different figures, or the test conditions do not settle which level applies.\nExclusions: Longevity, repairability and spare parts, even though a sustainability report may count them; those are repair-policy and spare-parts. Standby or keep-warm consumption. How long the boil takes.\n\nYour words, quoted: \"energy use per boil\", \"Our sustainability report counts kitchen electricity, so lower is better\" and \"the makers publish watt-hours per litre\". You stated the direction yourself (lower is better).\nOverlap check: nothing existing asks about electricity, so no indifference question. I kept the wider idea of sustainability out on purpose (longevity and repair are already Repair policy and Spare parts); tell me if your report counts those under this column too.\nMy proposals, not yours: the Wh-per-litre thresholds in the anchors (105 and 120; I do not know what these three kettles publish, so please correct them), measuring per litre rather than per boil because that is what the makers publish, the evidence rule, the missing rules, the exclusions, and the objective wording.\nThe three existing criteria were written back exactly as they were; nothing in the new column is scored.\n\nAdded: energy-use — Energy use per boil (user-stated)\nCriteria version: 1\nNew column: 3 cells, not-assessed — nobody has looked\nExisting cells: unchanged — none re-scored, none blanked, none superseded\nYours to confirm: the anchor thresholds (105 and 120 Wh per litre), per-litre rather than per-boil unit, the evidence rule, the missing rules, the exclusions, the objective wording\nNext: confirm the criteria (frame_confirm, scope criteria)"
+ }
+]

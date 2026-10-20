@@ -1,0 +1,787 @@
+[
+ {
+  "id": "a1",
+  "request": "Can we also compare how long each one takes to boil a full kettle? The morning queue is awful. Faster is better, obviously.",
+  "toolResults": {
+   "analysis_get": {
+    "analysisId": "kettles",
+    "view": "criteria",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 7,
+     "superseded": 0,
+     "byKind": {
+      "scored": 1,
+      "settledBlank": 1,
+      "notApplicable": 0
+     },
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 7
+      }
+     ]
+    },
+    "criteria": [
+     {
+      "id": "repair-policy",
+      "label": "Repair policy",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states the maker repairs nothing."
+       },
+       {
+        "level": "3",
+        "text": "A source states a repair policy that names some parts and no period."
+       },
+       {
+        "level": "5",
+        "text": "A source states a dated repair policy naming every part it covers."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "How long spare parts are stocked; that is spare-parts."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "A broken kettle is fixed rather than replaced",
+       "question": "What does the maker commit to repairing, and for how long?"
+      }
+     },
+     {
+      "id": "spare-parts",
+      "label": "Spare parts",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states no spare parts are sold."
+       },
+       {
+        "level": "3",
+        "text": "A source states parts are stocked for under five years."
+       },
+       {
+        "level": "5",
+        "text": "A source states parts are stocked for ten years or more."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "What the maker repairs itself; that is repair-policy."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "A broken kettle is fixed rather than replaced",
+       "question": "For how long does the maker state it stocks spare parts?"
+      }
+     },
+     {
+      "id": "quietness",
+      "label": "Quietness",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states a boiling noise above 65 dB."
+       },
+       {
+        "level": "3",
+        "text": "A source states a boiling noise between 50 and 65 dB."
+       },
+       {
+        "level": "5",
+        "text": "A source states a boiling noise below 50 dB."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "Noise from the lid or switch."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "The kitchen stays usable for calls",
+       "question": "How loud is the kettle while boiling, as the maker states it?"
+      }
+     }
+    ],
+    "criteriaVersion": "1",
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 7 of 9 cell(s) outstanding (7 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   }
+  },
+  "expected": {
+   "action": "add",
+   "names": null
+  }
+ },
+ {
+  "id": "a2",
+  "request": "Add sustainability as a criterion.",
+  "toolResults": {
+   "analysis_get": {
+    "analysisId": "kettles",
+    "view": "criteria",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 7,
+     "superseded": 0,
+     "byKind": {
+      "scored": 1,
+      "settledBlank": 1,
+      "notApplicable": 0
+     },
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 7
+      }
+     ]
+    },
+    "criteria": [
+     {
+      "id": "repair-policy",
+      "label": "Repair policy",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states the maker repairs nothing."
+       },
+       {
+        "level": "3",
+        "text": "A source states a repair policy that names some parts and no period."
+       },
+       {
+        "level": "5",
+        "text": "A source states a dated repair policy naming every part it covers."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "How long spare parts are stocked; that is spare-parts."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "A broken kettle is fixed rather than replaced",
+       "question": "What does the maker commit to repairing, and for how long?"
+      }
+     },
+     {
+      "id": "spare-parts",
+      "label": "Spare parts",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states no spare parts are sold."
+       },
+       {
+        "level": "3",
+        "text": "A source states parts are stocked for under five years."
+       },
+       {
+        "level": "5",
+        "text": "A source states parts are stocked for ten years or more."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "What the maker repairs itself; that is repair-policy."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "A broken kettle is fixed rather than replaced",
+       "question": "For how long does the maker state it stocks spare parts?"
+      }
+     },
+     {
+      "id": "quietness",
+      "label": "Quietness",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states a boiling noise above 65 dB."
+       },
+       {
+        "level": "3",
+        "text": "A source states a boiling noise between 50 and 65 dB."
+       },
+       {
+        "level": "5",
+        "text": "A source states a boiling noise below 50 dB."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "Noise from the lid or switch."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "The kitchen stays usable for calls",
+       "question": "How loud is the kettle while boiling, as the maker states it?"
+      }
+     }
+    ],
+    "criteriaVersion": "1",
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 7 of 9 cell(s) outstanding (7 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   }
+  },
+  "expected": {
+   "action": "ask",
+   "names": null
+  }
+ },
+ {
+  "id": "a3",
+  "request": "Please add a column for how many years the maker keeps parts in stock.",
+  "toolResults": {
+   "analysis_get": {
+    "analysisId": "kettles",
+    "view": "criteria",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 7,
+     "superseded": 0,
+     "byKind": {
+      "scored": 1,
+      "settledBlank": 1,
+      "notApplicable": 0
+     },
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 7
+      }
+     ]
+    },
+    "criteria": [
+     {
+      "id": "repair-policy",
+      "label": "Repair policy",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states the maker repairs nothing."
+       },
+       {
+        "level": "3",
+        "text": "A source states a repair policy that names some parts and no period."
+       },
+       {
+        "level": "5",
+        "text": "A source states a dated repair policy naming every part it covers."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "How long spare parts are stocked; that is spare-parts."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "A broken kettle is fixed rather than replaced",
+       "question": "What does the maker commit to repairing, and for how long?"
+      }
+     },
+     {
+      "id": "spare-parts",
+      "label": "Spare parts",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states no spare parts are sold."
+       },
+       {
+        "level": "3",
+        "text": "A source states parts are stocked for under five years."
+       },
+       {
+        "level": "5",
+        "text": "A source states parts are stocked for ten years or more."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "What the maker repairs itself; that is repair-policy."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "A broken kettle is fixed rather than replaced",
+       "question": "For how long does the maker state it stocks spare parts?"
+      }
+     },
+     {
+      "id": "quietness",
+      "label": "Quietness",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states a boiling noise above 65 dB."
+       },
+       {
+        "level": "3",
+        "text": "A source states a boiling noise between 50 and 65 dB."
+       },
+       {
+        "level": "5",
+        "text": "A source states a boiling noise below 50 dB."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "Noise from the lid or switch."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "The kitchen stays usable for calls",
+       "question": "How loud is the kettle while boiling, as the maker states it?"
+      }
+     }
+    ],
+    "criteriaVersion": "1",
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 7 of 9 cell(s) outstanding (7 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   }
+  },
+  "expected": {
+   "action": "ask",
+   "names": "spare-parts"
+  }
+ },
+ {
+  "id": "a4",
+  "request": "Add the heating element to the repair policy one: a policy that excludes the element should count as bad.",
+  "toolResults": {
+   "analysis_get": {
+    "analysisId": "kettles",
+    "view": "criteria",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 7,
+     "superseded": 0,
+     "byKind": {
+      "scored": 1,
+      "settledBlank": 1,
+      "notApplicable": 0
+     },
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 7
+      }
+     ]
+    },
+    "criteria": [
+     {
+      "id": "repair-policy",
+      "label": "Repair policy",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states the maker repairs nothing."
+       },
+       {
+        "level": "3",
+        "text": "A source states a repair policy that names some parts and no period."
+       },
+       {
+        "level": "5",
+        "text": "A source states a dated repair policy naming every part it covers."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "How long spare parts are stocked; that is spare-parts."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "A broken kettle is fixed rather than replaced",
+       "question": "What does the maker commit to repairing, and for how long?"
+      }
+     },
+     {
+      "id": "spare-parts",
+      "label": "Spare parts",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states no spare parts are sold."
+       },
+       {
+        "level": "3",
+        "text": "A source states parts are stocked for under five years."
+       },
+       {
+        "level": "5",
+        "text": "A source states parts are stocked for ten years or more."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "What the maker repairs itself; that is repair-policy."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "A broken kettle is fixed rather than replaced",
+       "question": "For how long does the maker state it stocks spare parts?"
+      }
+     },
+     {
+      "id": "quietness",
+      "label": "Quietness",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states a boiling noise above 65 dB."
+       },
+       {
+        "level": "3",
+        "text": "A source states a boiling noise between 50 and 65 dB."
+       },
+       {
+        "level": "5",
+        "text": "A source states a boiling noise below 50 dB."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "Noise from the lid or switch."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "The kitchen stays usable for calls",
+       "question": "How loud is the kettle while boiling, as the maker states it?"
+      }
+     }
+    ],
+    "criteriaVersion": "1",
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 7 of 9 cell(s) outstanding (7 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   }
+  },
+  "expected": {
+   "action": "ask",
+   "names": "repair-policy"
+  }
+ },
+ {
+  "id": "a5",
+  "request": "Add energy use per boil. Our sustainability report counts kitchen electricity, so lower is better; the makers publish watt-hours per litre.",
+  "toolResults": {
+   "analysis_get": {
+    "analysisId": "kettles",
+    "view": "criteria",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 7,
+     "superseded": 0,
+     "byKind": {
+      "scored": 1,
+      "settledBlank": 1,
+      "notApplicable": 0
+     },
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 7
+      }
+     ]
+    },
+    "criteria": [
+     {
+      "id": "repair-policy",
+      "label": "Repair policy",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states the maker repairs nothing."
+       },
+       {
+        "level": "3",
+        "text": "A source states a repair policy that names some parts and no period."
+       },
+       {
+        "level": "5",
+        "text": "A source states a dated repair policy naming every part it covers."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "How long spare parts are stocked; that is spare-parts."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "A broken kettle is fixed rather than replaced",
+       "question": "What does the maker commit to repairing, and for how long?"
+      }
+     },
+     {
+      "id": "spare-parts",
+      "label": "Spare parts",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states no spare parts are sold."
+       },
+       {
+        "level": "3",
+        "text": "A source states parts are stocked for under five years."
+       },
+       {
+        "level": "5",
+        "text": "A source states parts are stocked for ten years or more."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "What the maker repairs itself; that is repair-policy."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "A broken kettle is fixed rather than replaced",
+       "question": "For how long does the maker state it stocks spare parts?"
+      }
+     },
+     {
+      "id": "quietness",
+      "label": "Quietness",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states a boiling noise above 65 dB."
+       },
+       {
+        "level": "3",
+        "text": "A source states a boiling noise between 50 and 65 dB."
+       },
+       {
+        "level": "5",
+        "text": "A source states a boiling noise below 50 dB."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "Noise from the lid or switch."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "The kitchen stays usable for calls",
+       "question": "How loud is the kettle while boiling, as the maker states it?"
+      }
+     }
+    ],
+    "criteriaVersion": "1",
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 7 of 9 cell(s) outstanding (7 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   }
+  },
+  "expected": {
+   "action": "add",
+   "names": null
+  }
+ }
+]
