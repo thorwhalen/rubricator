@@ -114,3 +114,17 @@ Three changes to the stated-winner harness, then the eight borderline and two se
 - **The replacements did not add room.** b4, b6 and b8 came out 4, 3 and 3 in all 24 runs, as the cells they replaced never moved. b1, b3 and b4 were also constant, and b2 moved once. What moves is b7 (Mossnote's migration page: 2, 3, 4 or `indeterminate`) and b5 once. A cell an author believes has room is not one a model treats as open, so the eight hand-built cells cannot carry the comparison; the answer to #40 needs many cells and replicates, which is [#277](https://github.com/thorwhalen/rubricator/issues/277).
 - **Haiku moves more than Sonnet in every comparison, and the movement has no direction.** Five cell changes over the four named-vs-neutral comparisons against a rerun floor of one (b7 in both).
 - **What this does not establish:** two replicates, each world in one context, eight cells of which one or two move, cells written by the prompt's author; it cannot show the absence of an effect.
+
+## 2026-10-20 — `score-column` v1, harness arm 2 ([#73](https://github.com/thorwhalen/rubricator/issues/73))
+
+`score-column` scores one criterion for every alternative in one pass. It defers every per-cell rule to `score-cell` (the subject was given both, as `prompts_get` would serve them) and adds only the column's: the anchors are read once and held fixed, each alternative is judged alone on its own spans, nothing is ranked or spread, and the output is one `score-cell` emission per alternative. The twelve control cells were split into five columns so no column holds one alternative twice (`2026-10-20-column/columns.json`), and graded with `scripts/score_cell_adherence.py` as they stand, two runs per model.
+
+| arm | refusal to guess | right blank | right level | writes with no repair | dependsOn right | dependence caught | right confidence | downgrade counted |
+|---|---|---|---|---|---|---|---|---|
+| score-column v1, Sonnet a / b | 4/4, 4/4 | 4/4, 4/4 | 6/6, 6/6 | 12/12, 12/12 | 12/12, 12/12 | 2/2, 2/2 | 4/4, 4/4 | 1/1, 1/1 |
+| score-column v1, Haiku a / b | 4/4, 4/4 | 4/4, 4/4 | 6/6, 6/6 | 12/12, 12/12 | 12/12, 12/12 | 2/2, 2/2 | 4/4, 4/4 | 1/1, 1/1 |
+
+- **Refusal to guess, read first: 4/4 and the right blank 4/4 in every run.** No column filled a blank because its neighbours had levels.
+- **Every level and code equals the matching `score-cell` v5 run's** (same model, same run letter) on all twelve cells. On these cells the two arms do not separate, so this is evidence that the column prompt is usable as arm 2, not evidence about which arm holds a scale better: that needs cells where the scale can drift, which is #96 and [#277](https://github.com/thorwhalen/rubricator/issues/277).
+- One Haiku run returned the bare emission objects without the evaluation's `cellId` wrapper (an instruction about the output file, not the prompt), in column order; they were wrapped by position after checking each object's alternative and criterion.
+- **What this does not establish:** two runs per model, all five columns in one context per run, cells written by the prompt's author, columns of one to three alternatives.

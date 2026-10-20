@@ -517,7 +517,7 @@ as resource content blocks. Every one restates the ADR-0006 honesty rule in its 
 | `enumerate-alternatives` | `analysis_id` | frame, corpus index summary | 2 |
 | `propose-criteria` | `analysis_id`, `max_criteria?` | frame, alternatives, method, confidence rubric | 3 |
 | `confirm-frame` | `analysis_id` | frame, alternatives, criteria with definitions | 4 — the chat script for clients without elicitation |
-| `score-column` | `analysis_id`, `criterion_id` | criterion definition + anchors, alternatives, confidence rubric | 5 — **the default**, per the sibling scoring-order research |
+| `score-column` | `analysis_id`, `criterion_id` | criterion definition + anchors, alternatives, confidence rubric | 5 — harness arm 2 and a cheap mode, **not the default** (ADR-0011 makes `score-cell` the default; the sibling scoring-order research named this one, see the note at the top) |
 | `score-cell` | `analysis_id`, `alternative_id`, `criterion_id` | one criterion, one alternative, retrieved spans | 5 — for repair and for hard cells |
 | `review` | `analysis_id` | `report_weaknesses` output, criteria, method | 6 |
 | `audit-existing` | `analysis_uri` | method, confidence rubric | — |
