@@ -1,14 +1,15 @@
 ---
 id: propose-criteria
-version: 1
+version: 2
 stage: 3
 title: Propose the criteria, and the ladder that produced them
-updated: 2026-10-13
+updated: 2026-10-20
 missing-codes:
   - not-evidenced
   - indeterminate
   - not-applicable
 changelog:
+  - 2 (2026-10-20) — `ordered` is defined where preference is elicited: an order with no better end, excluded from dominance (comparanda's settled meaning, #118). Hypothesis: no criterion with a better end is proposed as `ordered`, so none drops out of the flagship comparison unnoticed; every v1 result holds.
   - 1 (2026-10-13) — First version. Revised once before landing against a blind run in which one model only asked about a requirement the user stated with "must" (or made it a column) instead of rejecting it as a means objective, mislabelled a brochure feature as user-rejected while the thing the user dismissed went unrecorded, and hid absences inside anchor clauses ("states X but does not state Y"); the second model paraphrased means objectives in exclusions where a checker needs the label. Revised again after an adversarial review: a feature only the alternatives' descriptions raise is not a candidate and is asked about rather than rejected (the worked example had taught the wrong reason code for it, #175); a means objective's exclusion begins with its label and the criterion's anchors describe the outcome, not the means; target and anchor levels are stated on the 1-5 scale; group imbalance is raised. Generates criteria by value-focused thinking (why is that important, up; what do you mean by that, down) and emits the objective ladder itself, so double-counting candidates are found by walking a graph with no model call rather than by correlating scores afterwards. Rejected candidates leave with a closed reason code, means objectives become the exclusions of the criteria they serve, overlapping siblings go to the user as indifference questions, and too many criteria are grouped with their sizes reported, never cut. Hypothesis: every proposal is accepted by criteria_set with no repair and no definition gaps, its ladder's leaves are exactly its criteria, and a means objective the user states is rejected as one rather than promoted to a column.
 ---
 
@@ -99,7 +100,10 @@ Each criterion has to be scoreable by someone who was not here. So each carries:
 - `id` (short, kebab-case, unique) and `label`.
 - No `scale`: every criterion here uses the analysis's default, the anchored 1-5 ordinal scale.
 - `preference` — the direction: `increasing` (more is better), `decreasing`, `target` (with a numeric
-  `target` that is a level on the 1-5 scale), `ordered` or `none`. State it; never leave it to a default. If the direction would flip
+  `target` that is a level on the 1-5 scale), `ordered` or `none`. `ordered` means the levels have an
+  order but **neither end is better**, and such a criterion takes no part in deciding which alternative
+  dominates another; if one end is better, the preference is `increasing` or `decreasing`, never
+  `ordered`. State it; never leave it to a default. If the direction would flip
   somewhere along the range — a percentage whose base differs between alternatives is the usual
   trap — the criterion is not well defined yet: split it, or ask.
 - `anchors` at levels `"1"`, `"3"` and `"5"` (the level is a string), each written as an **evidence condition** — "a source states
