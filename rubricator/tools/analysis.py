@@ -551,6 +551,7 @@ def criteria_set(
 
         if anchors:
             problems.extend(_anchor_level_problems(c.get("id"), measurement, anchors))
+            problems.extend(_absence_anchor_problems(c.get("id"), anchors))
         criterion_codes = [dict(d) for d in c.get("missingCodes", [])]
         definition = c.get("definition")
         if definition is not None:
@@ -1327,6 +1328,58 @@ def _apply_preference(
         return [f'{where} declares a "target" but its preference is "{pref}", not "target".']
     measurement["preference"] = pref
     return []
+
+
+#: An anchor worded as an absence of evidence: met precisely when there is nothing to
+#: quote, so no span can support it (#124). Phrases about the *sources* being silent,
+#: never about the subject lacking something ("no commitment" is a condition a source
+#: can state).
+_ABSENCE_ANCHOR = re.compile(
+    r"\bno (?:sources?|documents?|documentation|evidence|mentions?|information|records?|references?)\b"
+    r"|\bnone of the (?:sources|documents)\b"
+    r"|\bnothing (?:is |was )?(?:stated|said|documented|published|found|mentioned)\b"
+    r"|\b(?:not|never) (?:stated|mentioned|documented|published|disclosed|reported|specified)\b"
+    r"|\b(?:sources?|documents?|documentation) (?:is |are )?silent\b",
+    re.IGNORECASE,
+)
+#: What makes an absence phrase the content of a statement rather than the anchor's
+#: condition: "a source states there is no documentation" is quotable.
+_AFFIRMED_BY_A_SOURCE = re.compile(
+    r"\b(?:a|the|one|at least one|some) (?:sources?|documents?|vendor|page|manual|spec(?:ification)?)"
+    r" (?:explicitly )?(?:states?|says|confirms?|reports?|shows?)\b",
+    re.IGNORECASE,
+)
+
+
+def _absence_anchor_problems(criterion_id: Any, anchors: Mapping[str, Any]) -> list[str]:
+    """Anchors worded as an absence of evidence, refused at authoring (#124, ADR-0012).
+
+    ``"no source states where data is stored"`` cannot be met by a quote: it is
+    satisfied when there is nothing to quote, so the same fact pattern reads as a
+    confident score or as ``not-evidenced`` depending on which rule the scorer reads
+    first. A string-shape check, so a tool's to make, not a judgement.
+
+    >>> [p.split(" worded")[0] for p in _absence_anchor_problems("c", {
+    ...     "1": "no source states where data is stored",
+    ...     "3": "a source states there is no EU region", "5": "no commitment"})]
+    ['criterion "c" has an anchor at level 1']
+    >>> _absence_anchor_problems("c", {"1": "a source states there is no documentation"})
+    []
+    """
+    found = []
+    for level, text in anchors.items():
+        if not isinstance(text, str) or not _ABSENCE_ANCHOR.search(text):
+            continue
+        if _AFFIRMED_BY_A_SOURCE.search(text):
+            continue
+        found.append(
+            f'criterion "{criterion_id}" has an anchor at level {level} worded as an absence of '
+            f'evidence ("{text}"). It is met precisely when there is nothing to quote, so no span '
+            "can support it and every cell would be scored not-evidenced. Word it as something a "
+            'source states: "no source states X" becomes "a source states there is no X", or '
+            "define the level by what a source does say at that end of the scale."
+        )
+    return found
 
 
 def _anchor_level_problems(

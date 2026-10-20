@@ -230,3 +230,16 @@ has now confirmed in person, and which the scale-length arm of the evaluation su
 confirm or reopen against measurement rather than argument.
 
 Refs #17.
+
+### 2026-10-20 — not absences either: the third clause, enforced at authoring (#124)
+
+- **Status:** accepted
+- **Date:** 2026-10-20
+
+The Decision says anchors are **evidence conditions** ("a source states X"), not evaluative adjectives. That reads as a complete list, and it is not. There is a third shape, which is neither: an anchor worded as an **absence of evidence**, such as `1 = "no source states where data is stored"`. No quote can meet it, because it is satisfied precisely when there is nothing to quote. Two blind adherence checks on `score-cell` found that the same fact pattern then scores as a confident `1` or as `not-evidenced`, depending on which rule the scorer reads first.
+
+**So anchors are evidence conditions: not adjectives, and not absences either.** The rewrite is mechanical. `"no source states X"` becomes `"a source states there is no X"`, which can be quoted, or the level is defined by what a source *does* say at that end of the scale. An anchor about the subject lacking something (`"no commitment"`) is a condition a source can state, and is not an absence of evidence.
+
+**Enforced where the criterion is written.** `criteria_set` refuses an anchor whose text describes the sources as silent ("no source / documentation / evidence …", "not stated / documented / published …", "the sources are silent", "nothing is published …"), unless the text says a source affirms it ("a source states there is no …"). This is a string-shape check, so it belongs to a tool, not to a judgement. The refusal carries the rewrite. Reading never raises (ADR-0021), so a criterion authored elsewhere and imported can still carry such an anchor. That is why `score-cell` keeps its paragraph that turns such an anchor into `not-evidenced`, with a note that the anchor cannot be scored. The paragraph is now the fallback for imported documents, not the first line of defence.
+
+**Two smaller points the same checks surfaced, recorded here because the prompt layer already holds them.** Enforcement rule 3's downgrade for scoring across a contradiction is **one step** of confidence. Levels 2 and 4 of the default scale carry no anchor and are legal: they are structurally between their neighbours, and a score there says the evidence meets more than the lower anchor and less than the upper one.

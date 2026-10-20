@@ -27,7 +27,7 @@ from rubricator.surface.frozen import CELL
 MOMENT = "2026-10-13T12:00:00Z"
 AUTHOR = {"id": "scorer", "displayName": "Scorer", "kind": "agent",
           "agent": {"name": "rubricator", "promptVersion": "score-cell@2"}}
-ANCHORS = [{"level": "1", "text": "no source states a commitment"},
+ANCHORS = [{"level": "1", "text": "a source states there is no commitment"},
            {"level": "3", "text": "a source states an undated commitment"},
            {"level": "5", "text": "a source states a dated commitment"}]
 BESIDE_THE_CELL = {"confidence", "dependsOn"}
