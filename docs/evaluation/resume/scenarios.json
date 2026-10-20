@@ -1836,5 +1836,294 @@
     }
    ]
   }
+ },
+ {
+  "id": "s13",
+  "toolResults": {
+   "analysis_get": {
+    "analysisId": "kettles",
+    "view": "outstanding",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 3,
+     "superseded": 0,
+     "byKind": {
+      "scored": 4,
+      "settledBlank": 2,
+      "notApplicable": 0
+     },
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 3
+      }
+     ]
+    },
+    "outstanding": [
+     {
+      "alternativeId": "brindle",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     }
+    ],
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 3 of 9 cell(s) outstanding (3 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   },
+   "frame_confirm": {
+    "analysisId": "kettles",
+    "confirmed": true,
+    "mechanism": "recorded",
+    "record": {
+     "authorId": "Ana",
+     "at": "2026-10-12T09:30:00Z",
+     "text": "Yes, those three criteria, go ahead.",
+     "criteriaVersion": "1",
+     "decision": "confirm",
+     "scope": "all",
+     "mechanism": "out-of-band"
+    },
+    "instructions": null,
+    "summary": "already confirmed by Ana at 2026-10-12T09:30:00Z; nothing to ask"
+   }
+  },
+  "expected": {
+   "confirmation": "confirmed",
+   "nobody": 3,
+   "aside": 0,
+   "blank": 2,
+   "scored": 4,
+   "rescore": 0,
+   "na": 0,
+   "next": "score",
+   "cells": 9,
+   "entities": [
+    {
+     "axis": "alternative",
+     "id": "brindle",
+     "aliases": [
+      "brindle"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "alternative",
+     "id": "copperleaf",
+     "aliases": [
+      "copperleaf"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "alternative",
+     "id": "tamsin",
+     "aliases": [
+      "tamsin"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "criterion",
+     "id": "repair-policy",
+     "aliases": [
+      "repair policy",
+      "repair-policy"
+     ],
+     "outstanding": false
+    },
+    {
+     "axis": "criterion",
+     "id": "spare-parts",
+     "aliases": [
+      "spare parts",
+      "spare-parts"
+     ],
+     "outstanding": false
+    },
+    {
+     "axis": "criterion",
+     "id": "noise",
+     "aliases": [
+      "noise"
+     ],
+     "outstanding": true
+    }
+   ]
+  }
+ },
+ {
+  "id": "s14",
+  "toolResults": {
+   "analysis_get": {
+    "analysisId": "kettles",
+    "view": "outstanding",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 6,
+     "superseded": 0,
+     "byKind": {
+      "scored": 2,
+      "settledBlank": 1,
+      "notApplicable": 0
+     },
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 6
+      }
+     ]
+    },
+    "outstanding": [
+     {
+      "alternativeId": "brindle",
+      "criterionId": "spare-parts",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "brindle",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "spare-parts",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "spare-parts",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "noise",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     }
+    ],
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 6 of 9 cell(s) outstanding (6 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   },
+   "frame_confirm": {
+    "analysisId": "kettles",
+    "confirmed": true,
+    "mechanism": "recorded",
+    "record": {
+     "authorId": "Ana",
+     "at": "2026-10-12T09:30:00Z",
+     "text": "Yes, those three criteria, go ahead.",
+     "criteriaVersion": "1",
+     "decision": "confirm",
+     "scope": "all",
+     "mechanism": "out-of-band"
+    },
+    "instructions": null,
+    "summary": "already confirmed by Ana at 2026-10-12T09:30:00Z; nothing to ask"
+   }
+  },
+  "expected": {
+   "confirmation": "confirmed",
+   "nobody": 6,
+   "aside": 0,
+   "blank": 1,
+   "scored": 2,
+   "rescore": 0,
+   "na": 0,
+   "next": "score",
+   "cells": 9,
+   "entities": [
+    {
+     "axis": "alternative",
+     "id": "brindle",
+     "aliases": [
+      "brindle"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "alternative",
+     "id": "copperleaf",
+     "aliases": [
+      "copperleaf"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "alternative",
+     "id": "tamsin",
+     "aliases": [
+      "tamsin"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "criterion",
+     "id": "repair-policy",
+     "aliases": [
+      "repair policy",
+      "repair-policy"
+     ],
+     "outstanding": false
+    },
+    {
+     "axis": "criterion",
+     "id": "spare-parts",
+     "aliases": [
+      "spare parts",
+      "spare-parts"
+     ],
+     "outstanding": true
+    },
+    {
+     "axis": "criterion",
+     "id": "noise",
+     "aliases": [
+      "noise"
+     ],
+     "outstanding": true
+    }
+   ]
+  }
  }
 ]

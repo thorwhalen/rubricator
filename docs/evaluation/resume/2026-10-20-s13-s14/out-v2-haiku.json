@@ -1,0 +1,10 @@
+[
+  {
+    "scenarioId": "s13",
+    "output": "The analysis \"kettles\" (which kettle should the office buy?) is at stage 5, populate. Ana confirmed the three criteria on 12 October, so nothing needs asking again. Six of the nine cells are settled: four are scored and two are looked-at blanks. The three cells nobody has looked at yet are the noise criterion for brindle, copperleaf and tamsin.\n\n```\nConfirmed: Ana at 2026-10-12T09:30:00Z, criteria version 1\nNobody has looked: 3 cells\nSet aside on purpose: 0 cells\nRe-score after a criteria change: 0 cells\nScored: 4 cells\nLooked, answer is a blank: 2 cells\nNot applicable: 0 cells\nNext: score — score the noise criterion for brindle, copperleaf and tamsin.\n```"
+  },
+  {
+    "scenarioId": "s14",
+    "output": "The analysis \"kettles\" (which kettle should the office buy?) is at stage 5, populate. Ana confirmed the three criteria on 12 October, so nothing needs asking again. Two cells are scored and one is a looked-at blank. The six cells nobody has looked at yet are the spare-parts and noise criteria for each of brindle, copperleaf and tamsin. Nothing is set aside, and no cell answers an older criteria definition.\n\n```\nConfirmed: Ana at 2026-10-12T09:30:00Z, criteria version 1\nNobody has looked: 6 cells\nSet aside on purpose: 0 cells\nRe-score after a criteria change: 0 cells\nScored: 2 cells\nLooked, answer is a blank: 1 cell\nNot applicable: 0 cells\nNext: score — score the spare-parts and noise cells for brindle, copperleaf and tamsin.\n```"
+  }
+]
