@@ -25,7 +25,8 @@ span, widened to ``window_chars`` of the document around it for reading;
 document every quote resolves against, and ``spanId`` names the span itself.
 
 **An empty query reads the whole corpus** when it is under
-:data:`INLINE_THRESHOLD_TOKENS` (estimated at four characters a token), and is
+:data:`INLINE_THRESHOLD_TOKENS` (estimated by
+:func:`rubricator.tools.corpus.token_estimate`), and is
 refused above it with the threshold and the size. That is the one documented
 behaviour ADR-0010 asks for, so whether to inline is never a branch left to the
 model's judgement.
@@ -46,11 +47,18 @@ from rubricator.lexical import (
     TOKENIZER_ID,
     UNICODE_VERSION,
     contains_phrase,
+    drifted,
     terms,
     tokens,
 )
 from rubricator.store import AnalysisStore
-from rubricator.tools.corpus import CHARS_PER_TOKEN, CHUNKER_ID, INGEST_RECORD, MARKER_RECORD
+from rubricator.tools.corpus import (
+    CHUNKER_ID,
+    INGEST_RECORD,
+    MARKER_RECORD,
+    TOKEN_ESTIMATE_RULE,
+    token_estimate,
+)
 from rubricator.tools.views import skipped_note
 
 __all__ = [
@@ -87,10 +95,6 @@ SCORE_DIGITS = 6
 
 def _refuse(message: str) -> ValueError:
     return ValueError(f"refused, nothing was searched: {message}")
-
-
-def _estimate(text: str) -> int:
-    return math.ceil(len(text) / CHARS_PER_TOKEN)
 
 
 def _spans(record: Any, content: str) -> list[tuple[int, int]] | None:
@@ -135,6 +139,13 @@ def corpus_search(
     documentId, start)``; nothing is fetched and nothing is written.
     ``must_include`` keeps only spans holding every one of its phrases.
     """
+    stale = drifted()
+    if stale:
+        raise _refuse(
+            f"{', '.join(stale)} no longer behave as their pins record, so this build would rank "
+            "spans differently from every other build of the same ids. Restore them, or add a "
+            "new version beside them."
+        )
     # JSON Schema's integer admits 2.0; a slice does not (review of #226).
     k, window_chars = (int(v) if isinstance(v, float) and v.is_integer() else v
                        for v in (k, window_chars))
@@ -299,13 +310,13 @@ def _inline(
     were not, so a narrowed or filtered read never passes for the whole corpus.
     """
     kept = [rid for rid in chosen if all(contains_phrase(contents[rid], p) for p in required)]
-    size = sum(_estimate(contents[rid]) for rid in kept)
+    size = sum(token_estimate(contents[rid]) for rid in kept)
     if size > INLINE_THRESHOLD_TOKENS:
         raise _refuse(
             f"an empty query returns the whole corpus, which is inlined only under "
             f"{INLINE_THRESHOLD_TOKENS:,} tokens (ADR-0010: past that a client truncates the "
-            f"result) and is about {size:,} tokens here, estimated at {CHARS_PER_TOKEN} characters "
-            "a token. Pass a non-empty query to retrieve spans, or narrow document_ids."
+            f"result) and is about {size:,} tokens here, estimated at {TOKEN_ESTIMATE_RULE}. "
+            "Pass a non-empty query to retrieve spans, or narrow document_ids."
         )
     hits = [
         {"spanId": f"{rid}:0-{len(contents[rid])}", "documentId": rid, "start": 0,

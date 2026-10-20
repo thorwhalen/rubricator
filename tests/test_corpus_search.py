@@ -228,6 +228,23 @@ def test_an_empty_query_over_a_large_corpus_is_refused_with_the_threshold_and_th
     assert dict(runtime.store.blobs) == before
 
 
+def test_cjk_text_under_the_old_four_character_estimate_is_refused_too() -> None:
+    """#227: 90,000 CJK characters were estimated at 22,500 tokens, and inlined."""
+    big = {"id": "cjk", "text": "数据存储于欧盟境内。" * 9_000, "agentProduced": False}
+    assert len(big["text"]) / 4 < INLINE_THRESHOLD_TOKENS
+    runtime, verbs, _ = _verbs(sources=[big], chunking=None)
+    with pytest.raises(ValueError, match=r"about 90,000 tokens.*ASCII characters a token"):
+        verbs["corpus_search"](analysis_id="a1", query="")
+
+
+def test_a_search_on_a_drifted_tokenizer_is_refused(monkeypatch) -> None:
+    """#227: corpus_add refuses on a drifted normaliser; corpus_search on a drifted tokenizer."""
+    _, verbs, _ = _verbs()
+    monkeypatch.setitem(lexical.PINS, "lex-v1", "0" * 64)
+    with pytest.raises(ValueError, match=r"refused, nothing was searched: lex-v1 no longer"):
+        verbs["corpus_search"](analysis_id="a1", query="kettle")
+
+
 # --- finding nothing is never silent ------------------------------------------
 
 

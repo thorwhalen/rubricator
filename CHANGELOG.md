@@ -7,6 +7,14 @@ the same label are measuring different things, and the failure mode is silent.
 
 ---
 
+## 2026-10-20 — `tokenEstimate` counts a character outside ASCII as a token
+
+`corpus_add`'s `tokenEstimate` and `corpusTokenEstimate`, and the size `corpus_search` checks against the ADR-0010 inline threshold, were four characters a token for every script. For CJK text that is several times too low: 90,000 CJK characters were estimated at 22,500 tokens and inlined under a 25,000-token threshold ([#227](https://github.com/thorwhalen/rubricator/issues/227)). The estimate is now four ASCII characters a token and one token for every other character (`rubricator.tools.corpus.token_estimate`).
+
+**The boundary.** For ASCII text nothing moved. For any text with characters outside ASCII the estimate is now higher, sometimes several times higher, so an estimate before this date and one after it are not the same quantity for such text. Accented Latin, Cyrillic and Greek are now over-counted, which errs toward a refusal rather than a silent truncation.
+
+---
+
 ## 2026-10-12 — "Schema v1" now means the frozen, closed contract
 
 Re-vendors `comparanda.v1.json` and `vocabularies.v1.json` from the companion repository's immutable `schema-v1` tag ([thorwhalen/comparanda#57](https://github.com/thorwhalen/comparanda/issues/57), settled here in [#134](https://github.com/thorwhalen/rubricator/issues/134)). Each file is now pinned by sha256 in `rubricator/schema/pins.py`, and a test fails if the bytes move.
