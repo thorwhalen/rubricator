@@ -179,9 +179,10 @@ def test_a_criteria_revision_keeps_the_gate_open_and_says_the_set_moved() -> Non
     got = verbs["frame_confirm"](analysis_id="a1")
     assert got["confirmed"] is True and 'now at "2"' in got["summary"]
     assert got["instructions"] == OUT_OF_BAND_INSTRUCTIONS
+    assert "scope criteria)" in got["summary"]
     # Following that advice records a fresh confirm of the new version.
-    again = verbs["frame_confirm"](analysis_id="a1", decision="confirm", confirmed_by="ana",
-                                   confirmation_text="Yes, version 2 too.")
+    again = verbs["frame_confirm"](analysis_id="a1", scope="criteria", decision="confirm",
+                                   confirmed_by="ana", confirmation_text="Yes, version 2 too.")
     assert again["record"]["criteriaVersion"] == "2"
     assert "nothing to ask" in verbs["frame_confirm"](analysis_id="a1")["summary"]
 
@@ -392,8 +393,14 @@ def test_a_swapped_frame_is_put_to_the_user_again_not_reported_confirmed() -> No
     assert "nothing to ask" not in got["summary"]
     assert "alternatives added or changed: k2" in got["summary"]
     assert "criteria added: support" in got["summary"]
+    # Only what moved is put again (#212): the frame Ana confirmed is not re-invited.
+    assert "scope alternatives+criteria" in got["summary"]
+    wider = verbs["frame_confirm"](analysis_id="a1", decision="confirm", confirmed_by="ana",
+                                   confirmation_text="Yes, the new ones too.")
+    assert wider["record"] is None and "put for alternatives+criteria only" in wider["summary"]
     # A fresh confirm answers the new question, and covers what is there now.
-    again = verbs["frame_confirm"](analysis_id="a1", decision="confirm", confirmed_by="ana",
+    again = verbs["frame_confirm"](analysis_id="a1", scope="alternatives+criteria",
+                                   decision="confirm", confirmed_by="ana",
                                    confirmation_text="Yes, the new ones too.")
     assert again["confirmed"] is True
     assert "nothing to ask" in verbs["frame_confirm"](analysis_id="a1")["summary"]

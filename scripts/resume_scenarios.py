@@ -152,8 +152,9 @@ def s7_reconfirmed_rescore():
     verbs["criteria_set"](analysis_id="kettles", criteria=[
         {"id": c, "label": c.replace("-", " "), "anchors": ANCHORS} for c in CRITERIA[:2]] + revised)
     verbs["frame_confirm"](analysis_id="kettles")
-    verbs["frame_confirm"](analysis_id="kettles", decision="confirm", confirmed_by="Ana",
-                           confirmation_text="Yes, the new noise anchors are right.")
+    # The re-ask names only what moved (#212), so the answer is recorded for the criteria.
+    verbs["frame_confirm"](analysis_id="kettles", scope="criteria", decision="confirm",
+                           confirmed_by="Ana", confirmation_text="Yes, the new noise anchors are right.")
     return _reads(verbs, clock), dict(confirmation="confirmed", nobody=0, aside=0, blank=0, scored=9,
                                       rescore=3, na=0, next="rescore")
 
