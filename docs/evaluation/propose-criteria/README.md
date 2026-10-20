@@ -6,6 +6,20 @@ Invented decisions, each with a proposal written blind by a model following the 
 
     python scripts/propose_criteria_adherence.py docs/evaluation/propose-criteria/frames.json docs/evaluation/propose-criteria/2026-10-13/out-*.json
 
+## 2026-10-20: v2 ([#118](https://github.com/thorwhalen/rubricator/issues/118))
+
+v2 defines `ordered` where preference is elicited: the levels have an order, but neither end is better, so the criterion takes no part in dominance. This is comparanda's settled meaning. The arm is Haiku only, because it is the model more likely to read `ordered` as "has a direction". There were two blind replicates over f1–f5, graded by the same script.
+
+| arm | criteria_set, no repair, no gaps | ladder kept | means objective rejected | brochure trap avoided | user dismissal recorded | quotes verbatim | no absence anchor | `ordered` proposed |
+|---|---|---|---|---|---|---|---|---|
+| v1, Haiku (2026-10-13) | 5/5 | 5/5 | 5/5 | 5/5 | 3/3 | 5/5 | 5/5 | 0 of 11 |
+| v2, Haiku, run 1 | 5/5 | 5/5 | **4/5** | 5/5 | 3/3 | 5/5 | 5/5 | 0 of 10 |
+| v2, Haiku, run 2 | 5/5 | 5/5 | 5/5 | 5/5 | 3/3 | 5/5 | 5/5 | 0 of 9 |
+
+- **No criterion with a better end was proposed as `ordered`** in either run, and v1 proposed none either. On these frames the change guards a failure that was not observed. It is there for the elicitations where a nominal-looking criterion has a direction, so that one is not silently dropped from the flagship comparison.
+- **Run 1 missed one means objective.** In f5 it made "card" a column instead of rejecting it as a means objective. The edit does not touch that rule, and run 2 rejected it, so this reads as run-to-run variance. With one run per arm before this date, the stored v1 rows carry the same uncertainty.
+- **Not established:** no Sonnet arm, two runs, and frames written by the prompt's author.
+
 ## 2026-10-13: v1 ([#68](https://github.com/thorwhalen/rubricator/issues/68))
 
 Every row below is the current grader run over the stored outputs; `tests/test_propose_criteria.py` holds the final rows to it.
