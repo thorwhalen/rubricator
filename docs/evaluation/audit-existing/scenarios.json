@@ -1,0 +1,3106 @@
+[
+ {
+  "conversation": [
+   {
+    "role": "user",
+    "text": "Our consultant Pat made this comparison of catalogue apps. Before the steering group relies on it, audit it."
+   }
+  ],
+  "expected": {
+   "confidence": [
+    "kernelry/yearly-cost",
+    "loamly/volunteer-effort"
+   ],
+   "direction": [
+    "yearly-cost"
+   ],
+   "inference": [],
+   "overlap": [
+    [
+     "volunteer-effort",
+     "ease-of-use"
+    ]
+   ],
+   "redefine": [
+    "offline-mode"
+   ],
+   "thin": [
+    "kernelry/yearly-cost",
+    "loamly/volunteer-effort",
+    "loamly/ease-of-use"
+   ]
+  },
+  "id": "f1",
+  "point": "the consultant's analysis as written",
+  "toolResults": {
+   "aggregate_assertions": {
+    "analysisId": "seed-library",
+    "cells": [
+     {
+      "agreement": null,
+      "alternativeId": "kernelry",
+      "contested": false,
+      "criterionId": "ease-of-use",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 2,
+      "measure": "confidence",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "kernelry",
+      "contested": false,
+      "criterionId": "ease-of-use",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       },
+       {
+        "count": 1,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 4,
+      "measure": "score",
+      "min": 4,
+      "modes": [
+       4
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 4,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "kernelry",
+      "contested": false,
+      "criterionId": "offline-mode",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 1,
+        "level": 3
+       }
+      ],
+      "max": 3,
+      "measure": "confidence",
+      "min": 3,
+      "modes": [
+       3
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 3,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "kernelry",
+      "contested": false,
+      "criterionId": "offline-mode",
+      "levels": [
+       {
+        "count": 1,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       },
+       {
+        "count": 0,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 1,
+      "measure": "score",
+      "min": 1,
+      "modes": [
+       1
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 1,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "kernelry",
+      "contested": false,
+      "criterionId": "volunteer-effort",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 2,
+      "measure": "confidence",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "kernelry",
+      "contested": false,
+      "criterionId": "volunteer-effort",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       },
+       {
+        "count": 1,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 4,
+      "measure": "score",
+      "min": 4,
+      "modes": [
+       4
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 4,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "kernelry",
+      "contested": false,
+      "criterionId": "yearly-cost",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 1,
+        "level": 3
+       }
+      ],
+      "max": 3,
+      "measure": "confidence",
+      "min": 3,
+      "modes": [
+       3
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 3,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "kernelry",
+      "contested": false,
+      "criterionId": "yearly-cost",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       },
+       {
+        "count": 0,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 2,
+      "measure": "score",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "loamly",
+      "contested": false,
+      "criterionId": "ease-of-use",
+      "levels": [
+       {
+        "count": 1,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 1,
+      "measure": "confidence",
+      "min": 1,
+      "modes": [
+       1
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 1,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "loamly",
+      "contested": false,
+      "criterionId": "ease-of-use",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       },
+       {
+        "count": 0,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 2,
+      "measure": "score",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "loamly",
+      "contested": false,
+      "criterionId": "offline-mode",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 2,
+      "measure": "confidence",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "loamly",
+      "contested": false,
+      "criterionId": "offline-mode",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 1,
+        "level": 3
+       },
+       {
+        "count": 0,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 3,
+      "measure": "score",
+      "min": 3,
+      "modes": [
+       3
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 3,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "loamly",
+      "contested": false,
+      "criterionId": "volunteer-effort",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 1,
+        "level": 3
+       }
+      ],
+      "max": 3,
+      "measure": "confidence",
+      "min": 3,
+      "modes": [
+       3
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 3,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "loamly",
+      "contested": false,
+      "criterionId": "volunteer-effort",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       },
+       {
+        "count": 0,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 2,
+      "measure": "score",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "loamly",
+      "contested": false,
+      "criterionId": "yearly-cost",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 2,
+      "measure": "confidence",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "loamly",
+      "contested": false,
+      "criterionId": "yearly-cost",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 1,
+        "level": 3
+       },
+       {
+        "count": 0,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 3,
+      "measure": "score",
+      "min": 3,
+      "modes": [
+       3
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 3,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "sprigg",
+      "contested": false,
+      "criterionId": "ease-of-use",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 2,
+      "measure": "confidence",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "sprigg",
+      "contested": false,
+      "criterionId": "ease-of-use",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       },
+       {
+        "count": 1,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 4,
+      "measure": "score",
+      "min": 4,
+      "modes": [
+       4
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 4,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "sprigg",
+      "contested": false,
+      "criterionId": "offline-mode",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 2,
+      "measure": "confidence",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "sprigg",
+      "contested": false,
+      "criterionId": "offline-mode",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 1,
+        "level": 3
+       },
+       {
+        "count": 0,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 3,
+      "measure": "score",
+      "min": 3,
+      "modes": [
+       3
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 3,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "sprigg",
+      "contested": false,
+      "criterionId": "volunteer-effort",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 2,
+      "measure": "confidence",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "sprigg",
+      "contested": false,
+      "criterionId": "volunteer-effort",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 1,
+        "level": 3
+       },
+       {
+        "count": 0,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 3,
+      "measure": "score",
+      "min": 3,
+      "modes": [
+       3
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 3,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "sprigg",
+      "contested": false,
+      "criterionId": "yearly-cost",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 2,
+      "measure": "confidence",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "sprigg",
+      "contested": false,
+      "criterionId": "yearly-cost",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       },
+       {
+        "count": 1,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 4,
+      "measure": "score",
+      "min": 4,
+      "modes": [
+       4
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 4,
+      "span": 0
+     }
+    ],
+    "reduction": "lower-median",
+    "skipped": [],
+    "summary": "24 cell(s) reduced by lower-median"
+   },
+   "analysis_get (criteria)": {
+    "analysisId": "seed-library",
+    "counts": {
+     "alternatives": 3,
+     "byCode": [],
+     "byKind": {
+      "notApplicable": 0,
+      "scored": 24,
+      "settledBlank": 0
+     },
+     "cells": 24,
+     "criteria": 4,
+     "outstanding": 0,
+     "superseded": 0
+    },
+    "criteria": [
+     {
+      "definition": {
+       "question": "What does the app cost per year, at the published price for a library of our size?"
+      },
+      "id": "yearly-cost",
+      "label": "Yearly cost",
+      "missingCodes": [],
+      "preference": "none",
+      "scale": "ordinal-1-5"
+     },
+     {
+      "definition": {
+       "question": "How many volunteer hours a week does running the app take, including learning it?"
+      },
+      "id": "volunteer-effort",
+      "label": "Volunteer effort",
+      "missingCodes": [],
+      "preference": "increasing",
+      "scale": "ordinal-1-5"
+     },
+     {
+      "definition": {
+       "question": "How quickly can a new volunteer learn to lend and return seed packets with it?"
+      },
+      "id": "ease-of-use",
+      "label": "Ease of use",
+      "missingCodes": [],
+      "preference": "increasing",
+      "scale": "ordinal-1-5"
+     },
+     {
+      "id": "offline-mode",
+      "label": "Offline mode",
+      "missingCodes": [],
+      "preference": "increasing",
+      "scale": "ordinal-1-5"
+     }
+    ],
+    "criteriaVersion": null,
+    "omitted": [],
+    "question": "Which catalogue app should the Thornbury seed library adopt?",
+    "skipped": [],
+    "stage": 1,
+    "summary": "\"seed-library\" at stage 1 (frame): 3 alternative(s), 4 criteria, 0 of 24 cell(s) outstanding; next: record the decision and its ambiguities with frame_set",
+    "view": "criteria"
+   },
+   "report_weaknesses": {
+    "agentInferenceOnly": [],
+    "analysisId": "seed-library",
+    "dominatedAlternatives": [
+     "loamly"
+    ],
+    "lowConfidence": [
+     {
+      "alternativeId": "loamly",
+      "criterionId": "ease-of-use",
+      "reason": "confidence at the lowest level of its scale (1)"
+     }
+    ],
+    "rescoringPlan": {
+     "budget": 5,
+     "redefine": [
+      "offline-mode"
+     ],
+     "rescore": [
+      {
+       "alternativeId": "sprigg",
+       "criterionId": "volunteer-effort",
+       "reason": "pivotal: +1 level (3 to 4) changes the non-dominated set"
+      },
+      {
+       "alternativeId": "kernelry",
+       "criterionId": "volunteer-effort",
+       "reason": "pivotal: -1 level (4 to 3) changes the non-dominated set"
+      },
+      {
+       "alternativeId": "loamly",
+       "criterionId": "volunteer-effort",
+       "reason": "no primary or secondary ref with a span to check"
+      },
+      {
+       "alternativeId": "loamly",
+       "criterionId": "ease-of-use",
+       "reason": "no primary or secondary ref with a span to check"
+      },
+      {
+       "alternativeId": "kernelry",
+       "criterionId": "yearly-cost",
+       "reason": "a value with no evidence"
+      }
+     ]
+    },
+    "staleCitations": [],
+    "summary": "12 scored cell(s); 1 uncited; 2 thinEvidence; 1 lowConfidence; 0 staleCitations; 0 agentInferenceOnly; dominance over 3 criteria: 1 dominated, 2 on the front; 1 excluded (no direction or no declared range); 4 pivotal cell(s); 0 veto flag(s); 6 diagnostic correlation(s), none of them a redundancy finding; plan: 5 cell(s) to rescore within a budget of 5, 1 criteria to redefine rather than rescore.",
+    "thinEvidence": [
+     {
+      "alternativeId": "loamly",
+      "criterionId": "volunteer-effort",
+      "reason": "no primary or secondary ref with a span to check"
+     },
+     {
+      "alternativeId": "loamly",
+      "criterionId": "ease-of-use",
+      "reason": "no primary or secondary ref with a span to check"
+     }
+    ],
+    "traversalLeakageDiagnostic": [
+     {
+      "correlation": 0.816497,
+      "criterionA": "volunteer-effort",
+      "criterionB": "ease-of-use",
+      "note": "Kendall tau-b over 3 alternatives. A scoring-run diagnostic, never a redundancy finding: a correlation between criteria scored by the same judge measures that judge's halo and carry-over as much as the alternatives. Redundancy is settled by the criteria's definitions (the ladder and the indifference probe), not by this number."
+     },
+     {
+      "correlation": -0.816497,
+      "criterionA": "volunteer-effort",
+      "criterionB": "offline-mode",
+      "note": "Kendall tau-b over 3 alternatives. A scoring-run diagnostic, never a redundancy finding: a correlation between criteria scored by the same judge measures that judge's halo and carry-over as much as the alternatives. Redundancy is settled by the criteria's definitions (the ladder and the indifference probe), not by this number."
+     },
+     {
+      "correlation": 0.816497,
+      "criterionA": "yearly-cost",
+      "criterionB": "offline-mode",
+      "note": "Kendall tau-b over 3 alternatives. A scoring-run diagnostic, never a redundancy finding: a correlation between criteria scored by the same judge measures that judge's halo and carry-over as much as the alternatives. Redundancy is settled by the criteria's definitions (the ladder and the indifference probe), not by this number."
+     },
+     {
+      "correlation": -0.5,
+      "criterionA": "ease-of-use",
+      "criterionB": "offline-mode",
+      "note": "Kendall tau-b over 3 alternatives. A scoring-run diagnostic, never a redundancy finding: a correlation between criteria scored by the same judge measures that judge's halo and carry-over as much as the alternatives. Redundancy is settled by the criteria's definitions (the ladder and the indifference probe), not by this number."
+     },
+     {
+      "correlation": -0.333333,
+      "criterionA": "yearly-cost",
+      "criterionB": "volunteer-effort",
+      "note": "Kendall tau-b over 3 alternatives. A scoring-run diagnostic, never a redundancy finding: a correlation between criteria scored by the same judge measures that judge's halo and carry-over as much as the alternatives. Redundancy is settled by the criteria's definitions (the ladder and the indifference probe), not by this number."
+     },
+     {
+      "correlation": 0.0,
+      "criterionA": "yearly-cost",
+      "criterionB": "ease-of-use",
+      "note": "Kendall tau-b over 3 alternatives. A scoring-run diagnostic, never a redundancy finding: a correlation between criteria scored by the same judge measures that judge's halo and carry-over as much as the alternatives. Redundancy is settled by the criteria's definitions (the ladder and the indifference probe), not by this number."
+     }
+    ],
+    "uncited": [
+     {
+      "alternativeId": "kernelry",
+      "criterionId": "yearly-cost",
+      "reason": "a value with no evidence"
+     }
+    ],
+    "vetoFlags": []
+   }
+  }
+ },
+ {
+  "conversation": [
+   {
+    "role": "user",
+    "text": "Our consultant Pat made this comparison of catalogue apps. Before the steering group relies on it, audit it."
+   }
+  ],
+  "expected": {
+   "confidence": [],
+   "direction": [],
+   "inference": [],
+   "overlap": [],
+   "redefine": [],
+   "thin": []
+  },
+  "id": "f2",
+  "point": "the same analysis with every planted weakness repaired",
+  "toolResults": {
+   "aggregate_assertions": {
+    "analysisId": "seed-library",
+    "cells": [
+     {
+      "agreement": null,
+      "alternativeId": "kernelry",
+      "contested": false,
+      "criterionId": "ease-of-use",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 2,
+      "measure": "confidence",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "kernelry",
+      "contested": false,
+      "criterionId": "ease-of-use",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       },
+       {
+        "count": 1,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 4,
+      "measure": "score",
+      "min": 4,
+      "modes": [
+       4
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 4,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "kernelry",
+      "contested": false,
+      "criterionId": "offline-mode",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 2,
+      "measure": "confidence",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "kernelry",
+      "contested": false,
+      "criterionId": "offline-mode",
+      "levels": [
+       {
+        "count": 1,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       },
+       {
+        "count": 0,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 1,
+      "measure": "score",
+      "min": 1,
+      "modes": [
+       1
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 1,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "kernelry",
+      "contested": false,
+      "criterionId": "volunteer-effort",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 2,
+      "measure": "confidence",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "kernelry",
+      "contested": false,
+      "criterionId": "volunteer-effort",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       },
+       {
+        "count": 1,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 4,
+      "measure": "score",
+      "min": 4,
+      "modes": [
+       4
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 4,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "kernelry",
+      "contested": false,
+      "criterionId": "yearly-cost",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 2,
+      "measure": "confidence",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "kernelry",
+      "contested": false,
+      "criterionId": "yearly-cost",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       },
+       {
+        "count": 0,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 2,
+      "measure": "score",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "loamly",
+      "contested": false,
+      "criterionId": "ease-of-use",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 2,
+      "measure": "confidence",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "loamly",
+      "contested": false,
+      "criterionId": "ease-of-use",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       },
+       {
+        "count": 0,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 2,
+      "measure": "score",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "loamly",
+      "contested": false,
+      "criterionId": "offline-mode",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 2,
+      "measure": "confidence",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "loamly",
+      "contested": false,
+      "criterionId": "offline-mode",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 1,
+        "level": 3
+       },
+       {
+        "count": 0,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 3,
+      "measure": "score",
+      "min": 3,
+      "modes": [
+       3
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 3,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "loamly",
+      "contested": false,
+      "criterionId": "volunteer-effort",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 2,
+      "measure": "confidence",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "loamly",
+      "contested": false,
+      "criterionId": "volunteer-effort",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       },
+       {
+        "count": 0,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 2,
+      "measure": "score",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "loamly",
+      "contested": false,
+      "criterionId": "yearly-cost",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 2,
+      "measure": "confidence",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "loamly",
+      "contested": false,
+      "criterionId": "yearly-cost",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 1,
+        "level": 3
+       },
+       {
+        "count": 0,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 3,
+      "measure": "score",
+      "min": 3,
+      "modes": [
+       3
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 3,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "sprigg",
+      "contested": false,
+      "criterionId": "ease-of-use",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 2,
+      "measure": "confidence",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "sprigg",
+      "contested": false,
+      "criterionId": "ease-of-use",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       },
+       {
+        "count": 1,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 4,
+      "measure": "score",
+      "min": 4,
+      "modes": [
+       4
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 4,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "sprigg",
+      "contested": false,
+      "criterionId": "offline-mode",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 2,
+      "measure": "confidence",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "sprigg",
+      "contested": false,
+      "criterionId": "offline-mode",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 1,
+        "level": 3
+       },
+       {
+        "count": 0,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 3,
+      "measure": "score",
+      "min": 3,
+      "modes": [
+       3
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 3,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "sprigg",
+      "contested": false,
+      "criterionId": "volunteer-effort",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 2,
+      "measure": "confidence",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "sprigg",
+      "contested": false,
+      "criterionId": "volunteer-effort",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 1,
+        "level": 3
+       },
+       {
+        "count": 0,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 3,
+      "measure": "score",
+      "min": 3,
+      "modes": [
+       3
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 3,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "sprigg",
+      "contested": false,
+      "criterionId": "yearly-cost",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 2,
+      "measure": "confidence",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "sprigg",
+      "contested": false,
+      "criterionId": "yearly-cost",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       },
+       {
+        "count": 1,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 4,
+      "measure": "score",
+      "min": 4,
+      "modes": [
+       4
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 4,
+      "span": 0
+     }
+    ],
+    "reduction": "lower-median",
+    "skipped": [],
+    "summary": "24 cell(s) reduced by lower-median"
+   },
+   "analysis_get (criteria)": {
+    "analysisId": "seed-library",
+    "counts": {
+     "alternatives": 3,
+     "byCode": [],
+     "byKind": {
+      "notApplicable": 0,
+      "scored": 24,
+      "settledBlank": 0
+     },
+     "cells": 24,
+     "criteria": 4,
+     "outstanding": 0,
+     "superseded": 0
+    },
+    "criteria": [
+     {
+      "definition": {
+       "question": "What does the app cost per year, at the published price for a library of our size?"
+      },
+      "id": "yearly-cost",
+      "label": "Yearly cost",
+      "missingCodes": [],
+      "preference": "decreasing",
+      "scale": "ordinal-1-5"
+     },
+     {
+      "definition": {
+       "question": "How many volunteer hours a week does running the lending desk take?"
+      },
+      "id": "volunteer-effort",
+      "label": "Volunteer effort",
+      "missingCodes": [],
+      "preference": "increasing",
+      "scale": "ordinal-1-5"
+     },
+     {
+      "definition": {
+       "question": "How many screens does one lending take at the desk?"
+      },
+      "id": "ease-of-use",
+      "label": "Ease of use",
+      "missingCodes": [],
+      "preference": "increasing",
+      "scale": "ordinal-1-5"
+     },
+     {
+      "definition": {
+       "question": "Can a lending be recorded with no internet connection?"
+      },
+      "id": "offline-mode",
+      "label": "Offline mode",
+      "missingCodes": [],
+      "preference": "increasing",
+      "scale": "ordinal-1-5"
+     }
+    ],
+    "criteriaVersion": null,
+    "omitted": [],
+    "question": "Which catalogue app should the Thornbury seed library adopt?",
+    "skipped": [],
+    "stage": 1,
+    "summary": "\"seed-library\" at stage 1 (frame): 3 alternative(s), 4 criteria, 0 of 24 cell(s) outstanding; next: record the decision and its ambiguities with frame_set",
+    "view": "criteria"
+   },
+   "report_weaknesses": {
+    "agentInferenceOnly": [],
+    "analysisId": "seed-library",
+    "dominatedAlternatives": [],
+    "lowConfidence": [],
+    "rescoringPlan": {
+     "budget": 5,
+     "redefine": [],
+     "rescore": [
+      {
+       "alternativeId": "sprigg",
+       "criterionId": "yearly-cost",
+       "reason": "pivotal: -1 level (4 to 3) changes the non-dominated set"
+      },
+      {
+       "alternativeId": "loamly",
+       "criterionId": "yearly-cost",
+       "reason": "pivotal: +1 level (3 to 4) changes the non-dominated set"
+      }
+     ]
+    },
+    "staleCitations": [],
+    "summary": "12 scored cell(s); 0 uncited; 0 thinEvidence; 0 lowConfidence; 0 staleCitations; 0 agentInferenceOnly; dominance over 4 criteria: 0 dominated, 3 on the front; 2 pivotal cell(s); 0 veto flag(s); 6 diagnostic correlation(s), none of them a redundancy finding; plan: 2 cell(s) to rescore within a budget of 5, 0 criteria to redefine rather than rescore.",
+    "thinEvidence": [],
+    "traversalLeakageDiagnostic": [
+     {
+      "correlation": 0.816497,
+      "criterionA": "volunteer-effort",
+      "criterionB": "ease-of-use",
+      "note": "Kendall tau-b over 3 alternatives. A scoring-run diagnostic, never a redundancy finding: a correlation between criteria scored by the same judge measures that judge's halo and carry-over as much as the alternatives. Redundancy is settled by the criteria's definitions (the ladder and the indifference probe), not by this number."
+     },
+     {
+      "correlation": -0.816497,
+      "criterionA": "volunteer-effort",
+      "criterionB": "offline-mode",
+      "note": "Kendall tau-b over 3 alternatives. A scoring-run diagnostic, never a redundancy finding: a correlation between criteria scored by the same judge measures that judge's halo and carry-over as much as the alternatives. Redundancy is settled by the criteria's definitions (the ladder and the indifference probe), not by this number."
+     },
+     {
+      "correlation": 0.816497,
+      "criterionA": "yearly-cost",
+      "criterionB": "offline-mode",
+      "note": "Kendall tau-b over 3 alternatives. A scoring-run diagnostic, never a redundancy finding: a correlation between criteria scored by the same judge measures that judge's halo and carry-over as much as the alternatives. Redundancy is settled by the criteria's definitions (the ladder and the indifference probe), not by this number."
+     },
+     {
+      "correlation": -0.5,
+      "criterionA": "ease-of-use",
+      "criterionB": "offline-mode",
+      "note": "Kendall tau-b over 3 alternatives. A scoring-run diagnostic, never a redundancy finding: a correlation between criteria scored by the same judge measures that judge's halo and carry-over as much as the alternatives. Redundancy is settled by the criteria's definitions (the ladder and the indifference probe), not by this number."
+     },
+     {
+      "correlation": -0.333333,
+      "criterionA": "yearly-cost",
+      "criterionB": "volunteer-effort",
+      "note": "Kendall tau-b over 3 alternatives. A scoring-run diagnostic, never a redundancy finding: a correlation between criteria scored by the same judge measures that judge's halo and carry-over as much as the alternatives. Redundancy is settled by the criteria's definitions (the ladder and the indifference probe), not by this number."
+     },
+     {
+      "correlation": 0.0,
+      "criterionA": "yearly-cost",
+      "criterionB": "ease-of-use",
+      "note": "Kendall tau-b over 3 alternatives. A scoring-run diagnostic, never a redundancy finding: a correlation between criteria scored by the same judge measures that judge's halo and carry-over as much as the alternatives. Redundancy is settled by the criteria's definitions (the ladder and the indifference probe), not by this number."
+     }
+    ],
+    "uncited": [],
+    "vetoFlags": []
+   }
+  }
+ },
+ {
+  "conversation": [
+   {
+    "role": "user",
+    "text": "Our consultant Pat made this comparison of catalogue apps. Before the steering group relies on it, audit it. And please fix whatever you find while you're at it."
+   }
+  ],
+  "expected": {
+   "confidence": [
+    "kernelry/yearly-cost",
+    "loamly/volunteer-effort"
+   ],
+   "direction": [
+    "yearly-cost"
+   ],
+   "inference": [],
+   "overlap": [
+    [
+     "volunteer-effort",
+     "ease-of-use"
+    ]
+   ],
+   "redefine": [
+    "offline-mode"
+   ],
+   "thin": [
+    "kernelry/yearly-cost",
+    "loamly/volunteer-effort",
+    "loamly/ease-of-use"
+   ]
+  },
+  "id": "f3",
+  "point": "the flawed analysis, and the user asks for fixes too",
+  "toolResults": {
+   "aggregate_assertions": {
+    "analysisId": "seed-library",
+    "cells": [
+     {
+      "agreement": null,
+      "alternativeId": "kernelry",
+      "contested": false,
+      "criterionId": "ease-of-use",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 2,
+      "measure": "confidence",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "kernelry",
+      "contested": false,
+      "criterionId": "ease-of-use",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       },
+       {
+        "count": 1,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 4,
+      "measure": "score",
+      "min": 4,
+      "modes": [
+       4
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 4,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "kernelry",
+      "contested": false,
+      "criterionId": "offline-mode",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 1,
+        "level": 3
+       }
+      ],
+      "max": 3,
+      "measure": "confidence",
+      "min": 3,
+      "modes": [
+       3
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 3,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "kernelry",
+      "contested": false,
+      "criterionId": "offline-mode",
+      "levels": [
+       {
+        "count": 1,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       },
+       {
+        "count": 0,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 1,
+      "measure": "score",
+      "min": 1,
+      "modes": [
+       1
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 1,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "kernelry",
+      "contested": false,
+      "criterionId": "volunteer-effort",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 2,
+      "measure": "confidence",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "kernelry",
+      "contested": false,
+      "criterionId": "volunteer-effort",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       },
+       {
+        "count": 1,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 4,
+      "measure": "score",
+      "min": 4,
+      "modes": [
+       4
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 4,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "kernelry",
+      "contested": false,
+      "criterionId": "yearly-cost",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 1,
+        "level": 3
+       }
+      ],
+      "max": 3,
+      "measure": "confidence",
+      "min": 3,
+      "modes": [
+       3
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 3,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "kernelry",
+      "contested": false,
+      "criterionId": "yearly-cost",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       },
+       {
+        "count": 0,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 2,
+      "measure": "score",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "loamly",
+      "contested": false,
+      "criterionId": "ease-of-use",
+      "levels": [
+       {
+        "count": 1,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 1,
+      "measure": "confidence",
+      "min": 1,
+      "modes": [
+       1
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 1,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "loamly",
+      "contested": false,
+      "criterionId": "ease-of-use",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       },
+       {
+        "count": 0,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 2,
+      "measure": "score",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "loamly",
+      "contested": false,
+      "criterionId": "offline-mode",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 2,
+      "measure": "confidence",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "loamly",
+      "contested": false,
+      "criterionId": "offline-mode",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 1,
+        "level": 3
+       },
+       {
+        "count": 0,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 3,
+      "measure": "score",
+      "min": 3,
+      "modes": [
+       3
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 3,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "loamly",
+      "contested": false,
+      "criterionId": "volunteer-effort",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 1,
+        "level": 3
+       }
+      ],
+      "max": 3,
+      "measure": "confidence",
+      "min": 3,
+      "modes": [
+       3
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 3,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "loamly",
+      "contested": false,
+      "criterionId": "volunteer-effort",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       },
+       {
+        "count": 0,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 2,
+      "measure": "score",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "loamly",
+      "contested": false,
+      "criterionId": "yearly-cost",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 2,
+      "measure": "confidence",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "loamly",
+      "contested": false,
+      "criterionId": "yearly-cost",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 1,
+        "level": 3
+       },
+       {
+        "count": 0,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 3,
+      "measure": "score",
+      "min": 3,
+      "modes": [
+       3
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 3,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "sprigg",
+      "contested": false,
+      "criterionId": "ease-of-use",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 2,
+      "measure": "confidence",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "sprigg",
+      "contested": false,
+      "criterionId": "ease-of-use",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       },
+       {
+        "count": 1,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 4,
+      "measure": "score",
+      "min": 4,
+      "modes": [
+       4
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 4,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "sprigg",
+      "contested": false,
+      "criterionId": "offline-mode",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 2,
+      "measure": "confidence",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "sprigg",
+      "contested": false,
+      "criterionId": "offline-mode",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 1,
+        "level": 3
+       },
+       {
+        "count": 0,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 3,
+      "measure": "score",
+      "min": 3,
+      "modes": [
+       3
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 3,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "sprigg",
+      "contested": false,
+      "criterionId": "volunteer-effort",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 2,
+      "measure": "confidence",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "sprigg",
+      "contested": false,
+      "criterionId": "volunteer-effort",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 1,
+        "level": 3
+       },
+       {
+        "count": 0,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 3,
+      "measure": "score",
+      "min": 3,
+      "modes": [
+       3
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 3,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "sprigg",
+      "contested": false,
+      "criterionId": "yearly-cost",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 1,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       }
+      ],
+      "max": 2,
+      "measure": "confidence",
+      "min": 2,
+      "modes": [
+       2
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 2,
+      "span": 0
+     },
+     {
+      "agreement": null,
+      "alternativeId": "sprigg",
+      "contested": false,
+      "criterionId": "yearly-cost",
+      "levels": [
+       {
+        "count": 0,
+        "level": 1
+       },
+       {
+        "count": 0,
+        "level": 2
+       },
+       {
+        "count": 0,
+        "level": 3
+       },
+       {
+        "count": 1,
+        "level": 4
+       },
+       {
+        "count": 0,
+        "level": 5
+       }
+      ],
+      "max": 4,
+      "measure": "score",
+      "min": 4,
+      "modes": [
+       4
+      ],
+      "n": 1,
+      "offScale": 0,
+      "polarised": false,
+      "reduced": 4,
+      "span": 0
+     }
+    ],
+    "reduction": "lower-median",
+    "skipped": [],
+    "summary": "24 cell(s) reduced by lower-median"
+   },
+   "analysis_get (criteria)": {
+    "analysisId": "seed-library",
+    "counts": {
+     "alternatives": 3,
+     "byCode": [],
+     "byKind": {
+      "notApplicable": 0,
+      "scored": 24,
+      "settledBlank": 0
+     },
+     "cells": 24,
+     "criteria": 4,
+     "outstanding": 0,
+     "superseded": 0
+    },
+    "criteria": [
+     {
+      "definition": {
+       "question": "What does the app cost per year, at the published price for a library of our size?"
+      },
+      "id": "yearly-cost",
+      "label": "Yearly cost",
+      "missingCodes": [],
+      "preference": "none",
+      "scale": "ordinal-1-5"
+     },
+     {
+      "definition": {
+       "question": "How many volunteer hours a week does running the app take, including learning it?"
+      },
+      "id": "volunteer-effort",
+      "label": "Volunteer effort",
+      "missingCodes": [],
+      "preference": "increasing",
+      "scale": "ordinal-1-5"
+     },
+     {
+      "definition": {
+       "question": "How quickly can a new volunteer learn to lend and return seed packets with it?"
+      },
+      "id": "ease-of-use",
+      "label": "Ease of use",
+      "missingCodes": [],
+      "preference": "increasing",
+      "scale": "ordinal-1-5"
+     },
+     {
+      "id": "offline-mode",
+      "label": "Offline mode",
+      "missingCodes": [],
+      "preference": "increasing",
+      "scale": "ordinal-1-5"
+     }
+    ],
+    "criteriaVersion": null,
+    "omitted": [],
+    "question": "Which catalogue app should the Thornbury seed library adopt?",
+    "skipped": [],
+    "stage": 1,
+    "summary": "\"seed-library\" at stage 1 (frame): 3 alternative(s), 4 criteria, 0 of 24 cell(s) outstanding; next: record the decision and its ambiguities with frame_set",
+    "view": "criteria"
+   },
+   "report_weaknesses": {
+    "agentInferenceOnly": [],
+    "analysisId": "seed-library",
+    "dominatedAlternatives": [
+     "loamly"
+    ],
+    "lowConfidence": [
+     {
+      "alternativeId": "loamly",
+      "criterionId": "ease-of-use",
+      "reason": "confidence at the lowest level of its scale (1)"
+     }
+    ],
+    "rescoringPlan": {
+     "budget": 5,
+     "redefine": [
+      "offline-mode"
+     ],
+     "rescore": [
+      {
+       "alternativeId": "sprigg",
+       "criterionId": "volunteer-effort",
+       "reason": "pivotal: +1 level (3 to 4) changes the non-dominated set"
+      },
+      {
+       "alternativeId": "kernelry",
+       "criterionId": "volunteer-effort",
+       "reason": "pivotal: -1 level (4 to 3) changes the non-dominated set"
+      },
+      {
+       "alternativeId": "loamly",
+       "criterionId": "volunteer-effort",
+       "reason": "no primary or secondary ref with a span to check"
+      },
+      {
+       "alternativeId": "loamly",
+       "criterionId": "ease-of-use",
+       "reason": "no primary or secondary ref with a span to check"
+      },
+      {
+       "alternativeId": "kernelry",
+       "criterionId": "yearly-cost",
+       "reason": "a value with no evidence"
+      }
+     ]
+    },
+    "staleCitations": [],
+    "summary": "12 scored cell(s); 1 uncited; 2 thinEvidence; 1 lowConfidence; 0 staleCitations; 0 agentInferenceOnly; dominance over 3 criteria: 1 dominated, 2 on the front; 1 excluded (no direction or no declared range); 4 pivotal cell(s); 0 veto flag(s); 6 diagnostic correlation(s), none of them a redundancy finding; plan: 5 cell(s) to rescore within a budget of 5, 1 criteria to redefine rather than rescore.",
+    "thinEvidence": [
+     {
+      "alternativeId": "loamly",
+      "criterionId": "volunteer-effort",
+      "reason": "no primary or secondary ref with a span to check"
+     },
+     {
+      "alternativeId": "loamly",
+      "criterionId": "ease-of-use",
+      "reason": "no primary or secondary ref with a span to check"
+     }
+    ],
+    "traversalLeakageDiagnostic": [
+     {
+      "correlation": 0.816497,
+      "criterionA": "volunteer-effort",
+      "criterionB": "ease-of-use",
+      "note": "Kendall tau-b over 3 alternatives. A scoring-run diagnostic, never a redundancy finding: a correlation between criteria scored by the same judge measures that judge's halo and carry-over as much as the alternatives. Redundancy is settled by the criteria's definitions (the ladder and the indifference probe), not by this number."
+     },
+     {
+      "correlation": -0.816497,
+      "criterionA": "volunteer-effort",
+      "criterionB": "offline-mode",
+      "note": "Kendall tau-b over 3 alternatives. A scoring-run diagnostic, never a redundancy finding: a correlation between criteria scored by the same judge measures that judge's halo and carry-over as much as the alternatives. Redundancy is settled by the criteria's definitions (the ladder and the indifference probe), not by this number."
+     },
+     {
+      "correlation": 0.816497,
+      "criterionA": "yearly-cost",
+      "criterionB": "offline-mode",
+      "note": "Kendall tau-b over 3 alternatives. A scoring-run diagnostic, never a redundancy finding: a correlation between criteria scored by the same judge measures that judge's halo and carry-over as much as the alternatives. Redundancy is settled by the criteria's definitions (the ladder and the indifference probe), not by this number."
+     },
+     {
+      "correlation": -0.5,
+      "criterionA": "ease-of-use",
+      "criterionB": "offline-mode",
+      "note": "Kendall tau-b over 3 alternatives. A scoring-run diagnostic, never a redundancy finding: a correlation between criteria scored by the same judge measures that judge's halo and carry-over as much as the alternatives. Redundancy is settled by the criteria's definitions (the ladder and the indifference probe), not by this number."
+     },
+     {
+      "correlation": -0.333333,
+      "criterionA": "yearly-cost",
+      "criterionB": "volunteer-effort",
+      "note": "Kendall tau-b over 3 alternatives. A scoring-run diagnostic, never a redundancy finding: a correlation between criteria scored by the same judge measures that judge's halo and carry-over as much as the alternatives. Redundancy is settled by the criteria's definitions (the ladder and the indifference probe), not by this number."
+     },
+     {
+      "correlation": 0.0,
+      "criterionA": "yearly-cost",
+      "criterionB": "ease-of-use",
+      "note": "Kendall tau-b over 3 alternatives. A scoring-run diagnostic, never a redundancy finding: a correlation between criteria scored by the same judge measures that judge's halo and carry-over as much as the alternatives. Redundancy is settled by the criteria's definitions (the ladder and the indifference probe), not by this number."
+     }
+    ],
+    "uncited": [
+     {
+      "alternativeId": "kernelry",
+      "criterionId": "yearly-cost",
+      "reason": "a value with no evidence"
+     }
+    ],
+    "vetoFlags": []
+   }
+  }
+ }
+]

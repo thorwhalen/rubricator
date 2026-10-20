@@ -1,0 +1,494 @@
+{
+ "contributorId": "pat",
+ "authors": [
+  {
+   "id": "pat",
+   "displayName": "Pat, the consultant",
+   "kind": "human"
+  }
+ ],
+ "cells": [
+  {
+   "alternativeId": "sprigg",
+   "criterionId": "yearly-cost",
+   "measure": "score",
+   "assertions": [
+    {
+     "id": "sprigg-yearly-cost",
+     "authorId": "pat",
+     "at": "2026-09-30T10:00:00Z",
+     "value": 4,
+     "justification": "as stated",
+     "evidence": [
+      {
+       "id": "e1",
+       "target": "doc:sprigg-prices",
+       "sourceType": "primary",
+       "selectors": [
+        {
+         "type": "TextQuoteSelector",
+         "exact": "\u00a3120 a year for up to 500 members"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "alternativeId": "sprigg",
+   "criterionId": "yearly-cost",
+   "measure": "confidence",
+   "assertions": [
+    {
+     "id": "sprigg-yearly-cost-conf",
+     "authorId": "pat",
+     "at": "2026-09-30T10:00:00Z",
+     "value": 2,
+     "justification": "consultant's own rating",
+     "evidence": []
+    }
+   ]
+  },
+  {
+   "alternativeId": "kernelry",
+   "criterionId": "yearly-cost",
+   "measure": "score",
+   "assertions": [
+    {
+     "id": "kernelry-yearly-cost",
+     "authorId": "pat",
+     "at": "2026-09-30T10:00:00Z",
+     "value": 2,
+     "justification": "I recall it being expensive",
+     "evidence": []
+    }
+   ]
+  },
+  {
+   "alternativeId": "kernelry",
+   "criterionId": "yearly-cost",
+   "measure": "confidence",
+   "assertions": [
+    {
+     "id": "kernelry-yearly-cost-conf",
+     "authorId": "pat",
+     "at": "2026-09-30T10:00:00Z",
+     "value": 3,
+     "justification": "consultant's own rating",
+     "evidence": []
+    }
+   ]
+  },
+  {
+   "alternativeId": "loamly",
+   "criterionId": "yearly-cost",
+   "measure": "score",
+   "assertions": [
+    {
+     "id": "loamly-yearly-cost",
+     "authorId": "pat",
+     "at": "2026-09-30T10:00:00Z",
+     "value": 3,
+     "justification": "as stated",
+     "evidence": [
+      {
+       "id": "e2",
+       "target": "doc:loamly-prices",
+       "sourceType": "primary",
+       "selectors": [
+        {
+         "type": "TextQuoteSelector",
+         "exact": "\u00a3240 a year, community rate"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "alternativeId": "loamly",
+   "criterionId": "yearly-cost",
+   "measure": "confidence",
+   "assertions": [
+    {
+     "id": "loamly-yearly-cost-conf",
+     "authorId": "pat",
+     "at": "2026-09-30T10:00:00Z",
+     "value": 2,
+     "justification": "consultant's own rating",
+     "evidence": []
+    }
+   ]
+  },
+  {
+   "alternativeId": "sprigg",
+   "criterionId": "volunteer-effort",
+   "measure": "score",
+   "assertions": [
+    {
+     "id": "sprigg-volunteer-effort",
+     "authorId": "pat",
+     "at": "2026-09-30T10:00:00Z",
+     "value": 3,
+     "justification": "as stated",
+     "evidence": [
+      {
+       "id": "e3",
+       "target": "doc:sprigg-manual",
+       "sourceType": "primary",
+       "selectors": [
+        {
+         "type": "TextQuoteSelector",
+         "exact": "about two hours a week of desk time"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "alternativeId": "sprigg",
+   "criterionId": "volunteer-effort",
+   "measure": "confidence",
+   "assertions": [
+    {
+     "id": "sprigg-volunteer-effort-conf",
+     "authorId": "pat",
+     "at": "2026-09-30T10:00:00Z",
+     "value": 2,
+     "justification": "consultant's own rating",
+     "evidence": []
+    }
+   ]
+  },
+  {
+   "alternativeId": "kernelry",
+   "criterionId": "volunteer-effort",
+   "measure": "score",
+   "assertions": [
+    {
+     "id": "kernelry-volunteer-effort",
+     "authorId": "pat",
+     "at": "2026-09-30T10:00:00Z",
+     "value": 4,
+     "justification": "as stated",
+     "evidence": [
+      {
+       "id": "e4",
+       "target": "doc:kernelry-faq",
+       "sourceType": "primary",
+       "selectors": [
+        {
+         "type": "TextQuoteSelector",
+         "exact": "most libraries need under an hour a week"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "alternativeId": "kernelry",
+   "criterionId": "volunteer-effort",
+   "measure": "confidence",
+   "assertions": [
+    {
+     "id": "kernelry-volunteer-effort-conf",
+     "authorId": "pat",
+     "at": "2026-09-30T10:00:00Z",
+     "value": 2,
+     "justification": "consultant's own rating",
+     "evidence": []
+    }
+   ]
+  },
+  {
+   "alternativeId": "loamly",
+   "criterionId": "volunteer-effort",
+   "measure": "score",
+   "assertions": [
+    {
+     "id": "loamly-volunteer-effort",
+     "authorId": "pat",
+     "at": "2026-09-30T10:00:00Z",
+     "value": 2,
+     "justification": "as stated",
+     "evidence": [
+      {
+       "id": "e5",
+       "target": "doc:forum",
+       "sourceType": "secondary",
+       "excerpt": "it takes ages to get used to"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "alternativeId": "loamly",
+   "criterionId": "volunteer-effort",
+   "measure": "confidence",
+   "assertions": [
+    {
+     "id": "loamly-volunteer-effort-conf",
+     "authorId": "pat",
+     "at": "2026-09-30T10:00:00Z",
+     "value": 3,
+     "justification": "consultant's own rating",
+     "evidence": []
+    }
+   ]
+  },
+  {
+   "alternativeId": "sprigg",
+   "criterionId": "ease-of-use",
+   "measure": "score",
+   "assertions": [
+    {
+     "id": "sprigg-ease-of-use",
+     "authorId": "pat",
+     "at": "2026-09-30T10:00:00Z",
+     "value": 4,
+     "justification": "as stated",
+     "evidence": [
+      {
+       "id": "e6",
+       "target": "doc:sprigg-manual",
+       "sourceType": "primary",
+       "selectors": [
+        {
+         "type": "TextQuoteSelector",
+         "exact": "a new volunteer can lend in ten minutes"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "alternativeId": "sprigg",
+   "criterionId": "ease-of-use",
+   "measure": "confidence",
+   "assertions": [
+    {
+     "id": "sprigg-ease-of-use-conf",
+     "authorId": "pat",
+     "at": "2026-09-30T10:00:00Z",
+     "value": 2,
+     "justification": "consultant's own rating",
+     "evidence": []
+    }
+   ]
+  },
+  {
+   "alternativeId": "kernelry",
+   "criterionId": "ease-of-use",
+   "measure": "score",
+   "assertions": [
+    {
+     "id": "kernelry-ease-of-use",
+     "authorId": "pat",
+     "at": "2026-09-30T10:00:00Z",
+     "value": 4,
+     "justification": "as stated",
+     "evidence": [
+      {
+       "id": "e7",
+       "target": "doc:kernelry-faq",
+       "sourceType": "primary",
+       "selectors": [
+        {
+         "type": "TextQuoteSelector",
+         "exact": "training takes one short session"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "alternativeId": "kernelry",
+   "criterionId": "ease-of-use",
+   "measure": "confidence",
+   "assertions": [
+    {
+     "id": "kernelry-ease-of-use-conf",
+     "authorId": "pat",
+     "at": "2026-09-30T10:00:00Z",
+     "value": 2,
+     "justification": "consultant's own rating",
+     "evidence": []
+    }
+   ]
+  },
+  {
+   "alternativeId": "loamly",
+   "criterionId": "ease-of-use",
+   "measure": "score",
+   "assertions": [
+    {
+     "id": "loamly-ease-of-use",
+     "authorId": "pat",
+     "at": "2026-09-30T10:00:00Z",
+     "value": 2,
+     "justification": "as stated",
+     "evidence": [
+      {
+       "id": "e8",
+       "target": "doc:forum",
+       "sourceType": "secondary",
+       "excerpt": "confusing menus"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "alternativeId": "loamly",
+   "criterionId": "ease-of-use",
+   "measure": "confidence",
+   "assertions": [
+    {
+     "id": "loamly-ease-of-use-conf",
+     "authorId": "pat",
+     "at": "2026-09-30T10:00:00Z",
+     "value": 1,
+     "justification": "consultant's own rating",
+     "evidence": []
+    }
+   ]
+  },
+  {
+   "alternativeId": "sprigg",
+   "criterionId": "offline-mode",
+   "measure": "score",
+   "assertions": [
+    {
+     "id": "sprigg-offline-mode",
+     "authorId": "pat",
+     "at": "2026-09-30T10:00:00Z",
+     "value": 3,
+     "justification": "as stated",
+     "evidence": [
+      {
+       "id": "e9",
+       "target": "doc:sprigg-manual",
+       "sourceType": "primary",
+       "selectors": [
+        {
+         "type": "TextQuoteSelector",
+         "exact": "lending works offline; returns sync later"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "alternativeId": "sprigg",
+   "criterionId": "offline-mode",
+   "measure": "confidence",
+   "assertions": [
+    {
+     "id": "sprigg-offline-mode-conf",
+     "authorId": "pat",
+     "at": "2026-09-30T10:00:00Z",
+     "value": 2,
+     "justification": "consultant's own rating",
+     "evidence": []
+    }
+   ]
+  },
+  {
+   "alternativeId": "kernelry",
+   "criterionId": "offline-mode",
+   "measure": "score",
+   "assertions": [
+    {
+     "id": "kernelry-offline-mode",
+     "authorId": "pat",
+     "at": "2026-09-30T10:00:00Z",
+     "value": 1,
+     "justification": "as stated",
+     "evidence": [
+      {
+       "id": "e10",
+       "target": "doc:kernelry-faq",
+       "sourceType": "primary",
+       "selectors": [
+        {
+         "type": "TextQuoteSelector",
+         "exact": "an internet connection is required"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "alternativeId": "kernelry",
+   "criterionId": "offline-mode",
+   "measure": "confidence",
+   "assertions": [
+    {
+     "id": "kernelry-offline-mode-conf",
+     "authorId": "pat",
+     "at": "2026-09-30T10:00:00Z",
+     "value": 3,
+     "justification": "consultant's own rating",
+     "evidence": []
+    }
+   ]
+  },
+  {
+   "alternativeId": "loamly",
+   "criterionId": "offline-mode",
+   "measure": "score",
+   "assertions": [
+    {
+     "id": "loamly-offline-mode",
+     "authorId": "pat",
+     "at": "2026-09-30T10:00:00Z",
+     "value": 3,
+     "justification": "as stated",
+     "evidence": [
+      {
+       "id": "e11",
+       "target": "doc:loamly-prices",
+       "sourceType": "primary",
+       "selectors": [
+        {
+         "type": "TextQuoteSelector",
+         "exact": "offline lending on the paid tier"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "alternativeId": "loamly",
+   "criterionId": "offline-mode",
+   "measure": "confidence",
+   "assertions": [
+    {
+     "id": "loamly-offline-mode-conf",
+     "authorId": "pat",
+     "at": "2026-09-30T10:00:00Z",
+     "value": 2,
+     "justification": "consultant's own rating",
+     "evidence": []
+    }
+   ]
+  }
+ ]
+}
