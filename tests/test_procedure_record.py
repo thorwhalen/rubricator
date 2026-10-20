@@ -11,7 +11,7 @@ import pytest
 
 from rubricator.compose import build_runtime
 from rubricator.contributors import agent, human
-from rubricator.independence import agreement, distinct_model_problem
+from rubricator.independence import LABELS, agreement, distinct_model_problem
 from rubricator.merge import merge_contributions
 from rubricator.rules import honesty_problems, procedure_and_round_resolve
 from rubricator.schema.source import SchemaSource
@@ -221,6 +221,25 @@ def test_consensus_is_off_the_ladder() -> None:
     got = agreement([_a("1", "x", "consensus"), _a("2", "y", "resampled"), _a("3", "y", "perturbed")],
                     _authors(x="m1", y="m1"))
     assert got["rung"] == "fresh-session"
+
+
+def test_first_passes_by_two_models_are_not_labelled_one_model_s_test_retest(store) -> None:
+    """#222: each first pass derives "resampled", which says nothing about the other model."""
+    first = {"round": 1, "session": "fresh", "prior": "withheld"}
+    other = agent("other", "Other", name="rubricator", model="model-b")
+    _score(store, BOT, 3, procedure=first)
+    _score(store, other, 4, procedure=first)
+    authors = {a["id"]: a for a in _merged(store)["authors"]}
+    got = agreement(_assertions(store), authors)
+    assert [a["independence"] for a in _assertions(store)] == ["resampled", "resampled"]
+    assert got["rung"] == "fresh-session"
+    assert got["label"] == LABELS["fresh-session:models"]
+
+
+def test_fresh_sessions_of_one_model_keep_the_test_retest_label() -> None:
+    got = agreement([_a("1", "x", "resampled"), _a("2", "y", "perturbed")],
+                    _authors(x="m1", y="M1 "))
+    assert got["label"].startswith("test-retest reliability across fresh sessions of one model")
 
 
 def test_independent_on_the_same_model_is_refused_and_nothing_is_written(store) -> None:
