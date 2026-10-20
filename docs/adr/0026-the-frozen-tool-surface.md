@@ -292,6 +292,12 @@ The template variable is `{id}` in these rows and `{analysis_id}` in the one tem
 
 **Output fields added** (no amendment needed for those, recorded here so the row reads whole): `repeatedMatrices`, `basis` (the comparison basis ADR-0018 says the result names), `blankDensity` (ADR-0018's counter-metric), `perCell` (the per-cell wobble ADR-0018's 2026-08-22 amendment promotes to a peer), and per criterion `agreementLabel` and `repeatedCells`. `lowestRung` stays the stored `independence` value; `agreementLabel` carries the policy-ladder wording.
 
-**Not built: the strategy parameter.** ADR-0018's amendment asks for the three reports behind one selectable seam. All three are returned on every call instead, which needs no input change; a selector would be an input change and an amendment here, filed as #248.
+**Not built: the strategy parameter.** ADR-0018's amendment asks for the three reports behind one selectable seam. All three are returned on every call instead, which needs no input change; a selector would be an input change and an amendment here, filed as #248 and decided on 2026-10-20 below.
 
 **Not re-measured.** `MEASURED` below is still the 2026-10-12 count; `AWAITING_MEASUREMENT` in `frozen.py` pins what is now served (19 advertised tools, 26,835 bytes, digest `4ba22aceb327`; the whole surface, 22 tools, 29,456 bytes, digest `bcf385255c5e`) and still names #199, which owes the count. No estimate is recorded as a count.
+
+### 2026-10-20 — Row 15, `stability_report`: no strategy selector (#248)
+
+- **Deciders:** Thor Whalen (reversible: a selector can be added later as an input amendment; recommendation recorded, not yet ratified)
+
+**Decision: the selector is not added.** Every call already returns all three reports (dominance survival, weighted tau-b and top-k churn, per-cell wobble), so a `strategy` input would only hide fields a caller can already ignore, while costing description tokens on every turn against the 10k-token line and changing a frozen input. ADR-0018's amendment asks that no consumer assume the default and that a test fail when a non-default strategy is selected; with no selector there is no default to leak through, and the consumer-facing rule reduces to this: a consumer reads the field it means (`survival`, `churn` or `perCell`), never "the headline" by position. The `summary` names which report it quotes. Should a selector ever be wanted (say, to cut output size), it lands as an optional input with the failing-test the ADR-0018 amendment requires, and a re-measured token pin.
