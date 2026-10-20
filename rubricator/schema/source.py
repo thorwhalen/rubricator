@@ -29,12 +29,34 @@ from typing import Any, Iterable, Literal
 
 __all__ = [
     "SchemaSource", "SchemaProblem", "SUPPORTED_SCHEMA_VERSIONS", "SchemaOrigin", "VENDORED_PATH",
-    "explain",
+    "explain", "published_schema_text",
 ]
 
 #: The schema versions this build can read and emit. Declared, not inferred, so
 #: a consumer can check compatibility before handing us a document.
 SUPPORTED_SCHEMA_VERSIONS: tuple[int, ...] = (1,)
+
+def published_schema_text(version: int) -> str:
+    """The vendored comparanda JSON Schema at ``version``, byte-checked against its pin.
+
+    An unsupported version is refused, listing the versions this build can emit.
+
+    >>> published_schema_text(1)[:1]
+    '{'
+    >>> published_schema_text(2)
+    Traceback (most recent call last):
+        ...
+    ValueError: no comparanda schema version 2 in this build; it supports 1.
+    """
+    if version not in SUPPORTED_SCHEMA_VERSIONS:
+        raise ValueError(
+            f"no comparanda schema version {version} in this build; "
+            f"it supports {', '.join(map(str, SUPPORTED_SCHEMA_VERSIONS))}."
+        )
+    from rubricator.schema.pins import read_pinned
+
+    return read_pinned(f"comparanda.v{version}.json").decode("utf-8")
+
 
 SchemaOrigin = Literal["sketch", "published"]
 
