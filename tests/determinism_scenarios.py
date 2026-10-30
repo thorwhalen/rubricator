@@ -22,6 +22,7 @@ K2 = ("The Brightwater K2 kettle boils one litre in under four minutes. Boil-dry
 L5 = ("The Lumen L5 kettle takes about five minutes a litre. It has no boil-dry protection; "
       "the manual says never to run it empty.")
 ANA = {"id": "ana", "displayName": "Ana Ruiz", "kind": "human"}
+BOT = {"id": "bot", "displayName": "Scorer", "kind": "agent", "agent": {"name": "scorer", "model": "m-1"}}
 
 
 def every_verb() -> dict[str, Any]:
@@ -75,6 +76,17 @@ def every_verb() -> dict[str, Any]:
                           "selectors": [{"type": "TextQuoteSelector",
                                          "exact": "boils one litre in under four minutes"}]}],
         }])
+    # A second sweep that mixes the prior: one cell scored with its earlier score in view, one without.
+    # The sweep keeps its number; the round is keyed by (number, prior) (#279).
+    sweep = {"traversal": "cell-wise", "reduction": "lower-median", "round": 2, "session": "fresh"}
+    for alt, prior in (("k2", "shown"), ("l5", "withheld")):
+        out[f"measures_write_sweep_{prior}"] = v["measures_write"](
+            analysis_id=aid, contributor_id="bot", author=BOT,
+            cells=[{"alternativeId": alt, "criterionId": "safety", "value": 4,
+                    "justification": "the document names the protection",
+                    "evidence": [{"id": "e2", "target": f"rendition:{docs['k2']}", "sourceType": "primary",
+                                  "selectors": [{"type": "TextQuoteSelector", "exact": "Boil-dry protection"}]}]}],
+            procedure={**sweep, "prior": prior})
     out["measures_mark_missing"] = v["measures_mark_missing"](
         analysis_id=aid, contributor_id="ana", author=ANA, code="not-evidenced",
         note="neither document states a boil time for this row",

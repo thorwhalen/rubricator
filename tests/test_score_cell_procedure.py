@@ -41,7 +41,7 @@ FAITHFUL = {
                                                 "seed": 5},
     "p10-asked-to-ignore-the-earlier-score": {"round": 2, "session": "same", "prior": "shown"},
     "p11-prior-in-the-retrieval-note": {"round": 2, "prior": "shown", "seed": 8},
-    "p12-round-refused": {"round": 3, "session": "fresh", "prior": "withheld"},
+    "p12-same-sweep-other-prior": {"round": 2, "session": "fresh", "prior": "withheld"},
 }
 N = len(FAITHFUL)
 
@@ -78,7 +78,7 @@ def test_every_scenario_has_a_faithful_answer_and_the_packet_hides_the_expectati
     ("p5-asked-for-independent", {"round": 2, "session": "same", "prior": "shown", "seed": 99}, "left out"),
     ("p7-counts-offered", {"round": 2, "session": "fresh", "prior": "withheld", "seed": 3}, "left out"),
     ("p4-no-plan-given", {"round": 2, "session": "fresh", "prior": "withheld", "traversal": "cell-wise"}, "left out"),
-    ("p12-round-refused", {"round": 2, "session": "fresh", "prior": "withheld"}, "true"),
+    ("p12-same-sweep-other-prior", {"round": 3, "session": "fresh", "prior": "withheld"}, "true"),
     ("p8-first-of-planned-repeats", {"round": 1, "seed": 11, "session": "same"}, "true"),
     ("p9-harness-says-fresh-but-prior-visible", {"round": 2, "session": "fresh", "prior": "withheld",
                                                  "seed": 5}, "true"),

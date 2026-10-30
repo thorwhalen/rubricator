@@ -84,13 +84,13 @@ def test_three_passes_write_one_procedure_counted_from_the_draws(store) -> None:
     assert procedure["traversal"] == "cell-wise" and procedure["reduction"] == "lower-median"
     assert (procedure["startedAt"], procedure["finishedAt"]) == (
         "2026-10-12T12:01:00Z", "2026-10-12T12:03:00Z")
-    for fact in ("model-a", "score-cell-v3", "run-1", "11, 12, 13", "round-1, round-2, round-3"):
+    for fact in ("model-a", "score-cell-v3", "run-1", "11, 12, 13", "round-1-withheld, round-2-withheld, round-3-withheld"):
         assert fact in procedure["notes"]
     assert [r["feedback"] for r in merged["rounds"]] == ["none"] * 3
     assert [r["index"] for r in merged["rounds"]] == [1, 2, 3]
     assert all(a["procedureId"] == procedure["id"] for a in _assertions(store))
     assert [a["roundId"] for a in _assertions(store)] == [
-        "bot:round-1", "bot:round-2", "bot:round-3"]
+        "bot:round-1-withheld", "bot:round-2-withheld", "bot:round-3-withheld"]
 
 
 def test_the_stored_record_fits_the_closed_comparanda_schema_and_honesty_rules(store) -> None:
@@ -149,10 +149,29 @@ def test_understating_the_rung_is_allowed(store) -> None:
     assert _assertions(store)[0]["independence"] == "shared-context"
 
 
-def test_a_round_cannot_be_restated_with_a_different_prior(store) -> None:
+def test_a_sweep_that_mixes_prior_shown_and_withheld_is_two_entries_of_one_number(store) -> None:
+    """A round is keyed by (number, prior) (#279): one sweep keeps its number, and no round holds two answers."""
+    _score(store, BOT, 3, procedure={"round": 2, "prior": "withheld", "session": "fresh"})
+    _score(store, BOT, 4, procedure={"round": 2, "prior": "shown"}, alt="y")
+    rounds = _merged(store)["rounds"]
+    assert [(r["id"], r["index"], r["feedback"]) for r in rounds] == [
+        ("bot:round-2", 2, "full"), ("bot:round-2-withheld", 2, "none")]
+    assert {a["roundId"] for a in _all_assertions(store)} == {"bot:round-2", "bot:round-2-withheld"}
+    assert procedure_and_round_resolve_ok(_merged(store))
+
+
+def test_a_round_stored_before_the_key_keeps_its_withheld_draws_and_a_shown_draw_is_its_own_entry(store) -> None:
     _score(store, BOT, 3, procedure={"round": 1, "prior": "withheld", "session": "fresh"})
-    with pytest.raises(ValueError, match="already recorded"):
-        _score(store, BOT, 4, procedure={"round": 1, "prior": "shown"}, alt="y")
+    contribution = dict(store.contributions("a"))["bot"]
+    for r in contribution["rounds"]:
+        r["id"] = "round-1"
+    for a in contribution["cells"][0]["assertions"]:
+        a["roundId"] = "round-1"
+    store.put_contribution("a", "bot", contribution)
+    _score(store, BOT, 4, procedure={"round": 1, "prior": "withheld", "session": "fresh"}, alt="y")
+    _score(store, BOT, 5, procedure={"round": 1, "prior": "shown"}, alt="z")
+    ids = {r["id"]: r["feedback"] for r in _merged(store)["rounds"]}
+    assert ids == {"bot:round-1": "none", "bot:round-1-shown": "full"}
 
 
 def test_two_contributors_passes_keep_their_own_records(store) -> None:
@@ -320,15 +339,15 @@ def test_a_persona_has_its_own_pass_numbers(store) -> None:
                            "evidence": CITED}],
                    procedure={"round": 1, "prior": "shown"})
     ids = [r["id"] for r in _merged(store)["rounds"]]
-    assert ids == ["bot:round-1", "bot:round-1-bot:the-buyer"]
+    assert ids == ["bot:round-1-bot:the-buyer", "bot:round-1-withheld"]
 
 
-def test_stating_the_prior_after_the_fact_completes_a_round_and_a_restatement_names_the_truth(store) -> None:
+def test_stating_the_prior_after_the_fact_completes_a_round_and_a_different_prior_is_its_own_entry(store) -> None:
     _score(store, BOT, 3, procedure={"round": 1, "session": "fresh"})
     _score(store, BOT, 3, procedure={"round": 1, "session": "fresh", "prior": "withheld"}, alt="y")
-    assert _merged(store)["rounds"][0]["feedback"] == "none"
-    with pytest.raises(ValueError, match="prior withheld"):
-        _score(store, BOT, 3, procedure={"round": 1, "prior": "shown"}, alt="z")
+    assert [(r["id"], r["feedback"]) for r in _merged(store)["rounds"]] == [("bot:round-1", "none")]
+    _score(store, BOT, 3, procedure={"round": 1, "prior": "shown"}, alt="z")
+    assert {r["id"]: r["feedback"] for r in _merged(store)["rounds"]} == {"bot:round-1": "none", "bot:round-1-shown": "full"}
 
 
 def test_only_a_perturbed_draw_gets_a_perturbation_record(store) -> None:
@@ -438,7 +457,7 @@ def test_a_blank_from_a_repeated_pass_takes_the_procedure_and_is_counted(store) 
     first, blank = _assertions(store)
     assert procedure["repeats"] == 2
     assert blank["procedureId"] == procedure["id"] == first["procedureId"]
-    assert blank["roundId"] == "bot:round-2"
+    assert blank["roundId"] == "bot:round-2-withheld"
     assert blank["independence"] == "perturbed"
     assert honesty_problems(_merged(store)) == []
 
@@ -487,7 +506,7 @@ def test_a_cell_has_one_draw_per_round(store) -> None:
     facts = {"round": 2, "session": "same", "prior": "shown"}
     _score(store, BOT, 3, procedure={"round": 1, "session": "fresh", "prior": "withheld"})
     _score(store, BOT, 3, procedure=facts)
-    with pytest.raises(ValueError, match="already holds a draw from pass 2.*next unused number"):
+    with pytest.raises(ValueError, match="already holds a draw from pass 2.*next round number"):
         _score(store, BOT, 4, procedure=facts)
     assert len(_assertions(store)) == 2
 
