@@ -866,6 +866,9 @@ def measures_write(
                 f'refused, nothing was written: assertion id "{assertion_id}" is already used in '
                 f"cell {'/'.join(key)}. Omit assertionId to get a fresh one, or choose another."
             )
+        supersedes = cell.get("supersedes")
+        if supersedes is not None:
+            _refuse_supersedes(supersedes, assertion_id, key, target, mergeable, contributor_id)
         added.append((key, assertion_id))
         cell_facts = None if placeholder[i] else facts
         independence, perturbation = _rung_for(cell, cell_facts)
@@ -899,6 +902,9 @@ def measures_write(
                 root=f"$.cells[{i}]",
             )
         ]
+        if supersedes is not None:
+            # Marked on the writer's own stored assertion, which stays: a replaced claim is kept, not deleted.
+            next(a for a in target["assertions"] if a["id"] == supersedes)["supersededBy"] = assertion_id
         target["assertions"].append(assertion)
     if off_contract:
         raise ValueError(_OFF_CONTRACT + "; ".join(dict.fromkeys(off_contract)))
@@ -929,6 +935,45 @@ def measures_write(
         "summary": f"{len(cells)} assertion(s) written for {contributor_id}: "
         f"{valued} valued, {len(cells) - valued} qualified blank(s)" + _skipped_clause(skipped),
     }
+
+
+def _refuse_supersedes(
+    supersedes: str,
+    assertion_id: str,
+    key: tuple[str, str, str],
+    target: Mapping[str, Any],
+    mergeable: Sequence[tuple[str, Mapping[str, Any]]],
+    contributor_id: str,
+) -> None:
+    """Refuse a ``supersedes`` that is not the writer's own live assertion in this cell.
+
+    A claim is replaced by its own author, in its own cell: someone else's is
+    theirs to replace (it would need a write into their file), and an id that is
+    not there cannot be replaced. One already replaced has a successor; a second
+    replacement would fork the chain, so it names that successor instead.
+    """
+    cell_name = "/".join(key)
+    if supersedes == assertion_id:
+        raise ValueError(f"refused, nothing was written: cell {cell_name}: an assertion cannot supersede itself.")
+    prior = next((a for a in target["assertions"] if a["id"] == supersedes), None)
+    if prior is None:
+        owner = next(
+            (cid for cid, c in mergeable if cid != contributor_id for cell in c.get("cells", [])
+             if (cell["alternativeId"], cell["criterionId"], cell.get("measure", "score")) == key
+             and any(a["id"] == supersedes for a in cell.get("assertions", []))),
+            None,
+        )
+        why = (
+            f'it is {owner}\'s, and a writer replaces only their own; ask {owner} to re-score it'
+            if owner is not None
+            else "this contributor has no assertion with that id in that cell"
+        )
+        raise ValueError(f'refused, nothing was written: cell {cell_name}: supersedes "{supersedes}": {why}.')
+    if prior.get("supersededBy"):
+        raise ValueError(
+            f'refused, nothing was written: cell {cell_name}: supersedes "{supersedes}": it was already '
+            f'replaced by "{prior["supersededBy"]}". Supersede that one, the live claim.'
+        )
 
 
 def _is_placeholder(cell: Mapping[str, Any], frame: Mapping[str, Any]) -> bool:
