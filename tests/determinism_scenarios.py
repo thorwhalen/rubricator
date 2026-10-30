@@ -42,13 +42,15 @@ def every_verb() -> dict[str, Any]:
         {"id": "k2", "title": "K2 sheet", "text": K2, "agentProduced": False},
         {"id": "l5", "title": "L5 manual", "text": L5, "agentProduced": False},
     ], chunking={"windowChars": 60, "overlapChars": 0})
+    docs = {d["sourceId"]: d["documentId"] for d in out["corpus_add"]["documents"]}
     out["corpus_search"] = v["corpus_search"](analysis_id=aid, query="boil-dry protection empty")
     out["frame_set"] = v["frame_set"](
         analysis_id=aid, ambiguities=["small office: how many cups a day?"],
         decision="buy one kettle", decider="the office manager")
     out["alternatives_set"] = v["alternatives_set"](analysis_id=aid, alternatives=[
-        {"id": "l5", "label": "Lumen L5"}, {"id": "k2", "label": "Brightwater K2"},
-        {"id": "k2-kettle", "label": "The Brightwater K2 kettle"}])
+        {"id": "l5", "label": "Lumen L5", "source": "corpus", "evidence": [docs["l5"]]},
+        {"id": "k2", "label": "Brightwater K2", "source": "corpus", "evidence": [f"{docs['k2']}:0-30"]},
+        {"id": "k2-kettle", "label": "The Brightwater K2 kettle", "source": "inference"}])
     out["criteria_set"] = v["criteria_set"](analysis_id=aid, criteria=[
         {"id": "speed", "label": "Boil speed", "anchors": ANCHORS,
          "provenance": {"origin": "user-stated", "rationale": "the office manager asked for it by name"}},

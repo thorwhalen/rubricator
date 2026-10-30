@@ -367,6 +367,10 @@ def analysis_get(
         result["subject"] = got if got is not None else {"question": result["question"]}
         result["alternatives"] = _projected(
             document.get("alternatives"), ALTERNATIVE, "$.alternatives", cut)
+        # Where each came from is kept beside the frame (#274); handed back, so a view round-trips.
+        provenance = store.alternative_provenance(analysis_id)
+        for row in result["alternatives"]:
+            row.update(provenance.get(row.get("id"), {}))
     elif view == "criteria":
         result["criteria"] = _projected(
             [_criterion(c) for c in document.get("criteria", []) if isinstance(c, Mapping)],
