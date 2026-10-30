@@ -129,18 +129,51 @@ def resolved_procedure_id(
     return fits[0] if len(fits) == 1 else own
 
 
-def round_id(facts: Mapping[str, Any], author_id: str, contributor_id: str) -> str | None:
-    """The id of the pass: one per (signing author, number), so a persona's pass is its own."""
+def round_id(
+    facts: Mapping[str, Any], author_id: str, contributor_id: str,
+    rounds: Sequence[Mapping[str, Any]] = (),
+) -> str | None:
+    """The id of the round a draw belongs to: one per (signing author, number, prior), so a persona's pass is its own.
+
+    A sweep keeps one number, and the scorer may see the earlier score for some
+    of its cells and not for others, which comparanda v1's one ``feedback`` per
+    round cannot hold. So a round is keyed by **(number, prior)** (#279): the
+    draws that saw the prior are ``round-2``, those that did not are
+    ``round-2-withheld``, two ``rounds[]`` entries with one ``index`` and
+    different ``feedback``. A call that states no prior joins the one round its number has, else ``round-2``.
+
+    ``rounds`` are the contribution's stored entries. A round stored before the
+    key existed has its withheld draws under the plain id; they stay there, and
+    a draw that saw the prior in that number is ``round-2-shown``. A round
+    stored with no prior stated is completed by the first call that states one.
+    """
     if facts.get("round") is None:
         return None
-    suffix = "" if author_id == contributor_id else f"-{author_id}"
-    return f"round-{facts['round']}{suffix}"
+    who = "" if author_id == contributor_id else f"-{author_id}"
+    plain = f"round-{facts['round']}{who}"
+    stored = next((r for r in rounds if r.get("id") == plain), None)
+    prior = facts.get("prior")
+    if prior is None:
+        # No prior stated: the one round this number has, whichever answer it holds, else the plain one.
+        held = [i for i in (plain, f"round-{facts['round']}-withheld{who}", f"round-{facts['round']}-shown{who}")
+                if any(r.get("id") == i for r in rounds)]
+        return held[0] if len(held) == 1 else plain
+    # A round stored with no prior stated is completed by the first statement of it, as it always was.
+    if stored is not None and "feedback" not in stored:
+        return plain
+    legacy_withheld = stored is not None and stored.get("feedback") == _FEEDBACK["withheld"]
+    if prior == "withheld":
+        return plain if legacy_withheld else f"round-{facts['round']}-withheld{who}"
+    return f"round-{facts['round']}-shown{who}" if legacy_withheld else plain
 
 
-def round_entry(facts: Mapping[str, Any], author_id: str, contributor_id: str) -> dict[str, Any]:
+def round_entry(
+    facts: Mapping[str, Any], author_id: str, contributor_id: str,
+    rounds: Sequence[Mapping[str, Any]] = (),
+) -> dict[str, Any]:
     """The ``rounds[]`` entry for a pass: ``feedback`` is what the prior-handling fact says."""
     entry: dict[str, Any] = {
-        "id": round_id(facts, author_id, contributor_id), "index": facts["round"],
+        "id": round_id(facts, author_id, contributor_id, rounds), "index": facts["round"],
         "attribution": "attributed",
     }
     label = []
@@ -163,10 +196,11 @@ def stored_prior_applied(
     A pass whose round says the prior was shown stays that pass: leaving ``prior`` out of a
     later call must not lift the rung its draws may claim.
     """
-    rid = round_id(facts or {}, author_id, contributor_id) if facts else None
+    rounds = contribution.get("rounds", [])
+    rid = round_id(facts or {}, author_id, contributor_id, rounds) if facts else None
     if rid is None or facts.get("prior") is not None:
         return facts
-    old = next((r for r in contribution.get("rounds", []) if r.get("id") == rid), None)
+    old = next((r for r in rounds if r.get("id") == rid), None)
     prior = {v: k for k, v in _FEEDBACK.items()}.get((old or {}).get("feedback"))
     return {**facts, "prior": prior} if prior else facts
 
@@ -225,21 +259,14 @@ def refresh_procedures(
     pid = resolved_procedure_id(facts, author, contribution)
     procedures = {p["id"]: p for p in contribution.get("procedures", [])}
     rounds = {r["id"]: r for r in contribution.get("rounds", [])}
-    rid = round_id(facts, author["id"], contributor_id)
+    rid = round_id(facts, author["id"], contributor_id, contribution.get("rounds", []))
     if rid is not None:
         old = rounds.get(rid)
         stored_prior = {v: k for k, v in _FEEDBACK.items()}.get((old or {}).get("feedback"))
         entry = round_entry({**facts, "prior": facts.get("prior") or stored_prior},
-                            author["id"], contributor_id)
-        if old is not None and "feedback" in old and "feedback" in entry and (
-            old["feedback"] != entry["feedback"]
-        ):
-            raise ValueError(
-                f"refused, nothing was written: pass {facts['round']} was already recorded with "
-                f"prior {'withheld' if old['feedback'] == 'none' else 'shown'} and cannot be "
-                "restated; a draw that saw the prior is a different pass, so give it the next "
-                "round number."
-            )
+                            author["id"], contributor_id, contribution.get("rounds", []))
+        # A round holds one answer to ``prior`` (#279): the id carries it, so a draw that saw the
+        # prior and one that did not are two entries, never one restated.
         if entry.get("feedback") == "full" and (old is None or "feedback" not in old):
             higher = [a["id"] for _c, a in _draws(contribution) if a.get("roundId") == rid
                       and a.get("independence") not in (None, "shared-context", "consensus")]
@@ -247,8 +274,8 @@ def refresh_procedures(
                 raise ValueError(
                     f"refused, nothing was written: pass {facts['round']} already holds draw(s) "
                     f"{', '.join(higher)} recorded above shared-context, and a draw that saw the "
-                    "prior shares its context. Give the draw that saw the prior the next round "
-                    "number."
+                    "prior shares its context. State prior for the whole pass, or give the draw "
+                    "that saw the prior the next round number."
                 )
         rounds[rid] = {**(old or {}), **entry}
     procedures[pid] = _procedure(pid, facts, author, contribution, procedures.get(pid))

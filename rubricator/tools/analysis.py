@@ -1039,13 +1039,13 @@ def measures_write(
         )
         if cell_facts is not None:
             assertion["procedureId"] = resolved_procedure_id(facts, signer, contribution)
-            rid = round_id(facts, signer["id"], contributor_id)
+            rid = round_id(facts, signer["id"], contributor_id, contribution.get("rounds", []))
             if rid is not None:
                 if any(a.get("roundId") == rid for a in target["assertions"]):
                     raise ValueError(
                         f"refused, nothing was written: cell {'/'.join(key)} already holds a "
-                        f"draw from pass {facts['round']}. A cell's next pass is a new round "
-                        "number: give this one the next unused number."
+                        f"draw from pass {facts['round']}. A cell takes one draw per "
+                        "round and prior: score it in the next pass, with the next round number."
                     )
                 assertion["roundId"] = rid
         off_contract += [

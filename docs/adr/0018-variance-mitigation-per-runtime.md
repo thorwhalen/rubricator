@@ -239,3 +239,20 @@ A first pass in a fresh session derives `resampled` (or `perturbed`), which clai
 - **Deciders:** Thor Whalen
 
 The rule refused an *agent* persona claiming `independent` beside its principal or a sibling persona, and let a human one through, although `agreement()` already reads a principal and its personas as one rater. The stored claim was false while the label was honest. The rule now applies to every kind of author: one principal and its personas count once, so a person scoring a cell again, or through a persona, records `shared-context`; a second, distinct person is a separate assessor and may record `independent`. Models are still compared among agents only. The tests that wrote two personas of one human as `independent` now record `shared-context`.
+
+### 2026-10-30 — a round is keyed by (number, prior): one sweep keeps one number (#279, #224)
+
+- **Status:** accepted
+- **Date:** 2026-10-30
+- **Deciders:** Thor Whalen
+
+A comparanda v1 round holds one `feedback` value, so a sweep that scored some cells with the earlier score in view and others without had to spread over several round numbers, and the rule "take the next unused number" could put draws from two sweeps into one round. The tools now key a round by **(number, prior)**: the draws that saw the prior are `round-2` (`feedback: full`), the ones that did not are `round-2-withheld` (`feedback: none`), two `rounds[]` entries with the same `index` and different `feedback`. The v1 schema allows it (round ids are unique, `index` is not). One sweep keeps one number, and the next-unused-number rule is gone from the `score-cell` prompt (version 6). The only refusal left is a second draw of one cell in one round (the cell is being scored twice in one sweep: a new sweep, the next number).
+
+- **A call that states no prior** joins the one round its number already has, else `round-N`. **A round stored with no prior** is completed by the first call that states one.
+- **A round stored before this key** has its withheld draws under the plain id (`round-2`, `feedback: none`). They stay there, a new withheld draw in that number joins them, and a draw that saw the prior in that number is `round-2-shown`. Nothing is rewritten.
+- **A persona's pass** keeps its own rounds: the author id follows the prior (`round-2-withheld-bot:the-buyer`).
+- **Per-draw facts do not change.** The independence rung and `procedureId` are stamped per draw, and `disclose_variance` reads those, so no disclosure changes; `stability_report` already reads the round number out of the id and so groups both entries as one sweep.
+- **Renderers.** A reader that walks `rounds[]` in `index` order sees one number twice (the labels already say "prior shown" or "prior withheld"). comparanda's stability trace treated each entry as its own step; it now treats all entries of one `index` as one pass (comparanda, see the linked change).
+- **If comparanda later adds a `mixed` feedback value** (schema v2, #126 / #170), the two entries fold into one by a migration.
+
+The score-cell change needs an evaluation run against a model (`scripts/score_cell_procedure.py`); none was run, as no provider key is at hand. It is owed in the linked manual task.
