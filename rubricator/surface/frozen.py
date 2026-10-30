@@ -203,6 +203,7 @@ EVIDENCE = obj(
 CELL = obj(
     {
         "alternativeId": S, "criterionId": S, "measure": S, "assertionId": S,
+        "supersedes": S,
         "justification": S,
         "evidence": arr(EVIDENCE),
         "value": SCALAR,
@@ -576,13 +577,16 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
             "was withheld or shown, and the plan's traversal, reduction and seed when it has "
             "one); a cell takes one draw per round: the tools record the "
             "procedure, count its repeats and derive each draw's independence rung, and refuse "
-            "a rung the pass contradicts. Honesty rules run before the bytes land (ADR-0024)."
+            "a rung the pass contradicts. A re-score replaces the writer's own earlier claim "
+            "by naming it in supersedes: that assertion stays, marked superseded. "
+            "Honesty rules run before the bytes land (ADR-0024)."
         ),
         determinism="Schema validation and the honesty rules over the merged document; the moment is supplied, never read from a clock.",
         failure=(
             "Refused with nothing written: an analysis the user has not confirmed "
             "(frame_confirm), a cell on an unknown criterion, a reused assertion id, a "
-            "criteria-version mismatch, or an honesty violation such as a second claim on a "
+            "criteria-version mismatch, a supersedes naming no assertion of the writer's own in "
+            "that cell, or an honesty violation such as a second claim on a "
             "cell with no independence recorded."
         ),
         input_schema=obj(
@@ -1066,11 +1070,11 @@ MEASURED: Mapping[str, Any] = {
 AWAITING_MEASUREMENT: Mapping[str, Any] | None = {
     "issue": 199,
     "advertised": {
-        "tools": 19, "bytes": 26835,
-        "sha256": "4ba22aceb3275644f1df8fa90fe3429b8bebdca00b7448a8792700621b3ddf21",
+        "tools": 19, "bytes": 27053,
+        "sha256": "6a946b1b166db9947b19fc467c9dc9c2fffa476dbaff1ff10a07583ed637d58b",
     },
     "wholeSurface": {
-        "tools": 22, "bytes": 29456,
-        "sha256": "bcf385255c5e2434f9fd406090b92c93bbe3e50555ad06d2b97ed91164d30891",
+        "tools": 22, "bytes": 29674,
+        "sha256": "def770b35bfff53b58a5680f8783b340fbe9ca9640d855d9447a932f6d21cc78",
     },
 }

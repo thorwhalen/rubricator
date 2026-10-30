@@ -322,3 +322,17 @@ The template variable is `{id}` in these rows and `{analysis_id}` in the one tem
 
 **Reversing it** is a row edit back to `planned` with a new issue, plus the implementation and its determinism tests. A Bradley–Terry fit is reached only through ADR-0011's four-condition escalation, and the coupling probes cost 3n² judgements, so the case for reversing must come from an analysis that needed one of them.
 
+
+### 2026-10-30 — `measures_write`: a cell may name the earlier assertion it supersedes (#181)
+
+- **Status:** accepted
+- **Date:** 2026-10-30
+- **Deciders:** Thor Whalen
+
+The CELL shape gains an optional `supersedes`: the id of the writer's own earlier assertion in that cell. The verb sets `supersededBy` on that stored assertion in the writer's own file, and the new assertion is written beside it. The earlier claim is kept, never deleted, which is how comparanda models a replaced claim (`supersession-resolves` and `supersession-acyclic` already guard it, and a superseded assertion is not live, so one live claim needs no independence rung). The write is refused, with nothing written, when the id is not an assertion of this writer in this cell (a colleague's is named as theirs: they replace their own), when it is the new assertion's own id, or when it was already replaced (the refusal names its successor, so a chain does not fork). This is the amendment ADR-0026 anticipated for fields added to the CELL, the same kind as `confidence` (#126).
+
+Alternatives not taken: a re-score standing beside the prior as `shared-context`, with every reader learning to prefer the newer one (a second meaning of "live"), and keeping both live on purpose (one person's revision shown as disagreement).
+
+**Not re-measured.** `MEASURED` below is still the 2026-10-12 count; `AWAITING_MEASUREMENT` in `frozen.py` pins what is now served (19 advertised tools, 27,053 bytes, digest `6a946b1b166d`; the whole surface, 22 tools, 29,674 bytes, digest `def770b35bff`) and still names #199, which owes the count. No estimate is recorded as a count.
+
+The `rescore-criterion` prompt (#129) does not exist yet; it should write a re-score with `supersedes` and not beside the prior.
