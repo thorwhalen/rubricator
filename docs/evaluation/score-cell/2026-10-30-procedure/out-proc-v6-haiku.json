@@ -1,0 +1,366 @@
+[
+ {
+  "cellId": "p2-repeat-same-conversation",
+  "output": {
+   "cell": {
+    "alternativeId": "quillbase",
+    "criterionId": "support-window",
+    "justification": "The vendor's own support page states Team plan support until 31 March 2030, more than 12 months out, which meets the level-5 condition.",
+    "evidence": [
+     {
+      "id": "s1",
+      "target": "quillbase-support-page",
+      "sourceType": "primary",
+      "stance": "supports",
+      "selectors": [{"type": "TextQuoteSelector", "exact": "The Team plan is supported until 31 March 2030."}]
+     }
+    ],
+    "value": 5
+   },
+   "confidence": "high",
+   "dependsOn": []
+  },
+  "call": {
+   "tool": "measures_write",
+   "procedure": {"round": 2, "session": "same", "prior": "shown", "traversal": "cell-wise", "reduction": "lower-median", "seed": 12},
+   "alternative_ids": null,
+   "criterion_ids": null
+  }
+ },
+ {
+  "cellId": "p3-fresh-no-prior",
+  "output": {
+   "cell": {
+    "alternativeId": "quillbase",
+    "criterionId": "data-export",
+    "justification": "Span s1 states every workspace exports to Markdown and JSON with the JSON schema published, which meets the level-5 condition for open, documented formats. Reading 'every workspace' as 'all data' is my inference, not a stated claim, hence medium confidence. Span s2 documents bulk-endpoint exports in an open schema and does not limit the level.",
+    "evidence": [
+     {
+      "id": "s1",
+      "target": "quillbase-help-export",
+      "sourceType": "primary",
+      "stance": "supports",
+      "selectors": [{"type": "TextQuoteSelector", "exact": "Export every workspace to Markdown and JSON; the JSON schema is published in our API reference."}]
+     },
+     {
+      "id": "s2",
+      "target": "quillbase-api-reference",
+      "sourceType": "primary",
+      "stance": "qualifies",
+      "selectors": [{"type": "TextQuoteSelector", "exact": "Exports produced by the bulk endpoint are documented in the open Notes Interchange schema, version 2."}]
+     }
+    ],
+    "value": 5
+   },
+   "confidence": "medium",
+   "dependsOn": []
+  },
+  "call": {
+   "tool": "measures_write",
+   "procedure": {"round": 3, "session": "fresh", "prior": "withheld", "traversal": "cell-wise", "reduction": "lower-median", "seed": 13},
+   "alternative_ids": null,
+   "criterion_ids": null
+  }
+ },
+ {
+  "cellId": "p4-no-plan-given",
+  "output": {
+   "cell": {
+    "alternativeId": "quillbase",
+    "criterionId": "data-export",
+    "justification": "Span s1 states every workspace exports to Markdown and JSON with the JSON schema published, which meets the level-5 condition for open, documented formats. Reading 'every workspace' as 'all data' is my inference, not a stated claim, hence medium confidence. Span s2 documents bulk-endpoint exports in an open schema and does not limit the level.",
+    "evidence": [
+     {
+      "id": "s1",
+      "target": "quillbase-help-export",
+      "sourceType": "primary",
+      "stance": "supports",
+      "selectors": [{"type": "TextQuoteSelector", "exact": "Export every workspace to Markdown and JSON; the JSON schema is published in our API reference."}]
+     },
+     {
+      "id": "s2",
+      "target": "quillbase-api-reference",
+      "sourceType": "primary",
+      "stance": "qualifies",
+      "selectors": [{"type": "TextQuoteSelector", "exact": "Exports produced by the bulk endpoint are documented in the open Notes Interchange schema, version 2."}]
+     }
+    ],
+    "value": 5
+   },
+   "confidence": "medium",
+   "dependsOn": []
+  },
+  "call": {
+   "tool": "measures_write",
+   "procedure": {"round": 2, "session": "fresh", "prior": "withheld"},
+   "alternative_ids": null,
+   "criterion_ids": null
+  }
+ },
+ {
+  "cellId": "p5-asked-for-independent",
+  "output": {
+   "cell": {
+    "alternativeId": "mossnote",
+    "criterionId": "data-export",
+    "justification": "Span s1 states notes and folders export to plain Markdown, while comments and attachments export only as a proprietary .mossarchive bundle. That is not proprietary-only (anchor 3) and not all data in an open format (anchor 5), so the level sits between anchor 3 and anchor 5.",
+    "evidence": [
+     {
+      "id": "s1",
+      "target": "mossnote-help-export",
+      "sourceType": "primary",
+      "stance": "supports",
+      "selectors": [{"type": "TextQuoteSelector", "exact": "Notes and folders export to plain Markdown. Comments and attachments export only as a .mossarchive bundle, readable by Mossnote."}]
+     }
+    ],
+    "value": 4
+   },
+   "confidence": "high",
+   "dependsOn": []
+  },
+  "call": {
+   "tool": "measures_write",
+   "procedure": {"round": 2, "session": "same", "prior": "shown"},
+   "alternative_ids": null,
+   "criterion_ids": null
+  }
+ },
+ {
+  "cellId": "p6-blank-on-a-repeat",
+  "output": {
+   "cell": {
+    "alternativeId": "larkpad",
+    "criterionId": "support-window",
+    "missing": {
+     "code": "not-evidenced",
+     "note": "Retrieval covered the Larkpad website, changelog and two independent review sites and returned no span on a support window."
+    }
+   },
+   "dependsOn": []
+  },
+  "call": {
+   "tool": "measures_mark_missing",
+   "procedure": {"round": 2, "session": "same", "prior": "shown", "seed": 22},
+   "alternative_ids": ["larkpad"],
+   "criterion_ids": ["support-window"]
+  }
+ },
+ {
+  "cellId": "p7-counts-offered",
+  "output": {
+   "cell": {
+    "alternativeId": "mossnote",
+    "criterionId": "migration-effort",
+    "justification": "Inferred from span-1 and span-2: the vendor's help centre says leaving is handled by its paid Migration Services team, and a consultancy states migration needs a paid engagement for organisations over 50 seats. The requirement is stated for larger organisations only, so the level-1 condition is inferred across the two spans rather than stated for all organisations.",
+    "evidence": [
+     {
+      "id": "s1",
+      "target": "mossnote-help-leaving",
+      "sourceType": "primary",
+      "stance": "supports",
+      "selectors": [{"type": "TextQuoteSelector", "exact": "Moving an organisation off Mossnote is handled by our paid Migration Services team."}]
+     },
+     {
+      "id": "s2",
+      "target": "consultancy-blog",
+      "sourceType": "secondary",
+      "stance": "supports",
+      "selectors": [{"type": "TextQuoteSelector", "exact": "Mossnote requires a paid engagement with its own services team to migrate an organisation of more than 50 seats."}]
+     }
+    ],
+    "value": 1
+   },
+   "confidence": "medium",
+   "dependsOn": []
+  },
+  "call": {
+   "tool": "measures_write",
+   "procedure": {"round": 2, "session": "fresh", "prior": "withheld"},
+   "alternative_ids": null,
+   "criterion_ids": null
+  }
+ },
+ {
+  "cellId": "p8-first-of-planned-repeats",
+  "output": {
+   "cell": {
+    "alternativeId": "larkpad",
+    "criterionId": "data-export",
+    "justification": "Span s1, the vendor's developer documentation, states every workspace including comments and attachments exports as JSON following the published OpenNotes 1.2 schema, which is all data in an open, documented format.",
+    "evidence": [
+     {
+      "id": "s1",
+      "target": "larkpad-developer-docs",
+      "sourceType": "primary",
+      "stance": "supports",
+      "selectors": [{"type": "TextQuoteSelector", "exact": "Every workspace, including comments and attachments, exports as JSON that follows the published OpenNotes 1.2 schema."}]
+     }
+    ],
+    "value": 5
+   },
+   "confidence": "high",
+   "dependsOn": []
+  },
+  "call": {
+   "tool": "measures_write",
+   "procedure": {"round": 1, "session": "fresh", "prior": "withheld", "traversal": "cell-wise", "reduction": "lower-median", "seed": 11},
+   "alternative_ids": null,
+   "criterion_ids": null
+  }
+ },
+ {
+  "cellId": "p9-harness-says-fresh-but-prior-visible",
+  "output": {
+   "cell": {
+    "alternativeId": "quillbase",
+    "criterionId": "data-export",
+    "justification": "Span s1 states every workspace exports to Markdown and JSON with the JSON schema published, which meets the level-5 condition for open, documented formats. Reading 'every workspace' as 'all data' is my inference, not a stated claim, hence medium confidence. Span s2 documents bulk-endpoint exports in an open schema and does not limit the level.",
+    "evidence": [
+     {
+      "id": "s1",
+      "target": "quillbase-help-export",
+      "sourceType": "primary",
+      "stance": "supports",
+      "selectors": [{"type": "TextQuoteSelector", "exact": "Export every workspace to Markdown and JSON; the JSON schema is published in our API reference."}]
+     },
+     {
+      "id": "s2",
+      "target": "quillbase-api-reference",
+      "sourceType": "primary",
+      "stance": "qualifies",
+      "selectors": [{"type": "TextQuoteSelector", "exact": "Exports produced by the bulk endpoint are documented in the open Notes Interchange schema, version 2."}]
+     }
+    ],
+    "value": 5
+   },
+   "confidence": "medium",
+   "dependsOn": []
+  },
+  "call": {
+   "tool": "measures_write",
+   "procedure": {"round": 2, "session": "same", "prior": "shown", "seed": 5},
+   "alternative_ids": null,
+   "criterion_ids": null
+  }
+ },
+ {
+  "cellId": "p10-asked-to-ignore-the-earlier-score",
+  "output": {
+   "cell": {
+    "alternativeId": "mossnote",
+    "criterionId": "data-export",
+    "justification": "Span s1 states notes and folders export to plain Markdown, while comments and attachments export only as a proprietary .mossarchive bundle. That is not proprietary-only (anchor 3) and not all data in an open format (anchor 5), so the level sits between anchor 3 and anchor 5.",
+    "evidence": [
+     {
+      "id": "s1",
+      "target": "mossnote-help-export",
+      "sourceType": "primary",
+      "stance": "supports",
+      "selectors": [{"type": "TextQuoteSelector", "exact": "Notes and folders export to plain Markdown. Comments and attachments export only as a .mossarchive bundle, readable by Mossnote."}]
+     }
+    ],
+    "value": 4
+   },
+   "confidence": "high",
+   "dependsOn": []
+  },
+  "call": {
+   "tool": "measures_write",
+   "procedure": {"round": 2, "session": "same", "prior": "shown"},
+   "alternative_ids": null,
+   "criterion_ids": null
+  }
+ },
+ {
+  "cellId": "p11-prior-in-the-retrieval-note",
+  "output": {
+   "cell": {
+    "alternativeId": "quillbase",
+    "criterionId": "support-window",
+    "justification": "downgraded (superseded): span-1 vs span-2. The support page states support until 31 March 2030 and the later changelog entry extends it to 30 June 2031. Both dates are more than 12 months out, so both meet the level-5 condition; the disagreement is about the date, not the level.",
+    "evidence": [
+     {
+      "id": "s1",
+      "target": "quillbase-support-page",
+      "sourceType": "primary",
+      "stance": "supports",
+      "selectors": [{"type": "TextQuoteSelector", "exact": "The Team plan is supported until 31 March 2030."}]
+     },
+     {
+      "id": "s2",
+      "target": "quillbase-changelog",
+      "sourceType": "primary",
+      "stance": "qualifies",
+      "selectors": [{"type": "TextQuoteSelector", "exact": "Team plan support has been extended to 30 June 2031."}]
+     }
+    ],
+    "value": 5
+   },
+   "confidence": "medium",
+   "dependsOn": []
+  },
+  "call": {
+   "tool": "measures_write",
+   "procedure": {"round": 2, "session": "same", "prior": "shown", "seed": 8},
+   "alternative_ids": null,
+   "criterion_ids": null
+  }
+ },
+ {
+  "cellId": "p1-first-pass",
+  "output": {
+   "cell": {
+    "alternativeId": "quillbase",
+    "criterionId": "support-window",
+    "justification": "The vendor's own support page states Team plan support until 31 March 2030, more than 12 months out, which meets the level-5 condition.",
+    "evidence": [
+     {
+      "id": "s1",
+      "target": "quillbase-support-page",
+      "sourceType": "primary",
+      "stance": "supports",
+      "selectors": [{"type": "TextQuoteSelector", "exact": "The Team plan is supported until 31 March 2030."}]
+     }
+    ],
+    "value": 5
+   },
+   "confidence": "high",
+   "dependsOn": []
+  },
+  "call": {
+   "tool": "measures_write",
+   "procedure": {"round": 1, "session": "fresh", "prior": "withheld"},
+   "alternative_ids": null,
+   "criterion_ids": null
+  }
+ },
+ {
+  "cellId": "p12-same-sweep-other-prior",
+  "output": {
+   "cell": {
+    "alternativeId": "larkpad",
+    "criterionId": "support-window",
+    "evidence": [
+     {
+      "id": "s1",
+      "target": "larkpad-homepage",
+      "sourceType": "primary",
+      "stance": "context",
+      "selectors": [{"type": "TextQuoteSelector", "exact": "Industry-leading support, there for your team whenever you need it."}]
+     }
+    ],
+    "missing": {
+     "code": "not-evidenced",
+     "note": "Retrieval covered the Larkpad homepage and press releases. The only span handed is general homepage wording with no dated support commitment, and nothing on a dated support window was returned."
+    }
+   },
+   "dependsOn": []
+  },
+  "call": {
+   "tool": "measures_mark_missing",
+   "procedure": {"round": 2, "session": "fresh", "prior": "withheld"},
+   "alternative_ids": ["larkpad"],
+   "criterion_ids": ["support-window"]
+  }
+ }
+]

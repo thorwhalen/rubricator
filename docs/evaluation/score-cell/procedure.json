@@ -153,12 +153,12 @@
       }
     },
     {
-      "id": "p12-round-refused",
+      "id": "p12-same-sweep-other-prior",
       "cell": "c8",
-      "conversationSoFar": "In this sweep you already passed {round 2, session same, prior shown} for another cell, and the tool recorded round 2 as prior shown. For this cell nothing earlier is in your context, and you attempted {round 2, session fresh, prior withheld}. The tool replied: \"pass 2 was already recorded with prior shown; give it the next round number.\" Pass this cell again.",
+      "conversationSoFar": "In this sweep you already passed {round 2, session same, prior shown} for another cell. For this cell nothing earlier is in your context, so your pass is fresh and the prior is withheld. It is the same sweep, and the tools record a sweep's draws that saw the earlier score and those that did not as two entries of one number. Pass this cell.",
       "expect": {
         "must": {
-          "round": 3,
+          "round": 2,
           "session": "fresh",
           "prior": "withheld"
         }
