@@ -231,3 +231,11 @@ A first pass in a fresh session derives `resampled` (or `perturbed`), which clai
 6. [Escape Sky-high Cost: Early-stopping Self-Consistency for Multi-step Reasoning — Li et al. (2024), ICLR](https://arxiv.org/abs/2401.10480)
 7. [Can LLMs Express Their Uncertainty? An Empirical Evaluation of Confidence Elicitation in LLMs — Xiong et al. (2024), ICLR](https://arxiv.org/abs/2306.13063)
 8. [When LLMs Agree, Are They Right? Auditing Self-Consistency and Cross-Model Agreement as Confidence Signals — Ding (2026)](https://arxiv.org/abs/2607.08065) — *single-author preprint; weak evidence*
+
+### 2026-10-30 — `independent-is-distinct` covers a person's personas too (#220)
+
+- **Status:** accepted
+- **Date:** 2026-10-30
+- **Deciders:** Thor Whalen
+
+The rule refused an *agent* persona claiming `independent` beside its principal or a sibling persona, and let a human one through, although `agreement()` already reads a principal and its personas as one rater. The stored claim was false while the label was honest. The rule now applies to every kind of author: one principal and its personas count once, so a person scoring a cell again, or through a persona, records `shared-context`; a second, distinct person is a separate assessor and may record `independent`. Models are still compared among agents only. The tests that wrote two personas of one human as `independent` now record `shared-context`.
