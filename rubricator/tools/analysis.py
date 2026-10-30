@@ -407,10 +407,22 @@ def alternatives_set(
             "but cells refer to them. Keep them in the set, or tombstone them."
         )
     _refuse_a_blind_drop("alternatives", dropping, unread)
-    frame["alternatives"] = [dict(a) for a in alternatives]
+    stated = _stated_provenance(store, analysis_id, alternatives)
+    # The frame is a comparanda document and its Alternative is closed: where a row came from is kept beside it.
+    frame["alternatives"] = [{k: v for k, v in a.items() if k not in PROVENANCE_KEYS} for a in alternatives]
     _put_frame(store, analysis_id, frame)
+    kept = {k: v for k, v in store.alternative_provenance(analysis_id).items() if k in ids}
+    provenance = {**kept, **{i: {**kept.get(i, {}), **v} for i, v in stated.items()}}
+    if provenance != store.alternative_provenance(analysis_id):
+        store.put_alternative_provenance(analysis_id, provenance)
+    unsourced = [i for i in ids if _is_unsourced(provenance.get(i))]
     flagged = near_duplicates(alternatives)
     summary = f"{len(ids)} alternative(s) declared"
+    if unsourced:
+        summary += (
+            f"; {len(unsourced)} taken from the corpus or inferred with no evidence ("
+            + ", ".join(unsourced) + "): find what names each, or ask the user whether it belongs"
+        )
     if flagged:
         summary += (
             f"; {len(flagged)} near-duplicate pair(s) flagged and never merged ("
@@ -421,8 +433,67 @@ def alternatives_set(
         "analysisId": analysis_id,
         "alternatives": ids,
         "nearDuplicates": flagged,
+        "unsourced": unsourced,
         "summary": summary,
     }
+
+
+#: The keys of an alternative that are not comparanda's: kept beside the frame (#274).
+PROVENANCE_KEYS: tuple[str, ...] = ("source", "evidence")
+
+
+def _is_unsourced(provenance: Mapping[str, Any] | None) -> bool:
+    """An alternative that says it came from the corpus or from inference, and names nothing that holds it.
+
+    One that states no source says nothing, and so is not flagged; one the user
+    named is the user's word.
+    """
+    return bool(provenance) and provenance.get("source") in ("corpus", "inference") and not provenance.get("evidence")
+
+
+def _stated_provenance(
+    store: AnalysisStore, analysis_id: str, alternatives: Sequence[Mapping[str, Any]]
+) -> dict[str, dict[str, Any]]:
+    """The provenance this call states, by alternative id; refuses evidence the corpus does not hold.
+
+    Evidence is a corpus document id or a span id of one (``{document}:{start}-{end}``).
+    An alternative that states neither source nor evidence is absent here, so
+    re-declaring it keeps what was said before.
+    """
+    from rubricator.surface.resources import parse_span_id
+
+    known: set[str] | None = None
+    stated: dict[str, dict[str, Any]] = {}
+    problems: list[str] = []
+    for i, a in enumerate(alternatives):
+        found = {k: a[k] for k in PROVENANCE_KEYS if k in a}
+        if not found:
+            continue
+        if "source" in found and found["source"] not in ("user", "corpus", "inference"):
+            problems.append(f'$.alternatives[{i}] ({a.get("id")}): source is user, corpus or inference, not {found["source"]!r}.')
+            continue
+        raw = found.get("evidence", [])
+        if not isinstance(raw, (list, tuple)) or not all(isinstance(e, str) and e.strip() for e in raw):
+            problems.append(f'$.alternatives[{i}] ({a.get("id")}): evidence is a list of corpus document or span ids.')
+            continue
+        evidence = [e.strip() for e in raw]
+        if "source" in found and found["source"] == "user" and evidence:
+            problems.append(f"$.alternatives[{i}] ({a.get('id')}): evidence goes with a source of corpus or inference; a user's alternative is their word.")
+        for ref in evidence:
+            known = store.rendition_ids(analysis_id) if known is None else known
+            try:
+                document = parse_span_id(ref)[0]
+            except ValueError:
+                document = ref
+            if document not in known:
+                problems.append(
+                    f'$.alternatives[{i}] ({a.get("id")}): evidence "{ref}" names a document the corpus does '
+                    "not hold. Add it with corpus_add first."
+                )
+        stated[a["id"]] = {k: v for k, v in (("source", found.get("source")), ("evidence", sorted(set(evidence)) or None)) if v is not None}
+    if problems:
+        raise ValueError("refused, nothing was written: " + "; ".join(problems))
+    return stated
 
 
 def criteria_set(

@@ -18,6 +18,7 @@ port would be a method on something that is already a Mapping.
     analyses/{analysis_id}/renditions/{rendition_id}.json
     analyses/{analysis_id}/confirmations/{sequence}-{digest}.json
     analyses/{analysis_id}/corpus/{rendition_id}/{record}.json
+    analyses/{analysis_id}/alternatives/provenance.json
 
 **One file per contributor.** That is not a filing convention; it is what makes
 a shared git repository a viable backend without a locking protocol. Two people
@@ -493,6 +494,10 @@ class AnalysisStore:
         return f"analyses/{analysis_id}/corpus/{rendition_id}/{record}.json"
 
     @staticmethod
+    def alternative_provenance_key(analysis_id: str) -> str:
+        return f"analyses/{analysis_id}/alternatives/provenance.json"
+
+    @staticmethod
     def stamp_prefix(key: str) -> str:
         """The directory holding the stamps that date ``key``'s last write."""
         _, analysis_id, rest = key.split("/", 2)
@@ -622,6 +627,12 @@ class AnalysisStore:
         self._require(analysis_id)
         prefix = f"analyses/{analysis_id}/renditions/"
         return [self._read(k) for k in sorted(self._keys(prefix))]
+
+    def rendition_ids(self, analysis_id: str) -> set[str]:
+        """The ids of the stored renditions, from the keys alone: nothing is parsed."""
+        self._require(analysis_id)
+        prefix = f"analyses/{analysis_id}/renditions/"
+        return {k[len(prefix):-len(".json")] for k in self._keys(prefix) if k.endswith(".json")}
 
     def read(self, analysis_id: str) -> dict[str, Any]:
         """The whole analysis: the frame and every contribution, merged.
@@ -976,6 +987,26 @@ class AnalysisStore:
         check_id(record)
         self._require(analysis_id)
         self._write(self.corpus_key(analysis_id, rendition_id, record), document)
+
+    def alternative_provenance(self, analysis_id: str) -> dict[str, dict[str, Any]]:
+        """Where each alternative came from, by alternative id: ``{source, evidence}`` (#274).
+
+        A side record beside the frame, because comparanda v1's closed
+        ``Alternative`` has no slot for it. Empty when none was stated. A file
+        that cannot be read reads as empty: it only informs a flag, and
+        ``alternatives_set`` writes it afresh.
+        """
+        self._require(analysis_id)
+        try:
+            record = self._read(self.alternative_provenance_key(analysis_id))
+        except (KeyError, ValueError, UnicodeDecodeError):
+            return {}
+        return {k: dict(v) for k, v in record.items() if isinstance(v, dict)} if isinstance(record, dict) else {}
+
+    def put_alternative_provenance(self, analysis_id: str, provenance: dict[str, dict[str, Any]]) -> None:
+        check_id(analysis_id)
+        self._require(analysis_id)
+        self._write(self.alternative_provenance_key(analysis_id), provenance)
 
     def _confirmation_keys(self, analysis_id: str) -> list[str]:
         prefix = f"analyses/{analysis_id}/confirmations/"

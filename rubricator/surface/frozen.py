@@ -124,9 +124,13 @@ RULESET = enum("draft", "default", "strict-publication", "conformance")
 #: Rows and columns may be retired but never deleted once scored: ``tombstoned``
 #: and ``supersededBy`` are the comparanda fields for that, and they are on the
 #: input shape because a refusal that says "tombstone it" must be followable.
+#: Where an alternative came from (#274). Comparanda v1's closed ``Alternative`` has no slot, so
+#: ``alternatives_set`` keeps these two beside the frame, and ``analysis_get`` reads them back.
+ALTERNATIVE_SOURCE = enum("user", "corpus", "inference")
 ALTERNATIVE = obj(
     {"id": S, "label": S, "description": S, "groupIds": arr(S),
-     "tombstoned": B, "supersededBy": arr(S)},
+     "tombstoned": B, "supersededBy": arr(S),
+     "source": ALTERNATIVE_SOURCE, "evidence": arr(S)},
     ("id", "label"),
 )
 MISSING_DECLARATION = obj(
@@ -457,16 +461,22 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
             "Declare the alternatives -- the rows -- replacing the current set. Dropping an "
             "alternative that any cell refers to is refused: a row with history is "
             "tombstoned, never deleted. Pairs whose labels nearly coincide are returned in "
-            "nearDuplicates, never merged: ask the user whether each pair is one alternative."
+            "nearDuplicates, never merged: ask the user whether each pair is one alternative. "
+            "An alternative may say where it came from: source (user, corpus or inference) and "
+            "evidence, the ids of the corpus documents or spans that name it. One taken from the "
+            "corpus or inferred, with no evidence, is returned in unsourced: find its source or "
+            "ask the user. Provenance is kept beside the frame, and a re-declaration that omits "
+            "it keeps what was said."
         ),
-        determinism="A validated write; the near-duplicate check is token overlap and a named threshold.",
-        failure="Duplicate ids, or dropping a scored row, is refused with nothing written.",
+        determinism="A validated write; the near-duplicate check is token overlap and a named threshold; unsourced is read off the stated provenance.",
+        failure="Duplicate ids, dropping a scored row, or evidence naming a document the corpus does not hold is refused with nothing written.",
         input_schema=obj({"analysis_id": S, "alternatives": arr(ALTERNATIVE)}, ("analysis_id", "alternatives")),
         output_schema=obj(
             {"analysisId": S, "alternatives": arr(S),
              "nearDuplicates": arr(obj({"a": S, "b": S, "similarity": N}, ("a", "b", "similarity"))),
+             "unsourced": arr(S),
              "summary": S},
-            ("analysisId", "alternatives", "nearDuplicates", "summary"),
+            ("analysisId", "alternatives", "nearDuplicates", "unsourced", "summary"),
         ),
     ),
     ToolSpec(
@@ -1118,11 +1128,11 @@ MEASURED: Mapping[str, Any] = {
 AWAITING_MEASUREMENT: Mapping[str, Any] | None = {
     "issue": 199,
     "advertised": {
-        "tools": 20, "bytes": 28818,
-        "sha256": "edb26233b717cf6fc289f84c20fd85d06491e069775b4be2152d37d639e1df8a",
+        "tools": 20, "bytes": 29389,
+        "sha256": "9614708b9327f082466a0daf46a48418839e65bd4072765b8cfb0d9936b4efcf",
     },
     "wholeSurface": {
-        "tools": 23, "bytes": 31439,
-        "sha256": "dbdf1be63f0d66da33f9541a03fd7aaacf46da21ab1594d303e0040aab57156f",
+        "tools": 23, "bytes": 32010,
+        "sha256": "036b98537cd6a08ee237cf1b399ab92a53abd8a4b0a0ea3fab313dfcb8639025",
     },
 }

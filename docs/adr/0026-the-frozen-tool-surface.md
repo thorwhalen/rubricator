@@ -350,3 +350,19 @@ The `rescore-criterion` prompt (#129) does not exist yet; it should write a re-s
 **How a code is stored, until comparanda extends its set.** The pinned `reasonCode` is a different closed set from ADR-0016's, so each entry is stored as `reasonCode: other` (a merge as `merged` with `mergedIntoId`) and the ADR code prefixes `reason` (`means-objective: serves reliability`). Rejects stay countable by that prefix (`criteria_reject` reports `byCode`) and migrate mechanically when comparanda's `reasonCode` carries the five codes, asked for as comparanda request 19 (`comparanda: docs/cross-repo-coordination.md` § 7.3). The mapping lives in one place, `rubricator.ladder.REJECT_REASON_CODES`.
 
 **Not re-measured.** `MEASURED` below is still the 2026-10-12 count; `AWAITING_MEASUREMENT` in `frozen.py` pins what is now served (20 advertised tools, 28,818 bytes, digest `edb26233b717`; the whole surface, 23 tools, 31,439 bytes, digest `dbdf1be63f0d`) and still names #199, which owes the count. No estimate is recorded as a count.
+
+### 2026-10-30 — `alternatives_set` takes `source` and `evidence`, and returns `unsourced` (#274, #55)
+
+- **Status:** accepted
+- **Date:** 2026-10-30
+- **Deciders:** Thor Whalen
+
+**One input addition.** The input `Alternative` gains `source` (`user`, `corpus` or `inference`) and `evidence` (corpus document ids, or span ids `{document}:{start}-{end}` of one). comparanda v1's closed `Alternative` has no slot for where a row came from, so the two are kept in a side record beside the frame (`alternatives/provenance.json`, written by `alternatives_set` only), the way `corpus_add` keeps the agent-produced marker, and the frame the document carries is unchanged. `analysis_get`'s frame view hands them back, so a view round-trips into the verb. A re-declaration that omits them keeps what was said, a field stated replaces that field, and a row dropped loses its record.
+
+**One output addition.** `unsourced` lists the alternatives that say they were taken from the corpus or inferred and name nothing that holds them. A row that states no source says nothing and is not flagged; a user's alternative is their word and takes no evidence. This is the flag #55 promised and #226 withdrew from the row's text; it informs and never refuses (ADR-0024). The summary names them.
+
+**Refusals, with nothing written.** An unknown source, evidence that is not a list of ids, evidence naming a document the corpus does not hold (add it with `corpus_add` first), and evidence on a user's alternative.
+
+**Migration.** If comparanda later gains a provenance slot on `Alternative` (option (b) of #274), the side record moves into it and `unsourced` reads it from there; nothing else changes.
+
+**Not re-measured.** `MEASURED` below is still the 2026-10-12 count; `AWAITING_MEASUREMENT` in `frozen.py` pins what is now served (20 advertised tools, 29,389 bytes, digest `9614708b9327`; the whole surface, 23 tools, 32,010 bytes, digest `036b98537cd6`) and still names #199, which owes the count. No estimate is recorded as a count.
