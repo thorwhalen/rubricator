@@ -336,3 +336,17 @@ Alternatives not taken: a re-score standing beside the prior as `shared-context`
 **Not re-measured.** `MEASURED` below is still the 2026-10-12 count; `AWAITING_MEASUREMENT` in `frozen.py` pins what is now served (19 advertised tools, 27,053 bytes, digest `6a946b1b166d`; the whole surface, 22 tools, 29,674 bytes, digest `def770b35bff`) and still names #199, which owes the count. No estimate is recorded as a count.
 
 The `rescore-criterion` prompt (#129) does not exist yet; it should write a re-score with `supersedes` and not beside the prior.
+
+### 2026-10-30 — `criteria_set` takes `provenance`, and a new row, `criteria_reject`, records rejected criteria (#259)
+
+- **Status:** accepted
+- **Date:** 2026-10-30
+- **Deciders:** Thor Whalen
+
+**One input addition.** The input `Criterion` gains `provenance` (`{origin, authorId?, at?, derivedFrom?, rationale?}`, `origin` one of `user-stated`, `derived-from-source`, `agent-proposed`, `imported`), comparanda v1's criterion provenance, emitted as given and returned by `analysis_get` so a view round-trips. The ladder's two values (`user-stated`, `agent-proposed`) are a subset of it, and `derived-from-span` in #29 is `derived-from-source` here.
+
+**One new row.** `criteria_reject` (family criteria, stage 3, implemented, cut rank 3) takes `analysis_id` and `rejected`: entries of `{label, code, reason, mergedIntoId?, proposedBy?}` with ADR-0016's closed `code` (`merged-into`, `means-objective`, `not-controllable`, `no-discrimination-expected`, `user-rejected`), and an `at` the surface supplies. It adds to the analysis's `rejectedCriteria` and `criteria_set` never touches them. It refuses, with nothing written, an unknown code, a blank label or reason, a `merged-into` that names no live criterion (or another code that names one), and a label that is a live criterion's. An entry already recorded is not recorded twice.
+
+**How a code is stored, until comparanda extends its set.** The pinned `reasonCode` is a different closed set from ADR-0016's, so each entry is stored as `reasonCode: other` (a merge as `merged` with `mergedIntoId`) and the ADR code prefixes `reason` (`means-objective: serves reliability`). Rejects stay countable by that prefix (`criteria_reject` reports `byCode`) and migrate mechanically when comparanda's `reasonCode` carries the five codes, asked for as comparanda request 19 (`comparanda: docs/cross-repo-coordination.md` § 7.3). The mapping lives in one place, `rubricator.ladder.REJECT_REASON_CODES`.
+
+**Not re-measured.** `MEASURED` below is still the 2026-10-12 count; `AWAITING_MEASUREMENT` in `frozen.py` pins what is now served (20 advertised tools, 28,818 bytes, digest `edb26233b717`; the whole surface, 23 tools, 31,439 bytes, digest `dbdf1be63f0d`) and still names #199, which owes the count. No estimate is recorded as a count.

@@ -15,8 +15,9 @@ construction**, found by walking a graph rather than by correlating scores. This
 module is that walk. Nothing here calls a model.
 
 A proposal is a mapping with these keys (``criteria`` is exactly what
-``criteria_set`` takes; the rest have no slot in the companion contract yet and
-ride beside it):
+``criteria_set`` takes, with each criterion's ``provenance`` on it; ``rejected``
+is what ``criteria_reject`` records; the rest have no slot in the companion
+contract and ride beside it):
 
 - ``ladder`` -- ``objectives`` (``id``, ``text``) and ``edges`` (``from`` a
   criterion or an objective, ``to`` the objective it refines);
@@ -36,6 +37,8 @@ from typing import Any, Iterable, Mapping
 
 __all__ = [
     "REJECT_REASONS",
+    "REJECT_REASON_CODES",
+    "rejection_record",
     "PROVENANCE",
     "children",
     "leaves",
@@ -50,6 +53,16 @@ REJECT_REASONS: tuple[str, ...] = (
     "merged-into", "means-objective", "not-controllable", "no-discrimination-expected",
     "user-rejected",
 )
+
+#: How each ADR-0016 reject code is stored in comparanda's ``rejectedCriteria`` (#259, ADR-0016).
+#: The pinned schema's ``reasonCode`` is a different closed set, so until it carries the five codes
+#: (comparanda request 19) every one is stored as ``other``, except a merge, which has its own
+#: code and ``mergedIntoId``. The ADR code is prefixed on ``reason`` (``means-objective: ...``), so
+#: rejects stay countable by it and migrate mechanically when the schema learns them.
+REJECT_REASON_CODES: dict[str, str] = {
+    "merged-into": "merged", "means-objective": "other", "not-controllable": "other",
+    "no-discrimination-expected": "other", "user-rejected": "other",
+}
 
 #: Who a proposed criterion came from. ADR-0006's source-type rule, one level up.
 PROVENANCE: tuple[str, ...] = ("user-stated", "agent-proposed")
@@ -275,3 +288,28 @@ def proposal_problems(proposal: Mapping[str, Any]) -> list[str]:
         elif p.get("source") == "user-stated" and not p.get("quote"):
             out.append(f"provenance: criterion {c} is user-stated and quotes nothing the user said")
     return out
+
+
+def rejection_record(
+    label: str, code: str, reason: str, *, merged_into: str | None = None,
+    proposed_by: str | None = None, at: str | None = None,
+) -> dict[str, Any]:
+    """One ``rejectedCriteria`` entry, in the pinned schema's shape, for an ADR-0016 reject code.
+
+    >>> rejection_record("Brand", "means-objective", "serves reliability")["reason"]
+    'means-objective: serves reliability'
+    >>> rejection_record("Noise", "merged-into", "same as Quiet", merged_into="quiet")["reasonCode"]
+    'merged'
+    """
+    if code not in REJECT_REASON_CODES:
+        raise ValueError(f'unknown reject code "{code}". Known: {", ".join(REJECT_REASONS)}.')
+    record: dict[str, Any] = {
+        "label": label, "reason": f"{code}: {reason}", "reasonCode": REJECT_REASON_CODES[code],
+    }
+    if merged_into is not None:
+        record["mergedIntoId"] = merged_into
+    if proposed_by is not None:
+        record["proposedBy"] = proposed_by
+    if at is not None:
+        record["at"] = at
+    return record

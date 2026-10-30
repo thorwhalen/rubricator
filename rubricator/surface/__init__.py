@@ -72,6 +72,7 @@ TOOL_REFS: tuple[str, ...] = (
     "rubricator.tools.analysis:frame_set",
     "rubricator.tools.analysis:alternatives_set",
     "rubricator.tools.analysis:criteria_set",
+    "rubricator.tools.analysis:criteria_reject",
     "rubricator.tools.confirm:frame_confirm",
     "rubricator.tools.analysis:measures_write",
     "rubricator.tools.analysis:measures_mark_missing",
@@ -94,7 +95,7 @@ TOOL_REFS: tuple[str, ...] = (
 #: added here will be called without one and fail loudly, which is the right
 #: direction: the alternative is a surface silently passing ``None``.
 NEEDS_CLOCK: frozenset[str] = frozenset({
-    "analysis_open", "frame_confirm", "measures_write", "measures_mark_missing",
+    "analysis_open", "frame_confirm", "measures_write", "measures_mark_missing", "criteria_reject",
 })
 
 #: Verbs that mint an ``analysis_id`` when the caller gives none (ADR-0017).
@@ -102,7 +103,7 @@ NEEDS_ID: frozenset[str] = frozenset({"analysis_open"})
 
 #: Verbs that take the store as their first argument.
 _NEEDS_STORE: frozenset[str] = frozenset({
-    "analysis_open", "analysis_get", "frame_set", "alternatives_set", "frame_confirm", "criteria_set",
+    "analysis_open", "analysis_get", "frame_set", "alternatives_set", "frame_confirm", "criteria_set", "criteria_reject",
     "measures_write", "measures_mark_missing", "report_completeness", "aggregate_assertions",
     "corpus_add", "corpus_search", "disclose_variance", "report_weaknesses",
     "stability_report",

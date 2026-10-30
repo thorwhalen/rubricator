@@ -134,7 +134,7 @@ def test_the_surface_is_eighteen_tools_plus_two_transitional_and_two_cut() -> No
     by_status = {}
     for spec in FROZEN_TOOLS:
         by_status.setdefault(spec.status, []).append(spec.name)
-    assert len(FROZEN_TOOLS) == 22
+    assert len(FROZEN_TOOLS) == 23  # the 22 of the research's table, and criteria_reject (#259)
     assert sorted(by_status["transitional"]) == ["prompts_get", "prompts_list"]
     # Cut per ADR-0011 (#65); their rows keep the specification.
     assert sorted(by_status["cut"]) == ["compute_coupling_matrix", "fit_bradley_terry"]

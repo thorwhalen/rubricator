@@ -50,8 +50,15 @@ def every_verb() -> dict[str, Any]:
         {"id": "l5", "label": "Lumen L5"}, {"id": "k2", "label": "Brightwater K2"},
         {"id": "k2-kettle", "label": "The Brightwater K2 kettle"}])
     out["criteria_set"] = v["criteria_set"](analysis_id=aid, criteria=[
-        {"id": "speed", "label": "Boil speed", "anchors": ANCHORS},
-        {"id": "safety", "label": "Boil-dry safety", "anchors": ANCHORS}])
+        {"id": "speed", "label": "Boil speed", "anchors": ANCHORS,
+         "provenance": {"origin": "user-stated", "rationale": "the office manager asked for it by name"}},
+        {"id": "safety", "label": "Boil-dry safety", "anchors": ANCHORS,
+         "provenance": {"origin": "agent-proposed"}}])
+    # The messy part of the frame: criteria proposed and removed, one merged into a live one.
+    out["criteria_reject"] = v["criteria_reject"](analysis_id=aid, rejected=[
+        {"label": "Brand prestige", "code": "means-objective", "reason": "it serves reliability, which safety measures"},
+        {"label": "Boil time", "code": "merged-into", "reason": "the same quantity as boil speed", "mergedIntoId": "speed"},
+        {"label": "Colour", "code": "user-rejected", "reason": "the office manager does not care"}])
     v["frame_confirm"](analysis_id=aid)
     out["frame_confirm"] = v["frame_confirm"](
         analysis_id=aid, decision="confirm", scope="all", confirmed_by="Ana Ruiz",

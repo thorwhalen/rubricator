@@ -139,9 +139,27 @@ DEFINITION = obj({
     "missingRules": arr(obj({"when": S, "code": S}, ("when", "code"))),
     "exclusions": arr(S),
 })
+#: Where a criterion came from (comparanda ``Criterion.provenance``, ADR-0016 / ADR-0006 one level up).
+PROVENANCE = obj(
+    {
+        "origin": enum("user-stated", "derived-from-source", "agent-proposed", "imported"),
+        "authorId": S, "at": S, "derivedFrom": arr(S), "rationale": S,
+    },
+    ("origin",),
+)
+#: A criterion proposed and then removed, with ADR-0016's closed reason (#259).
+REJECTED_CRITERION = obj(
+    {
+        "label": S, "code": enum(
+            "merged-into", "means-objective", "not-controllable", "no-discrimination-expected",
+            "user-rejected"),
+        "reason": S, "mergedIntoId": S, "proposedBy": S,
+    },
+    ("label", "code", "reason"),
+)
 CRITERION = obj(
     {
-        "id": S, "label": S, "scale": S, "preference": PREFERENCE, "target": N,
+        "id": S, "label": S, "provenance": PROVENANCE, "scale": S, "preference": PREFERENCE, "target": N,
         "anchors": arr(obj({"level": S, "text": S}, ("level", "text"))),
         "missingCodes": arr(MISSING_DECLARATION),
         "definition": DEFINITION,
@@ -492,6 +510,36 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
             },
             ("analysisId", "criteria", "criteriaVersion", "revised", "supersededCells",
              "definitionGaps", "defaultedPreference", "skipped", "summary"),
+        ),
+    ),
+    ToolSpec(
+        name="criteria_reject", family="criteria", stage="3", status="implemented",
+        minimum_viable=False, cut_rank=3, research_row=None,
+        contract=(
+            "Record criteria that were proposed and then removed, each with ADR-0016's closed "
+            "reason (merged-into with the id of the criterion it was merged into, means-objective, "
+            "not-controllable, no-discrimination-expected, user-rejected) and a sentence saying "
+            "why. They ship with the analysis as its rejected criteria, so a criteria set with no "
+            "visible rejects can be told from one nobody interrogated. Adds to the record, never "
+            "replaces it; criteria_set does not touch it."
+        ),
+        determinism="Schema validation and a lookup of the merged-into id among the criteria; the moment is supplied, never read from a clock.",
+        failure=(
+            "Refused with nothing written: an unknown reason, a blank label or reason, a "
+            "merged-into with no live criterion to name (or any other reason naming one), or a "
+            "label that is a live criterion's."
+        ),
+        input_schema=obj(
+            {"analysis_id": S, "rejected": arr(REJECTED_CRITERION), "at": DATE_TIME},
+            ("analysis_id", "rejected"),
+        ),
+        output_schema=obj(
+            {
+                "analysisId": S, "written": I, "total": I,
+                "byCode": arr(obj({"code": S, "count": I}, ("code", "count"))),
+                "summary": S,
+            },
+            ("analysisId", "written", "total", "byCode", "summary"),
         ),
     ),
     ToolSpec(
@@ -1070,11 +1118,11 @@ MEASURED: Mapping[str, Any] = {
 AWAITING_MEASUREMENT: Mapping[str, Any] | None = {
     "issue": 199,
     "advertised": {
-        "tools": 19, "bytes": 27053,
-        "sha256": "6a946b1b166db9947b19fc467c9dc9c2fffa476dbaff1ff10a07583ed637d58b",
+        "tools": 20, "bytes": 28818,
+        "sha256": "edb26233b717cf6fc289f84c20fd85d06491e069775b4be2152d37d639e1df8a",
     },
     "wholeSurface": {
-        "tools": 22, "bytes": 29674,
-        "sha256": "def770b35bfff53b58a5680f8783b340fbe9ca9640d855d9447a932f6d21cc78",
+        "tools": 23, "bytes": 31439,
+        "sha256": "dbdf1be63f0d66da33f9541a03fd7aaacf46da21ab1594d303e0040aab57156f",
     },
 }
