@@ -282,7 +282,7 @@ def _criterion(stored: Mapping[str, Any]) -> dict[str, Any]:
     levels = (anchors.get("levels") if isinstance(anchors, Mapping) else None) or {}
     if isinstance(levels, Mapping) and levels:
         out["anchors"] = [{"level": str(k), "text": v} for k, v in levels.items()]
-    for key in ("missingCodes", "definition", "supersededBy"):
+    for key in ("missingCodes", "definition", "supersededBy", "provenance"):
         if key in stored:
             out[key] = stored[key]
     if stored.get("tombstoned"):

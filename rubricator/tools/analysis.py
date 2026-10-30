@@ -576,6 +576,8 @@ def criteria_set(
         }
         if isinstance(definition, Mapping):
             emitted["definition"] = _copy_definition(definition)
+        if "provenance" in c:
+            emitted["provenance"] = _plain(c["provenance"])
         if "acceptability" in c:
             problems.extend(_floor_problems(c["id"], measurement, c["acceptability"]))
             emitted["acceptability"] = dict(c["acceptability"])
@@ -672,6 +674,86 @@ def criteria_set(
         "skipped": skipped,
         "summary": summary,
     }
+
+
+def criteria_reject(
+    store: AnalysisStore,
+    *,
+    analysis_id: str,
+    rejected: Sequence[Mapping[str, Any]],
+    at: str | None = None,
+) -> dict[str, Any]:
+    """Record criteria that were proposed and then removed, with ADR-0016's closed reason (#259).
+
+    Adds to the analysis's ``rejectedCriteria``; ``criteria_set`` never touches
+    it. Each entry is stored in comparanda's shape through
+    :func:`rubricator.ladder.rejection_record`: the ADR code prefixes ``reason``
+    and ``reasonCode`` is ``merged`` (with ``mergedIntoId``, a live criterion) or
+    ``other`` until the schema learns the five codes (request 19). An entry
+    already recorded, same label and reason, is not recorded twice.
+    """
+    from rubricator.ladder import REJECT_REASONS, rejection_record
+    from rubricator.surface.frozen import REJECTED_CRITERION
+
+    frame = store.frame(analysis_id)
+    live = {c["id"]: c for c in frame.get("criteria", []) if isinstance(c, Mapping) and "id" in c}
+    names = {str(k).casefold() for k in live} | {str(c.get("label", "")).casefold() for c in live.values()}
+    problems = _unknown_keys_of(rejected, REJECTED_CRITERION, "$.rejected")
+    new: list[dict[str, Any]] = []
+    for i, r in enumerate(rejected):
+        if not isinstance(r, Mapping):
+            problems.append(f"$.rejected[{i}] is not an object.")
+            continue
+        at_path = f"$.rejected[{i}]"
+        label, reason, code = r.get("label"), r.get("reason"), r.get("code")
+        if _is_blank(label) or _is_blank(reason):
+            problems.append(f"{at_path}: a rejected criterion needs a label and the reason it was rejected.")
+            continue
+        if code not in REJECT_REASONS:
+            problems.append(f'{at_path}: unknown reason "{code}". Known: {", ".join(REJECT_REASONS)}.')
+            continue
+        merged = r.get("mergedIntoId")
+        if code == "merged-into" and merged not in live:
+            problems.append(
+                f'{at_path}: "merged-into" names the criterion it was merged into in mergedIntoId, '
+                f"and that must be one of the criteria now declared ({', '.join(sorted(live)) or 'none yet'})."
+            )
+        elif code != "merged-into" and merged is not None:
+            problems.append(f'{at_path}: only "merged-into" names a criterion; mergedIntoId is refused with "{code}".')
+        if str(label).strip().casefold() in names:
+            problems.append(
+                f'{at_path}: "{label}" is a criterion of this analysis. A rejected criterion is not in '
+                "the set; remove it with criteria_set first."
+            )
+        new.append(rejection_record(
+            str(label).strip(), code, str(reason).strip(), merged_into=merged,
+            proposed_by=r.get("proposedBy"), at=at,
+        ))
+    if problems:
+        raise ValueError("refused, nothing was written: " + "; ".join(problems))
+    stored = [e for e in frame.get("rejectedCriteria", []) if isinstance(e, Mapping)]
+    seen = {(str(e.get("label", "")).casefold(), e.get("reason")) for e in stored}
+    fresh = [e for e in new if (e["label"].casefold(), e["reason"]) not in seen]
+    frame["rejectedCriteria"] = [*stored, *fresh]
+    _put_frame(store, analysis_id, frame)
+    counts: dict[str, int] = {}
+    for e in frame["rejectedCriteria"]:
+        code = str(e.get("reason", "")).partition(": ")[0] if ": " in str(e.get("reason", "")) else "unspecified"
+        counts[code] = counts.get(code, 0) + 1
+    total = len(frame["rejectedCriteria"])
+    return {
+        "analysisId": analysis_id,
+        "written": len(fresh),
+        "total": total,
+        "byCode": [{"code": k, "count": counts[k]} for k in sorted(counts)],
+        "summary": f"{len(fresh)} rejected criteri{'on' if len(fresh) == 1 else 'a'} recorded; {total} in all"
+        + (f" ({len(new) - len(fresh)} already recorded)" if len(new) != len(fresh) else ""),
+    }
+
+
+def _unknown_keys_of(items: Sequence[Any], row: Mapping[str, Any], root: str) -> list[str]:
+    """The keys a frozen row does not allow, as problems (the caller decides when to refuse)."""
+    return [p for i, item in enumerate(items) for p in _unknown_keys(item, row, f"{root}[{i}]", read_past=())]
 
 
 def _declared_confidence_scale(frame: Mapping[str, Any]) -> str | None:
