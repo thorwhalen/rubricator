@@ -175,13 +175,15 @@ def distinct_model_problem(
     live: Sequence[Mapping[str, Any]],
     authors: Mapping[str, Mapping[str, Any]],
 ) -> str | None:
-    """Why an agent's ``independent`` claim does not hold in this cell, or ``None``.
+    """Why an ``independent`` claim does not hold in this cell, or ``None``.
 
-    The claim is that this agent is a separate assessor from every other agent
-    beside it. It is refused only when the cell shows it false: the same author,
+    The claim is that this author is a separate assessor from every other
+    assessor beside it. It is refused only when the cell shows it false: the
+    same principal (a person, or an agent, and their own personas count once),
     or a recorded model another agent beside it shares. An unrecorded model
     cannot be shown to match, so it is not refused (it is labelled instead, see
-    :func:`agreement`). Humans are separate assessors by kind and are not compared.
+    :func:`agreement`). Models are compared among agents only; distinct humans
+    are separate assessors.
 
     >>> authors = {"x": {"kind": "agent", "agent": {"name": "r", "model": "m1"}},
     ...            "y": {"kind": "agent", "agent": {"name": "r", "model": "m1"}}}
@@ -198,15 +200,14 @@ def distinct_model_problem(
             continue
         theirs_id = other.get("authorId")
         theirs = authors.get(theirs_id) or {}
-        # Agents only. A person's personas claiming "independent" is accepted today (existing
-        # behaviour, ADR-0022's persona-independence rule is not built); agreement() still
-        # reads them as one rater, so the label is never overstated.
-        if me.get("kind") == "agent" and principal(authors, theirs_id) == principal(
-            authors, assertion.get("authorId")
-        ):
+        # Any kind: a person's persona is not a rater either (ADR-0018, ADR-0022), so one human
+        # scoring a cell twice, or through personas, cannot call the second score "independent".
+        if principal(authors, theirs_id) == principal(authors, assertion.get("authorId")):
             return (
                 f'"{theirs_id}" is the same principal and also scored this cell, and a persona is '
-                'not a rater: another draw of one model is "resampled"'
+                'not a rater: '
+                + ('another draw of one model is "resampled"' if me.get("kind") == "agent"
+                   else 'a person scoring again, having seen their own earlier score, is "shared-context"')
             )
         if theirs.get("kind") != "agent":
             continue

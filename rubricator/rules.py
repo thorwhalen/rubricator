@@ -221,12 +221,15 @@ def independence_recorded(document: Mapping[str, Any]) -> Iterable[Problem]:
 
 
 def independent_is_distinct(document: Mapping[str, Any]) -> Iterable[Problem]:
-    """An agent that records ``independent`` differs, by a recorded model, from every other agent beside it.
+    """An author that records ``independent`` is a separate assessor from every other beside it.
 
     This repository's own rule (ADR-0018), not a mirror: the companion stores the
-    rung and cannot see whether two agents were one model. A fresh session of the
-    same model is ``resampled``; labelling it ``independent`` is how five draws
-    of one model come to read as five raters. Only a cell holding two or more
+    rung and cannot see whether two agents were one model, or two personas one
+    person. A fresh session of the same model is ``resampled``; labelling it
+    ``independent`` is how five draws of one model come to read as five raters.
+    A principal and its personas, human or agent, are one rater (a person's
+    persona is not a rater, ADR-0018 and ADR-0022), so their repeated scores are
+    not ``independent`` either (#220). Only a cell holding two or more
     drawn assertions can fail, as for ``independence-recorded``.
     """
     from rubricator.independence import distinct_model_problem
@@ -245,7 +248,8 @@ def independent_is_distinct(document: Mapping[str, Any]) -> Iterable[Problem]:
                 message=f'assertion "{assertion["id"]}" claims "independent", but {why}.',
                 fix=(
                     'record "resampled" (or "perturbed" with a perturbation record) for another '
-                    'draw of the same model, or record the distinct model on the author.'
+                    'draw of the same model, "shared-context" for a person scoring again, or '
+                    'record the distinct model on the author.'
                 ),
                 rule_id="independent-is-distinct",
             )

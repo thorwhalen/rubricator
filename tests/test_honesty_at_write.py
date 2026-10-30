@@ -440,8 +440,9 @@ def test_a_persona_that_changes_its_principals_kind_is_refused_at_write() -> Non
         _write_as(verbs, persona, contributor="ana", cell={**SCORE, "criterionId": "support",
                                                             "independence": "independent"})
     assert dict(runtime.store.blobs) == before
+    # A person's persona beside its principal is one rater (#220): "independent" is refused, "shared-context" is true.
     assert _write_as(verbs, {**persona, "kind": "human"}, contributor="ana",
-                     cell={**SCORE, "independence": "independent"})["written"] == 1
+                     cell={**SCORE, "independence": "shared-context"})["written"] == 1
 
 
 def test_an_author_already_stored_is_not_this_calls_problem() -> None:
@@ -453,7 +454,7 @@ def test_an_author_already_stored_is_not_this_calls_problem() -> None:
     stored["authors"][0]["kind"] = "human"  # a hand edit
     runtime.store.put_contribution("a1", "bot", stored)
     again = _write_as(verbs, bot, contributor="bot", cell={**SCORE, "criterionId": "support",
-                                                           "independence": "independent"})
+                                                           "independence": "resampled"})
     assert again["written"] == 1
     assert "agent-is-typed" in {p["ruleId"] for p in verbs["report_completeness"](
         analysis_id="a1")["honestyProblems"]}
@@ -520,7 +521,7 @@ def test_introducing_a_principal_whose_kind_contradicts_a_stored_persona_is_refu
     with pytest.raises(ValueError, match=r"authors\[ana:bot\]: .*\[rule persona-keeps-kind"):
         _write_as(verbs, ana_as_agent, contributor="ana", cell={**SCORE, "independence": "independent"})
     assert _write_as(verbs, {"id": "ana", "displayName": "Ana", "kind": "human"}, contributor="ana",
-                     cell={**SCORE, "independence": "independent"})["written"] == 1
+                     cell={**SCORE, "independence": "shared-context"})["written"] == 1
 
 
 def test_the_disclosure_flag_counts_a_whitespace_note_as_content_like_the_companion() -> None:
@@ -541,7 +542,7 @@ def test_two_personas_of_a_principal_not_yet_stored_cannot_disagree_in_kind() ->
     with pytest.raises(ValueError, match=r"authors\[ana:bot\]: .*another persona of \"ana\".*\[rule persona-keeps-kind"):
         _write_as(verbs, bot, contributor="ana", cell={**SCORE, "independence": "independent"})
     same_kind = {**human, "id": "ana:other"}
-    assert _write_as(verbs, same_kind, contributor="ana", cell={**SCORE, "independence": "independent"})["written"] == 1
+    assert _write_as(verbs, same_kind, contributor="ana", cell={**SCORE, "independence": "shared-context"})["written"] == 1
 
 
 @pytest.mark.parametrize("author", [{"displayName": "No id", "kind": "agent"}, "scorer", None,
@@ -554,3 +555,21 @@ def test_a_malformed_author_is_refused_with_its_path_not_a_crash(author) -> None
         measures_write(runtime.store, analysis_id="a1", contributor_id="scorer", author=author,
                        at=MOMENT, cells=[{**SCORE, "evidence": [SPAN]}])
     assert dict(runtime.store.blobs) == before
+
+
+def test_a_persons_personas_cannot_claim_independent_beside_each_other_or_the_principal() -> None:
+    """A person's persona is not a rater (ADR-0018, ADR-0022): the stored claim "independent" is false (#220)."""
+    runtime, verbs = _runtime()
+    ana = {"id": "ana", "displayName": "Ana", "kind": "human"}
+    buyer = {"id": "ana:buyer", "displayName": "Ana as buyer", "kind": "human", "principalId": "ana", "actingAs": "the buyer"}
+    other = {"id": "ana:seller", "displayName": "Ana as seller", "kind": "human", "principalId": "ana", "actingAs": "the seller"}
+    ben = {"id": "ben", "displayName": "Ben", "kind": "human"}
+    assert _write_as(verbs, ana, contributor="ana")["written"] == 1
+    before = dict(runtime.store.blobs)
+    for persona in (buyer, other):
+        with pytest.raises(ValueError, match=r"\[rule independent-is-distinct; ADR-0018\]"):
+            _write_as(verbs, persona, contributor="ana", cell={**SCORE, "independence": "independent"})
+    assert dict(runtime.store.blobs) == before
+    assert _write_as(verbs, buyer, contributor="ana", cell={**SCORE, "independence": "shared-context"})["written"] == 1
+    # A second person is a separate assessor.
+    assert _write_as(verbs, ben, contributor="ben", cell={**SCORE, "independence": "independent"})["written"] == 1
