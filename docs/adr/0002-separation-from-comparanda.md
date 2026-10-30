@@ -112,3 +112,17 @@ dispositions is a reading of existing code, not a feature, and it should not wai
 ones.
 
 Refs #27, #28, #29, #30, #31, #32, #33.
+
+### 2026-10-30 — request 17: an optional ordinal `confidence` on the assertion
+
+- **Deciders:** Thor Whalen
+
+| # | Request | Blocking |
+|---|---|---|
+| 17 | `Assertion.confidence`: optional, a closed ordinal enum `high \| medium \| low` carrying ADR-0006's glosses as its description; never numeric, never `certainty` (ADR-0012) | no — additive and optional, so v1 documents stay valid |
+
+The published contract has no slot for `confidence`, although ADR-0006 prescribes it, ADR-0012 makes it enforceable and the `score-cell` prompt asks the model for it, so a value written through `measures_write` is not stored. The owner accepted the request on 2026-10-30. It is filed as request 17 in `comparanda: docs/cross-repo-coordination.md` § 7.3, mirrored by `comparanda` issue 307 (key `request-assertion-confidence`), with disposition `accept-later`.
+
+Our half waits on theirs, as the protocol requires: once the field ships in the contract, the cell in the frozen surface gains it (an ADR-0026 amendment), `measures_write` persists it, a test asserts a written confidence survives a round trip, and `score-cell` stops carrying `confidence` beside the cell. Until then, no completeness report should be read as if confidence were in it.
+
+Refs #126, #258.
