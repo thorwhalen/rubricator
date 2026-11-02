@@ -1,0 +1,82 @@
+[
+  {
+    "scenarioId": "r7",
+    "calls": [
+      {
+        "tool": "analysis_get",
+        "arguments": {
+          "analysis_id": "kettles",
+          "view": "criteria"
+        }
+      },
+      {
+        "tool": "analysis_get",
+        "arguments": {
+          "analysis_id": "kettles",
+          "view": "outstanding"
+        }
+      },
+      {
+        "tool": "corpus_search",
+        "arguments": {
+          "analysis_id": "kettles",
+          "query": "Brindle spare parts stocked years"
+        }
+      },
+      {
+        "tool": "measures_write",
+        "arguments": {
+          "analysis_id": "kettles",
+          "contributor_id": "scorer",
+          "author": {
+            "id": "scorer",
+            "displayName": "Scorer",
+            "kind": "agent"
+          },
+          "expected_criteria_version": "1",
+          "procedure": {
+            "round": 3,
+            "session": "fresh",
+            "prior": "withheld"
+          },
+          "cells": [
+            {
+              "alternativeId": "brindle",
+              "criterionId": "spare-parts",
+              "supersedes": "brindle-spare-parts-score-2",
+              "justification": "The recall notice states that spare parts for all Brindle kettles remain stocked for ten years after purchase, and the Brindle care guide states the same, both meeting the level-5 condition; no span conflicts with them.",
+              "evidence": [
+                {
+                  "id": "doc-7bb313bf7c84a6ea27a541e8bb3937f5:0-150",
+                  "target": "doc-7bb313bf7c84a6ea27a541e8bb3937f5",
+                  "sourceType": "primary",
+                  "stance": "supports",
+                  "selectors": [
+                    {
+                      "type": "TextQuoteSelector",
+                      "exact": "Spare parts for all Brindle kettles remain stocked for ten years after purchase"
+                    }
+                  ]
+                },
+                {
+                  "id": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+                  "target": "doc-0ece686f0bf071048bd72a0190356f72",
+                  "sourceType": "primary",
+                  "stance": "supports",
+                  "selectors": [
+                    {
+                      "type": "TextQuoteSelector",
+                      "exact": "Spare parts are stocked for ten years after purchase"
+                    }
+                  ]
+                }
+              ],
+              "value": 5
+            }
+          ]
+        }
+      }
+    ],
+    "reply": "Brindle's spare-parts cell is re-scored from a fresh corpus retrieval. The recall notice and the care guide both state that parts are stocked for ten years after purchase, which is the level-5 condition, and nothing in the corpus conflicts with them. My first write named brindle-spare-parts-score, which the tools had already replaced, so the refusal named the live claim and this write supersedes brindle-spare-parts-score-2 instead. The write schema has no slot for confidence (high) or dependsOn (none), so those are not sent with the cell.\n\nRe-scored: spare-parts — 1 of 3 alternatives: brindle\nPrior: withheld — the earlier scores were not read and were not in this conversation\nEvidence: fresh retrieval over the corpus as it now stands\nWritten: 1 scored, 0 blank (none)\nReplaced: brindle/spare-parts, superseding brindle-spare-parts-score-2\nNot written: none\nNext: compare brindle's spare-parts score with its earlier one if you want; any further re-score of this cell in this conversation would then be shown."
+  }
+]

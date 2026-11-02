@@ -1,0 +1,2882 @@
+[
+ {
+  "id": "r1",
+  "request": "I've added Tamsin's service page to the corpus. Please re-score spare parts.",
+  "conversation": [],
+  "contributor": {
+   "contributor_id": "scorer",
+   "author": {
+    "id": "scorer",
+    "displayName": "Scorer",
+    "kind": "agent"
+   }
+  },
+  "harness": {
+   "round": 2
+  },
+  "newDocuments": [
+   "tamsin-service"
+  ],
+  "toolResults": {
+   "analysis_get(criteria)": {
+    "analysisId": "kettles",
+    "view": "criteria",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 4,
+     "superseded": 0,
+     "byKind": {
+      "scored": 4,
+      "settledBlank": 1,
+      "notApplicable": 0
+     },
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 4
+      }
+     ]
+    },
+    "criteria": [
+     {
+      "id": "repair-policy",
+      "label": "Repair policy",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states the maker repairs nothing."
+       },
+       {
+        "level": "3",
+        "text": "A source states a repair policy that names some parts and no period."
+       },
+       {
+        "level": "5",
+        "text": "A source states a dated repair policy naming every part it covers."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "How long spare parts are stocked; that is spare-parts."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "A broken kettle is fixed rather than replaced",
+       "question": "What does the maker commit to repairing, and for how long?"
+      }
+     },
+     {
+      "id": "spare-parts",
+      "label": "Spare parts",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states no spare parts are sold."
+       },
+       {
+        "level": "3",
+        "text": "A source states parts are stocked for under five years."
+       },
+       {
+        "level": "5",
+        "text": "A source states parts are stocked for ten years or more."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "What the maker repairs itself; that is repair-policy."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "A broken kettle is fixed rather than replaced",
+       "question": "For how long does the maker state it stocks spare parts?"
+      }
+     },
+     {
+      "id": "quietness",
+      "label": "Quietness",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states a boiling noise above 65 dB."
+       },
+       {
+        "level": "3",
+        "text": "A source states a boiling noise between 50 and 65 dB."
+       },
+       {
+        "level": "5",
+        "text": "A source states a boiling noise below 50 dB."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "Noise from the lid or switch."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "The kitchen stays usable for calls",
+       "question": "How loud is the kettle while boiling, as the maker states it?"
+      }
+     }
+    ],
+    "criteriaVersion": "1",
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 4 of 9 cell(s) outstanding (4 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   },
+   "analysis_get(outstanding)": {
+    "analysisId": "kettles",
+    "view": "outstanding",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 4,
+     "superseded": 0,
+     "byKind": {
+      "scored": 4,
+      "settledBlank": 1,
+      "notApplicable": 0
+     },
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 4
+      }
+     ]
+    },
+    "outstanding": [
+     {
+      "alternativeId": "brindle",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "quietness",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     }
+    ],
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 4 of 9 cell(s) outstanding (4 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   },
+   "corpus_search, per alternative, over the whole corpus": {
+    "brindle": {
+     "analysisId": "kettles",
+     "query": "Brindle spare parts stocked years",
+     "skipped": [],
+     "hits": [
+      {
+       "spanId": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+       "documentId": "doc-0ece686f0bf071048bd72a0190356f72",
+       "start": 0,
+       "end": 112,
+       "text": "Brindle care guide. Spare parts are stocked for ten years after purchase. The Brindle boils at a measured 55 dB.",
+       "score": 2.907821,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
+       "documentId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
+       "start": 0,
+       "end": 81,
+       "text": "Copperleaf manual. Spare parts are stocked for three years. Boiling noise: 70 dB.",
+       "score": 1.511574,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-b0d093524ffa09b77980f3b1576a3c1c:0-123",
+       "documentId": "doc-b0d093524ffa09b77980f3b1576a3c1c",
+       "start": 0,
+       "end": 123,
+       "text": "Tamsin service and parts. Spare parts for every Tamsin kettle are stocked for twelve years after the model is discontinued.",
+       "score": 1.506032,
+       "agentProduced": false
+      }
+     ],
+     "inlined": false,
+     "warnings": [],
+     "summary": "3 hit(s) of 3 matching \"Brindle spare parts stocked years\" among 4 span(s) in 4 document(s), ranked by BM25 over lex-v1 (Unicode 15.0.0) terms less stop-en-v1, the whole query as a phrase first, ties by documentId then start; each widened to 600 characters around its chunk-v1 span"
+    },
+    "copperleaf": {
+     "analysisId": "kettles",
+     "query": "Copperleaf spare parts stocked years",
+     "skipped": [],
+     "hits": [
+      {
+       "spanId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
+       "documentId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
+       "start": 0,
+       "end": 81,
+       "text": "Copperleaf manual. Spare parts are stocked for three years. Boiling noise: 70 dB.",
+       "score": 2.787172,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-b0d093524ffa09b77980f3b1576a3c1c:0-123",
+       "documentId": "doc-b0d093524ffa09b77980f3b1576a3c1c",
+       "start": 0,
+       "end": 123,
+       "text": "Tamsin service and parts. Spare parts for every Tamsin kettle are stocked for twelve years after the model is discontinued.",
+       "score": 1.506032,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+       "documentId": "doc-0ece686f0bf071048bd72a0190356f72",
+       "start": 0,
+       "end": 112,
+       "text": "Brindle care guide. Spare parts are stocked for ten years after purchase. The Brindle boils at a measured 55 dB.",
+       "score": 1.330638,
+       "agentProduced": false
+      }
+     ],
+     "inlined": false,
+     "warnings": [],
+     "summary": "3 hit(s) of 3 matching \"Copperleaf spare parts stocked years\" among 4 span(s) in 4 document(s), ranked by BM25 over lex-v1 (Unicode 15.0.0) terms less stop-en-v1, the whole query as a phrase first, ties by documentId then start; each widened to 600 characters around its chunk-v1 span"
+    },
+    "tamsin": {
+     "analysisId": "kettles",
+     "query": "Tamsin spare parts stocked years",
+     "skipped": [],
+     "hits": [
+      {
+       "spanId": "doc-b0d093524ffa09b77980f3b1576a3c1c:0-123",
+       "documentId": "doc-b0d093524ffa09b77980f3b1576a3c1c",
+       "start": 0,
+       "end": 123,
+       "text": "Tamsin service and parts. Spare parts for every Tamsin kettle are stocked for twelve years after the model is discontinued.",
+       "score": 2.433535,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
+       "documentId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
+       "start": 0,
+       "end": 81,
+       "text": "Copperleaf manual. Spare parts are stocked for three years. Boiling noise: 70 dB.",
+       "score": 1.511574,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+       "documentId": "doc-0ece686f0bf071048bd72a0190356f72",
+       "start": 0,
+       "end": 112,
+       "text": "Brindle care guide. Spare parts are stocked for ten years after purchase. The Brindle boils at a measured 55 dB.",
+       "score": 1.330638,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-ac46971fe9b5893beccb10d636568b53:0-80",
+       "documentId": "doc-ac46971fe9b5893beccb10d636568b53",
+       "start": 0,
+       "end": 80,
+       "text": "Tamsin quick start leaflet. Fill to the max line. Descale monthly in hard water.",
+       "score": 0.734383,
+       "agentProduced": false
+      }
+     ],
+     "inlined": false,
+     "warnings": [],
+     "summary": "4 hit(s) of 4 matching \"Tamsin spare parts stocked years\" among 4 span(s) in 4 document(s), ranked by BM25 over lex-v1 (Unicode 15.0.0) terms less stop-en-v1, the whole query as a phrase first, ties by documentId then start; each widened to 600 characters around its chunk-v1 span"
+    }
+   }
+  },
+  "criterion": "spare-parts",
+  "expected": {
+   "action": "write",
+   "prior": "withheld",
+   "session": "fresh",
+   "round": 2,
+   "cells": {
+    "brindle": [
+     5,
+     "brindle-spare-parts-score"
+    ],
+    "copperleaf": [
+     3,
+     "copperleaf-spare-parts-score"
+    ],
+    "tamsin": [
+     5,
+     "tamsin-spare-parts-score"
+    ]
+   }
+  }
+ },
+ {
+  "id": "r2",
+  "request": "Tamsin finally published a noise datasheet; it's in the corpus now. Re-score quietness for Tamsin only.",
+  "conversation": [],
+  "contributor": {
+   "contributor_id": "scorer",
+   "author": {
+    "id": "scorer",
+    "displayName": "Scorer",
+    "kind": "agent"
+   }
+  },
+  "harness": {
+   "round": 2
+  },
+  "newDocuments": [
+   "tamsin-datasheet"
+  ],
+  "toolResults": {
+   "analysis_get(criteria)": {
+    "analysisId": "kettles",
+    "view": "criteria",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 4,
+     "superseded": 0,
+     "byKind": {
+      "scored": 4,
+      "settledBlank": 1,
+      "notApplicable": 0
+     },
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 4
+      }
+     ]
+    },
+    "criteria": [
+     {
+      "id": "repair-policy",
+      "label": "Repair policy",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states the maker repairs nothing."
+       },
+       {
+        "level": "3",
+        "text": "A source states a repair policy that names some parts and no period."
+       },
+       {
+        "level": "5",
+        "text": "A source states a dated repair policy naming every part it covers."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "How long spare parts are stocked; that is spare-parts."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "A broken kettle is fixed rather than replaced",
+       "question": "What does the maker commit to repairing, and for how long?"
+      }
+     },
+     {
+      "id": "spare-parts",
+      "label": "Spare parts",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states no spare parts are sold."
+       },
+       {
+        "level": "3",
+        "text": "A source states parts are stocked for under five years."
+       },
+       {
+        "level": "5",
+        "text": "A source states parts are stocked for ten years or more."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "What the maker repairs itself; that is repair-policy."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "A broken kettle is fixed rather than replaced",
+       "question": "For how long does the maker state it stocks spare parts?"
+      }
+     },
+     {
+      "id": "quietness",
+      "label": "Quietness",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states a boiling noise above 65 dB."
+       },
+       {
+        "level": "3",
+        "text": "A source states a boiling noise between 50 and 65 dB."
+       },
+       {
+        "level": "5",
+        "text": "A source states a boiling noise below 50 dB."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "Noise from the lid or switch."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "The kitchen stays usable for calls",
+       "question": "How loud is the kettle while boiling, as the maker states it?"
+      }
+     }
+    ],
+    "criteriaVersion": "1",
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 4 of 9 cell(s) outstanding (4 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   },
+   "analysis_get(outstanding)": {
+    "analysisId": "kettles",
+    "view": "outstanding",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 4,
+     "superseded": 0,
+     "byKind": {
+      "scored": 4,
+      "settledBlank": 1,
+      "notApplicable": 0
+     },
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 4
+      }
+     ]
+    },
+    "outstanding": [
+     {
+      "alternativeId": "brindle",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "quietness",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     }
+    ],
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 4 of 9 cell(s) outstanding (4 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   },
+   "corpus_search, per alternative, over the whole corpus": {
+    "brindle": {
+     "analysisId": "kettles",
+     "query": "Brindle boiling noise dB",
+     "skipped": [],
+     "hits": [
+      {
+       "spanId": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+       "documentId": "doc-0ece686f0bf071048bd72a0190356f72",
+       "start": 0,
+       "end": 112,
+       "text": "Brindle care guide. Spare parts are stocked for ten years after purchase. The Brindle boils at a measured 55 dB.",
+       "score": 1.856394,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-58cd4b029a6286f95965954da2cc059a:0-72",
+       "documentId": "doc-58cd4b029a6286f95965954da2cc059a",
+       "start": 0,
+       "end": 72,
+       "text": "Tamsin technical datasheet. Rated boiling noise: 48 dB at full capacity.",
+       "score": 1.856056,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
+       "documentId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
+       "start": 0,
+       "end": 81,
+       "text": "Copperleaf manual. Spare parts are stocked for three years. Boiling noise: 70 dB.",
+       "score": 1.789702,
+       "agentProduced": false
+      }
+     ],
+     "inlined": false,
+     "warnings": [],
+     "summary": "3 hit(s) of 3 matching \"Brindle boiling noise dB\" among 4 span(s) in 4 document(s), ranked by BM25 over lex-v1 (Unicode 15.0.0) terms less stop-en-v1, the whole query as a phrase first, ties by documentId then start; each widened to 600 characters around its chunk-v1 span"
+    },
+    "copperleaf": {
+     "analysisId": "kettles",
+     "query": "Copperleaf boiling noise dB",
+     "skipped": [],
+     "hits": [
+      {
+       "spanId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
+       "documentId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
+       "start": 0,
+       "end": 81,
+       "text": "Copperleaf manual. Spare parts are stocked for three years. Boiling noise: 70 dB.",
+       "score": 3.025956,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-58cd4b029a6286f95965954da2cc059a:0-72",
+       "documentId": "doc-58cd4b029a6286f95965954da2cc059a",
+       "start": 0,
+       "end": 72,
+       "text": "Tamsin technical datasheet. Rated boiling noise: 48 dB at full capacity.",
+       "score": 1.856056,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+       "documentId": "doc-0ece686f0bf071048bd72a0190356f72",
+       "start": 0,
+       "end": 112,
+       "text": "Brindle care guide. Spare parts are stocked for ten years after purchase. The Brindle boils at a measured 55 dB.",
+       "score": 0.320419,
+       "agentProduced": false
+      }
+     ],
+     "inlined": false,
+     "warnings": [],
+     "summary": "3 hit(s) of 3 matching \"Copperleaf boiling noise dB\" among 4 span(s) in 4 document(s), ranked by BM25 over lex-v1 (Unicode 15.0.0) terms less stop-en-v1, the whole query as a phrase first, ties by documentId then start; each widened to 600 characters around its chunk-v1 span"
+    },
+    "tamsin": {
+     "analysisId": "kettles",
+     "query": "Tamsin boiling noise dB",
+     "skipped": [],
+     "hits": [
+      {
+       "spanId": "doc-58cd4b029a6286f95965954da2cc059a:0-72",
+       "documentId": "doc-58cd4b029a6286f95965954da2cc059a",
+       "start": 0,
+       "end": 72,
+       "text": "Tamsin technical datasheet. Rated boiling noise: 48 dB at full capacity.",
+       "score": 2.594176,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
+       "documentId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
+       "start": 0,
+       "end": 81,
+       "text": "Copperleaf manual. Spare parts are stocked for three years. Boiling noise: 70 dB.",
+       "score": 1.789702,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-ac46971fe9b5893beccb10d636568b53:0-80",
+       "documentId": "doc-ac46971fe9b5893beccb10d636568b53",
+       "start": 0,
+       "end": 80,
+       "text": "Tamsin quick start leaflet. Fill to the max line. Descale monthly in hard water.",
+       "score": 0.711732,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+       "documentId": "doc-0ece686f0bf071048bd72a0190356f72",
+       "start": 0,
+       "end": 112,
+       "text": "Brindle care guide. Spare parts are stocked for ten years after purchase. The Brindle boils at a measured 55 dB.",
+       "score": 0.320419,
+       "agentProduced": false
+      }
+     ],
+     "inlined": false,
+     "warnings": [],
+     "summary": "4 hit(s) of 4 matching \"Tamsin boiling noise dB\" among 4 span(s) in 4 document(s), ranked by BM25 over lex-v1 (Unicode 15.0.0) terms less stop-en-v1, the whole query as a phrase first, ties by documentId then start; each widened to 600 characters around its chunk-v1 span"
+    }
+   }
+  },
+  "criterion": "quietness",
+  "expected": {
+   "action": "write",
+   "prior": "withheld",
+   "session": "fresh",
+   "round": 2,
+   "cells": {
+    "tamsin": [
+     5,
+     null
+    ]
+   }
+  }
+ },
+ {
+  "id": "r3",
+  "request": "Copperleaf's product page is in the corpus now. Re-score quietness for every kettle.",
+  "conversation": [],
+  "contributor": {
+   "contributor_id": "scorer",
+   "author": {
+    "id": "scorer",
+    "displayName": "Scorer",
+    "kind": "agent"
+   }
+  },
+  "harness": {
+   "round": 2
+  },
+  "newDocuments": [
+   "copperleaf-product-page"
+  ],
+  "toolResults": {
+   "analysis_get(criteria)": {
+    "analysisId": "kettles",
+    "view": "criteria",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 4,
+     "superseded": 0,
+     "byKind": {
+      "scored": 4,
+      "settledBlank": 1,
+      "notApplicable": 0
+     },
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 4
+      }
+     ]
+    },
+    "criteria": [
+     {
+      "id": "repair-policy",
+      "label": "Repair policy",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states the maker repairs nothing."
+       },
+       {
+        "level": "3",
+        "text": "A source states a repair policy that names some parts and no period."
+       },
+       {
+        "level": "5",
+        "text": "A source states a dated repair policy naming every part it covers."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "How long spare parts are stocked; that is spare-parts."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "A broken kettle is fixed rather than replaced",
+       "question": "What does the maker commit to repairing, and for how long?"
+      }
+     },
+     {
+      "id": "spare-parts",
+      "label": "Spare parts",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states no spare parts are sold."
+       },
+       {
+        "level": "3",
+        "text": "A source states parts are stocked for under five years."
+       },
+       {
+        "level": "5",
+        "text": "A source states parts are stocked for ten years or more."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "What the maker repairs itself; that is repair-policy."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "A broken kettle is fixed rather than replaced",
+       "question": "For how long does the maker state it stocks spare parts?"
+      }
+     },
+     {
+      "id": "quietness",
+      "label": "Quietness",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states a boiling noise above 65 dB."
+       },
+       {
+        "level": "3",
+        "text": "A source states a boiling noise between 50 and 65 dB."
+       },
+       {
+        "level": "5",
+        "text": "A source states a boiling noise below 50 dB."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "Noise from the lid or switch."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "The kitchen stays usable for calls",
+       "question": "How loud is the kettle while boiling, as the maker states it?"
+      }
+     }
+    ],
+    "criteriaVersion": "1",
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 4 of 9 cell(s) outstanding (4 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   },
+   "analysis_get(outstanding)": {
+    "analysisId": "kettles",
+    "view": "outstanding",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 4,
+     "superseded": 0,
+     "byKind": {
+      "scored": 4,
+      "settledBlank": 1,
+      "notApplicable": 0
+     },
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 4
+      }
+     ]
+    },
+    "outstanding": [
+     {
+      "alternativeId": "brindle",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "quietness",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     }
+    ],
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 4 of 9 cell(s) outstanding (4 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   },
+   "corpus_search, per alternative, over the whole corpus": {
+    "brindle": {
+     "analysisId": "kettles",
+     "query": "Brindle boiling noise dB",
+     "skipped": [],
+     "hits": [
+      {
+       "spanId": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+       "documentId": "doc-0ece686f0bf071048bd72a0190356f72",
+       "start": 0,
+       "end": 112,
+       "text": "Brindle care guide. Spare parts are stocked for ten years after purchase. The Brindle boils at a measured 55 dB.",
+       "score": 1.856394,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-c38812e2a155fafbf9cacc5846e72066:0-68",
+       "documentId": "doc-c38812e2a155fafbf9cacc5846e72066",
+       "start": 0,
+       "end": 68,
+       "text": "Copperleaf product page. Quiet boil technology: boiling noise 58 dB.",
+       "score": 1.856056,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
+       "documentId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
+       "start": 0,
+       "end": 81,
+       "text": "Copperleaf manual. Spare parts are stocked for three years. Boiling noise: 70 dB.",
+       "score": 1.789702,
+       "agentProduced": false
+      }
+     ],
+     "inlined": false,
+     "warnings": [],
+     "summary": "3 hit(s) of 3 matching \"Brindle boiling noise dB\" among 4 span(s) in 4 document(s), ranked by BM25 over lex-v1 (Unicode 15.0.0) terms less stop-en-v1, the whole query as a phrase first, ties by documentId then start; each widened to 600 characters around its chunk-v1 span"
+    },
+    "copperleaf": {
+     "analysisId": "kettles",
+     "query": "Copperleaf boiling noise dB",
+     "skipped": [],
+     "hits": [
+      {
+       "spanId": "doc-c38812e2a155fafbf9cacc5846e72066:0-68",
+       "documentId": "doc-c38812e2a155fafbf9cacc5846e72066",
+       "start": 0,
+       "end": 68,
+       "text": "Copperleaf product page. Quiet boil technology: boiling noise 58 dB.",
+       "score": 2.594176,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
+       "documentId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
+       "start": 0,
+       "end": 81,
+       "text": "Copperleaf manual. Spare parts are stocked for three years. Boiling noise: 70 dB.",
+       "score": 2.501434,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+       "documentId": "doc-0ece686f0bf071048bd72a0190356f72",
+       "start": 0,
+       "end": 112,
+       "text": "Brindle care guide. Spare parts are stocked for ten years after purchase. The Brindle boils at a measured 55 dB.",
+       "score": 0.320419,
+       "agentProduced": false
+      }
+     ],
+     "inlined": false,
+     "warnings": [],
+     "summary": "3 hit(s) of 3 matching \"Copperleaf boiling noise dB\" among 4 span(s) in 4 document(s), ranked by BM25 over lex-v1 (Unicode 15.0.0) terms less stop-en-v1, the whole query as a phrase first, ties by documentId then start; each widened to 600 characters around its chunk-v1 span"
+    },
+    "tamsin": {
+     "analysisId": "kettles",
+     "query": "Tamsin boiling noise dB",
+     "skipped": [],
+     "hits": [
+      {
+       "spanId": "doc-c38812e2a155fafbf9cacc5846e72066:0-68",
+       "documentId": "doc-c38812e2a155fafbf9cacc5846e72066",
+       "start": 0,
+       "end": 68,
+       "text": "Copperleaf product page. Quiet boil technology: boiling noise 58 dB.",
+       "score": 1.856056,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
+       "documentId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
+       "start": 0,
+       "end": 81,
+       "text": "Copperleaf manual. Spare parts are stocked for three years. Boiling noise: 70 dB.",
+       "score": 1.789702,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-ac46971fe9b5893beccb10d636568b53:0-80",
+       "documentId": "doc-ac46971fe9b5893beccb10d636568b53",
+       "start": 0,
+       "end": 80,
+       "text": "Tamsin quick start leaflet. Fill to the max line. Descale monthly in hard water.",
+       "score": 1.236254,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+       "documentId": "doc-0ece686f0bf071048bd72a0190356f72",
+       "start": 0,
+       "end": 112,
+       "text": "Brindle care guide. Spare parts are stocked for ten years after purchase. The Brindle boils at a measured 55 dB.",
+       "score": 0.320419,
+       "agentProduced": false
+      }
+     ],
+     "inlined": false,
+     "warnings": [],
+     "summary": "4 hit(s) of 4 matching \"Tamsin boiling noise dB\" among 4 span(s) in 4 document(s), ranked by BM25 over lex-v1 (Unicode 15.0.0) terms less stop-en-v1, the whole query as a phrase first, ties by documentId then start; each widened to 600 characters around its chunk-v1 span"
+    }
+   }
+  },
+  "criterion": "quietness",
+  "expected": {
+   "action": "write",
+   "prior": "withheld",
+   "session": "fresh",
+   "round": 2,
+   "cells": {
+    "brindle": [
+     3,
+     "brindle-quietness-score"
+    ],
+    "copperleaf": [
+     "indeterminate",
+     "copperleaf-quietness-score"
+    ],
+    "tamsin": [
+     "not-evidenced",
+     null
+    ]
+   }
+  }
+ },
+ {
+  "id": "r4",
+  "request": "Last time you gave Brindle a 5 on spare parts because the care guide says ten years. Brindle has since issued a recall notice, which is in the corpus. Look at your old score against it and re-score spare parts for Brindle.",
+  "conversation": [],
+  "contributor": {
+   "contributor_id": "scorer",
+   "author": {
+    "id": "scorer",
+    "displayName": "Scorer",
+    "kind": "agent"
+   }
+  },
+  "harness": {
+   "round": 2
+  },
+  "newDocuments": [
+   "brindle-recall"
+  ],
+  "toolResults": {
+   "analysis_get(criteria)": {
+    "analysisId": "kettles",
+    "view": "criteria",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 4,
+     "superseded": 0,
+     "byKind": {
+      "scored": 4,
+      "settledBlank": 1,
+      "notApplicable": 0
+     },
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 4
+      }
+     ]
+    },
+    "criteria": [
+     {
+      "id": "repair-policy",
+      "label": "Repair policy",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states the maker repairs nothing."
+       },
+       {
+        "level": "3",
+        "text": "A source states a repair policy that names some parts and no period."
+       },
+       {
+        "level": "5",
+        "text": "A source states a dated repair policy naming every part it covers."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "How long spare parts are stocked; that is spare-parts."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "A broken kettle is fixed rather than replaced",
+       "question": "What does the maker commit to repairing, and for how long?"
+      }
+     },
+     {
+      "id": "spare-parts",
+      "label": "Spare parts",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states no spare parts are sold."
+       },
+       {
+        "level": "3",
+        "text": "A source states parts are stocked for under five years."
+       },
+       {
+        "level": "5",
+        "text": "A source states parts are stocked for ten years or more."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "What the maker repairs itself; that is repair-policy."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "A broken kettle is fixed rather than replaced",
+       "question": "For how long does the maker state it stocks spare parts?"
+      }
+     },
+     {
+      "id": "quietness",
+      "label": "Quietness",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states a boiling noise above 65 dB."
+       },
+       {
+        "level": "3",
+        "text": "A source states a boiling noise between 50 and 65 dB."
+       },
+       {
+        "level": "5",
+        "text": "A source states a boiling noise below 50 dB."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "Noise from the lid or switch."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "The kitchen stays usable for calls",
+       "question": "How loud is the kettle while boiling, as the maker states it?"
+      }
+     }
+    ],
+    "criteriaVersion": "1",
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 4 of 9 cell(s) outstanding (4 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   },
+   "analysis_get(outstanding)": {
+    "analysisId": "kettles",
+    "view": "outstanding",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 4,
+     "superseded": 0,
+     "byKind": {
+      "scored": 4,
+      "settledBlank": 1,
+      "notApplicable": 0
+     },
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 4
+      }
+     ]
+    },
+    "outstanding": [
+     {
+      "alternativeId": "brindle",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "quietness",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     }
+    ],
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 4 of 9 cell(s) outstanding (4 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   },
+   "corpus_search, per alternative, over the whole corpus": {
+    "brindle": {
+     "analysisId": "kettles",
+     "query": "Brindle spare parts stocked years",
+     "skipped": [],
+     "hits": [
+      {
+       "spanId": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+       "documentId": "doc-0ece686f0bf071048bd72a0190356f72",
+       "start": 0,
+       "end": 112,
+       "text": "Brindle care guide. Spare parts are stocked for ten years after purchase. The Brindle boils at a measured 55 dB.",
+       "score": 2.320502,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-7bb313bf7c84a6ea27a541e8bb3937f5:0-150",
+       "documentId": "doc-7bb313bf7c84a6ea27a541e8bb3937f5",
+       "start": 0,
+       "end": 150,
+       "text": "Brindle recall notice. Affected lids will be replaced free of charge. Spare parts for all Brindle kettles remain stocked for ten years after purchase.",
+       "score": 2.110908,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
+       "documentId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
+       "start": 0,
+       "end": 81,
+       "text": "Copperleaf manual. Spare parts are stocked for three years. Boiling noise: 70 dB.",
+       "score": 1.563785,
+       "agentProduced": false
+      }
+     ],
+     "inlined": false,
+     "warnings": [],
+     "summary": "3 hit(s) of 3 matching \"Brindle spare parts stocked years\" among 4 span(s) in 4 document(s), ranked by BM25 over lex-v1 (Unicode 15.0.0) terms less stop-en-v1, the whole query as a phrase first, ties by documentId then start; each widened to 600 characters around its chunk-v1 span"
+    },
+    "copperleaf": {
+     "analysisId": "kettles",
+     "query": "Copperleaf spare parts stocked years",
+     "skipped": [],
+     "hits": [
+      {
+       "spanId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
+       "documentId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
+       "start": 0,
+       "end": 81,
+       "text": "Copperleaf manual. Spare parts are stocked for three years. Boiling noise: 70 dB.",
+       "score": 2.883442,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+       "documentId": "doc-0ece686f0bf071048bd72a0190356f72",
+       "start": 0,
+       "end": 112,
+       "text": "Brindle care guide. Spare parts are stocked for ten years after purchase. The Brindle boils at a measured 55 dB.",
+       "score": 1.386194,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-7bb313bf7c84a6ea27a541e8bb3937f5:0-150",
+       "documentId": "doc-7bb313bf7c84a6ea27a541e8bb3937f5",
+       "start": 0,
+       "end": 150,
+       "text": "Brindle recall notice. Affected lids will be replaced free of charge. Spare parts for all Brindle kettles remain stocked for ten years after purchase.",
+       "score": 1.244826,
+       "agentProduced": false
+      }
+     ],
+     "inlined": false,
+     "warnings": [],
+     "summary": "3 hit(s) of 3 matching \"Copperleaf spare parts stocked years\" among 4 span(s) in 4 document(s), ranked by BM25 over lex-v1 (Unicode 15.0.0) terms less stop-en-v1, the whole query as a phrase first, ties by documentId then start; each widened to 600 characters around its chunk-v1 span"
+    },
+    "tamsin": {
+     "analysisId": "kettles",
+     "query": "Tamsin spare parts stocked years",
+     "skipped": [],
+     "hits": [
+      {
+       "spanId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
+       "documentId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
+       "start": 0,
+       "end": 81,
+       "text": "Copperleaf manual. Spare parts are stocked for three years. Boiling noise: 70 dB.",
+       "score": 1.563785,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+       "documentId": "doc-0ece686f0bf071048bd72a0190356f72",
+       "start": 0,
+       "end": 112,
+       "text": "Brindle care guide. Spare parts are stocked for ten years after purchase. The Brindle boils at a measured 55 dB.",
+       "score": 1.386194,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-ac46971fe9b5893beccb10d636568b53:0-80",
+       "documentId": "doc-ac46971fe9b5893beccb10d636568b53",
+       "start": 0,
+       "end": 80,
+       "text": "Tamsin quick start leaflet. Fill to the max line. Descale monthly in hard water.",
+       "score": 1.319657,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-7bb313bf7c84a6ea27a541e8bb3937f5:0-150",
+       "documentId": "doc-7bb313bf7c84a6ea27a541e8bb3937f5",
+       "start": 0,
+       "end": 150,
+       "text": "Brindle recall notice. Affected lids will be replaced free of charge. Spare parts for all Brindle kettles remain stocked for ten years after purchase.",
+       "score": 1.244826,
+       "agentProduced": false
+      }
+     ],
+     "inlined": false,
+     "warnings": [],
+     "summary": "4 hit(s) of 4 matching \"Tamsin spare parts stocked years\" among 4 span(s) in 4 document(s), ranked by BM25 over lex-v1 (Unicode 15.0.0) terms less stop-en-v1, the whole query as a phrase first, ties by documentId then start; each widened to 600 characters around its chunk-v1 span"
+    }
+   }
+  },
+  "criterion": "spare-parts",
+  "expected": {
+   "action": "write",
+   "prior": "shown",
+   "session": null,
+   "round": 2,
+   "cells": {
+    "brindle": [
+     5,
+     "brindle-spare-parts-score"
+    ]
+   }
+  }
+ },
+ {
+  "id": "r5",
+  "request": "I've added Tamsin's service page to the corpus. Re-score spare parts.",
+  "conversation": [
+   {
+    "role": "user",
+    "content": "Score spare parts for all three kettles."
+   },
+   {
+    "role": "assistant",
+    "content": "Spare parts: Brindle 5 (the care guide states ten years), Copperleaf 3 (the manual states three years), Tamsin not-evidenced (the leaflet says nothing about parts). Written as round 1."
+   }
+  ],
+  "contributor": {
+   "contributor_id": "scorer",
+   "author": {
+    "id": "scorer",
+    "displayName": "Scorer",
+    "kind": "agent"
+   }
+  },
+  "harness": {
+   "round": 2
+  },
+  "newDocuments": [
+   "tamsin-service"
+  ],
+  "toolResults": {
+   "analysis_get(criteria)": {
+    "analysisId": "kettles",
+    "view": "criteria",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 4,
+     "superseded": 0,
+     "byKind": {
+      "scored": 4,
+      "settledBlank": 1,
+      "notApplicable": 0
+     },
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 4
+      }
+     ]
+    },
+    "criteria": [
+     {
+      "id": "repair-policy",
+      "label": "Repair policy",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states the maker repairs nothing."
+       },
+       {
+        "level": "3",
+        "text": "A source states a repair policy that names some parts and no period."
+       },
+       {
+        "level": "5",
+        "text": "A source states a dated repair policy naming every part it covers."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "How long spare parts are stocked; that is spare-parts."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "A broken kettle is fixed rather than replaced",
+       "question": "What does the maker commit to repairing, and for how long?"
+      }
+     },
+     {
+      "id": "spare-parts",
+      "label": "Spare parts",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states no spare parts are sold."
+       },
+       {
+        "level": "3",
+        "text": "A source states parts are stocked for under five years."
+       },
+       {
+        "level": "5",
+        "text": "A source states parts are stocked for ten years or more."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "What the maker repairs itself; that is repair-policy."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "A broken kettle is fixed rather than replaced",
+       "question": "For how long does the maker state it stocks spare parts?"
+      }
+     },
+     {
+      "id": "quietness",
+      "label": "Quietness",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states a boiling noise above 65 dB."
+       },
+       {
+        "level": "3",
+        "text": "A source states a boiling noise between 50 and 65 dB."
+       },
+       {
+        "level": "5",
+        "text": "A source states a boiling noise below 50 dB."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "Noise from the lid or switch."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "The kitchen stays usable for calls",
+       "question": "How loud is the kettle while boiling, as the maker states it?"
+      }
+     }
+    ],
+    "criteriaVersion": "1",
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 4 of 9 cell(s) outstanding (4 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   },
+   "analysis_get(outstanding)": {
+    "analysisId": "kettles",
+    "view": "outstanding",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 4,
+     "superseded": 0,
+     "byKind": {
+      "scored": 4,
+      "settledBlank": 1,
+      "notApplicable": 0
+     },
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 4
+      }
+     ]
+    },
+    "outstanding": [
+     {
+      "alternativeId": "brindle",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "quietness",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     }
+    ],
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 4 of 9 cell(s) outstanding (4 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   },
+   "corpus_search, per alternative, over the whole corpus": {
+    "brindle": {
+     "analysisId": "kettles",
+     "query": "Brindle spare parts stocked years",
+     "skipped": [],
+     "hits": [
+      {
+       "spanId": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+       "documentId": "doc-0ece686f0bf071048bd72a0190356f72",
+       "start": 0,
+       "end": 112,
+       "text": "Brindle care guide. Spare parts are stocked for ten years after purchase. The Brindle boils at a measured 55 dB.",
+       "score": 2.907821,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
+       "documentId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
+       "start": 0,
+       "end": 81,
+       "text": "Copperleaf manual. Spare parts are stocked for three years. Boiling noise: 70 dB.",
+       "score": 1.511574,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-b0d093524ffa09b77980f3b1576a3c1c:0-123",
+       "documentId": "doc-b0d093524ffa09b77980f3b1576a3c1c",
+       "start": 0,
+       "end": 123,
+       "text": "Tamsin service and parts. Spare parts for every Tamsin kettle are stocked for twelve years after the model is discontinued.",
+       "score": 1.506032,
+       "agentProduced": false
+      }
+     ],
+     "inlined": false,
+     "warnings": [],
+     "summary": "3 hit(s) of 3 matching \"Brindle spare parts stocked years\" among 4 span(s) in 4 document(s), ranked by BM25 over lex-v1 (Unicode 15.0.0) terms less stop-en-v1, the whole query as a phrase first, ties by documentId then start; each widened to 600 characters around its chunk-v1 span"
+    },
+    "copperleaf": {
+     "analysisId": "kettles",
+     "query": "Copperleaf spare parts stocked years",
+     "skipped": [],
+     "hits": [
+      {
+       "spanId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
+       "documentId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
+       "start": 0,
+       "end": 81,
+       "text": "Copperleaf manual. Spare parts are stocked for three years. Boiling noise: 70 dB.",
+       "score": 2.787172,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-b0d093524ffa09b77980f3b1576a3c1c:0-123",
+       "documentId": "doc-b0d093524ffa09b77980f3b1576a3c1c",
+       "start": 0,
+       "end": 123,
+       "text": "Tamsin service and parts. Spare parts for every Tamsin kettle are stocked for twelve years after the model is discontinued.",
+       "score": 1.506032,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+       "documentId": "doc-0ece686f0bf071048bd72a0190356f72",
+       "start": 0,
+       "end": 112,
+       "text": "Brindle care guide. Spare parts are stocked for ten years after purchase. The Brindle boils at a measured 55 dB.",
+       "score": 1.330638,
+       "agentProduced": false
+      }
+     ],
+     "inlined": false,
+     "warnings": [],
+     "summary": "3 hit(s) of 3 matching \"Copperleaf spare parts stocked years\" among 4 span(s) in 4 document(s), ranked by BM25 over lex-v1 (Unicode 15.0.0) terms less stop-en-v1, the whole query as a phrase first, ties by documentId then start; each widened to 600 characters around its chunk-v1 span"
+    },
+    "tamsin": {
+     "analysisId": "kettles",
+     "query": "Tamsin spare parts stocked years",
+     "skipped": [],
+     "hits": [
+      {
+       "spanId": "doc-b0d093524ffa09b77980f3b1576a3c1c:0-123",
+       "documentId": "doc-b0d093524ffa09b77980f3b1576a3c1c",
+       "start": 0,
+       "end": 123,
+       "text": "Tamsin service and parts. Spare parts for every Tamsin kettle are stocked for twelve years after the model is discontinued.",
+       "score": 2.433535,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
+       "documentId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
+       "start": 0,
+       "end": 81,
+       "text": "Copperleaf manual. Spare parts are stocked for three years. Boiling noise: 70 dB.",
+       "score": 1.511574,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+       "documentId": "doc-0ece686f0bf071048bd72a0190356f72",
+       "start": 0,
+       "end": 112,
+       "text": "Brindle care guide. Spare parts are stocked for ten years after purchase. The Brindle boils at a measured 55 dB.",
+       "score": 1.330638,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-ac46971fe9b5893beccb10d636568b53:0-80",
+       "documentId": "doc-ac46971fe9b5893beccb10d636568b53",
+       "start": 0,
+       "end": 80,
+       "text": "Tamsin quick start leaflet. Fill to the max line. Descale monthly in hard water.",
+       "score": 0.734383,
+       "agentProduced": false
+      }
+     ],
+     "inlined": false,
+     "warnings": [],
+     "summary": "4 hit(s) of 4 matching \"Tamsin spare parts stocked years\" among 4 span(s) in 4 document(s), ranked by BM25 over lex-v1 (Unicode 15.0.0) terms less stop-en-v1, the whole query as a phrase first, ties by documentId then start; each widened to 600 characters around its chunk-v1 span"
+    }
+   }
+  },
+  "criterion": "spare-parts",
+  "expected": {
+   "action": "ask",
+   "either": true,
+   "prior": "shown",
+   "session": "same",
+   "round": 2,
+   "asks": "(fresh|new) conversation|(are|were) (already )?in (this|the) conversation",
+   "cells": {
+    "brindle": [
+     5,
+     "brindle-spare-parts-score"
+    ],
+    "copperleaf": [
+     3,
+     "copperleaf-spare-parts-score"
+    ],
+    "tamsin": [
+     5,
+     "tamsin-spare-parts-score"
+    ]
+   }
+  }
+ },
+ {
+  "id": "r6",
+  "request": "Re-score quietness, but from now on count anything under 55 dB as top marks.",
+  "conversation": [],
+  "contributor": {
+   "contributor_id": "scorer",
+   "author": {
+    "id": "scorer",
+    "displayName": "Scorer",
+    "kind": "agent"
+   }
+  },
+  "harness": {
+   "round": 2
+  },
+  "newDocuments": [],
+  "toolResults": {
+   "analysis_get(criteria)": {
+    "analysisId": "kettles",
+    "view": "criteria",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 4,
+     "superseded": 0,
+     "byKind": {
+      "scored": 4,
+      "settledBlank": 1,
+      "notApplicable": 0
+     },
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 4
+      }
+     ]
+    },
+    "criteria": [
+     {
+      "id": "repair-policy",
+      "label": "Repair policy",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states the maker repairs nothing."
+       },
+       {
+        "level": "3",
+        "text": "A source states a repair policy that names some parts and no period."
+       },
+       {
+        "level": "5",
+        "text": "A source states a dated repair policy naming every part it covers."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "How long spare parts are stocked; that is spare-parts."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "A broken kettle is fixed rather than replaced",
+       "question": "What does the maker commit to repairing, and for how long?"
+      }
+     },
+     {
+      "id": "spare-parts",
+      "label": "Spare parts",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states no spare parts are sold."
+       },
+       {
+        "level": "3",
+        "text": "A source states parts are stocked for under five years."
+       },
+       {
+        "level": "5",
+        "text": "A source states parts are stocked for ten years or more."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "What the maker repairs itself; that is repair-policy."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "A broken kettle is fixed rather than replaced",
+       "question": "For how long does the maker state it stocks spare parts?"
+      }
+     },
+     {
+      "id": "quietness",
+      "label": "Quietness",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states a boiling noise above 65 dB."
+       },
+       {
+        "level": "3",
+        "text": "A source states a boiling noise between 50 and 65 dB."
+       },
+       {
+        "level": "5",
+        "text": "A source states a boiling noise below 50 dB."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "Noise from the lid or switch."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "The kitchen stays usable for calls",
+       "question": "How loud is the kettle while boiling, as the maker states it?"
+      }
+     }
+    ],
+    "criteriaVersion": "1",
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 4 of 9 cell(s) outstanding (4 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   },
+   "analysis_get(outstanding)": {
+    "analysisId": "kettles",
+    "view": "outstanding",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 4,
+     "superseded": 0,
+     "byKind": {
+      "scored": 4,
+      "settledBlank": 1,
+      "notApplicable": 0
+     },
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 4
+      }
+     ]
+    },
+    "outstanding": [
+     {
+      "alternativeId": "brindle",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "quietness",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     }
+    ],
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 4 of 9 cell(s) outstanding (4 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   },
+   "corpus_search, per alternative, over the whole corpus": {
+    "brindle": {
+     "analysisId": "kettles",
+     "query": "Brindle boiling noise dB",
+     "skipped": [],
+     "hits": [
+      {
+       "spanId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
+       "documentId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
+       "start": 0,
+       "end": 81,
+       "text": "Copperleaf manual. Spare parts are stocked for three years. Boiling noise: 70 dB.",
+       "score": 2.544181,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+       "documentId": "doc-0ece686f0bf071048bd72a0190356f72",
+       "start": 0,
+       "end": 112,
+       "text": "Brindle care guide. Spare parts are stocked for ten years after purchase. The Brindle boils at a measured 55 dB.",
+       "score": 1.703139,
+       "agentProduced": false
+      }
+     ],
+     "inlined": false,
+     "warnings": [],
+     "summary": "2 hit(s) of 2 matching \"Brindle boiling noise dB\" among 3 span(s) in 3 document(s), ranked by BM25 over lex-v1 (Unicode 15.0.0) terms less stop-en-v1, the whole query as a phrase first, ties by documentId then start; each widened to 600 characters around its chunk-v1 span"
+    },
+    "copperleaf": {
+     "analysisId": "kettles",
+     "query": "Copperleaf boiling noise dB",
+     "skipped": [],
+     "hits": [
+      {
+       "spanId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
+       "documentId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
+       "start": 0,
+       "end": 81,
+       "text": "Copperleaf manual. Spare parts are stocked for three years. Boiling noise: 70 dB.",
+       "score": 3.570396,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+       "documentId": "doc-0ece686f0bf071048bd72a0190356f72",
+       "start": 0,
+       "end": 112,
+       "text": "Brindle care guide. Spare parts are stocked for ten years after purchase. The Brindle boils at a measured 55 dB.",
+       "score": 0.431809,
+       "agentProduced": false
+      }
+     ],
+     "inlined": false,
+     "warnings": [],
+     "summary": "2 hit(s) of 2 matching \"Copperleaf boiling noise dB\" among 3 span(s) in 3 document(s), ranked by BM25 over lex-v1 (Unicode 15.0.0) terms less stop-en-v1, the whole query as a phrase first, ties by documentId then start; each widened to 600 characters around its chunk-v1 span"
+    },
+    "tamsin": {
+     "analysisId": "kettles",
+     "query": "Tamsin boiling noise dB",
+     "skipped": [],
+     "hits": [
+      {
+       "spanId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
+       "documentId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
+       "start": 0,
+       "end": 81,
+       "text": "Copperleaf manual. Spare parts are stocked for three years. Boiling noise: 70 dB.",
+       "score": 2.544181,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-ac46971fe9b5893beccb10d636568b53:0-80",
+       "documentId": "doc-ac46971fe9b5893beccb10d636568b53",
+       "start": 0,
+       "end": 80,
+       "text": "Tamsin quick start leaflet. Fill to the max line. Descale monthly in hard water.",
+       "score": 1.026215,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+       "documentId": "doc-0ece686f0bf071048bd72a0190356f72",
+       "start": 0,
+       "end": 112,
+       "text": "Brindle care guide. Spare parts are stocked for ten years after purchase. The Brindle boils at a measured 55 dB.",
+       "score": 0.431809,
+       "agentProduced": false
+      }
+     ],
+     "inlined": false,
+     "warnings": [],
+     "summary": "3 hit(s) of 3 matching \"Tamsin boiling noise dB\" among 3 span(s) in 3 document(s), ranked by BM25 over lex-v1 (Unicode 15.0.0) terms less stop-en-v1, the whole query as a phrase first, ties by documentId then start; each widened to 600 characters around its chunk-v1 span"
+    }
+   }
+  },
+  "criterion": "quietness",
+  "expected": {
+   "action": "ask",
+   "either": false,
+   "prior": null,
+   "session": null,
+   "round": 2,
+   "asks": "criterion|anchor|revis",
+   "cells": {}
+  }
+ },
+ {
+  "id": "r7",
+  "request": "Brindle's recall notice is in the corpus. Re-score spare parts for Brindle.",
+  "conversation": [],
+  "contributor": {
+   "contributor_id": "scorer",
+   "author": {
+    "id": "scorer",
+    "displayName": "Scorer",
+    "kind": "agent"
+   }
+  },
+  "harness": {
+   "round": 3
+  },
+  "newDocuments": [
+   "brindle-recall"
+  ],
+  "toolResults": {
+   "analysis_get(criteria)": {
+    "analysisId": "kettles",
+    "view": "criteria",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 4,
+     "superseded": 0,
+     "byKind": {
+      "scored": 4,
+      "settledBlank": 1,
+      "notApplicable": 0
+     },
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 4
+      }
+     ]
+    },
+    "criteria": [
+     {
+      "id": "repair-policy",
+      "label": "Repair policy",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states the maker repairs nothing."
+       },
+       {
+        "level": "3",
+        "text": "A source states a repair policy that names some parts and no period."
+       },
+       {
+        "level": "5",
+        "text": "A source states a dated repair policy naming every part it covers."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "How long spare parts are stocked; that is spare-parts."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "A broken kettle is fixed rather than replaced",
+       "question": "What does the maker commit to repairing, and for how long?"
+      }
+     },
+     {
+      "id": "spare-parts",
+      "label": "Spare parts",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states no spare parts are sold."
+       },
+       {
+        "level": "3",
+        "text": "A source states parts are stocked for under five years."
+       },
+       {
+        "level": "5",
+        "text": "A source states parts are stocked for ten years or more."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "What the maker repairs itself; that is repair-policy."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "A broken kettle is fixed rather than replaced",
+       "question": "For how long does the maker state it stocks spare parts?"
+      }
+     },
+     {
+      "id": "quietness",
+      "label": "Quietness",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states a boiling noise above 65 dB."
+       },
+       {
+        "level": "3",
+        "text": "A source states a boiling noise between 50 and 65 dB."
+       },
+       {
+        "level": "5",
+        "text": "A source states a boiling noise below 50 dB."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "Noise from the lid or switch."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "The kitchen stays usable for calls",
+       "question": "How loud is the kettle while boiling, as the maker states it?"
+      }
+     }
+    ],
+    "criteriaVersion": "1",
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 4 of 9 cell(s) outstanding (4 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   },
+   "analysis_get(outstanding)": {
+    "analysisId": "kettles",
+    "view": "outstanding",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 4,
+     "superseded": 0,
+     "byKind": {
+      "scored": 4,
+      "settledBlank": 1,
+      "notApplicable": 0
+     },
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 4
+      }
+     ]
+    },
+    "outstanding": [
+     {
+      "alternativeId": "brindle",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "quietness",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     }
+    ],
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 4 of 9 cell(s) outstanding (4 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   },
+   "corpus_search, per alternative, over the whole corpus": {
+    "brindle": {
+     "analysisId": "kettles",
+     "query": "Brindle spare parts stocked years",
+     "skipped": [],
+     "hits": [
+      {
+       "spanId": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+       "documentId": "doc-0ece686f0bf071048bd72a0190356f72",
+       "start": 0,
+       "end": 112,
+       "text": "Brindle care guide. Spare parts are stocked for ten years after purchase. The Brindle boils at a measured 55 dB.",
+       "score": 2.320502,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-7bb313bf7c84a6ea27a541e8bb3937f5:0-150",
+       "documentId": "doc-7bb313bf7c84a6ea27a541e8bb3937f5",
+       "start": 0,
+       "end": 150,
+       "text": "Brindle recall notice. Affected lids will be replaced free of charge. Spare parts for all Brindle kettles remain stocked for ten years after purchase.",
+       "score": 2.110908,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
+       "documentId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
+       "start": 0,
+       "end": 81,
+       "text": "Copperleaf manual. Spare parts are stocked for three years. Boiling noise: 70 dB.",
+       "score": 1.563785,
+       "agentProduced": false
+      }
+     ],
+     "inlined": false,
+     "warnings": [],
+     "summary": "3 hit(s) of 3 matching \"Brindle spare parts stocked years\" among 4 span(s) in 4 document(s), ranked by BM25 over lex-v1 (Unicode 15.0.0) terms less stop-en-v1, the whole query as a phrase first, ties by documentId then start; each widened to 600 characters around its chunk-v1 span"
+    },
+    "copperleaf": {
+     "analysisId": "kettles",
+     "query": "Copperleaf spare parts stocked years",
+     "skipped": [],
+     "hits": [
+      {
+       "spanId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
+       "documentId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
+       "start": 0,
+       "end": 81,
+       "text": "Copperleaf manual. Spare parts are stocked for three years. Boiling noise: 70 dB.",
+       "score": 2.883442,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+       "documentId": "doc-0ece686f0bf071048bd72a0190356f72",
+       "start": 0,
+       "end": 112,
+       "text": "Brindle care guide. Spare parts are stocked for ten years after purchase. The Brindle boils at a measured 55 dB.",
+       "score": 1.386194,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-7bb313bf7c84a6ea27a541e8bb3937f5:0-150",
+       "documentId": "doc-7bb313bf7c84a6ea27a541e8bb3937f5",
+       "start": 0,
+       "end": 150,
+       "text": "Brindle recall notice. Affected lids will be replaced free of charge. Spare parts for all Brindle kettles remain stocked for ten years after purchase.",
+       "score": 1.244826,
+       "agentProduced": false
+      }
+     ],
+     "inlined": false,
+     "warnings": [],
+     "summary": "3 hit(s) of 3 matching \"Copperleaf spare parts stocked years\" among 4 span(s) in 4 document(s), ranked by BM25 over lex-v1 (Unicode 15.0.0) terms less stop-en-v1, the whole query as a phrase first, ties by documentId then start; each widened to 600 characters around its chunk-v1 span"
+    },
+    "tamsin": {
+     "analysisId": "kettles",
+     "query": "Tamsin spare parts stocked years",
+     "skipped": [],
+     "hits": [
+      {
+       "spanId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
+       "documentId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
+       "start": 0,
+       "end": 81,
+       "text": "Copperleaf manual. Spare parts are stocked for three years. Boiling noise: 70 dB.",
+       "score": 1.563785,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+       "documentId": "doc-0ece686f0bf071048bd72a0190356f72",
+       "start": 0,
+       "end": 112,
+       "text": "Brindle care guide. Spare parts are stocked for ten years after purchase. The Brindle boils at a measured 55 dB.",
+       "score": 1.386194,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-ac46971fe9b5893beccb10d636568b53:0-80",
+       "documentId": "doc-ac46971fe9b5893beccb10d636568b53",
+       "start": 0,
+       "end": 80,
+       "text": "Tamsin quick start leaflet. Fill to the max line. Descale monthly in hard water.",
+       "score": 1.319657,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-7bb313bf7c84a6ea27a541e8bb3937f5:0-150",
+       "documentId": "doc-7bb313bf7c84a6ea27a541e8bb3937f5",
+       "start": 0,
+       "end": 150,
+       "text": "Brindle recall notice. Affected lids will be replaced free of charge. Spare parts for all Brindle kettles remain stocked for ten years after purchase.",
+       "score": 1.244826,
+       "agentProduced": false
+      }
+     ],
+     "inlined": false,
+     "warnings": [],
+     "summary": "4 hit(s) of 4 matching \"Tamsin spare parts stocked years\" among 4 span(s) in 4 document(s), ranked by BM25 over lex-v1 (Unicode 15.0.0) terms less stop-en-v1, the whole query as a phrase first, ties by documentId then start; each widened to 600 characters around its chunk-v1 span"
+    }
+   },
+   "measures_write: your first attempt for brindle, naming supersedes brindle-spare-parts-score (already made; list only the calls you make after it)": "refused, nothing was written: cell brindle/spare-parts/score: supersedes \"brindle-spare-parts-score\": it was already replaced by \"brindle-spare-parts-score-2\". Supersede that one, the live claim."
+  },
+  "criterion": "spare-parts",
+  "expected": {
+   "action": "write",
+   "prior": "withheld",
+   "session": "fresh",
+   "round": 3,
+   "resumed": true,
+   "cells": {
+    "brindle": [
+     5,
+     "brindle-spare-parts-score-2"
+    ]
+   }
+  }
+ },
+ {
+  "id": "r8",
+  "request": "I've added Tamsin's service page to the corpus. Please re-score spare parts.",
+  "conversation": [],
+  "contributor": {
+   "contributor_id": "scorer",
+   "author": {
+    "id": "scorer",
+    "displayName": "Scorer",
+    "kind": "agent"
+   }
+  },
+  "harness": {},
+  "newDocuments": [
+   "tamsin-service"
+  ],
+  "toolResults": {
+   "analysis_get(criteria)": {
+    "analysisId": "kettles",
+    "view": "criteria",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 4,
+     "superseded": 0,
+     "byKind": {
+      "scored": 4,
+      "settledBlank": 1,
+      "notApplicable": 0
+     },
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 4
+      }
+     ]
+    },
+    "criteria": [
+     {
+      "id": "repair-policy",
+      "label": "Repair policy",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states the maker repairs nothing."
+       },
+       {
+        "level": "3",
+        "text": "A source states a repair policy that names some parts and no period."
+       },
+       {
+        "level": "5",
+        "text": "A source states a dated repair policy naming every part it covers."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "How long spare parts are stocked; that is spare-parts."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "A broken kettle is fixed rather than replaced",
+       "question": "What does the maker commit to repairing, and for how long?"
+      }
+     },
+     {
+      "id": "spare-parts",
+      "label": "Spare parts",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states no spare parts are sold."
+       },
+       {
+        "level": "3",
+        "text": "A source states parts are stocked for under five years."
+       },
+       {
+        "level": "5",
+        "text": "A source states parts are stocked for ten years or more."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "What the maker repairs itself; that is repair-policy."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "A broken kettle is fixed rather than replaced",
+       "question": "For how long does the maker state it stocks spare parts?"
+      }
+     },
+     {
+      "id": "quietness",
+      "label": "Quietness",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states a boiling noise above 65 dB."
+       },
+       {
+        "level": "3",
+        "text": "A source states a boiling noise between 50 and 65 dB."
+       },
+       {
+        "level": "5",
+        "text": "A source states a boiling noise below 50 dB."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "Noise from the lid or switch."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "The kitchen stays usable for calls",
+       "question": "How loud is the kettle while boiling, as the maker states it?"
+      }
+     }
+    ],
+    "criteriaVersion": "1",
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 4 of 9 cell(s) outstanding (4 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   },
+   "analysis_get(outstanding)": {
+    "analysisId": "kettles",
+    "view": "outstanding",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 4,
+     "superseded": 0,
+     "byKind": {
+      "scored": 4,
+      "settledBlank": 1,
+      "notApplicable": 0
+     },
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 4
+      }
+     ]
+    },
+    "outstanding": [
+     {
+      "alternativeId": "brindle",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "quietness",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     }
+    ],
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 4 of 9 cell(s) outstanding (4 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   },
+   "corpus_search, per alternative, over the whole corpus": {
+    "brindle": {
+     "analysisId": "kettles",
+     "query": "Brindle spare parts stocked years",
+     "skipped": [],
+     "hits": [
+      {
+       "spanId": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+       "documentId": "doc-0ece686f0bf071048bd72a0190356f72",
+       "start": 0,
+       "end": 112,
+       "text": "Brindle care guide. Spare parts are stocked for ten years after purchase. The Brindle boils at a measured 55 dB.",
+       "score": 2.907821,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
+       "documentId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
+       "start": 0,
+       "end": 81,
+       "text": "Copperleaf manual. Spare parts are stocked for three years. Boiling noise: 70 dB.",
+       "score": 1.511574,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-b0d093524ffa09b77980f3b1576a3c1c:0-123",
+       "documentId": "doc-b0d093524ffa09b77980f3b1576a3c1c",
+       "start": 0,
+       "end": 123,
+       "text": "Tamsin service and parts. Spare parts for every Tamsin kettle are stocked for twelve years after the model is discontinued.",
+       "score": 1.506032,
+       "agentProduced": false
+      }
+     ],
+     "inlined": false,
+     "warnings": [],
+     "summary": "3 hit(s) of 3 matching \"Brindle spare parts stocked years\" among 4 span(s) in 4 document(s), ranked by BM25 over lex-v1 (Unicode 15.0.0) terms less stop-en-v1, the whole query as a phrase first, ties by documentId then start; each widened to 600 characters around its chunk-v1 span"
+    },
+    "copperleaf": {
+     "analysisId": "kettles",
+     "query": "Copperleaf spare parts stocked years",
+     "skipped": [],
+     "hits": [
+      {
+       "spanId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
+       "documentId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
+       "start": 0,
+       "end": 81,
+       "text": "Copperleaf manual. Spare parts are stocked for three years. Boiling noise: 70 dB.",
+       "score": 2.787172,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-b0d093524ffa09b77980f3b1576a3c1c:0-123",
+       "documentId": "doc-b0d093524ffa09b77980f3b1576a3c1c",
+       "start": 0,
+       "end": 123,
+       "text": "Tamsin service and parts. Spare parts for every Tamsin kettle are stocked for twelve years after the model is discontinued.",
+       "score": 1.506032,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+       "documentId": "doc-0ece686f0bf071048bd72a0190356f72",
+       "start": 0,
+       "end": 112,
+       "text": "Brindle care guide. Spare parts are stocked for ten years after purchase. The Brindle boils at a measured 55 dB.",
+       "score": 1.330638,
+       "agentProduced": false
+      }
+     ],
+     "inlined": false,
+     "warnings": [],
+     "summary": "3 hit(s) of 3 matching \"Copperleaf spare parts stocked years\" among 4 span(s) in 4 document(s), ranked by BM25 over lex-v1 (Unicode 15.0.0) terms less stop-en-v1, the whole query as a phrase first, ties by documentId then start; each widened to 600 characters around its chunk-v1 span"
+    },
+    "tamsin": {
+     "analysisId": "kettles",
+     "query": "Tamsin spare parts stocked years",
+     "skipped": [],
+     "hits": [
+      {
+       "spanId": "doc-b0d093524ffa09b77980f3b1576a3c1c:0-123",
+       "documentId": "doc-b0d093524ffa09b77980f3b1576a3c1c",
+       "start": 0,
+       "end": 123,
+       "text": "Tamsin service and parts. Spare parts for every Tamsin kettle are stocked for twelve years after the model is discontinued.",
+       "score": 2.433535,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
+       "documentId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
+       "start": 0,
+       "end": 81,
+       "text": "Copperleaf manual. Spare parts are stocked for three years. Boiling noise: 70 dB.",
+       "score": 1.511574,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+       "documentId": "doc-0ece686f0bf071048bd72a0190356f72",
+       "start": 0,
+       "end": 112,
+       "text": "Brindle care guide. Spare parts are stocked for ten years after purchase. The Brindle boils at a measured 55 dB.",
+       "score": 1.330638,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-ac46971fe9b5893beccb10d636568b53:0-80",
+       "documentId": "doc-ac46971fe9b5893beccb10d636568b53",
+       "start": 0,
+       "end": 80,
+       "text": "Tamsin quick start leaflet. Fill to the max line. Descale monthly in hard water.",
+       "score": 0.734383,
+       "agentProduced": false
+      }
+     ],
+     "inlined": false,
+     "warnings": [],
+     "summary": "4 hit(s) of 4 matching \"Tamsin spare parts stocked years\" among 4 span(s) in 4 document(s), ranked by BM25 over lex-v1 (Unicode 15.0.0) terms less stop-en-v1, the whole query as a phrase first, ties by documentId then start; each widened to 600 characters around its chunk-v1 span"
+    }
+   }
+  },
+  "criterion": "spare-parts",
+  "expected": {
+   "action": "ask",
+   "either": false,
+   "prior": null,
+   "session": null,
+   "round": null,
+   "asks": "\\bround\\b",
+   "cells": {}
+  }
+ }
+]
