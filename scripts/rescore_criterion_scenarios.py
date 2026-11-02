@@ -75,12 +75,17 @@ R1_CELLS = {"brindle": (5, "brindle-spare-parts-score"),
             "copperleaf": (3, "copperleaf-spare-parts-score"),
             "tamsin": (5, "tamsin-spare-parts-score")}
 
+#: What a reply that asks instead of re-scoring where the earlier scores are in the conversation says.
+#: Worded so a denial ("they are not in this conversation") does not match.
+SAYS_THE_PRIOR_IS_IN_VIEW = r"(fresh|new) conversation|(are|were) (already )?in (this|the) conversation"
+
 #: id -> (request, criterion, new documents, conversation before the request, expected).
 #: ``expected["cells"]`` maps each alternative to (its outcome, the id it must supersede or None);
 #: an outcome is a level or a missingness code. ``prior``/``session``/``round`` are what every write
 #: must state, and ``round`` is also what the harness hands the subject (``None``: it hands none);
 #: ``action`` is ``write`` or ``ask``; ``either`` lets an ``ask`` scenario also be answered by writes
-#: that state the prior truthfully; ``resumed`` marks a scenario that starts after the subject's own
+#: that state the prior truthfully; ``asks`` is a pattern the reply of an ask must match (what it asks
+#: about); ``resumed`` marks a scenario that starts after the subject's own
 #: first write attempt, so its retrieval came before the calls it lists.
 SCENARIOS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[dict[str, str]], dict[str, Any]]] = {
     "r1": ("I've added Tamsin's service page to the corpus. Please re-score spare parts.",
@@ -113,11 +118,11 @@ SCENARIOS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[dict[str, 
     "r5": ("I've added Tamsin's service page to the corpus. Re-score spare parts.",
            "spare-parts", TAMSIN_SERVICE, EARLIER_IN_THIS_CONVERSATION,
            {"action": "ask", "either": True, "prior": "shown", "session": "same", "round": NEXT_ROUND,
-            "cells": R1_CELLS}),
+            "asks": SAYS_THE_PRIOR_IS_IN_VIEW, "cells": R1_CELLS}),
     "r6": ("Re-score quietness, but from now on count anything under 55 dB as top marks.",
            "quietness", [], [],
            {"action": "ask", "either": False, "prior": None, "session": None, "round": NEXT_ROUND,
-            "cells": {}}),
+            "asks": r"criterion|anchor|revis", "cells": {}}),
     # Brindle's spare parts were already re-scored once, so the default id is no longer the live claim:
     # the subject has tried it and holds the tool's refusal, which names the successor.
     "r7": ("Brindle's recall notice is in the corpus. Re-score spare parts for Brindle.",
@@ -128,7 +133,7 @@ SCENARIOS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[dict[str, 
     "r8": ("I've added Tamsin's service page to the corpus. Please re-score spare parts.",
            "spare-parts", TAMSIN_SERVICE, [],
            {"action": "ask", "either": False, "prior": None, "session": None, "round": None,
-            "cells": {}}),
+            "asks": r"\bround\b", "cells": {}}),
 }
 
 #: Scenarios whose starting analysis has an extra, earlier re-score on top of the first sweep.

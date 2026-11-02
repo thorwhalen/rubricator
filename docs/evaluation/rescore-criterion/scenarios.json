@@ -1817,6 +1817,7 @@
    "prior": "shown",
    "session": "same",
    "round": 2,
+   "asks": "(fresh|new) conversation|(are|were) (already )?in (this|the) conversation",
    "cells": {
     "brindle": [
      5,
@@ -2157,6 +2158,7 @@
    "prior": null,
    "session": null,
    "round": 2,
+   "asks": "criterion|anchor|revis",
    "cells": {}
   }
  },
@@ -2873,6 +2875,7 @@
    "prior": null,
    "session": null,
    "round": null,
+   "asks": "\\bround\\b",
    "cells": {}
   }
  }

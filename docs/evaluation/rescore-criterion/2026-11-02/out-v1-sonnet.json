@@ -1,329 +1,293 @@
 [
-  {
-    "scenarioId": "r1",
-    "calls": [
-      {"tool": "analysis_get", "arguments": {"analysis_id": "kettles", "view": "criteria"}},
-      {"tool": "analysis_get", "arguments": {"analysis_id": "kettles", "view": "outstanding"}},
-      {"tool": "corpus_search", "arguments": {"analysis_id": "kettles", "query": "Brindle spare parts stocked years"}},
-      {"tool": "corpus_search", "arguments": {"analysis_id": "kettles", "query": "Copperleaf spare parts stocked years"}},
-      {"tool": "corpus_search", "arguments": {"analysis_id": "kettles", "query": "Tamsin spare parts stocked years"}},
+ {
+  "scenarioId": "r1",
+  "calls": [
+   {"tool": "analysis_get", "arguments": {"analysis_id": "kettles", "view": "criteria"}},
+   {"tool": "analysis_get", "arguments": {"analysis_id": "kettles", "view": "outstanding"}},
+   {"tool": "corpus_search", "arguments": {"analysis_id": "kettles", "query": "Brindle spare parts stocked years"}},
+   {"tool": "corpus_search", "arguments": {"analysis_id": "kettles", "query": "Copperleaf spare parts stocked years"}},
+   {"tool": "corpus_search", "arguments": {"analysis_id": "kettles", "query": "Tamsin spare parts stocked years"}},
+   {"tool": "measures_write", "arguments": {
+     "analysis_id": "kettles",
+     "contributor_id": "scorer",
+     "author": {"id": "scorer", "displayName": "Scorer", "kind": "agent"},
+     "expected_criteria_version": "1",
+     "procedure": {"round": 2, "session": "fresh", "prior": "withheld"},
+     "cells": [
       {
-        "tool": "measures_write",
-        "arguments": {
-          "analysis_id": "kettles",
-          "contributor_id": "scorer",
-          "author": {"id": "scorer", "displayName": "Scorer", "kind": "agent"},
-          "expected_criteria_version": "1",
-          "procedure": {"round": 2, "session": "fresh", "prior": "withheld"},
-          "cells": [
-            {
-              "alternativeId": "brindle",
-              "criterionId": "spare-parts",
-              "supersedes": "brindle-spare-parts-score",
-              "justification": "The maker's care guide states parts are stocked for ten years after purchase, which is the level-5 condition.",
-              "evidence": [
-                {
-                  "id": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
-                  "target": "doc:doc-0ece686f0bf071048bd72a0190356f72",
-                  "sourceType": "primary",
-                  "stance": "supports",
-                  "selectors": [{"type": "TextQuoteSelector", "exact": "Spare parts are stocked for ten years after purchase."}]
-                }
-              ],
-              "value": 5
-            }
-          ]
+       "alternativeId": "brindle",
+       "criterionId": "spare-parts",
+       "supersedes": "brindle-spare-parts-score",
+       "justification": "The Brindle care guide states parts are stocked for ten years after purchase, the level-5 condition.",
+       "evidence": [
+        {
+         "id": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+         "target": "doc-0ece686f0bf071048bd72a0190356f72",
+         "sourceType": "primary",
+         "stance": "supports",
+         "selectors": [{"type": "TextQuoteSelector", "exact": "Spare parts are stocked for ten years after purchase"}]
         }
-      },
-      {
-        "tool": "measures_write",
-        "arguments": {
-          "analysis_id": "kettles",
-          "contributor_id": "scorer",
-          "author": {"id": "scorer", "displayName": "Scorer", "kind": "agent"},
-          "expected_criteria_version": "1",
-          "procedure": {"round": 2, "session": "fresh", "prior": "withheld"},
-          "cells": [
-            {
-              "alternativeId": "copperleaf",
-              "criterionId": "spare-parts",
-              "supersedes": "copperleaf-spare-parts-score",
-              "justification": "The maker's manual states parts are stocked for three years, which meets the level-3 condition (under five years).",
-              "evidence": [
-                {
-                  "id": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
-                  "target": "doc:doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
-                  "sourceType": "primary",
-                  "stance": "supports",
-                  "selectors": [{"type": "TextQuoteSelector", "exact": "Spare parts are stocked for three years."}]
-                }
-              ],
-              "value": 3
-            }
-          ]
-        }
-      },
-      {
-        "tool": "measures_write",
-        "arguments": {
-          "analysis_id": "kettles",
-          "contributor_id": "scorer",
-          "author": {"id": "scorer", "displayName": "Scorer", "kind": "agent"},
-          "expected_criteria_version": "1",
-          "procedure": {"round": 2, "session": "fresh", "prior": "withheld"},
-          "cells": [
-            {
-              "alternativeId": "tamsin",
-              "criterionId": "spare-parts",
-              "supersedes": "tamsin-spare-parts-score",
-              "justification": "The maker's service page states parts are stocked for twelve years after the model is discontinued, above the ten-year level-5 condition.",
-              "evidence": [
-                {
-                  "id": "doc-b0d093524ffa09b77980f3b1576a3c1c:0-123",
-                  "target": "doc:doc-b0d093524ffa09b77980f3b1576a3c1c",
-                  "sourceType": "primary",
-                  "stance": "supports",
-                  "selectors": [{"type": "TextQuoteSelector", "exact": "Spare parts for every Tamsin kettle are stocked for twelve years after the model is discontinued."}]
-                }
-              ],
-              "value": 5
-            }
-          ]
-        }
+       ],
+       "value": 5
       }
-    ],
-    "reply": "I re-scored spare parts for all three kettles, each cell judged afresh from a new corpus search over the whole corpus (not just Tamsin's service page), and each recorded as replacing the earlier claim in that cell. I did not read the earlier scores.\n\nBrindle: 5. The care guide says \"Spare parts are stocked for ten years after purchase.\" Evidence quality: high (directly stated by the maker).\nCopperleaf: 3. The manual says \"Spare parts are stocked for three years.\" Evidence quality: high.\nTamsin: 5. The service page says \"Spare parts for every Tamsin kettle are stocked for twelve years after the model is discontinued.\" Evidence quality: high.\n\nNo cell depends on another criterion.\n\nRe-scored: spare-parts — 3 of 3 alternatives: brindle, copperleaf, tamsin\nPrior: withheld — the earlier scores were not read and were not in this conversation\nEvidence: fresh retrieval over the corpus as it now stands\nWritten: 3 scored, 0 blank (none)\nReplaced: brindle, copperleaf and tamsin spare-parts (round 2 claims replacing my earlier claims)\nNot written: none\nNext: review, or compare with the earlier scores. Comparing is fine now that the pass is recorded, but any further re-score of these cells in this conversation would then be recorded as shown."
-  },
-  {
-    "scenarioId": "r2",
-    "calls": [
-      {"tool": "analysis_get", "arguments": {"analysis_id": "kettles", "view": "criteria"}},
-      {"tool": "analysis_get", "arguments": {"analysis_id": "kettles", "view": "outstanding"}},
-      {"tool": "corpus_search", "arguments": {"analysis_id": "kettles", "query": "Tamsin boiling noise dB"}},
+     ]}},
+   {"tool": "measures_write", "arguments": {
+     "analysis_id": "kettles",
+     "contributor_id": "scorer",
+     "author": {"id": "scorer", "displayName": "Scorer", "kind": "agent"},
+     "expected_criteria_version": "1",
+     "procedure": {"round": 2, "session": "fresh", "prior": "withheld"},
+     "cells": [
       {
-        "tool": "measures_write",
-        "arguments": {
-          "analysis_id": "kettles",
-          "contributor_id": "scorer",
-          "author": {"id": "scorer", "displayName": "Scorer", "kind": "agent"},
-          "expected_criteria_version": "1",
-          "procedure": {"round": 2, "session": "fresh", "prior": "withheld"},
-          "cells": [
-            {
-              "alternativeId": "tamsin",
-              "criterionId": "quietness",
-              "justification": "The maker's technical datasheet states a rated boiling noise of 48 dB, below 50 dB, which is the level-5 condition.",
-              "evidence": [
-                {
-                  "id": "doc-58cd4b029a6286f95965954da2cc059a:0-72",
-                  "target": "doc:doc-58cd4b029a6286f95965954da2cc059a",
-                  "sourceType": "primary",
-                  "stance": "supports",
-                  "selectors": [{"type": "TextQuoteSelector", "exact": "Rated boiling noise: 48 dB at full capacity."}]
-                }
-              ],
-              "value": 5
-            }
-          ]
+       "alternativeId": "copperleaf",
+       "criterionId": "spare-parts",
+       "supersedes": "copperleaf-spare-parts-score",
+       "justification": "The Copperleaf manual states parts are stocked for three years, under five years: the level-3 condition.",
+       "evidence": [
+        {
+         "id": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
+         "target": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
+         "sourceType": "primary",
+         "stance": "supports",
+         "selectors": [{"type": "TextQuoteSelector", "exact": "Spare parts are stocked for three years"}]
         }
+       ],
+       "value": 3
       }
-    ],
-    "reply": "I re-scored quietness for Tamsin only, from a fresh search over the whole corpus. Tamsin quietness: 5. The maker's datasheet says \"Rated boiling noise: 48 dB at full capacity.\", below the 50 dB level-5 condition. Evidence quality: high (directly stated by the maker). It depends on no other criterion.\n\nThis cell had never been written, so there was no earlier claim to replace and I wrote it without a supersedes. I left Brindle and Copperleaf alone, as you asked.\n\nRe-scored: quietness — 1 of 3 alternatives: tamsin\nPrior: withheld — the earlier scores were not read and were not in this conversation\nEvidence: fresh retrieval over the corpus as it now stands\nWritten: 1 scored, 0 blank (none)\nReplaced: none (the Tamsin quietness cell had no earlier claim)\nNot written: none\nNext: review"
-  },
-  {
-    "scenarioId": "r3",
-    "calls": [
-      {"tool": "analysis_get", "arguments": {"analysis_id": "kettles", "view": "criteria"}},
-      {"tool": "analysis_get", "arguments": {"analysis_id": "kettles", "view": "outstanding"}},
-      {"tool": "corpus_search", "arguments": {"analysis_id": "kettles", "query": "Brindle boiling noise dB"}},
-      {"tool": "corpus_search", "arguments": {"analysis_id": "kettles", "query": "Copperleaf boiling noise dB"}},
-      {"tool": "corpus_search", "arguments": {"analysis_id": "kettles", "query": "Tamsin boiling noise dB"}},
+     ]}},
+   {"tool": "measures_write", "arguments": {
+     "analysis_id": "kettles",
+     "contributor_id": "scorer",
+     "author": {"id": "scorer", "displayName": "Scorer", "kind": "agent"},
+     "expected_criteria_version": "1",
+     "procedure": {"round": 2, "session": "fresh", "prior": "withheld"},
+     "cells": [
       {
-        "tool": "measures_write",
-        "arguments": {
-          "analysis_id": "kettles",
-          "contributor_id": "scorer",
-          "author": {"id": "scorer", "displayName": "Scorer", "kind": "agent"},
-          "expected_criteria_version": "1",
-          "procedure": {"round": 2, "session": "fresh", "prior": "withheld"},
-          "cells": [
-            {
-              "alternativeId": "brindle",
-              "criterionId": "quietness",
-              "supersedes": "brindle-quietness-score",
-              "justification": "The maker's care guide states a measured boiling noise of 55 dB, inside the 50 to 65 dB band of the level-3 condition.",
-              "evidence": [
-                {
-                  "id": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
-                  "target": "doc:doc-0ece686f0bf071048bd72a0190356f72",
-                  "sourceType": "primary",
-                  "stance": "supports",
-                  "selectors": [{"type": "TextQuoteSelector", "exact": "The Brindle boils at a measured 55 dB."}]
-                }
-              ],
-              "value": 3
-            }
-          ]
+       "alternativeId": "tamsin",
+       "criterionId": "spare-parts",
+       "supersedes": "tamsin-spare-parts-score",
+       "justification": "Tamsin's service page states parts are stocked for twelve years after the model is discontinued, which is ten years or more: the level-5 condition.",
+       "evidence": [
+        {
+         "id": "doc-b0d093524ffa09b77980f3b1576a3c1c:0-123",
+         "target": "doc-b0d093524ffa09b77980f3b1576a3c1c",
+         "sourceType": "primary",
+         "stance": "supports",
+         "selectors": [{"type": "TextQuoteSelector", "exact": "Spare parts for every Tamsin kettle are stocked for twelve years after the model is discontinued"}]
         }
-      },
-      {
-        "tool": "measures_write",
-        "arguments": {
-          "analysis_id": "kettles",
-          "contributor_id": "scorer",
-          "author": {"id": "scorer", "displayName": "Scorer", "kind": "agent"},
-          "expected_criteria_version": "1",
-          "procedure": {"round": 2, "session": "fresh", "prior": "withheld"},
-          "cells": [
-            {
-              "alternativeId": "copperleaf",
-              "criterionId": "quietness",
-              "supersedes": "copperleaf-quietness-score",
-              "evidence": [
-                {
-                  "id": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
-                  "target": "doc:doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
-                  "sourceType": "primary",
-                  "stance": "supports",
-                  "selectors": [{"type": "TextQuoteSelector", "exact": "Boiling noise: 70 dB."}]
-                },
-                {
-                  "id": "doc-c38812e2a155fafbf9cacc5846e72066:0-68",
-                  "target": "doc:doc-c38812e2a155fafbf9cacc5846e72066",
-                  "sourceType": "primary",
-                  "stance": "contradicts",
-                  "selectors": [{"type": "TextQuoteSelector", "exact": "Quiet boil technology: boiling noise 58 dB."}]
-                }
-              ],
-              "missing": {
-                "code": "indeterminate",
-                "note": "Retrieval over the whole corpus for Copperleaf boiling noise returned the manual, which states 70 dB (above 65, the level-1 condition), and the product page, which states 58 dB (between 50 and 65, the level-3 condition). They land on different anchors; neither is dated later and nothing reconciles them."
-              }
-            }
-          ]
-        }
-      },
-      {
-        "tool": "measures_write",
-        "arguments": {
-          "analysis_id": "kettles",
-          "contributor_id": "scorer",
-          "author": {"id": "scorer", "displayName": "Scorer", "kind": "agent"},
-          "expected_criteria_version": "1",
-          "procedure": {"round": 2, "session": "fresh", "prior": "withheld"},
-          "cells": [
-            {
-              "alternativeId": "tamsin",
-              "criterionId": "quietness",
-              "missing": {
-                "code": "not-evidenced",
-                "note": "Retrieval over the whole corpus for Tamsin boiling noise returned four spans; none states a Tamsin boiling noise (the Tamsin leaflet covers filling and descaling only, and the dB figures belong to Copperleaf and Brindle)."
-              }
-            }
-          ]
-        }
+       ],
+       "value": 5
       }
-    ],
-    "reply": "I re-scored quietness for all three kettles, each from a fresh search over the whole corpus, not just Copperleaf's new product page. I did not read the earlier scores.\n\nBrindle: 3. The care guide says \"The Brindle boils at a measured 55 dB.\", inside the 50 to 65 dB band. Evidence quality: high.\nCopperleaf: blank, indeterminate. The manual says \"Boiling noise: 70 dB.\" (the level-1 condition) and the new product page says \"Quiet boil technology: boiling noise 58 dB.\" (the level-3 condition). The two sources land on different anchors and nothing in them says which to trust, so I did not pick a level. Both quotes are attached to the cell.\nTamsin: blank, not-evidenced. Nothing in the retrieval states a Tamsin boiling noise.\n\nThe Brindle and Copperleaf cells replace my earlier claims. Tamsin's cell had never been written, so it carries no supersedes.\n\nRe-scored: quietness — 3 of 3 alternatives: brindle, copperleaf, tamsin\nPrior: withheld — the earlier scores were not read and were not in this conversation\nEvidence: fresh retrieval over the corpus as it now stands\nWritten: 1 scored, 2 blank (indeterminate, not-evidenced)\nReplaced: brindle and copperleaf quietness (earlier claims superseded)\nNot written: none\nNext: review. Copperleaf needs a decision on which source to trust, and Tamsin needs a source that states its noise."
-  },
-  {
-    "scenarioId": "r4",
-    "calls": [
-      {"tool": "analysis_get", "arguments": {"analysis_id": "kettles", "view": "criteria"}},
-      {"tool": "analysis_get", "arguments": {"analysis_id": "kettles", "view": "outstanding"}},
-      {"tool": "corpus_search", "arguments": {"analysis_id": "kettles", "query": "Brindle spare parts stocked years"}},
+     ]}}
+  ],
+  "reply": "I re-scored spare parts for all three kettles from a fresh retrieval over the whole corpus, one cell at a time. The Tamsin quick start leaflet came back for Tamsin but is silent on parts, so it carries no weight.\n\n- brindle: 5. The care guide states 'Spare parts are stocked for ten years after purchase'.\n- copperleaf: 3. The manual states 'Spare parts are stocked for three years', which is under five.\n- tamsin: 5. The service page states 'Spare parts for every Tamsin kettle are stocked for twelve years after the model is discontinued'.\n\nEvidence grade for all three is high (directly stated by the maker's own page). None of the cells turns on another criterion (dependsOn is empty). The stored cell has no slot for confidence or dependsOn, so I report them here and did not put them in the write.\n\nRe-scored: spare-parts — 3 of 3 alternatives: brindle, copperleaf, tamsin\nPrior: withheld — the earlier scores were not read and were not in this conversation\nEvidence: fresh retrieval over the corpus as it now stands\nWritten: 3 scored, 0 blank\nReplaced: brindle/spare-parts, copperleaf/spare-parts, tamsin/spare-parts (each earlier claim of mine, now marked superseded)\nNot written: none\nNext: compare with the earlier scores, or review. Reading them now does not change what this pass was, but any further re-score of these cells in this conversation would then be 'shown'."
+ },
+ {
+  "scenarioId": "r2",
+  "calls": [
+   {"tool": "analysis_get", "arguments": {"analysis_id": "kettles", "view": "criteria"}},
+   {"tool": "analysis_get", "arguments": {"analysis_id": "kettles", "view": "outstanding"}},
+   {"tool": "corpus_search", "arguments": {"analysis_id": "kettles", "query": "Tamsin boiling noise dB"}},
+   {"tool": "measures_write", "arguments": {
+     "analysis_id": "kettles",
+     "contributor_id": "scorer",
+     "author": {"id": "scorer", "displayName": "Scorer", "kind": "agent"},
+     "expected_criteria_version": "1",
+     "procedure": {"round": 2, "session": "fresh", "prior": "withheld"},
+     "cells": [
       {
-        "tool": "measures_write",
-        "arguments": {
-          "analysis_id": "kettles",
-          "contributor_id": "scorer",
-          "author": {"id": "scorer", "displayName": "Scorer", "kind": "agent"},
-          "expected_criteria_version": "1",
-          "procedure": {"round": 2, "session": "same", "prior": "shown"},
-          "cells": [
-            {
-              "alternativeId": "brindle",
-              "criterionId": "spare-parts",
-              "supersedes": "brindle-spare-parts-score",
-              "justification": "Two maker documents, the care guide and the recall notice, both state ten-year stocking; the recall notice's lid replacement does not bear on how long parts are stocked. This meets the level-5 condition.",
-              "evidence": [
-                {
-                  "id": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
-                  "target": "doc:doc-0ece686f0bf071048bd72a0190356f72",
-                  "sourceType": "primary",
-                  "stance": "supports",
-                  "selectors": [{"type": "TextQuoteSelector", "exact": "Spare parts are stocked for ten years after purchase."}]
-                },
-                {
-                  "id": "doc-7bb313bf7c84a6ea27a541e8bb3937f5:0-150",
-                  "target": "doc:doc-7bb313bf7c84a6ea27a541e8bb3937f5",
-                  "sourceType": "primary",
-                  "stance": "supports",
-                  "selectors": [{"type": "TextQuoteSelector", "exact": "Spare parts for all Brindle kettles remain stocked for ten years after purchase."}]
-                }
-              ],
-              "value": 5
-            }
-          ]
+       "alternativeId": "tamsin",
+       "criterionId": "quietness",
+       "justification": "Tamsin's technical datasheet states a rated boiling noise of 48 dB, below 50 dB: the level-5 condition.",
+       "evidence": [
+        {
+         "id": "doc-58cd4b029a6286f95965954da2cc059a:0-72",
+         "target": "doc-58cd4b029a6286f95965954da2cc059a",
+         "sourceType": "primary",
+         "stance": "supports",
+         "selectors": [{"type": "TextQuoteSelector", "exact": "Rated boiling noise: 48 dB at full capacity"}]
         }
+       ],
+       "value": 5
       }
-    ],
-    "reply": "You asked me to check the earlier score against the recall notice, and you told me in your message what it was (a 5, resting on the care guide). That puts the earlier score in this conversation, so I recorded this as a shown pass: session same, prior shown. It is a weaker, shared-context draw, and the record says so. A withheld re-score would need a fresh conversation. I did not read the stored claim; I relied on your statement of it.\n\nI searched the whole corpus again for Brindle spare parts and judged the cell from the spans. Brindle spare parts: 5. The care guide says \"Spare parts are stocked for ten years after purchase.\" and the recall notice says \"Spare parts for all Brindle kettles remain stocked for ten years after purchase.\" The notice's free lid replacement concerns repairs, not how long parts are stocked, so it does not change the level. Evidence quality: high (two maker documents state it directly). No cross-criterion dependence. The new cell replaces the earlier claim.\n\nRe-scored: spare-parts — 1 of 3 alternatives: brindle\nPrior: shown — you stated the earlier score in this conversation and asked me to check it against the new evidence\nEvidence: fresh retrieval over the corpus as it now stands\nWritten: 1 scored, 0 blank (none)\nReplaced: brindle spare-parts (earlier claim superseded)\nNot written: none\nNext: review"
-  },
-  {
-    "scenarioId": "r5",
-    "calls": [],
-    "reply": "I haven't written anything yet. The earlier spare-parts scores are already in this conversation: I gave them in my last message as round 1. Because of that, any re-score I do here is not a withheld pass. It would be recorded as session same, prior shown, a shared-context draw that sits closer to a confirmation of the earlier scores than to a fresh judgement. A withheld re-score needs a fresh conversation, where I would not have seen those scores.\n\nTwo options:\n1. Start a fresh conversation and ask for the re-score there. This gives the cleanest result, and I would also need the round number for the sweep.\n2. Tell me to go ahead here. I would re-score spare parts for all three kettles from a fresh search over the whole corpus, use the harness round 2, and record the pass as same and shown.\n\nWhich do you want?"
-  },
-  {
-    "scenarioId": "r6",
-    "calls": [],
-    "reply": "I haven't written anything. Counting anything under 55 dB as top marks changes the anchors you confirmed for quietness (level 5 is currently a boiling noise below 50 dB). That is a revision of the criterion, not a re-score, and re-scoring only answers the same question against better evidence. Do you want the criterion revised first (after which the cells can be re-scored against the new anchors), or should I re-score quietness against the anchors as they stand?"
-  },
-  {
-    "scenarioId": "r7",
-    "calls": [
+     ]}}
+  ],
+  "reply": "I re-scored quietness for Tamsin only, as you asked. The fresh search over the whole corpus returned Tamsin's technical datasheet, which states 'Rated boiling noise: 48 dB at full capacity'. That is below 50 dB, so the cell is a 5. The quick start leaflet is silent on noise. The Copperleaf and Brindle spans in the results are about other kettles and were not used.\n\nEvidence grade is high (stated directly by the maker's own datasheet). dependsOn is empty. The stored cell has no slot for confidence or dependsOn, so I report them here and did not put them in the write. This cell had never been written, so there was no earlier claim to supersede and the write carries no supersedes.\n\nRe-scored: quietness — 1 of 3 alternatives: tamsin\nPrior: withheld — the earlier scores were not read and were not in this conversation\nEvidence: fresh retrieval over the corpus as it now stands\nWritten: 1 scored, 0 blank\nReplaced: none (tamsin/quietness had never been written)\nNot written: none\nNext: review. Any further re-score of this cell in this conversation would be 'shown'."
+ },
+ {
+  "scenarioId": "r3",
+  "calls": [
+   {"tool": "analysis_get", "arguments": {"analysis_id": "kettles", "view": "criteria"}},
+   {"tool": "analysis_get", "arguments": {"analysis_id": "kettles", "view": "outstanding"}},
+   {"tool": "corpus_search", "arguments": {"analysis_id": "kettles", "query": "Brindle boiling noise dB"}},
+   {"tool": "corpus_search", "arguments": {"analysis_id": "kettles", "query": "Copperleaf boiling noise dB"}},
+   {"tool": "corpus_search", "arguments": {"analysis_id": "kettles", "query": "Tamsin boiling noise dB"}},
+   {"tool": "measures_write", "arguments": {
+     "analysis_id": "kettles",
+     "contributor_id": "scorer",
+     "author": {"id": "scorer", "displayName": "Scorer", "kind": "agent"},
+     "expected_criteria_version": "1",
+     "procedure": {"round": 2, "session": "fresh", "prior": "withheld"},
+     "cells": [
       {
-        "tool": "measures_write",
-        "arguments": {
-          "analysis_id": "kettles",
-          "contributor_id": "scorer",
-          "author": {"id": "scorer", "displayName": "Scorer", "kind": "agent"},
-          "expected_criteria_version": "1",
-          "procedure": {"round": 3, "session": "fresh", "prior": "withheld"},
-          "cells": [
-            {
-              "alternativeId": "brindle",
-              "criterionId": "spare-parts",
-              "supersedes": "brindle-spare-parts-score-2",
-              "justification": "Two maker documents, the care guide and the recall notice, both state ten-year stocking; the recall notice's lid replacement does not bear on how long parts are stocked. This meets the level-5 condition.",
-              "evidence": [
-                {
-                  "id": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
-                  "target": "doc:doc-0ece686f0bf071048bd72a0190356f72",
-                  "sourceType": "primary",
-                  "stance": "supports",
-                  "selectors": [{"type": "TextQuoteSelector", "exact": "Spare parts are stocked for ten years after purchase."}]
-                },
-                {
-                  "id": "doc-7bb313bf7c84a6ea27a541e8bb3937f5:0-150",
-                  "target": "doc:doc-7bb313bf7c84a6ea27a541e8bb3937f5",
-                  "sourceType": "primary",
-                  "stance": "supports",
-                  "selectors": [{"type": "TextQuoteSelector", "exact": "Spare parts for all Brindle kettles remain stocked for ten years after purchase."}]
-                }
-              ],
-              "value": 5
-            }
-          ]
+       "alternativeId": "brindle",
+       "criterionId": "quietness",
+       "supersedes": "brindle-quietness-score",
+       "justification": "The Brindle care guide states a measured boiling noise of 55 dB, between 50 and 65 dB: the level-3 condition.",
+       "evidence": [
+        {
+         "id": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+         "target": "doc-0ece686f0bf071048bd72a0190356f72",
+         "sourceType": "primary",
+         "stance": "supports",
+         "selectors": [{"type": "TextQuoteSelector", "exact": "The Brindle boils at a measured 55 dB"}]
         }
+       ],
+       "value": 3
       }
-    ],
-    "reply": "I re-scored spare parts for Brindle only, from a fresh search over the whole corpus, and the write went through on the second try. My first write named the default id (brindle-spare-parts-score) and was refused because that claim had already been replaced by brindle-spare-parts-score-2. I wrote again naming that live claim. Nothing was written by the refused call, and the refusal named a successor id, not a value.\n\nBrindle spare parts: 5. The care guide says \"Spare parts are stocked for ten years after purchase.\" and the recall notice says \"Spare parts for all Brindle kettles remain stocked for ten years after purchase.\" The notice's free lid replacement concerns repairs, not how long parts are stocked. Evidence quality: high (two maker documents state it directly). No cross-criterion dependence.\n\nRe-scored: spare-parts — 1 of 3 alternatives: brindle\nPrior: withheld — the earlier scores were not read and were not in this conversation\nEvidence: fresh retrieval over the corpus as it now stands\nWritten: 1 scored, 0 blank (none)\nReplaced: brindle spare-parts (the live claim, brindle-spare-parts-score-2, superseded)\nNot written: none (the first attempt was refused and nothing was written by it)\nNext: review, or compare with the earlier scores. Any further re-score of this cell in this conversation would then be recorded as shown."
-  },
-  {
-    "scenarioId": "r8",
-    "calls": [],
-    "reply": "I haven't written anything yet because I don't have this sweep's round number. Nothing in this conversation or from the harness gives it. I can't count it myself: the earlier rounds are only visible by reading the earlier claims, which would break the withheld re-score. A number I guessed would file this pass as a draw of a sweep it wasn't part of, and leaving the round out would record no round and no prior.\n\nWhat round number should this re-score of spare parts (all three kettles) carry? Once you give it, I'll run the pass with the prior withheld and record it that way."
-  }
+     ]}},
+   {"tool": "measures_write", "arguments": {
+     "analysis_id": "kettles",
+     "contributor_id": "scorer",
+     "author": {"id": "scorer", "displayName": "Scorer", "kind": "agent"},
+     "expected_criteria_version": "1",
+     "procedure": {"round": 2, "session": "fresh", "prior": "withheld"},
+     "cells": [
+      {
+       "alternativeId": "copperleaf",
+       "criterionId": "quietness",
+       "supersedes": "copperleaf-quietness-score",
+       "evidence": [
+        {
+         "id": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
+         "target": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
+         "sourceType": "primary",
+         "stance": "supports",
+         "selectors": [{"type": "TextQuoteSelector", "exact": "Boiling noise: 70 dB"}]
+        },
+        {
+         "id": "doc-c38812e2a155fafbf9cacc5846e72066:0-68",
+         "target": "doc-c38812e2a155fafbf9cacc5846e72066",
+         "sourceType": "primary",
+         "stance": "contradicts",
+         "selectors": [{"type": "TextQuoteSelector", "exact": "Quiet boil technology: boiling noise 58 dB"}]
+        }
+       ],
+       "missing": {
+        "code": "indeterminate",
+        "note": "Search 'Copperleaf boiling noise dB' returned the Copperleaf manual (70 dB, above 65: level 1) and the Copperleaf product page (58 dB, between 50 and 65: level 3). They meet different anchors, neither is dated later, and nothing in the retrieved spans reconciles them."
+       }
+      }
+     ]}},
+   {"tool": "measures_write", "arguments": {
+     "analysis_id": "kettles",
+     "contributor_id": "scorer",
+     "author": {"id": "scorer", "displayName": "Scorer", "kind": "agent"},
+     "expected_criteria_version": "1",
+     "procedure": {"round": 2, "session": "fresh", "prior": "withheld"},
+     "cells": [
+      {
+       "alternativeId": "tamsin",
+       "criterionId": "quietness",
+       "missing": {
+        "code": "not-evidenced",
+        "note": "Search 'Tamsin boiling noise dB' over the whole corpus returned 4 spans: the Copperleaf product page, the Copperleaf manual, the Tamsin quick start leaflet and the Brindle care guide. None states a boiling noise for Tamsin; the leaflet covers filling and descaling only."
+       }
+      }
+     ]}}
+  ],
+  "reply": "I re-scored quietness for all three kettles, one cell at a time, each from a fresh search over the whole corpus (not just the new Copperleaf page).\n\n- brindle: 3. The care guide states 'The Brindle boils at a measured 55 dB', between 50 and 65 dB.\n- copperleaf: indeterminate. The product page states 'Quiet boil technology: boiling noise 58 dB' (level 3), but the manual states 'Boiling noise: 70 dB' (level 1). They land on different anchors, neither is dated later, and nothing reconciles them. Both spans are attached. I took both to be the maker's own pages, since the product page is titled as Copperleaf's, but no span says who published it. If the product page turns out to be a retailer's, it is secondary and the manual's 70 dB should be weighed against it.\n- tamsin: not-evidenced. Nothing in the corpus states a Tamsin boiling noise (the quick start leaflet is silent). The Copperleaf and Brindle figures in the results belong to those kettles and were not used for Tamsin.\n\nBrindle's evidence grade is high; dependsOn is empty for all three cells. The stored cell has no slot for confidence or dependsOn, so I report them here and did not put them in the writes. The Tamsin cell had never been written, so it carries no supersedes.\n\nRe-scored: quietness — 3 of 3 alternatives: brindle, copperleaf, tamsin\nPrior: withheld — the earlier scores were not read and were not in this conversation\nEvidence: fresh retrieval over the corpus as it now stands\nWritten: 1 scored, 2 blank (indeterminate, not-evidenced)\nReplaced: brindle/quietness, copperleaf/quietness (each earlier claim of mine, now marked superseded)\nNot written: none\nNext: compare with the earlier scores, or review. Any further re-score of these cells in this conversation would then be 'shown'."
+ },
+ {
+  "scenarioId": "r4",
+  "calls": [
+   {"tool": "analysis_get", "arguments": {"analysis_id": "kettles", "view": "criteria"}},
+   {"tool": "analysis_get", "arguments": {"analysis_id": "kettles", "view": "outstanding"}},
+   {"tool": "corpus_search", "arguments": {"analysis_id": "kettles", "query": "Brindle spare parts stocked years"}},
+   {"tool": "measures_write", "arguments": {
+     "analysis_id": "kettles",
+     "contributor_id": "scorer",
+     "author": {"id": "scorer", "displayName": "Scorer", "kind": "agent"},
+     "expected_criteria_version": "1",
+     "procedure": {"round": 2, "session": "same", "prior": "shown"},
+     "cells": [
+      {
+       "alternativeId": "brindle",
+       "criterionId": "spare-parts",
+       "supersedes": "brindle-spare-parts-score",
+       "justification": "Both the care guide and the recall notice state parts are stocked for ten years after purchase, the level-5 condition; the recall notice does not reduce the commitment.",
+       "evidence": [
+        {
+         "id": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+         "target": "doc-0ece686f0bf071048bd72a0190356f72",
+         "sourceType": "primary",
+         "stance": "supports",
+         "selectors": [{"type": "TextQuoteSelector", "exact": "Spare parts are stocked for ten years after purchase"}]
+        },
+        {
+         "id": "doc-7bb313bf7c84a6ea27a541e8bb3937f5:0-150",
+         "target": "doc-7bb313bf7c84a6ea27a541e8bb3937f5",
+         "sourceType": "primary",
+         "stance": "supports",
+         "selectors": [{"type": "TextQuoteSelector", "exact": "Spare parts for all Brindle kettles remain stocked for ten years after purchase"}]
+        }
+       ],
+       "value": 5
+      }
+     ]}}
+  ],
+  "reply": "Because you asked me to check against the earlier score, and you have told me it was a 5 from the care guide, the prior is shown in this pass. I recorded it as session 'same', prior 'shown'; that is the weaker kind of re-score, and its draws are shared-context. A withheld re-score would need a fresh conversation. I treated your account of the old score as the prior only, never as evidence.\n\nThe fresh search over the whole corpus returned two Brindle spans, and I judged the cell on them. The care guide states 'Spare parts are stocked for ten years after purchase'. The new recall notice states 'Spare parts for all Brindle kettles remain stocked for ten years after purchase'. The notice is about replacing lids and does not reduce the parts commitment. Both meet the level-5 condition, so the cell is a 5. It is the same level as before because both spans meet that condition, not because I carried the old level forward.\n\nEvidence grade is high (stated directly by the maker's own documents). dependsOn is empty. The stored cell has no slot for confidence or dependsOn, so I report them here and did not put them in the write.\n\nRe-scored: spare-parts — 1 of 3 alternatives: brindle\nPrior: shown — you asked me to check the earlier score against the new evidence, and the earlier score is in this conversation\nEvidence: fresh retrieval over the corpus as it now stands\nWritten: 1 scored, 0 blank\nReplaced: brindle/spare-parts (the earlier claim of mine, now marked superseded)\nNot written: none\nNext: review. Any further re-score of this cell in this conversation will also be 'shown'."
+ },
+ {
+  "scenarioId": "r5",
+  "calls": [],
+  "reply": "Before I score anything: the earlier spare-parts scores are already in this conversation (Brindle 5, Copperleaf 3, Tamsin not-evidenced, written as round 1). That means a re-score here cannot be withheld. The prior would be shown whatever I do, because being told to ignore a score does not unshow it. A withheld re-score needs a fresh conversation.\n\nYou have two options. Start a fresh conversation and ask for the re-score there, which keeps the prior withheld. Or tell me to go ahead here, and I will re-score spare parts for all three kettles as round 2 with session 'same' and prior 'shown'. The reply will say so, and those draws are shared-context.\n\nWhich do you want? I have written nothing."
+ },
+ {
+  "scenarioId": "r6",
+  "calls": [],
+  "reply": "That is two requests, and the second one is not a re-score. Counting anything under 55 dB as top marks changes quietness's anchors (level 5 is now 'below 50 dB'). Re-scoring answers the same question against better evidence; changing the anchors is a revision of the criterion, and I do not do that here. I have written nothing.\n\nDo you want to revise the quietness criterion first, and then re-score under the new definition? Or should I re-score quietness against the anchors you confirmed, as they stand?"
+ },
+ {
+  "scenarioId": "r7",
+  "calls": [
+   {"tool": "measures_write", "arguments": {
+     "analysis_id": "kettles",
+     "contributor_id": "scorer",
+     "author": {"id": "scorer", "displayName": "Scorer", "kind": "agent"},
+     "expected_criteria_version": "1",
+     "procedure": {"round": 3, "session": "fresh", "prior": "withheld"},
+     "cells": [
+      {
+       "alternativeId": "brindle",
+       "criterionId": "spare-parts",
+       "supersedes": "brindle-spare-parts-score-2",
+       "justification": "Both the care guide and the recall notice state parts are stocked for ten years after purchase, the level-5 condition; the recall notice does not reduce the commitment.",
+       "evidence": [
+        {
+         "id": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+         "target": "doc-0ece686f0bf071048bd72a0190356f72",
+         "sourceType": "primary",
+         "stance": "supports",
+         "selectors": [{"type": "TextQuoteSelector", "exact": "Spare parts are stocked for ten years after purchase"}]
+        },
+        {
+         "id": "doc-7bb313bf7c84a6ea27a541e8bb3937f5:0-150",
+         "target": "doc-7bb313bf7c84a6ea27a541e8bb3937f5",
+         "sourceType": "primary",
+         "stance": "supports",
+         "selectors": [{"type": "TextQuoteSelector", "exact": "Spare parts for all Brindle kettles remain stocked for ten years after purchase"}]
+        }
+       ],
+       "value": 5
+      }
+     ]}}
+  ],
+  "reply": "My first write for Brindle was refused with nothing written: the claim I named, brindle-spare-parts-score, had already been replaced by brindle-spare-parts-score-2, which is the live one. I wrote again, superseding that one.\n\nThe fresh search over the whole corpus returned two Brindle spans. The care guide states 'Spare parts are stocked for ten years after purchase'. The recall notice states 'Spare parts for all Brindle kettles remain stocked for ten years after purchase'. The notice is about replacing lids and does not reduce the parts commitment. Both meet the level-5 condition, so the cell is a 5.\n\nEvidence grade is high (stated directly by the maker's own documents). dependsOn is empty. The stored cell has no slot for confidence or dependsOn, so I report them here and did not put them in the write. The refusal named only the successor id and no value, so the prior stays withheld.\n\nRe-scored: spare-parts — 1 of 3 alternatives: brindle\nPrior: withheld — the earlier scores were not read and were not in this conversation\nEvidence: fresh retrieval over the corpus as it now stands\nWritten: 1 scored, 0 blank\nReplaced: brindle/spare-parts (the live claim brindle-spare-parts-score-2, now marked superseded)\nNot written: none\nNext: compare with the earlier scores, or review. Any further re-score of this cell in this conversation would then be 'shown'."
+ },
+ {
+  "scenarioId": "r8",
+  "calls": [],
+  "reply": "I can re-score spare parts for all three kettles, but I need this sweep's round number first, and nothing has told me what it is. It is the next number after the sweeps that already scored this analysis. I cannot see the earlier rounds without reading the earlier claims, which would break the withheld prior, and a number I guessed could file this re-score as a draw of a sweep it was not part of. What round number should this re-score carry? I have written nothing."
+ }
 ]

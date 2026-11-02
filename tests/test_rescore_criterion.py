@@ -55,12 +55,21 @@ def _cell(scenario, alt, outcome, supersedes):
     return {**cell, "missing": {"code": outcome, "note": "retrieval over the corpus returned nothing on it"}}
 
 
+#: What a faithful reply says on each ask scenario: what it is asking about, and nothing else.
+ASKS = {
+    "r5": "Your earlier scores are in this conversation, so a re-score here would be shown; "
+          "a withheld one needs a fresh conversation. Go ahead here?",
+    "r6": "Counting anything under 55 dB as top marks changes the criterion's anchors: that is a "
+          "revision, not a re-score. Revise it?",
+    "r8": "Which round is this sweep? Nothing gives me the number, and counting it would file the "
+          "re-score under the wrong pass.",
+}
+
+
 def _faithful(scenario):
     want = scenario["expected"]
     if want["action"] == "ask":
-        return {"scenarioId": scenario["id"], "calls": [],
-                "reply": "Your earlier scores are in this conversation, so a re-score here would be shown; "
-                         "a withheld one needs a fresh conversation. Go ahead here?"}
+        return {"scenarioId": scenario["id"], "calls": [], "reply": ASKS[scenario["id"]]}
     procedure = {"round": scenario["harness"]["round"], "session": want["session"] or "fresh",
                  "prior": want["prior"]}
     calls = [{"tool": "analysis_get", "arguments": {"analysis_id": ANALYSIS_ID, "view": "criteria"}},
@@ -242,7 +251,7 @@ def test_writing_a_revision_as_a_re_score_is_caught() -> None:
 def test_asking_on_a_write_scenario_is_graded_not_crashed() -> None:
     row = grader.grade_one(_scenario("r1"), {"scenarioId": "r1", "calls": [], "reply": "Shall I go ahead?"})
     assert row["action_right"] is False
-    assert {k for k, v in row.items() if v is not None} == {"action_right", "no_mark_missing"}
+    assert {k for k, v in row.items() if v is not None} == {"action_right"}
 
 
 def test_nothing_relevant_written_is_not_a_pass() -> None:
@@ -266,3 +275,46 @@ def test_the_grader_reads_the_block_and_the_example_the_prompt_teaches() -> None
     assert "Prior" in [line.strip().split(":")[0] for line in block.splitlines()]
     example = re.search(r"`(Prior: [^`]+)`", body.replace("\n", " ")).group(1)
     assert grader._line(example, "Prior").startswith("withheld")
+
+
+def test_an_empty_ask_is_not_full_marks() -> None:
+    """r6 and r8 are judged on what the reply asks, not only on writing nothing."""
+    def silent(out, scenario):
+        if scenario["id"] in ("r6", "r8"):
+            out["reply"] = ""
+        return out
+    assert _run(silent)["asks_right"] == [1, 3]
+
+
+def test_an_ask_about_the_wrong_thing_is_caught() -> None:
+    row = grader.grade_one(_scenario("r8"), {"scenarioId": "r8", "calls": [], "reply": ASKS["r6"]})
+    assert row["action_right"] is True and row["asks_right"] is False
+
+
+def test_three_cells_in_one_write_is_caught() -> None:
+    def batched(out, scenario):
+        writes = _writes(out)
+        if scenario["id"] == "r1":
+            writes[0]["arguments"]["cells"] = [c for w in writes for c in w["arguments"]["cells"]]
+            out["calls"] = [c for c in out["calls"] if c not in writes[1:]]
+        return out
+    assert _run(batched)["scope_right"] == [4, 5]
+
+
+def test_one_search_naming_every_alternative_is_not_a_search_each() -> None:
+    def one_query(out, scenario):
+        if scenario["id"] == "r1":
+            searches = [c for c in out["calls"] if c["tool"] == "corpus_search"]
+            for c in searches:
+                c["arguments"]["query"] = "brindle copperleaf tamsin spare parts"
+        return out
+    assert _run(one_query)["fresh_retrieval"] == [3, 4]
+
+
+def test_a_write_the_verb_cannot_take_is_a_refusal_not_a_crash() -> None:
+    def no_author(out, scenario):
+        for call in _writes(out):
+            call["arguments"].pop("author")
+            call["arguments"]["bogus"] = 1
+        return out
+    assert _run(no_author)["accepted"] == [0, 5]

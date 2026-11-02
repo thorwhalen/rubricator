@@ -30,9 +30,7 @@ from rescore_criterion_scenarios import ANALYSIS_ID, build  # noqa: E402
 #: ``analysis_get`` is one only in its ``full`` view, which links the document itself.
 PRIOR_READS = {"report_weaknesses", "aggregate_assertions", "stability_report", "report_completeness",
                "resources/read"}
-#: What a reply that asks, instead of re-scoring in a conversation that holds the earlier scores, says.
-NAMES_THE_SHOWN_PRIOR = re.compile(r"in (this|the) conversation|fresh conversation|new conversation", re.I)
-METRICS = ("prior_true", "action_right", "scope_right", "supersedes_right", "round_right", "accepted",
+METRICS = ("prior_true", "action_right", "asks_right", "scope_right", "supersedes_right", "round_right", "accepted",
            "right_outcome", "no_mark_missing", "no_prior_read", "fresh_retrieval", "prior_line")
 
 
@@ -57,18 +55,22 @@ def _accepted(scenario_id: str, writes: list[Mapping[str, Any]]) -> bool:
     try:
         for args in writes:
             verbs["measures_write"](**{"analysis_id": ANALYSIS_ID, **args})
-    except (ValueError, LookupError):  # the verbs' refusals; anything else is a grader bug and raises
+    # The verbs' refusals, and a call whose keywords the verb does not take (the subject's error);
+    # anything else is a grader bug and raises.
+    except (ValueError, LookupError, TypeError):
         return False
     return True
 
 
 def _searched_each(calls, alternatives) -> bool:
-    """One search per alternative in scope, over the whole corpus (no document or phrase filter)."""
+    """A search of its own per alternative in scope, over the whole corpus (no document or phrase filter)."""
     open_queries = [
         str(args.get("query", "")).lower() for args in (c.get("arguments") or {} for c in calls)
         if not args.get("document_ids") and not args.get("must_include")
     ]
-    return all(any(alt in q for q in open_queries) for alt in alternatives)
+    own = {alt: [q for q in open_queries if alt in q and not any(o in q for o in alternatives if o != alt)]
+           for alt in alternatives}
+    return all(own.values())
 
 
 def _all_or_none(checks: list[bool]) -> bool | None:
@@ -77,8 +79,9 @@ def _all_or_none(checks: list[bool]) -> bool | None:
 
 def _ask_row(want: Mapping[str, Any], writes, reply: str, row: dict) -> dict:
     row["action_right"] = not writes
+    row["asks_right"] = bool(re.search(want["asks"], reply, re.I))
     if want.get("prior") == "shown":
-        row["prior_true"] = bool(NAMES_THE_SHOWN_PRIOR.search(reply))
+        row["prior_true"] = row["asks_right"]
     return row
 
 
@@ -89,7 +92,8 @@ def grade_one(scenario: Mapping[str, Any], output: Mapping[str, Any]) -> dict[st
     at = [i for i, c in enumerate(calls) if c.get("tool") == "measures_write"]
     writes = [calls[i].get("arguments") or {} for i in at]
     row: dict[str, bool | None] = dict.fromkeys(METRICS)
-    row["no_mark_missing"] = not any(c.get("tool") == "measures_mark_missing" for c in calls)
+    if calls:
+        row["no_mark_missing"] = not any(c.get("tool") == "measures_mark_missing" for c in calls)
     if want["action"] == "ask" and not (want.get("either") and writes):
         return _ask_row(want, writes, reply, row)
     row["action_right"] = bool(writes)
@@ -103,7 +107,8 @@ def grade_one(scenario: Mapping[str, Any], output: Mapping[str, Any]) -> dict[st
     row["round_right"] = _all_or_none([p.get("round") == want["round"] for p in procs])
     expected = {alt: tuple(v) for alt, v in want["cells"].items()}
     written = {cell.get("alternativeId"): cell for cell, _ in cells if cell.get("criterionId") == scenario["criterion"]}
-    row["scope_right"] = set(written) == set(expected) and len(cells) == len(written)
+    row["scope_right"] = (set(written) == set(expected) and len(cells) == len(written)
+                          and all(len(w.get("cells") or []) == 1 for w in writes))
     both = [alt for alt in expected if alt in written]
     row["supersedes_right"] = _all_or_none([written[a].get("supersedes") == expected[a][1] for a in both])
     row["right_outcome"] = _all_or_none([_outcome(written[a]) == expected[a][0] for a in both])

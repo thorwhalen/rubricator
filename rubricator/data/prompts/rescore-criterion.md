@@ -11,7 +11,7 @@ missing-codes:
   - not-assessed
   - deferred
 changelog:
-  - 1 (2026-11-02) — First version (#129). Re-scores one existing criterion, for the alternatives the user names or all of them, after the evidence changed. The earlier scores are withheld from the re-scoring generation by default, so the new level is not anchored on the old one: the prompt names the reads that would show them, reads instead only what carries no earlier value (`analysis_get` criteria and outstanding views), and says that an earlier score already in the conversation makes the pass shown whatever the model now does. The earlier claim is replaced through `measures_write` with `supersedes`, never written beside it, and its id is found without reading it, from the tools' default id and their refusals, which name an owner or a successor and never a value. Evidence is a fresh retrieval over the corpus as it now stands, not the new documents alone. Every per-cell rule is `score-cell`'s. Revised once before landing, after an adversarial review: the round number is asked for rather than counted (a counted number the tools accept on a never-drawn cell files the re-score under the wrong sweep), any `supersedes` refusal other than "already replaced by" now stops that cell and goes to the user instead of writing beside the earlier claim, the value-free views are said to carry counts that must not be worked back from, and a cell whose retrieval could not run is `not-assessed`. Hypothesis: without it a model re-reads the earlier scores to "update" them (a shown prior, recorded as withheld), retrieves from the new document only, writes the new claim beside the old one, or routes a blank through `measures_mark_missing`, which cannot replace a claim (measured: with `score-cell` alone, neither model named the claim a re-score replaces, and both scored a request that changed the criterion's anchors); with it, each re-scored cell is one accepted write that names the claim it replaces and states the prior truthfully.
+  - 1 (2026-11-02) — First version (#129). Re-scores one existing criterion, for the alternatives the user names or all of them, after the evidence changed. The earlier scores are withheld from the re-scoring generation by default, so the new level is not anchored on the old one: the prompt names the reads that would show them, reads instead only what carries no earlier value (`analysis_get` criteria and outstanding views), and says that an earlier score already in the conversation makes the pass shown whatever the model now does. The earlier claim is replaced through `measures_write` with `supersedes`, never written beside it, and its id is found without reading it, from the tools' default id and their refusals, which name an owner or a successor and never a value. Evidence is a fresh retrieval over the corpus as it now stands, not the new documents alone. Every per-cell rule is `score-cell`'s. Revised twice before landing, after two adversarial reviews: the round number is asked for rather than counted (a counted number the tools accept on a never-drawn cell files the re-score under the wrong sweep), any `supersedes` refusal other than "already replaced by" now stops that cell and goes to the user instead of writing beside the earlier claim, the value-free views are said to carry counts that must not be worked back from, and a cell whose retrieval could not run is written nothing (a second review found that writing it `not-assessed` with `supersedes` discarded a live score for a tool failure); the contributor id is asked for when not given, like the round. Hypothesis: without it a model re-reads the earlier scores to "update" them (a shown prior, recorded as withheld), retrieves from the new document only, writes the new claim beside the old one, or routes a blank through `measures_mark_missing`, which cannot replace a claim (measured: with `score-cell` alone, neither model named the claim a re-score replaces, and both wrote on a request that changed the criterion's anchors); with it, each re-scored cell is one accepted write that names the claim it replaces and states the prior truthfully. Measured on eight constructed scenarios (docs/evaluation/rescore-criterion/): v1 full marks in Sonnet and Haiku on every metric.
 ---
 
 # Re-score a criterion
@@ -100,15 +100,19 @@ The two blanks are the same two findings they always are:
   new source contradicting an old one often produces;
 - `not-applicable` when the criterion does not apply to the alternative at all.
 
-`not-assessed` and `deferred` say nobody looked. A re-score is someone looking, so neither is its
-outcome, with one exception: a cell whose retrieval could not be run at all (the search failed, or
-the corpus could not be read) was not looked at, and is `not-assessed`, with a note saying why, never
-`not-evidenced`. Tell the user which cells those were.
+`not-assessed` and `deferred` say nobody looked, and a re-score is someone looking, so neither is
+its outcome. A cell whose retrieval could not be run at all (the search failed, or the corpus could
+not be read) was not looked at: **write nothing for it** and list it under `Not written` with the
+reason. Its earlier claim stands. Never write `not-evidenced` for it, which claims a search came back
+empty, and never write `not-assessed` over its earlier claim, which would discard a finding because a
+tool failed.
 
 ## Writing it
 
 One `measures_write` call per cell, as the `contributor_id` and author the harness or the user gives
-you for this scorer, which must be the ones that wrote the earlier claim, with `expected_criteria_version` set to the `criteriaVersion` you read. The cell is the one
+you for this scorer, which must be the ones that wrote the earlier claim; if nobody gives you one,
+ask, as for the round below, because a claim written under an invented id is never caught. Set
+`expected_criteria_version` to the `criteriaVersion` you read. The cell is the one
 `score-cell` emits, plus `supersedes`. `confidence` and `dependsOn` stay beside it, as `score-cell`
 says. A blank is a cell with `missing`, written the same way: `measures_mark_missing` cannot replace a
 claim, so it is never used here.
@@ -123,6 +127,9 @@ marked as replaced. You find its id without reading it:
   `support-window`: `vendor-b-support-window-score`).
 - If the write is refused because that claim "was already replaced by" another id, name that id
   instead and write again: it is the live one.
+- If the harness or the user tells you this scorer has more than one live claim in a cell (repeat
+  draws from earlier rounds), ask which the re-score replaces: `supersedes` replaces one claim, and
+  the others would stay live beside the new one.
 - If it is refused for any other reason about `supersedes` — the claim is someone else's, or there is
   no assertion of yours with that id — **write nothing for that cell, and ask the user.** "Someone
   else's" may be this same scorer under another contributor id; "no assertion with that id" means
