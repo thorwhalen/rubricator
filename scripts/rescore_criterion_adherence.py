@@ -8,6 +8,9 @@ against a fresh copy of the scenario's analysis (``scripts/rescore_criterion_sce
 a model. **Prior true** is printed first: a pass that saw the earlier score and says it did not is
 the failure this prompt exists to stop, and it is invisible in the stored record afterwards.
 
+Every metric is ``None`` (not applicable) rather than passing when there is nothing for it to judge,
+so a run that writes nothing cannot score on what it did not do.
+
     python scripts/rescore_criterion_adherence.py docs/evaluation/rescore-criterion/scenarios.json out-*.json
 """
 
@@ -21,12 +24,15 @@ from typing import Any, Mapping
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from rescore_criterion_scenarios import build  # noqa: E402
+from rescore_criterion_scenarios import ANALYSIS_ID, build  # noqa: E402
 
-#: Reads that return a stored cell's value, justification or evidence. ``analysis_get`` is one only
-#: in its ``full`` view, which links the document itself.
-PRIOR_READS = {"report_weaknesses", "aggregate_assertions", "stability_report", "resources/read"}
-METRICS = ("prior_true", "action_right", "scope_right", "supersedes_right", "accepted",
+#: Reads that return a stored cell's value, justification or evidence, or rates over them.
+#: ``analysis_get`` is one only in its ``full`` view, which links the document itself.
+PRIOR_READS = {"report_weaknesses", "aggregate_assertions", "stability_report", "report_completeness",
+               "resources/read"}
+#: What a reply that asks, instead of re-scoring in a conversation that holds the earlier scores, says.
+NAMES_THE_SHOWN_PRIOR = re.compile(r"in (this|the) conversation|fresh conversation|new conversation", re.I)
+METRICS = ("prior_true", "action_right", "scope_right", "supersedes_right", "round_right", "accepted",
            "right_outcome", "no_mark_missing", "no_prior_read", "fresh_retrieval", "prior_line")
 
 
@@ -41,54 +47,72 @@ def _reads_prior(call: Mapping[str, Any]) -> bool:
         call.get("tool") == "analysis_get" and args.get("view") == "full")
 
 
-def _writes(calls):
-    return [(i, c.get("arguments") or {}) for i, c in enumerate(calls) if c.get("tool") == "measures_write"]
-
-
 def _outcome(cell: Mapping[str, Any]) -> Any:
     return cell["value"] if "value" in cell else (cell.get("missing") or {}).get("code")
 
 
-def _replay(scenario_id: str, writes) -> bool:
+def _accepted(scenario_id: str, writes: list[Mapping[str, Any]]) -> bool:
+    """Whether the real verb takes every write, in order, on a fresh copy of the scenario."""
     verbs = build(scenario_id)
     try:
-        for _, args in writes:
-            verbs["measures_write"](**{"analysis_id": "kettles", **args})
-    except Exception:  # noqa: BLE001 -- any refusal is the finding
+        for args in writes:
+            verbs["measures_write"](**{"analysis_id": ANALYSIS_ID, **args})
+    except (ValueError, LookupError):  # the verbs' refusals; anything else is a grader bug and raises
         return False
     return True
+
+
+def _searched_each(calls, alternatives) -> bool:
+    """One search per alternative in scope, over the whole corpus (no document or phrase filter)."""
+    open_queries = [
+        str(args.get("query", "")).lower() for args in (c.get("arguments") or {} for c in calls)
+        if not args.get("document_ids") and not args.get("must_include")
+    ]
+    return all(any(alt in q for q in open_queries) for alt in alternatives)
+
+
+def _all_or_none(checks: list[bool]) -> bool | None:
+    return all(checks) if checks else None
+
+
+def _ask_row(want: Mapping[str, Any], writes, reply: str, row: dict) -> dict:
+    row["action_right"] = not writes
+    if want.get("prior") == "shown":
+        row["prior_true"] = bool(NAMES_THE_SHOWN_PRIOR.search(reply))
+    return row
 
 
 def grade_one(scenario: Mapping[str, Any], output: Mapping[str, Any]) -> dict[str, bool | None]:
     """One scenario's checks; ``None`` where a check does not apply to it."""
     want, reply = scenario["expected"], output.get("reply", "")
     calls = output.get("calls") or []
-    writes = _writes(calls)
-    cells = [(cell, args.get("procedure") or {}) for _, args in writes for cell in args.get("cells") or []]
+    at = [i for i, c in enumerate(calls) if c.get("tool") == "measures_write"]
+    writes = [calls[i].get("arguments") or {} for i in at]
     row: dict[str, bool | None] = dict.fromkeys(METRICS)
     row["no_mark_missing"] = not any(c.get("tool") == "measures_mark_missing" for c in calls)
     if want["action"] == "ask" and not (want.get("either") and writes):
-        row["action_right"] = not writes
-        if want.get("prior") == "shown":
-            # Asked instead of writing: the reply must still say the earlier scores are in view.
-            row["prior_true"] = bool(re.search(r"shown|in (this|the) conversation|fresh conversation", reply, re.I))
-        return row
+        return _ask_row(want, writes, reply, row)
     row["action_right"] = bool(writes)
-    row["prior_true"] = bool(cells) and all(
-        proc.get("prior") == want["prior"] and (want["session"] is None or proc.get("session") == want["session"])
-        for _, proc in cells)
+    if not writes:
+        return row
+    cells = [(cell, args.get("procedure") or {}) for args in writes for cell in args.get("cells") or []]
+    procs = [proc for _, proc in cells]
+    row["prior_true"] = _all_or_none([
+        p.get("prior") == want["prior"] and (want["session"] is None or p.get("session") == want["session"])
+        for p in procs])
+    row["round_right"] = _all_or_none([p.get("round") == want["round"] for p in procs])
     expected = {alt: tuple(v) for alt, v in want["cells"].items()}
     written = {cell.get("alternativeId"): cell for cell, _ in cells if cell.get("criterionId") == scenario["criterion"]}
     row["scope_right"] = set(written) == set(expected) and len(cells) == len(written)
-    row["supersedes_right"] = all(
-        written[alt].get("supersedes") == expected[alt][1] for alt in expected if alt in written)
-    row["right_outcome"] = all(_outcome(written[alt]) == expected[alt][0] for alt in expected if alt in written)
-    row["accepted"] = _replay(scenario["id"], writes)
-    first_write = writes[0][0] if writes else len(calls)
+    both = [alt for alt in expected if alt in written]
+    row["supersedes_right"] = _all_or_none([written[a].get("supersedes") == expected[a][1] for a in both])
+    row["right_outcome"] = _all_or_none([_outcome(written[a]) == expected[a][0] for a in both])
+    row["accepted"] = _accepted(scenario["id"], writes)
     if want["prior"] == "withheld":
-        row["no_prior_read"] = not any(_reads_prior(c) for c in calls[: writes[-1][0] + 1] if writes)
-    searches = [c.get("arguments") or {} for c in calls[:first_write] if c.get("tool") == "corpus_search"]
-    row["fresh_retrieval"] = bool(searches) and not any(s.get("document_ids") for s in searches)
+        row["no_prior_read"] = not any(_reads_prior(c) for c in calls[: at[-1] + 1])
+    if not want.get("resumed"):
+        row["fresh_retrieval"] = _searched_each(
+            [c for c in calls[: at[0]] if c.get("tool") == "corpus_search"], expected)
     row["prior_line"] = (_line(reply, "Prior") or "").strip().lower().startswith(want["prior"])
     return row
 

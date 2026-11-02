@@ -29,6 +29,7 @@ def _script(name: str):
 
 builder = _script("rescore_criterion_scenarios")
 grader = _script("rescore_criterion_adherence")
+ANALYSIS_ID = builder.ANALYSIS_ID
 
 
 def _span(hit, stance="supports"):
@@ -60,10 +61,11 @@ def _faithful(scenario):
         return {"scenarioId": scenario["id"], "calls": [],
                 "reply": "Your earlier scores are in this conversation, so a re-score here would be shown; "
                          "a withheld one needs a fresh conversation. Go ahead here?"}
-    procedure = {"round": 2, "session": want["session"] or "fresh", "prior": want["prior"]}
-    calls = [{"tool": "analysis_get", "arguments": {"analysis_id": "kettles", "view": "criteria"}},
-             {"tool": "analysis_get", "arguments": {"analysis_id": "kettles", "view": "outstanding"}}]
-    calls += [{"tool": "corpus_search", "arguments": {"analysis_id": "kettles", "query": alt}}
+    procedure = {"round": scenario["harness"]["round"], "session": want["session"] or "fresh",
+                 "prior": want["prior"]}
+    calls = [{"tool": "analysis_get", "arguments": {"analysis_id": ANALYSIS_ID, "view": "criteria"}},
+             {"tool": "analysis_get", "arguments": {"analysis_id": ANALYSIS_ID, "view": "outstanding"}}]
+    calls += [{"tool": "corpus_search", "arguments": {"analysis_id": ANALYSIS_ID, "query": alt}}
               for alt in want["cells"]]
     calls += [{"tool": "measures_write", "arguments": {
         "contributor_id": "scorer", "author": scenario["contributor"]["author"],
@@ -77,6 +79,10 @@ def _faithful(scenario):
 
 def _scenarios():
     return json.loads(SCENARIOS.read_text())
+
+
+def _scenario(sid):
+    return next(s for s in _scenarios() if s["id"] == sid)
 
 
 def _run(fault=lambda out, scenario: out):
@@ -96,7 +102,14 @@ def test_the_stored_scenarios_are_what_the_tools_return_today(tmp_path) -> None:
 def test_a_faithful_run_grades_full_marks() -> None:
     row = _run()
     assert all(hits == n for hits, n in row.values()), row
-    assert row["accepted"] == [4, 4] and row["action_right"] == [6, 6]
+    assert row["accepted"] == [5, 5] and row["action_right"] == [8, 8] and row["round_right"] == [5, 5]
+
+
+def test_the_replaced_claim_scenario_holds_the_tools_refusal() -> None:
+    """r7's packet carries what the verb really says, which names the successor and no value."""
+    refusal = next(v for k, v in _scenario("r7")["toolResults"].items() if k.startswith("measures_write"))
+    assert 'already replaced by "brindle-spare-parts-score-2"' in refusal
+    assert not re.search(r"\b[1-5]\b", refusal.replace("score-2", ""))
 
 
 def test_claiming_withheld_after_being_shown_the_prior_is_caught() -> None:
@@ -104,7 +117,7 @@ def test_claiming_withheld_after_being_shown_the_prior_is_caught() -> None:
         for call in _writes(out):
             call["arguments"]["procedure"]["prior"] = "withheld"
         return out
-    assert _run(claims_withheld)["prior_true"] == [4, 5]
+    assert _run(claims_withheld)["prior_true"] == [5, 6]
 
 
 def test_a_re_score_written_beside_the_earlier_claim_is_caught() -> None:
@@ -115,8 +128,8 @@ def test_a_re_score_written_beside_the_earlier_claim_is_caught() -> None:
         return out
     row = _run(beside)
     # r2's cell was never written, so it has nothing to name and stays right.
-    assert row["supersedes_right"] == [1, 4]
-    assert row["accepted"] == [4, 4]
+    assert row["supersedes_right"] == [1, 5]
+    assert row["accepted"] == [5, 5]
 
 
 def test_a_wrong_supersedes_id_is_refused_by_the_verb() -> None:
@@ -126,23 +139,43 @@ def test_a_wrong_supersedes_id_is_refused_by_the_verb() -> None:
             if "supersedes" in cell:
                 cell["supersedes"] += "-2"
         return out
-    assert _run(wrong)["accepted"] == [1, 4]  # r2 names nothing, so it is untouched
+    assert _run(wrong)["accepted"] == [1, 5]  # r2 names nothing, so it is untouched
 
 
-def test_reusing_the_first_sweeps_round_is_refused_by_the_verb() -> None:
+def test_naming_the_default_id_after_it_was_replaced_is_refused() -> None:
+    def default_id(out, scenario):
+        if scenario["id"] == "r7":
+            _writes(out)[0]["arguments"]["cells"][0]["supersedes"] = "brindle-spare-parts-score"
+        return out
+    row = _run(default_id)
+    assert row["accepted"] == [4, 5] and row["supersedes_right"] == [4, 5]
+
+
+def test_a_counted_round_is_caught_even_where_the_verb_takes_it() -> None:
+    """A used round number is accepted on a cell with no draw in it, and files the pass wrongly."""
     def round_one(out, scenario):
         for call in _writes(out):
             call["arguments"]["procedure"]["round"] = 1
         return out
-    # r2's cell had no draw in round 1; r4's prior is shown, and the tools key a round by (number, prior).
-    assert _run(round_one)["accepted"] == [2, 4]
+    row = _run(round_one)
+    assert row["round_right"] == [0, 5]
+    # r2's cell had no draw in round 1, and r4's prior is shown (a round is keyed by number and prior).
+    assert row["accepted"] == [2, 5]
+
+
+def test_writing_with_no_round_given_is_caught() -> None:
+    def counts(out, scenario):
+        if scenario["id"] == "r8":
+            out["calls"] = copy.deepcopy(_faithful(_scenario("r1"))["calls"])
+        return out
+    assert _run(counts)["action_right"] == [7, 8]
 
 
 def test_a_blank_through_mark_missing_is_caught() -> None:
     def marks(out, scenario):
         out["calls"].append({"tool": "measures_mark_missing", "arguments": {}})
         return out
-    assert _run(marks)["no_mark_missing"] == [0, 6]
+    assert _run(marks)["no_mark_missing"] == [0, 8]
 
 
 def test_narrowing_to_the_alternative_the_new_document_names_is_caught() -> None:
@@ -151,14 +184,14 @@ def test_narrowing_to_the_alternative_the_new_document_names_is_caught() -> None
             out["calls"] = [c for c in out["calls"] if c["tool"] != "measures_write"
                             or c["arguments"]["cells"][0]["alternativeId"] == "tamsin"]
         return out
-    assert _run(narrows)["scope_right"] == [3, 4]
+    assert _run(narrows)["scope_right"] == [4, 5]
 
 
 def test_reading_the_earlier_scores_first_is_caught() -> None:
     def peeks(out, scenario):
-        out["calls"].insert(0, {"tool": "report_weaknesses", "arguments": {"analysis_id": "kettles"}})
+        out["calls"].insert(0, {"tool": "report_completeness", "arguments": {"analysis_id": ANALYSIS_ID}})
         return out
-    assert _run(peeks)["no_prior_read"] == [0, 3]
+    assert _run(peeks)["no_prior_read"] == [0, 4]
 
 
 def test_retrieving_from_the_new_documents_only_is_caught() -> None:
@@ -167,7 +200,16 @@ def test_retrieving_from_the_new_documents_only_is_caught() -> None:
             if call["tool"] == "corpus_search":
                 call["arguments"]["document_ids"] = ["doc-new"]
         return out
-    assert _run(narrow_search)["fresh_retrieval"] == [0, 4]
+    assert _run(narrow_search)["fresh_retrieval"] == [0, 4]  # r7 resumes after its search
+
+
+def test_skipping_an_alternatives_retrieval_is_caught() -> None:
+    def one_search(out, scenario):
+        if scenario["id"] == "r1":
+            out["calls"] = [c for c in out["calls"]
+                            if c["tool"] != "corpus_search" or c["arguments"]["query"] == "tamsin"]
+        return out
+    assert _run(one_search)["fresh_retrieval"] == [3, 4]
 
 
 def test_a_score_carried_forward_onto_a_conflict_is_caught() -> None:
@@ -180,20 +222,41 @@ def test_a_score_carried_forward_onto_a_conflict_is_caught() -> None:
                     cell.pop("missing")
                     cell |= {"justification": "kept", "evidence": [_span(hit)], "value": 1}
         return out
-    assert _run(carries)["right_outcome"] == [3, 4]
+    assert _run(carries)["right_outcome"] == [4, 5]
 
 
 def test_writing_a_revision_as_a_re_score_is_caught() -> None:
     def writes_anyway(out, scenario):
         if scenario["id"] == "r6":
-            out["calls"] = copy.deepcopy(_faithful(_scenarios()[0])["calls"])
+            out["calls"] = copy.deepcopy(_faithful(_scenario("r1"))["calls"])
         return out
-    assert _run(writes_anyway)["action_right"] == [5, 6]
+    assert _run(writes_anyway)["action_right"] == [7, 8]
 
 
-def test_the_grader_reads_the_block_the_prompt_teaches() -> None:
+def test_asking_on_a_write_scenario_is_graded_not_crashed() -> None:
+    row = grader.grade_one(_scenario("r1"), {"scenarioId": "r1", "calls": [], "reply": "Shall I go ahead?"})
+    assert row["action_right"] is False
+    assert {k for k, v in row.items() if v is not None} == {"action_right", "no_mark_missing"}
+
+
+def test_nothing_relevant_written_is_not_a_pass() -> None:
+    out = _faithful(_scenario("r1"))
+    for call in _writes(out):
+        call["arguments"]["cells"][0]["criterionId"] = "quietness"
+    row = grader.grade_one(_scenario("r1"), out)
+    assert row["scope_right"] is False
+    assert row["supersedes_right"] is None and row["right_outcome"] is None
+
+
+def test_an_ask_that_denies_the_prior_was_shown_is_caught() -> None:
+    reply = "The prior was not shown to me, so shall I re-score?"
+    row = grader.grade_one(_scenario("r5"), {"scenarioId": "r5", "calls": [], "reply": reply})
+    assert row["prior_true"] is False
+
+
+def test_the_grader_reads_the_block_and_the_example_the_prompt_teaches() -> None:
     body = prompts()["rescore-criterion"].body
     block = re.search(r"\n    (Re-scored:.*?)\n\n", body, re.S).group(1)
-    taught = [line.strip().split(":")[0] for line in block.splitlines()]
-    assert "Prior" in taught
-    assert "withheld | shown" in next(line for line in block.splitlines() if "Prior:" in line)
+    assert "Prior" in [line.strip().split(":")[0] for line in block.splitlines()]
+    example = re.search(r"`(Prior: [^`]+)`", body.replace("\n", " ")).group(1)
+    assert grader._line(example, "Prior").startswith("withheld")
