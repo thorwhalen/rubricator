@@ -94,9 +94,15 @@ def _writes(out):
     return [c for c in out["calls"] if c["tool"] == "measures_write"]
 
 
+def _unicode_neutral(text: str) -> str:
+    """``corpus_search`` names the interpreter's Unicode version (``lexical.UNICODE_VERSION``) in its summary."""
+    return re.sub(r"Unicode \d+(\.\d+)*", "Unicode <interpreter's>", text)
+
+
 def test_the_stored_scenarios_are_what_the_tools_return_today(tmp_path) -> None:
     builder.main(str(tmp_path / "now.json"))
-    assert json.loads((tmp_path / "now.json").read_text()) == _scenarios()
+    now = _unicode_neutral((tmp_path / "now.json").read_text())
+    assert json.loads(now) == json.loads(_unicode_neutral(SCENARIOS.read_text()))
 
 
 def test_a_faithful_run_grades_full_marks() -> None:
