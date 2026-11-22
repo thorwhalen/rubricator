@@ -1,4 +1,4 @@
-"""``measures_claim_ids``: the value-free read a re-score needs (#294). Fixtures are invented."""
+"""``measures_rescore_context``: the value-free read a re-score needs (#294). Fixtures are invented."""
 
 from __future__ import annotations
 
@@ -31,6 +31,10 @@ def _cell(alt: str, value: int = 5, **extra) -> dict:
     }
 
 
+def _sweep(n):
+    return {"round": n, "session": "fresh", "prior": "withheld"}
+
+
 @pytest.fixture
 def v():
     runtime = build_runtime(blobs={}, now=fixed_clock(MOMENT), retention_clock=fixed_clock(MOMENT),
@@ -48,34 +52,41 @@ def v():
     v["frame_confirm"](analysis_id="kettles")
     v["frame_confirm"](analysis_id="kettles", decision="confirm", scope="all",
                        confirmed_by="Ana Ruiz", confirmation_text="Yes.")
-    sweep = {"round": 1, "session": "fresh", "prior": "withheld"}
     for alt in ("tamsin", "brindle"):
         v["measures_write"](analysis_id="kettles", contributor_id="scorer", author=BOT,
-                            cells=[_cell(alt)], procedure=sweep)
+                            cells=[_cell(alt)], procedure=_sweep(1))
     v["measures_write"](analysis_id="kettles", contributor_id="scorer", author=BOT,
-                        cells=[_cell("tamsin", criterionId="quiet")],
-                        procedure={**sweep, "round": 3})
+                        cells=[_cell("tamsin", criterionId="quiet")], procedure=_sweep(3))
     return v
 
 
-def test_each_cell_names_its_live_claims_and_each_contributor_its_latest_round(v):
-    got = v["measures_claim_ids"](analysis_id="kettles", criterion_id="parts")
-    cells = {c["alternativeId"]: c["liveClaims"] for c in got["cells"]}
-    assert cells == {
-        "tamsin": [{"assertionId": "tamsin-parts-score", "contributorId": "scorer", "round": 1}],
-        "brindle": [{"assertionId": "brindle-parts-score", "contributorId": "scorer", "round": 1}],
+def _read(v, **kw):
+    return v["measures_rescore_context"](analysis_id="kettles", criterion_id="parts", **kw)
+
+
+def _claims(got):
+    return {c["alternativeId"]: c["liveClaims"] for c in got["cells"]}
+
+
+def test_each_cell_names_its_live_claims_and_each_writer_its_latest_round(v):
+    got = _read(v, contributor_id="scorer")
+    assert _claims(got) == {
+        "tamsin": [{"assertionId": "tamsin-parts-score", "contributorId": "scorer",
+                    "authorId": "scorer", "yours": True}],
+        "brindle": [{"assertionId": "brindle-parts-score", "contributorId": "scorer",
+                     "authorId": "scorer", "yours": True}],
         "copperleaf": [],  # never written: nothing to supersede
     }
-    # The latest round is the contributor's over the whole analysis, not this criterion's.
-    assert got["contributors"] == [{"contributorId": "scorer", "latestRound": 3}]
-    assert "a re-score is round 4" in got["summary"]
+    # the latest round is the writer's over the whole analysis, not this criterion's
+    assert got["writers"] == [{"contributorId": "scorer", "authorId": "scorer", "latestRound": 3}]
+    assert "its re-score is round 4" in got["summary"]
 
 
-def test_it_never_returns_a_value_justification_evidence_or_code(v):
+def test_it_never_returns_a_value_justification_evidence_code_or_round(v):
     v["measures_mark_missing"](analysis_id="kettles", contributor_id="scorer", author=BOT,
                                code="not-evidenced", note="nothing on copperleaf's parts",
                                criterion_ids=["parts"], alternative_ids=["copperleaf"])
-    got = v["measures_claim_ids"](analysis_id="kettles", criterion_id="parts")
+    got = _read(v)
 
     def keys(node):
         if isinstance(node, dict):
@@ -88,8 +99,8 @@ def test_it_never_returns_a_value_justification_evidence_or_code(v):
 
     assert set(keys(got)) == {
         "analysisId", "criterionId", "cells", "alternativeId", "measure", "liveClaims",
-        "assertionId", "contributorId", "round", "contributors", "latestRound", "skipped",
-        "summary"}
+        "assertionId", "contributorId", "authorId", "yours", "writers", "latestRound",
+        "skipped", "summary"}
     text = json.dumps(got)
     for leak in (JUSTIFICATION, "not-evidenced", "nothing on copperleaf", "sold separately"):
         assert leak not in text, leak
@@ -98,46 +109,47 @@ def test_it_never_returns_a_value_justification_evidence_or_code(v):
 def test_a_superseded_claim_is_gone_and_its_successor_is_live(v):
     v["measures_write"](analysis_id="kettles", contributor_id="scorer", author=BOT,
                         cells=[_cell("brindle", 3, supersedes="brindle-parts-score")],
-                        procedure={"round": 4, "session": "fresh", "prior": "withheld"})
-    got = v["measures_claim_ids"](analysis_id="kettles", criterion_id="parts",
-                                  alternative_ids=["brindle"])
-    assert got["cells"] == [{"alternativeId": "brindle", "measure": "score", "liveClaims": [
-        {"assertionId": "brindle-parts-score-2", "contributorId": "scorer", "round": 4}]}]
-    assert got["contributors"] == [{"contributorId": "scorer", "latestRound": 4}]
+                        procedure=_sweep(4))
+    got = _read(v, alternative_ids=["brindle"], contributor_id="scorer")
+    assert [c["assertionId"] for c in got["cells"][0]["liveClaims"]] == ["brindle-parts-score-2"]
+    assert got["writers"][0]["latestRound"] == 4
 
 
-def test_contributors_are_told_apart_and_one_can_be_asked_for(v):
+def test_naming_yourself_marks_your_claims_and_never_hides_anothers(v):
+    """The blocker of the first review: a filter made Ana's claim read as a never-written cell."""
     v["measures_write"](analysis_id="kettles", contributor_id="ana", author=ANA,
-                        cells=[_cell("tamsin", 4, independence="independent")])
-    both = v["measures_claim_ids"](analysis_id="kettles", criterion_id="parts",
-                                   alternative_ids=["tamsin"])
-    assert [c["contributorId"] for c in both["cells"][0]["liveClaims"]] == ["ana", "scorer"]
-    assert both["contributors"] == [{"contributorId": "ana", "latestRound": None},
-                                    {"contributorId": "scorer", "latestRound": 3}]
-    own = v["measures_claim_ids"](analysis_id="kettles", criterion_id="parts",
-                                  alternative_ids=["tamsin"], contributor_id="ana")
-    assert own["cells"][0]["liveClaims"] == [
-        {"assertionId": "tamsin-parts-score", "contributorId": "ana", "round": None}]
-    assert own["contributors"] == [{"contributorId": "ana", "latestRound": None}]
-    assert "unrecorded" in own["summary"]
+                        cells=[_cell("copperleaf", 4)])
+    got = _read(v, alternative_ids=["copperleaf"], contributor_id="scorer")
+    assert got["cells"][0]["liveClaims"] == [
+        {"assertionId": "copperleaf-parts-score", "contributorId": "ana", "authorId": "ana",
+         "yours": False}]
+    assert [(w["contributorId"], w["latestRound"]) for w in got["writers"]] == [
+        ("ana", None), ("scorer", 3)]  # the named writer is listed even with no claim in scope
+    assert "only another writer's claims in: copperleaf/score" in got["summary"]
 
 
-def test_a_contributor_with_no_file_is_named_with_no_round(v):
-    got = v["measures_claim_ids"](analysis_id="kettles", criterion_id="parts",
-                                  contributor_id="nobody")
-    assert got["contributors"] == [{"contributorId": "nobody", "latestRound": None}]
-    assert all(c["liveClaims"] == [] for c in got["cells"])
+def test_a_persona_is_its_own_writer_with_its_own_rounds(v):
+    persona = {"id": "scorer:buyer", "displayName": "Buyer persona", "kind": "agent",
+               "principalId": "scorer", "agent": {"name": "scorer", "model": "m-1"}}
+    v["measures_write"](analysis_id="kettles", contributor_id="scorer", author=persona,
+                        cells=[_cell("copperleaf", 2)], procedure=_sweep(7))
+    got = _read(v, contributor_id="scorer")
+    copper = _claims(got)["copperleaf"]
+    assert copper == [{"assertionId": "copperleaf-parts-score", "contributorId": "scorer",
+                       "authorId": "scorer:buyer", "yours": False}]
+    rounds = {(w["contributorId"], w["authorId"]): w["latestRound"] for w in got["writers"]}
+    assert rounds == {("scorer", "scorer"): 3, ("scorer", "scorer:buyer"): 7}
+    as_persona = _read(v, contributor_id="scorer", author_id="scorer:buyer")
+    assert _claims(as_persona)["copperleaf"][0]["yours"] is True
 
 
-def test_several_live_claims_of_one_contributor_are_flagged(v):
+def test_several_live_claims_of_yours_are_flagged(v):
     v["measures_write"](analysis_id="kettles", contributor_id="scorer", author=BOT,
-                        cells=[_cell("tamsin", 4)],
-                        procedure={"round": 2, "session": "fresh", "prior": "withheld"})
-    got = v["measures_claim_ids"](analysis_id="kettles", criterion_id="parts",
-                                  alternative_ids=["tamsin"])
+                        cells=[_cell("tamsin", 4)], procedure=_sweep(2))
+    got = _read(v, alternative_ids=["tamsin"], contributor_id="scorer")
     assert [c["assertionId"] for c in got["cells"][0]["liveClaims"]] == [
         "tamsin-parts-score", "tamsin-parts-score-2"]
-    assert "several live claims of one contributor in: tamsin" in got["summary"]
+    assert "several live claims of yours in: tamsin/score" in got["summary"]
 
 
 @pytest.mark.parametrize("kwargs, named", [
@@ -146,4 +158,4 @@ def test_several_live_claims_of_one_contributor_are_flagged(v):
 ])
 def test_an_unknown_criterion_or_alternative_is_refused(v, kwargs, named):
     with pytest.raises(KeyError, match=named):
-        v["measures_claim_ids"](analysis_id="kettles", **kwargs)
+        v["measures_rescore_context"](analysis_id="kettles", **kwargs)

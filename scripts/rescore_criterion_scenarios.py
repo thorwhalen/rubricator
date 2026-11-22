@@ -1,14 +1,15 @@
-"""Build the rescore-criterion evaluation's scenarios from the real verbs: one scored analysis, ten requests.
+"""Build the rescore-criterion evaluation's scenarios from the real verbs: one scored analysis, eleven requests.
 
 Every scenario starts from the same confirmed analysis as the add-criterion evaluation (three
 invented kettles, the same three criteria), with a small corpus and one sweep already scored by the
 agent contributor ``scorer``: spare parts for every kettle, quietness for two of them, Tamsin's
 quietness never written. A scenario then adds its own new documents and asks for one criterion to be
 re-scored. What the subject sees is what the prompt allows it to read without seeing an earlier
-score (``analysis_get`` criteria and outstanding views, and ``measures_claim_ids`` for the criterion:
-who holds which live claim, in which round, #294), and what ``corpus_search`` returns for each
-alternative over the corpus as it now stands. As in the connector, nothing hands the subject the
-round number, except in r8, where a harness does. The earlier scores are in the packet only where the
+score (``analysis_get`` criteria and outstanding views, and ``measures_rescore_context`` for the
+criterion, called as the prompt instructs: marked with the scorer when one is given; #294), and
+what ``corpus_search`` returns for each alternative over the corpus as it now stands. As in the
+connector, nothing hands the subject the round number, except in r8, where a harness does, and in
+r11 nothing names the scorer either. The earlier scores are in the packet only where the
 scenario puts them in the conversation. The grader replays a subject's ``measures_write`` calls
 against a fresh copy of the same scenario, so nothing here or there calls a model.
 
@@ -84,7 +85,8 @@ SAYS_THE_PRIOR_IS_IN_VIEW = r"(fresh|new) conversation|(are|were) (already )?in 
 #: id -> (request, criterion, new documents, conversation before the request, expected).
 #: ``expected["cells"]`` maps each alternative to (its outcome, the id it must supersede or None);
 #: an outcome is a level or a missingness code. ``prior``/``session``/``round`` are what every write
-#: must state; ``harnessRound`` marks the one scenario whose harness hands the subject that round;
+#: must state; ``harnessRound`` marks the one scenario whose harness hands the subject that round,
+#: and ``noContributor`` the one where nobody names the scorer;
 #: ``action`` is ``write`` or ``ask``; ``either`` lets an ``ask`` scenario also be answered by writes
 #: that state the prior truthfully; ``asks`` is a pattern the reply of an ask must match (what it asks
 #: about).
@@ -140,7 +142,9 @@ SCENARIOS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[dict[str, 
     "r9": ("Brindle's recall notice is in the corpus. Re-score spare parts for Brindle.",
            "spare-parts", BRINDLE_RECALL, [],
            {"action": "ask", "either": False, "prior": None, "session": None, "round": NEXT_ROUND + 1,
-            "asks": r"which|both|two (live )?(claims|draws|scores)", "cells": {}}),
+            "asks": r"brindle-spare-parts-score|two (live )?(claims|draws|scores)|both (of )?(your |my )?"
+                    r"(live )?(claims|draws|scores)|which (one|claim|draw|of (the|these|them))",
+            "cells": {}}),
     # Tamsin's quietness was scored by Ana, never by this scorer: replacing it is hers to do, and
     # whether she is this scorer under another id is something only the user knows.
     "r10": ("Tamsin finally published a noise datasheet; it's in the corpus now. Re-score quietness "
@@ -150,7 +154,14 @@ SCENARIOS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[dict[str, 
               "Tamsin technical datasheet. Rated boiling noise: 48 dB at full capacity.")],
             [],
             {"action": "ask", "either": False, "prior": None, "session": None, "round": NEXT_ROUND,
-             "asks": r"\bana\b", "cells": {}}),
+             "asks": r"\bana\b[\s\S]*\b(claim|contributor|writer|rater)|"
+                     r"\b(claim|contributor|writer|rater)[\s\S]*\bana\b",
+             "cells": {}}),
+    # As in the connector: nobody names the scorer; the read shows one writer holding every claim.
+    "r11": ("I've added Tamsin's service page to the corpus. Please re-score spare parts.",
+            "spare-parts", TAMSIN_SERVICE, [],
+            {"action": "write", "prior": "withheld", "session": "fresh", "round": NEXT_ROUND,
+             "noContributor": True, "cells": R1_CELLS}),
 }
 
 ANA = {"id": "ana", "displayName": "Ana", "kind": "human"}
@@ -224,15 +235,16 @@ def packet(scenario_id: str) -> dict[str, Any]:
     results: dict[str, Any] = {
         "analysis_get(criteria)": verbs["analysis_get"](analysis_id=ANALYSIS_ID, view="criteria"),
         "analysis_get(outstanding)": verbs["analysis_get"](analysis_id=ANALYSIS_ID, view="outstanding"),
-        f"measures_claim_ids(criterion_id={criterion})": verbs["measures_claim_ids"](
-            analysis_id=ANALYSIS_ID, criterion_id=criterion),
+        "measures_rescore_context": verbs["measures_rescore_context"](
+            analysis_id=ANALYSIS_ID, criterion_id=criterion,
+            **({} if expected.get("noContributor") else {"contributor_id": "scorer"})),
         "corpus_search, per alternative, over the whole corpus": search,
     }
     return {
         "id": scenario_id,
         "request": request,
         "conversation": conversation,
-        "contributor": {"contributor_id": "scorer", "author": SCORER},
+        "contributor": None if expected.get("noContributor") else {"contributor_id": "scorer", "author": SCORER},
         "harness": {"round": expected["round"]} if expected.get("harnessRound") else {},
         "newDocuments": [sid for sid, _, _ in new_docs],
         "toolResults": results,

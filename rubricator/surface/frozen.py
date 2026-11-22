@@ -685,21 +685,28 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
         ),
     ),
     ToolSpec(
-        name="measures_claim_ids", family="measures", stage="5", status="implemented",
+        name="measures_rescore_context", family="measures", stage="5", status="implemented",
         minimum_viable=False, cut_rank=3, research_row=None, issue=294,
         contract=(
             "What a re-score of one criterion needs, with the earlier scores still withheld: "
-            "per cell (every live alternative, or those named), the live claims' assertionId, "
-            "contributorId and round, and per contributor its latestRound, so the re-score "
-            "names its own live claim in supersedes, writes as that contributor, and takes "
-            "round latestRound + 1. Never returns a value, justification, evidence, code or "
-            "count by kind: reading it keeps a pass prior: withheld."
+            "per cell (every live alternative, or those named, per measure), every live "
+            "claim's assertionId, contributorId and authorId, marked yours when it is the "
+            "writer named by contributor_id and author_id (author_id defaults to "
+            "contributor_id; naming them marks, never filters); and per writer holding a "
+            "claim there, and the named one, its latestRound. A re-score supersedes its own "
+            "live claim and takes round latestRound + 1. Never returns a value, "
+            "justification, evidence, code, per-claim round or count by kind: reading it "
+            "keeps a pass prior: withheld."
         ),
-        determinism="A pure projection of the stored contributions' ids and rounds.",
-        failure="An unknown analysis, criterion or alternative is refused, listing what exists.",
+        determinism="A pure projection of the stored contributions' ids, authors and rounds.",
+        failure=(
+            "An unknown analysis, criterion or alternative is refused, listing what exists. "
+            "A stored file that cannot be merged is named in skipped, and its claims are "
+            "not listed."
+        ),
         input_schema=obj(
             {"analysis_id": S, "criterion_id": S, "alternative_ids": at_least_one(S),
-             "contributor_id": S},
+             "contributor_id": S, "author_id": S},
             ("analysis_id", "criterion_id"),
         ),
         output_schema=obj(
@@ -708,19 +715,20 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
                 "cells": arr(obj(
                     {"alternativeId": S, "measure": S,
                      "liveClaims": arr(obj(
-                         {"assertionId": S, "contributorId": S, "round": opt(I)},
-                         ("assertionId", "contributorId", "round")))},
+                         {"assertionId": S, "contributorId": S, "authorId": opt(S), "yours": B},
+                         ("assertionId", "contributorId", "authorId", "yours")))},
                     ("alternativeId", "measure", "liveClaims"))),
-                "contributors": arr(obj(
-                    {"contributorId": S, "latestRound": opt(I)},
-                    ("contributorId", "latestRound"))),
+                "writers": arr(obj(
+                    {"contributorId": S, "authorId": opt(S), "latestRound": opt(I)},
+                    ("contributorId", "authorId", "latestRound"))),
                 "skipped": arr(SKIPPED),
                 "summary": S,
             },
-            ("analysisId", "criterionId", "cells", "contributors", "skipped", "summary"),
+            ("analysisId", "criterionId", "cells", "writers", "skipped", "summary"),
         ),
-        notes=("Not in the research's 19: added by #294 for rescore-criterion, and the seam "
-               "#102 asks for, so a re-score's material grows here as output fields.",),
+        notes=("Not in the research's 19: added by #294 for rescore-criterion. It is the seam "
+               "#102 asks for: a criterion's definition and anchors can be added as output "
+               "fields; retrieved spans would need retrieval inputs, an input amendment.",),
     ),
     ToolSpec(
         name="analysis_validate", family="analysis", stage="5, 6", status="planned",
@@ -1166,11 +1174,11 @@ MEASURED: Mapping[str, Any] = {
 AWAITING_MEASUREMENT: Mapping[str, Any] | None = {
     "issue": 199,
     "advertised": {
-        "tools": 21, "bytes": 30357,
-        "sha256": "acfd40560da429a9c4d123176c541ee1645dc7834660821b2e069452dbaa13bb",
+        "tools": 21, "bytes": 30666,
+        "sha256": "fa4db861be5e3c2541b87896dff3bbf18baebe9739ee1a0724c17840602c0a3f",
     },
     "wholeSurface": {
-        "tools": 24, "bytes": 32978,
-        "sha256": "ea5ee332e7c69cdba2af0bde389a2ab275aa98f8fdbf8093ff412d70ec09bc3e",
+        "tools": 24, "bytes": 33287,
+        "sha256": "9f9df4d6ece8d2e4cdb1b9738fd743b1c478e1b2b0fa60583d45c0a0fb172e03",
     },
 }

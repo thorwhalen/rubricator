@@ -91,9 +91,9 @@ def every_verb() -> dict[str, Any]:
         analysis_id=aid, contributor_id="ana", author=ANA, code="not-evidenced",
         note="neither document states a boil time for this row",
         criterion_ids=["speed"], alternative_ids=["l5", "k2-kettle"])
-    out["measures_claim_ids"] = {
-        "all": v["measures_claim_ids"](analysis_id=aid, criterion_id="safety"),
-        "bot": v["measures_claim_ids"](analysis_id=aid, criterion_id="speed",
+    out["measures_rescore_context"] = {
+        "all": v["measures_rescore_context"](analysis_id=aid, criterion_id="safety"),
+        "bot": v["measures_rescore_context"](analysis_id=aid, criterion_id="speed",
                                        alternative_ids=["k2", "l5"], contributor_id="bot"),
     }
     out["report_completeness"] = v["report_completeness"](analysis_id=aid)
