@@ -79,7 +79,8 @@ def test_each_cell_names_its_live_claims_and_each_writer_its_latest_round(v):
     }
     # the latest round is the writer's over the whole analysis, not this criterion's
     assert got["writers"] == [
-        {"contributorId": "scorer", "authorId": "scorer", "kind": "agent", "latestRound": 3}]
+        {"contributorId": "scorer", "authorId": "scorer", "kind": "agent", "model": "m-1",
+         "latestRound": 3}]
     assert "its re-score is round 4" in got["summary"]
 
 
@@ -100,7 +101,7 @@ def test_it_never_returns_a_value_justification_evidence_code_or_round(v):
 
     assert set(keys(got)) == {
         "analysisId", "criterionId", "cells", "alternativeId", "measure", "liveClaims",
-        "assertionId", "contributorId", "authorId", "yours", "writers", "kind", "latestRound",
+        "assertionId", "contributorId", "authorId", "yours", "writers", "kind", "model", "latestRound",
         "skipped", "summary"}
     text = json.dumps(got)
     for leak in (JUSTIFICATION, "not-evidenced", "nothing on copperleaf", "sold separately"):
@@ -138,7 +139,9 @@ def test_a_persona_is_its_own_writer_with_its_own_rounds(v):
     copper = _claims(got)["copperleaf"]
     assert copper == [{"assertionId": "copperleaf-parts-score", "contributorId": "scorer",
                        "authorId": "scorer:buyer", "yours": False}]
-    assert _claims(_read(v, contributor_id="scorer"))["copperleaf"][0]["yours"] is True  # any author
+    default = _read(v, contributor_id="scorer")  # the principal: a persona is never yours unnamed
+    assert _claims(default)["copperleaf"][0]["yours"] is False
+    assert "scorer has other authors with claims here (scorer:buyer)" in default["summary"]
     rounds = {(w["contributorId"], w["authorId"]): w["latestRound"] for w in got["writers"]}
     assert rounds == {("scorer", "scorer"): 3, ("scorer", "scorer:buyer"): 7}
     as_persona = _read(v, contributor_id="scorer", author_id="scorer:buyer")

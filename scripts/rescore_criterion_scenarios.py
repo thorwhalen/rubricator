@@ -169,11 +169,14 @@ SCENARIOS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[dict[str, 
             [],
             {"action": "ask", "either": False, "prior": None, "session": None, "round": NEXT_ROUND,
              "noContributor": True, "asks": ANA_ASK, "cells": {}}),
-    # As in the connector: nobody names the scorer; the read shows one writer holding every claim.
+    # As in the connector: nobody names the scorer; the read shows one agent writer holding every
+    # claim, with no model recorded, so it may be another agent: propose it and ask, in one line.
     "r11": ("I've added Tamsin's service page to the corpus. Please re-score spare parts.",
             "spare-parts", TAMSIN_SERVICE, [],
-            {"action": "write", "prior": "withheld", "session": "fresh", "round": NEXT_ROUND,
-             "noContributor": True, "cells": R1_CELLS}),
+            {"action": "ask", "either": False, "prior": None, "session": None, "round": NEXT_ROUND,
+             "noContributor": True,
+             "asks": r"(?s)(?=.*\bscorer\b)(?=.*(write as|writing as|as (the )?contributor|who))",
+             "cells": {}}),
 }
 
 ANA = {"id": "ana", "displayName": "Ana", "kind": "human"}

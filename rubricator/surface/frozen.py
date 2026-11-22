@@ -690,10 +690,10 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
         contract=(
             "What a re-score of one criterion needs, with the earlier scores still withheld: "
             "per cell (every live alternative, or those named, per measure), every live "
-            "claim's assertionId, contributorId and authorId, marked yours when it is "
-            "contributor_id's (and author_id's, when given; naming marks, never filters); "
-            "and per writer holding a claim there, and the named contributor's, its kind "
-            "(agent or human) and latestRound. A re-score supersedes its own live claim and "
+            "claim's assertionId, contributorId and authorId, marked yours when it is the "
+            "writer named by contributor_id and author_id (author_id defaults to "
+            "contributor_id; naming marks, never filters); and per writer holding a claim "
+            "there, and the named one, its stored kind, model and latestRound. A re-score supersedes its own live claim and "
             "takes round latestRound + 1. Never returns a value, "
             "justification, evidence, code, per-claim round or count by kind: reading it "
             "keeps a pass prior: withheld."
@@ -720,8 +720,9 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
                          ("assertionId", "contributorId", "authorId", "yours")))},
                     ("alternativeId", "measure", "liveClaims"))),
                 "writers": arr(obj(
-                    {"contributorId": S, "authorId": opt(S), "kind": opt(S), "latestRound": opt(I)},
-                    ("contributorId", "authorId", "kind", "latestRound"))),
+                    {"contributorId": S, "authorId": opt(S), "kind": opt(S), "model": opt(S),
+                     "latestRound": opt(I)},
+                    ("contributorId", "authorId", "kind", "model", "latestRound"))),
                 "skipped": arr(SKIPPED),
                 "summary": S,
             },
@@ -1175,11 +1176,11 @@ MEASURED: Mapping[str, Any] = {
 AWAITING_MEASUREMENT: Mapping[str, Any] | None = {
     "issue": 199,
     "advertised": {
-        "tools": 21, "bytes": 30701,
-        "sha256": "a7e9ef7ff43ba2dd3b1facc4be55e88b7ce8aa30149ae12adbdbd4d874b5ec46",
+        "tools": 21, "bytes": 30729,
+        "sha256": "3c5d4d243ef8e2c07eb2bcfaa2fa3533dc2d45c95f48bbb14f3125502e540da7",
     },
     "wholeSurface": {
-        "tools": 24, "bytes": 33322,
-        "sha256": "ab8df150e64bdf2c2819549c1f32a92d2d09cec1e3e97c61e596a9465c3b85ab",
+        "tools": 24, "bytes": 33350,
+        "sha256": "0d07a94c5ab1b4808338e526f268a7fb22287fb0b70cea589831a20d79cdfca8",
     },
 }

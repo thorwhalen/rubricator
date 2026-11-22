@@ -58,6 +58,8 @@ ASKS = {
           "brindle-spare-parts-score-2): which one should the re-score replace?",
     "r10": "Tamsin's quietness is Ana's claim, not mine, and only Ana can replace it. Is Ana this "
            "scorer under another id, or should I add my own claim beside hers?",
+    "r11": "The claims on spare parts are all scorer's, an agent whose model is not recorded. "
+           "Shall I write as contributor scorer?",
     "r12": "The only claim on Tamsin's quietness is Ana's, and she is a person: I will not write as "
            "her. Who am I writing as, and should my re-score be a second claim beside hers?",
 }
@@ -117,7 +119,7 @@ def test_the_stored_scenarios_are_what_the_tools_return_today(tmp_path) -> None:
 def test_a_faithful_run_grades_full_marks() -> None:
     row = _run()
     assert all(hits == n for hits, n in row.values()), row
-    assert row["accepted"] == [7, 7] and row["action_right"] == [12, 12] and row["round_right"] == [7, 7]
+    assert row["accepted"] == [6, 6] and row["action_right"] == [12, 12] and row["round_right"] == [6, 6]
 
 
 def _claims(scenario):
@@ -131,7 +133,8 @@ def test_the_value_free_read_names_the_live_claim_and_the_round() -> None:
     assert brindle["liveClaims"] == [{"assertionId": "brindle-spare-parts-score-2",
                                       "contributorId": "scorer", "authorId": "scorer", "yours": True}]
     assert claims["writers"] == [
-        {"contributorId": "scorer", "authorId": "scorer", "kind": "agent", "latestRound": 2}]
+        {"contributorId": "scorer", "authorId": "scorer", "kind": "agent", "model": None,
+         "latestRound": 2}]
     text = json.dumps({k: v for k, v in claims.items() if k != "summary"})
     assert '"value"' not in text and '"justification"' not in text and "Spare parts are" not in text
 
@@ -141,7 +144,7 @@ def test_claiming_withheld_after_being_shown_the_prior_is_caught() -> None:
         for call in _writes(out):
             call["arguments"]["procedure"]["prior"] = "withheld"
         return out
-    assert _run(claims_withheld)["prior_true"] == [7, 8]
+    assert _run(claims_withheld)["prior_true"] == [6, 7]
 
 
 def test_a_re_score_written_beside_the_earlier_claim_is_caught() -> None:
@@ -152,8 +155,8 @@ def test_a_re_score_written_beside_the_earlier_claim_is_caught() -> None:
         return out
     row = _run(beside)
     # r2's cell was never written, so it has nothing to name and stays right.
-    assert row["supersedes_right"] == [1, 7]
-    assert row["accepted"] == [7, 7]
+    assert row["supersedes_right"] == [1, 6]
+    assert row["accepted"] == [6, 6]
 
 
 def test_a_wrong_supersedes_id_is_refused_by_the_verb() -> None:
@@ -163,7 +166,7 @@ def test_a_wrong_supersedes_id_is_refused_by_the_verb() -> None:
             if "supersedes" in cell:
                 cell["supersedes"] += "-2"
         return out
-    assert _run(wrong)["accepted"] == [1, 7]  # r2 names nothing, so it is untouched
+    assert _run(wrong)["accepted"] == [1, 6]  # r2 names nothing, so it is untouched
 
 
 def test_naming_the_default_id_after_it_was_replaced_is_refused() -> None:
@@ -172,7 +175,7 @@ def test_naming_the_default_id_after_it_was_replaced_is_refused() -> None:
             _writes(out)[0]["arguments"]["cells"][0]["supersedes"] = "brindle-spare-parts-score"
         return out
     row = _run(default_id)
-    assert row["accepted"] == [6, 7] and row["supersedes_right"] == [6, 7]
+    assert row["accepted"] == [5, 6] and row["supersedes_right"] == [5, 6]
 
 
 def test_a_counted_round_is_caught_even_where_the_verb_takes_it() -> None:
@@ -182,9 +185,9 @@ def test_a_counted_round_is_caught_even_where_the_verb_takes_it() -> None:
             call["arguments"]["procedure"]["round"] = 1
         return out
     row = _run(round_one)
-    assert row["round_right"] == [0, 7]
+    assert row["round_right"] == [0, 6]
     # r2's cell had no draw in round 1, and r4's prior is shown (a round is keyed by number and prior).
-    assert row["accepted"] == [2, 7]
+    assert row["accepted"] == [2, 6]
 
 
 def test_ignoring_the_reads_latest_round_is_caught() -> None:
@@ -195,7 +198,7 @@ def test_ignoring_the_reads_latest_round_is_caught() -> None:
                 call["arguments"]["procedure"]["round"] = 2
         return out
     row = _run(stale)
-    assert row["round_right"] == [6, 7] and row["accepted"] == [6, 7]
+    assert row["round_right"] == [5, 6] and row["accepted"] == [5, 6]
 
 
 def test_writing_over_one_of_several_live_claims_is_caught() -> None:
@@ -227,14 +230,14 @@ def test_narrowing_to_the_alternative_the_new_document_names_is_caught() -> None
             out["calls"] = [c for c in out["calls"] if c["tool"] != "measures_write"
                             or c["arguments"]["cells"][0]["alternativeId"] == "tamsin"]
         return out
-    assert _run(narrows)["scope_right"] == [6, 7]
+    assert _run(narrows)["scope_right"] == [5, 6]
 
 
 def test_reading_the_earlier_scores_first_is_caught() -> None:
     def peeks(out, scenario):
         out["calls"].insert(0, {"tool": "report_completeness", "arguments": {"analysis_id": ANALYSIS_ID}})
         return out
-    assert _run(peeks)["no_prior_read"] == [0, 6]
+    assert _run(peeks)["no_prior_read"] == [0, 5]
 
 
 def test_retrieving_from_the_new_documents_only_is_caught() -> None:
@@ -243,7 +246,7 @@ def test_retrieving_from_the_new_documents_only_is_caught() -> None:
             if call["tool"] == "corpus_search":
                 call["arguments"]["document_ids"] = ["doc-new"]
         return out
-    assert _run(narrow_search)["fresh_retrieval"] == [0, 7]
+    assert _run(narrow_search)["fresh_retrieval"] == [0, 6]
 
 
 def test_skipping_an_alternatives_retrieval_is_caught() -> None:
@@ -252,7 +255,7 @@ def test_skipping_an_alternatives_retrieval_is_caught() -> None:
             out["calls"] = [c for c in out["calls"]
                             if c["tool"] != "corpus_search" or c["arguments"]["query"] == "tamsin"]
         return out
-    assert _run(one_search)["fresh_retrieval"] == [6, 7]
+    assert _run(one_search)["fresh_retrieval"] == [5, 6]
 
 
 def test_a_score_carried_forward_onto_a_conflict_is_caught() -> None:
@@ -265,7 +268,7 @@ def test_a_score_carried_forward_onto_a_conflict_is_caught() -> None:
                     cell.pop("missing")
                     cell |= {"justification": "kept", "evidence": [_span(hit)], "value": 1}
         return out
-    assert _run(carries)["right_outcome"] == [6, 7]
+    assert _run(carries)["right_outcome"] == [5, 6]
 
 
 def test_writing_a_revision_as_a_re_score_is_caught() -> None:
@@ -311,7 +314,7 @@ def test_an_empty_ask_is_not_full_marks() -> None:
         if scenario["id"] in ("r6", "r9", "r10"):
             out["reply"] = ""
         return out
-    assert _run(silent)["asks_right"] == [2, 5]
+    assert _run(silent)["asks_right"] == [3, 6]
 
 
 def test_an_ask_about_the_wrong_thing_is_caught() -> None:
@@ -327,7 +330,7 @@ def test_three_cells_in_one_write_is_caught() -> None:
             writes[0]["arguments"]["cells"] = [c for w in writes for c in w["arguments"]["cells"]]
             out["calls"] = [c for c in out["calls"] if c not in writes[1:]]
         return out
-    assert _run(batched)["scope_right"] == [6, 7]
+    assert _run(batched)["scope_right"] == [5, 6]
 
 
 def test_one_search_naming_every_alternative_is_not_a_search_each() -> None:
@@ -337,7 +340,7 @@ def test_one_search_naming_every_alternative_is_not_a_search_each() -> None:
             for c in searches:
                 c["arguments"]["query"] = "brindle copperleaf tamsin spare parts"
         return out
-    assert _run(one_query)["fresh_retrieval"] == [6, 7]
+    assert _run(one_query)["fresh_retrieval"] == [5, 6]
 
 
 def test_a_write_the_verb_cannot_take_is_a_refusal_not_a_crash() -> None:
@@ -346,7 +349,7 @@ def test_a_write_the_verb_cannot_take_is_a_refusal_not_a_crash() -> None:
             call["arguments"].pop("author")
             call["arguments"]["bogus"] = 1
         return out
-    assert _run(no_author)["accepted"] == [0, 7]
+    assert _run(no_author)["accepted"] == [0, 6]
 
 
 def test_r10s_read_shows_anas_claim_although_the_scorer_is_named() -> None:
@@ -359,8 +362,8 @@ def test_r10s_read_shows_anas_claim_although_the_scorer_is_named() -> None:
 def test_an_ask_about_the_round_only_is_not_an_ask_about_the_claims() -> None:
     """Even followed by the block, whose Not written line names the claims and the writer."""
     for reply in ("Which round number is this sweep? Nothing gives me one.",
-                  "Which one of these rounds should I use?\nNot written: brindle-spare-parts-score, "
-                  "tamsin (Ana's claim): replace?\nNext: re-score"):
+                  "Which one of these rounds should I use?\nReplaced: brindle-spare-parts-score, "
+                  "tamsin (Ana's claim, a person: replace it?)\nNext: re-score"):
         for sid in ("r9", "r10", "r12"):
             row = grader.grade_one(_scenario(sid), {"scenarioId": sid, "calls": [], "reply": reply})
             assert row["asks_right"] is False, (sid, reply)
@@ -372,3 +375,10 @@ def test_r12s_read_shows_the_only_writer_is_a_person() -> None:
                                                                             ("scorer", "agent")]
     tamsin = next(c for c in claims["cells"] if c["alternativeId"] == "tamsin")
     assert [(c["contributorId"], c["yours"]) for c in tamsin["liveClaims"]] == [("ana", False)]
+
+
+def test_an_ask_on_the_not_written_line_counts() -> None:
+    reply = ("I wrote nothing.\nNot written: brindle — two live claims of mine (brindle-spare-parts-score, "
+             "brindle-spare-parts-score-2); which one should the re-score replace?\nNext: your answer")
+    row = grader.grade_one(_scenario("r9"), {"scenarioId": "r9", "calls": [], "reply": reply})
+    assert row["asks_right"] is True

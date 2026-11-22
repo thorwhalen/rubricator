@@ -64,10 +64,11 @@ def measures_rescore_context(
 
     For each cell of ``criterion_id`` (every live alternative, or those in
     ``alternative_ids``, per measure), every live claim's ``assertionId``,
-    ``contributorId`` and ``authorId``, and ``yours`` when it is ``contributor_id``'s (and
-    ``author_id``'s, when given; without it, any author of that contributor). For each
-    writer holding a live claim there, and for the named contributor's writers always,
-    its ``kind`` (agent or human, as stored) and ``latestRound`` over the whole analysis
+    ``contributorId`` and ``authorId``, and ``yours`` when it is the writer named by
+    ``contributor_id`` and ``author_id`` (which defaults to the contributor id, the
+    principal: a persona is never "yours" unless named). For each writer holding a live
+    claim there, and for the named writer always, its ``kind`` and ``model`` (as stored:
+    agent or human, and the agent's model) and ``latestRound`` over the whole analysis
     (None when it has drawn in no round): a re-score is that writer's round
     ``latestRound + 1``.
 
@@ -95,19 +96,21 @@ def measures_rescore_context(
         alternatives = [a for a in alternatives if a in wanted]
     measures = [m["name"] for m in frame.get("measures", []) if "name" in m] or ["score"]
 
+    me = author_id if author_id is not None else contributor_id
+
     def is_yours(cid, aid) -> bool:
-        return cid == contributor_id and (author_id is None or aid == author_id)
+        return cid == contributor_id and aid == me
 
     contributions, skipped = store.mergeable_contributions(analysis_id, frame=frame)
     latest: dict[tuple[str, str], int | None] = {}
     kinds: dict[tuple[str, str], str | None] = {}
-    own_authors: list[str] = []
+    models: dict[tuple[str, str], str | None] = {}
     claims: dict[tuple[str, str], list[dict[str, Any]]] = {}
     for cid, contribution in contributions:
         for a in contribution.get("authors", []) or []:
             kinds[(cid, a.get("id"))] = a.get("kind")
-            if cid == contributor_id:
-                own_authors.append(a.get("id"))
+            agent = a.get("agent") if isinstance(a.get("agent"), Mapping) else {}
+            models[(cid, a.get("id"))] = agent.get("model")
         for author, n in _latest_rounds(contribution).items():
             latest[(cid, author)] = n
         for cell in contribution.get("cells", []) or []:
@@ -136,14 +139,13 @@ def measures_rescore_context(
     ]
     holders = {(c["contributorId"], c["authorId"]) for cell in cells for c in cell["liveClaims"]}
     if contributor_id is not None:
-        named = [author_id] if author_id is not None else own_authors or [contributor_id]
-        holders.update((contributor_id, aid) for aid in named)
+        holders.add((contributor_id, me))
     writers = [
         {"contributorId": cid, "authorId": aid, "kind": kinds.get((cid, aid)),
-         "latestRound": latest.get((cid, aid))}
+         "model": models.get((cid, aid)), "latestRound": latest.get((cid, aid))}
         for cid, aid in sorted(holders, key=lambda w: (w[0], w[1] or ""))
     ]
-    summary = _summary(criterion_id, cells, writers, contributor_id, skipped)
+    summary = _summary(criterion_id, cells, writers, contributor_id, me, skipped)
     return {
         "analysisId": analysis_id,
         "criterionId": criterion_id,
@@ -154,8 +156,8 @@ def measures_rescore_context(
     }
 
 
-def _summary(criterion_id, cells, writers, you, skipped) -> str:
-    """``you`` is the named contributor id, or None."""
+def _summary(criterion_id, cells, writers, you, me, skipped) -> str:
+    """``you`` is the named contributor id (or None), ``me`` the author id taken as yours."""
     def name(cid, aid):
         return cid if aid in (None, cid) else f"{cid}/{aid}"
 
@@ -182,6 +184,15 @@ def _summary(criterion_id, cells, writers, you, skipped) -> str:
             parts.append(f"several live claims of yours in: {', '.join(several)} -- ask which a re-score replaces")
         if others:
             parts.append(f"only another writer's claims in: {', '.join(others)} -- ask before writing there")
+        co_authors = sorted({
+            cl["authorId"] for c in cells for cl in c["liveClaims"]
+            if cl["contributorId"] == you and cl["authorId"] != me
+        })
+        if co_authors:
+            parts.append(
+                f"{you} has other authors with claims here ({', '.join(co_authors)}): they are "
+                f"not yours as {me}; name author_id to write as one of them"
+            )
     if skipped:
         parts.append(
             f"{len(skipped)} stored file(s) could not be merged and were left out (see skipped): "

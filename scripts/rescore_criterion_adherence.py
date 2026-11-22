@@ -70,9 +70,10 @@ def _searched_each(calls, alternatives) -> bool:
     return all(own.values())
 
 
-#: The lines of the block the prompt ends a reply with: an ask is judged on the prose before it,
-#: since the block's "Not written" line names the claims and writers whatever was asked.
-_BLOCK_LINE = re.compile(r"^\s*(Re-scored|Prior|Evidence|Written|Replaced|Not written|Next):.*$", re.M)
+#: The lines of the block the prompt ends a reply with, but "Not written", which carries the
+#: question for a cell left for the user: an ask is judged on the prose and that line, since the
+#: other lines name the claims and writers whatever was asked.
+_BLOCK_LINE = re.compile(r"^\s*(Re-scored|Prior|Evidence|Written|Replaced|Next):.*$", re.M)
 
 
 def _ask_row(want: Mapping[str, Any], writes, reply: str, row: dict) -> dict:

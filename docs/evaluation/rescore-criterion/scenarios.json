@@ -266,6 +266,7 @@
       "contributorId": "scorer",
       "authorId": "scorer",
       "kind": "agent",
+      "model": null,
       "latestRound": 1
      }
     ],
@@ -677,6 +678,7 @@
       "contributorId": "scorer",
       "authorId": "scorer",
       "kind": "agent",
+      "model": null,
       "latestRound": 1
      }
     ],
@@ -1080,6 +1082,7 @@
       "contributorId": "scorer",
       "authorId": "scorer",
       "kind": "agent",
+      "model": null,
       "latestRound": 1
      }
     ],
@@ -1498,6 +1501,7 @@
       "contributorId": "scorer",
       "authorId": "scorer",
       "kind": "agent",
+      "model": null,
       "latestRound": 1
      }
     ],
@@ -1917,6 +1921,7 @@
       "contributorId": "scorer",
       "authorId": "scorer",
       "kind": "agent",
+      "model": null,
       "latestRound": 1
      }
     ],
@@ -2328,6 +2333,7 @@
       "contributorId": "scorer",
       "authorId": "scorer",
       "kind": "agent",
+      "model": null,
       "latestRound": 1
      }
     ],
@@ -2708,6 +2714,7 @@
       "contributorId": "scorer",
       "authorId": "scorer",
       "kind": "agent",
+      "model": null,
       "latestRound": 2
      }
     ],
@@ -3120,6 +3127,7 @@
       "contributorId": "scorer",
       "authorId": "scorer",
       "kind": "agent",
+      "model": null,
       "latestRound": 1
      }
     ],
@@ -3545,6 +3553,7 @@
       "contributorId": "scorer",
       "authorId": "scorer",
       "kind": "agent",
+      "model": null,
       "latestRound": 2
      }
     ],
@@ -3945,12 +3954,14 @@
       "contributorId": "ana",
       "authorId": "ana",
       "kind": "human",
+      "model": null,
       "latestRound": null
      },
      {
       "contributorId": "scorer",
       "authorId": "scorer",
       "kind": "agent",
+      "model": null,
       "latestRound": 1
      }
     ],
@@ -4344,12 +4355,14 @@
       "contributorId": "ana",
       "authorId": "ana",
       "kind": "human",
+      "model": null,
       "latestRound": null
      },
      {
       "contributorId": "scorer",
       "authorId": "scorer",
       "kind": "agent",
+      "model": null,
       "latestRound": 1
      }
     ],
@@ -4751,6 +4764,7 @@
       "contributorId": "scorer",
       "authorId": "scorer",
       "kind": "agent",
+      "model": null,
       "latestRound": 1
      }
     ],
@@ -4882,25 +4896,14 @@
   },
   "criterion": "spare-parts",
   "expected": {
-   "action": "write",
-   "prior": "withheld",
-   "session": "fresh",
+   "action": "ask",
+   "either": false,
+   "prior": null,
+   "session": null,
    "round": 2,
    "noContributor": true,
-   "cells": {
-    "brindle": [
-     5,
-     "brindle-spare-parts-score"
-    ],
-    "copperleaf": [
-     3,
-     "copperleaf-spare-parts-score"
-    ],
-    "tamsin": [
-     5,
-     "tamsin-spare-parts-score"
-    ]
-   }
+   "asks": "(?s)(?=.*\\bscorer\\b)(?=.*(write as|writing as|as (the )?contributor|who))",
+   "cells": {}
   }
  }
 ]
