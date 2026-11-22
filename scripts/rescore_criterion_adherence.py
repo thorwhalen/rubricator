@@ -26,6 +26,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from grading import all_or_none, line, table, tally  # noqa: E402
 from rescore_criterion_scenarios import ANALYSIS_ID, build  # noqa: E402
 
+_line = line  # the name the tests (and earlier callers) use
+
 #: Reads that return a stored cell's value, justification or evidence, or rates over them.
 #: ``analysis_get`` is one only in its ``full`` view, which links the document itself.
 PRIOR_READS = {"report_weaknesses", "aggregate_assertions", "stability_report", "report_completeness",
