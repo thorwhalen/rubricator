@@ -64,14 +64,18 @@ def measures_rescore_context(
 
     For each cell of ``criterion_id`` (every live alternative, or those in
     ``alternative_ids``, per measure), every live claim's ``assertionId``,
-    ``contributorId`` and ``authorId``, and ``yours`` when it is the writer named by
-    ``contributor_id`` and ``author_id`` (which defaults to the contributor id). For each
-    writer holding a live claim there, and for the named writer always, its
-    ``latestRound`` over the whole analysis (None when it has drawn in no round): a
-    re-score is that writer's round ``latestRound + 1``.
+    ``contributorId`` and ``authorId``, and ``yours`` when it is ``contributor_id``'s (and
+    ``author_id``'s, when given; without it, any author of that contributor). For each
+    writer holding a live claim there, and for the named contributor's writers always,
+    its ``kind`` (agent or human, as stored) and ``latestRound`` over the whole analysis
+    (None when it has drawn in no round): a re-score is that writer's round
+    ``latestRound + 1``.
 
-    An unknown analysis, criterion or alternative is refused with ``KeyError``.
+    An unknown analysis, criterion or alternative is refused with ``KeyError``;
+    ``author_id`` without ``contributor_id`` with ``ValueError``.
     """
+    if author_id is not None and contributor_id is None:
+        raise ValueError("author_id names an author of contributor_id: give contributor_id too")
     frame = store.frame(analysis_id)
     criteria = {c["id"] for c in _live(frame.get("criteria"))}
     if criterion_id not in criteria:
@@ -90,12 +94,20 @@ def measures_rescore_context(
         wanted = set(alternative_ids)
         alternatives = [a for a in alternatives if a in wanted]
     measures = [m["name"] for m in frame.get("measures", []) if "name" in m] or ["score"]
-    you = (contributor_id, author_id or contributor_id) if contributor_id is not None else None
+
+    def is_yours(cid, aid) -> bool:
+        return cid == contributor_id and (author_id is None or aid == author_id)
 
     contributions, skipped = store.mergeable_contributions(analysis_id, frame=frame)
     latest: dict[tuple[str, str], int | None] = {}
+    kinds: dict[tuple[str, str], str | None] = {}
+    own_authors: list[str] = []
     claims: dict[tuple[str, str], list[dict[str, Any]]] = {}
     for cid, contribution in contributions:
+        for a in contribution.get("authors", []) or []:
+            kinds[(cid, a.get("id"))] = a.get("kind")
+            if cid == contributor_id:
+                own_authors.append(a.get("id"))
         for author, n in _latest_rounds(contribution).items():
             latest[(cid, author)] = n
         for cell in contribution.get("cells", []) or []:
@@ -103,12 +115,11 @@ def measures_rescore_context(
                 continue
             key = (cell.get("alternativeId"), cell.get("measure", "score"))
             for a in live_assertions(cell):
-                writer = (cid, a.get("authorId"))
                 claims.setdefault(key, []).append({
                     "assertionId": a["id"],
                     "contributorId": cid,
                     "authorId": a.get("authorId"),
-                    "yours": writer == you,
+                    "yours": is_yours(cid, a.get("authorId")),
                 })
 
     cells = [
@@ -124,13 +135,15 @@ def measures_rescore_context(
         for measure in measures
     ]
     holders = {(c["contributorId"], c["authorId"]) for cell in cells for c in cell["liveClaims"]}
-    if you is not None:
-        holders.add(you)
+    if contributor_id is not None:
+        named = [author_id] if author_id is not None else own_authors or [contributor_id]
+        holders.update((contributor_id, aid) for aid in named)
     writers = [
-        {"contributorId": cid, "authorId": aid, "latestRound": latest.get((cid, aid))}
+        {"contributorId": cid, "authorId": aid, "kind": kinds.get((cid, aid)),
+         "latestRound": latest.get((cid, aid))}
         for cid, aid in sorted(holders, key=lambda w: (w[0], w[1] or ""))
     ]
-    summary = _summary(criterion_id, cells, writers, you, skipped)
+    summary = _summary(criterion_id, cells, writers, contributor_id, skipped)
     return {
         "analysisId": analysis_id,
         "criterionId": criterion_id,
@@ -142,6 +155,7 @@ def measures_rescore_context(
 
 
 def _summary(criterion_id, cells, writers, you, skipped) -> str:
+    """``you`` is the named contributor id, or None."""
     def name(cid, aid):
         return cid if aid in (None, cid) else f"{cid}/{aid}"
 
@@ -150,7 +164,7 @@ def _summary(criterion_id, cells, writers, you, skipped) -> str:
     for w in writers:
         n = w["latestRound"]
         parts.append(
-            f"{name(w['contributorId'], w['authorId'])}'s latest round is "
+            f"{name(w['contributorId'], w['authorId'])} ({w['kind'] or 'kind unknown'})'s latest round is "
             + (f"{n}, so its re-score is round {n + 1}" if n is not None else "unrecorded")
         )
     if you is not None:
@@ -171,7 +185,7 @@ def _summary(criterion_id, cells, writers, you, skipped) -> str:
     if skipped:
         parts.append(
             f"{len(skipped)} stored file(s) could not be merged and were left out (see skipped): "
-            "claims in them are not listed, so stop and tell the user"
+            "claims in them are not listed"
         )
     return "; ".join(parts) + (
         ". No value, justification, evidence or code is returned: reading this keeps the "

@@ -265,11 +265,12 @@
      {
       "contributorId": "scorer",
       "authorId": "scorer",
+      "kind": "agent",
       "latestRound": 1
      }
     ],
     "skipped": [],
-    "summary": "\"spare-parts\": 3 cell(s) in scope, 3 with a live claim; scorer's latest round is 1, so its re-score is round 2. No value, justification, evidence or code is returned: reading this keeps the prior withheld."
+    "summary": "\"spare-parts\": 3 cell(s) in scope, 3 with a live claim; scorer (agent)'s latest round is 1, so its re-score is round 2. No value, justification, evidence or code is returned: reading this keeps the prior withheld."
    },
    "corpus_search, per alternative, over the whole corpus": {
     "brindle": {
@@ -675,11 +676,12 @@
      {
       "contributorId": "scorer",
       "authorId": "scorer",
+      "kind": "agent",
       "latestRound": 1
      }
     ],
     "skipped": [],
-    "summary": "\"quietness\": 3 cell(s) in scope, 2 with a live claim; scorer's latest round is 1, so its re-score is round 2. No value, justification, evidence or code is returned: reading this keeps the prior withheld."
+    "summary": "\"quietness\": 3 cell(s) in scope, 2 with a live claim; scorer (agent)'s latest round is 1, so its re-score is round 2. No value, justification, evidence or code is returned: reading this keeps the prior withheld."
    },
    "corpus_search, per alternative, over the whole corpus": {
     "brindle": {
@@ -1077,11 +1079,12 @@
      {
       "contributorId": "scorer",
       "authorId": "scorer",
+      "kind": "agent",
       "latestRound": 1
      }
     ],
     "skipped": [],
-    "summary": "\"quietness\": 3 cell(s) in scope, 2 with a live claim; scorer's latest round is 1, so its re-score is round 2. No value, justification, evidence or code is returned: reading this keeps the prior withheld."
+    "summary": "\"quietness\": 3 cell(s) in scope, 2 with a live claim; scorer (agent)'s latest round is 1, so its re-score is round 2. No value, justification, evidence or code is returned: reading this keeps the prior withheld."
    },
    "corpus_search, per alternative, over the whole corpus": {
     "brindle": {
@@ -1494,11 +1497,12 @@
      {
       "contributorId": "scorer",
       "authorId": "scorer",
+      "kind": "agent",
       "latestRound": 1
      }
     ],
     "skipped": [],
-    "summary": "\"spare-parts\": 3 cell(s) in scope, 3 with a live claim; scorer's latest round is 1, so its re-score is round 2. No value, justification, evidence or code is returned: reading this keeps the prior withheld."
+    "summary": "\"spare-parts\": 3 cell(s) in scope, 3 with a live claim; scorer (agent)'s latest round is 1, so its re-score is round 2. No value, justification, evidence or code is returned: reading this keeps the prior withheld."
    },
    "corpus_search, per alternative, over the whole corpus": {
     "brindle": {
@@ -1912,11 +1916,12 @@
      {
       "contributorId": "scorer",
       "authorId": "scorer",
+      "kind": "agent",
       "latestRound": 1
      }
     ],
     "skipped": [],
-    "summary": "\"spare-parts\": 3 cell(s) in scope, 3 with a live claim; scorer's latest round is 1, so its re-score is round 2. No value, justification, evidence or code is returned: reading this keeps the prior withheld."
+    "summary": "\"spare-parts\": 3 cell(s) in scope, 3 with a live claim; scorer (agent)'s latest round is 1, so its re-score is round 2. No value, justification, evidence or code is returned: reading this keeps the prior withheld."
    },
    "corpus_search, per alternative, over the whole corpus": {
     "brindle": {
@@ -2322,11 +2327,12 @@
      {
       "contributorId": "scorer",
       "authorId": "scorer",
+      "kind": "agent",
       "latestRound": 1
      }
     ],
     "skipped": [],
-    "summary": "\"quietness\": 3 cell(s) in scope, 2 with a live claim; scorer's latest round is 1, so its re-score is round 2. No value, justification, evidence or code is returned: reading this keeps the prior withheld."
+    "summary": "\"quietness\": 3 cell(s) in scope, 2 with a live claim; scorer (agent)'s latest round is 1, so its re-score is round 2. No value, justification, evidence or code is returned: reading this keeps the prior withheld."
    },
    "corpus_search, per alternative, over the whole corpus": {
     "brindle": {
@@ -2701,11 +2707,12 @@
      {
       "contributorId": "scorer",
       "authorId": "scorer",
+      "kind": "agent",
       "latestRound": 2
      }
     ],
     "skipped": [],
-    "summary": "\"spare-parts\": 3 cell(s) in scope, 3 with a live claim; scorer's latest round is 2, so its re-score is round 3. No value, justification, evidence or code is returned: reading this keeps the prior withheld."
+    "summary": "\"spare-parts\": 3 cell(s) in scope, 3 with a live claim; scorer (agent)'s latest round is 2, so its re-score is round 3. No value, justification, evidence or code is returned: reading this keeps the prior withheld."
    },
    "corpus_search, per alternative, over the whole corpus": {
     "brindle": {
@@ -3112,11 +3119,12 @@
      {
       "contributorId": "scorer",
       "authorId": "scorer",
+      "kind": "agent",
       "latestRound": 1
      }
     ],
     "skipped": [],
-    "summary": "\"spare-parts\": 3 cell(s) in scope, 3 with a live claim; scorer's latest round is 1, so its re-score is round 2. No value, justification, evidence or code is returned: reading this keeps the prior withheld."
+    "summary": "\"spare-parts\": 3 cell(s) in scope, 3 with a live claim; scorer (agent)'s latest round is 1, so its re-score is round 2. No value, justification, evidence or code is returned: reading this keeps the prior withheld."
    },
    "corpus_search, per alternative, over the whole corpus": {
     "brindle": {
@@ -3536,11 +3544,12 @@
      {
       "contributorId": "scorer",
       "authorId": "scorer",
+      "kind": "agent",
       "latestRound": 2
      }
     ],
     "skipped": [],
-    "summary": "\"spare-parts\": 3 cell(s) in scope, 3 with a live claim; scorer's latest round is 2, so its re-score is round 3; several live claims of yours in: brindle/score -- ask which a re-score replaces. No value, justification, evidence or code is returned: reading this keeps the prior withheld."
+    "summary": "\"spare-parts\": 3 cell(s) in scope, 3 with a live claim; scorer (agent)'s latest round is 2, so its re-score is round 3; several live claims of yours in: brindle/score -- ask which a re-score replaces. No value, justification, evidence or code is returned: reading this keeps the prior withheld."
    },
    "corpus_search, per alternative, over the whole corpus": {
     "brindle": {
@@ -3672,7 +3681,7 @@
    "prior": null,
    "session": null,
    "round": 3,
-   "asks": "brindle-spare-parts-score|two (live )?(claims|draws|scores)|both (of )?(your |my )?(live )?(claims|draws|scores)|which (one|claim|draw|of (the|these|them))",
+   "asks": "(which|both|two|one of)[^.?\\n]{0,160}(replac|supersed)|(replac|supersed)[^.?\\n]{0,160}(which|both|two|one of|either)",
    "cells": {}
   }
  },
@@ -3935,16 +3944,18 @@
      {
       "contributorId": "ana",
       "authorId": "ana",
+      "kind": "human",
       "latestRound": null
      },
      {
       "contributorId": "scorer",
       "authorId": "scorer",
+      "kind": "agent",
       "latestRound": 1
      }
     ],
     "skipped": [],
-    "summary": "\"quietness\": 3 cell(s) in scope, 3 with a live claim; ana's latest round is unrecorded; scorer's latest round is 1, so its re-score is round 2; only another writer's claims in: tamsin/score -- ask before writing there. No value, justification, evidence or code is returned: reading this keeps the prior withheld."
+    "summary": "\"quietness\": 3 cell(s) in scope, 3 with a live claim; ana (human)'s latest round is unrecorded; scorer (agent)'s latest round is 1, so its re-score is round 2; only another writer's claims in: tamsin/score -- ask before writing there. No value, justification, evidence or code is returned: reading this keeps the prior withheld."
    },
    "corpus_search, per alternative, over the whole corpus": {
     "brindle": {
@@ -4076,7 +4087,407 @@
    "prior": null,
    "session": null,
    "round": 2,
-   "asks": "\\bana\\b[\\s\\S]*\\b(claim|contributor|writer|rater)|\\b(claim|contributor|writer|rater)[\\s\\S]*\\bana\\b",
+   "asks": "(?s)(?=.*\\bana\\b)(?=.*\\b(claim|writer|rater|contributor|person|human)\\b)(?=.*(replac|supersed|second|separate|beside|same (scorer|agent|rater)|write as|writing as))",
+   "cells": {}
+  }
+ },
+ {
+  "id": "r12",
+  "request": "Tamsin finally published a noise datasheet; it's in the corpus now. Re-score quietness for Tamsin only.",
+  "conversation": [],
+  "contributor": null,
+  "harness": {},
+  "newDocuments": [
+   "tamsin-datasheet"
+  ],
+  "toolResults": {
+   "analysis_get(criteria)": {
+    "analysisId": "kettles",
+    "view": "criteria",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 3,
+     "superseded": 0,
+     "byKind": {
+      "scored": 5,
+      "settledBlank": 1,
+      "notApplicable": 0
+     },
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 3
+      }
+     ]
+    },
+    "criteria": [
+     {
+      "id": "repair-policy",
+      "label": "Repair policy",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states the maker repairs nothing."
+       },
+       {
+        "level": "3",
+        "text": "A source states a repair policy that names some parts and no period."
+       },
+       {
+        "level": "5",
+        "text": "A source states a dated repair policy naming every part it covers."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "How long spare parts are stocked; that is spare-parts."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "A broken kettle is fixed rather than replaced",
+       "question": "What does the maker commit to repairing, and for how long?"
+      }
+     },
+     {
+      "id": "spare-parts",
+      "label": "Spare parts",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states no spare parts are sold."
+       },
+       {
+        "level": "3",
+        "text": "A source states parts are stocked for under five years."
+       },
+       {
+        "level": "5",
+        "text": "A source states parts are stocked for ten years or more."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "What the maker repairs itself; that is repair-policy."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "A broken kettle is fixed rather than replaced",
+       "question": "For how long does the maker state it stocks spare parts?"
+      }
+     },
+     {
+      "id": "quietness",
+      "label": "Quietness",
+      "scale": "ordinal-1-5-anchored",
+      "preference": "increasing",
+      "anchors": [
+       {
+        "level": "1",
+        "text": "A source states a boiling noise above 65 dB."
+       },
+       {
+        "level": "3",
+        "text": "A source states a boiling noise between 50 and 65 dB."
+       },
+       {
+        "level": "5",
+        "text": "A source states a boiling noise below 50 dB."
+       }
+      ],
+      "missingCodes": [],
+      "definition": {
+       "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
+       "exclusions": [
+        "Noise from the lid or switch."
+       ],
+       "missingRules": [
+        {
+         "code": "not-evidenced",
+         "when": "No source the maker publishes says."
+        },
+        {
+         "code": "indeterminate",
+         "when": "The maker's sources disagree."
+        }
+       ],
+       "objective": "The kitchen stays usable for calls",
+       "question": "How loud is the kettle while boiling, as the maker states it?"
+      }
+     }
+    ],
+    "criteriaVersion": "1",
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 3 of 9 cell(s) outstanding (3 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   },
+   "analysis_get(outstanding)": {
+    "analysisId": "kettles",
+    "view": "outstanding",
+    "question": "which kettle should the office buy?",
+    "stage": 5,
+    "counts": {
+     "alternatives": 3,
+     "criteria": 3,
+     "cells": 9,
+     "outstanding": 3,
+     "superseded": 0,
+     "byKind": {
+      "scored": 5,
+      "settledBlank": 1,
+      "notApplicable": 0
+     },
+     "byCode": [
+      {
+       "code": "not-assessed",
+       "count": 3
+      }
+     ]
+    },
+    "outstanding": [
+     {
+      "alternativeId": "brindle",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "copperleaf",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     },
+     {
+      "alternativeId": "tamsin",
+      "criterionId": "repair-policy",
+      "measure": "score",
+      "code": "not-assessed",
+      "recorded": false
+     }
+    ],
+    "omitted": [],
+    "skipped": [],
+    "summary": "\"kettles\" at stage 5 (populate): 3 alternative(s), 3 criteria, 3 of 9 cell(s) outstanding (3 not-assessed); next: score or mark the outstanding cells (analysis_get view=outstanding), and re-score any cell answering an older criteria definition"
+   },
+   "measures_rescore_context": {
+    "analysisId": "kettles",
+    "criterionId": "quietness",
+    "cells": [
+     {
+      "alternativeId": "brindle",
+      "measure": "score",
+      "liveClaims": [
+       {
+        "assertionId": "brindle-quietness-score",
+        "contributorId": "scorer",
+        "authorId": "scorer",
+        "yours": false
+       }
+      ]
+     },
+     {
+      "alternativeId": "copperleaf",
+      "measure": "score",
+      "liveClaims": [
+       {
+        "assertionId": "copperleaf-quietness-score",
+        "contributorId": "scorer",
+        "authorId": "scorer",
+        "yours": false
+       }
+      ]
+     },
+     {
+      "alternativeId": "tamsin",
+      "measure": "score",
+      "liveClaims": [
+       {
+        "assertionId": "tamsin-quietness-score",
+        "contributorId": "ana",
+        "authorId": "ana",
+        "yours": false
+       }
+      ]
+     }
+    ],
+    "writers": [
+     {
+      "contributorId": "ana",
+      "authorId": "ana",
+      "kind": "human",
+      "latestRound": null
+     },
+     {
+      "contributorId": "scorer",
+      "authorId": "scorer",
+      "kind": "agent",
+      "latestRound": 1
+     }
+    ],
+    "skipped": [],
+    "summary": "\"quietness\": 3 cell(s) in scope, 3 with a live claim; ana (human)'s latest round is unrecorded; scorer (agent)'s latest round is 1, so its re-score is round 2. No value, justification, evidence or code is returned: reading this keeps the prior withheld."
+   },
+   "corpus_search, per alternative, over the whole corpus": {
+    "brindle": {
+     "analysisId": "kettles",
+     "query": "Brindle boiling noise dB",
+     "skipped": [],
+     "hits": [
+      {
+       "spanId": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+       "documentId": "doc-0ece686f0bf071048bd72a0190356f72",
+       "start": 0,
+       "end": 112,
+       "text": "Brindle care guide. Spare parts are stocked for ten years after purchase. The Brindle boils at a measured 55 dB.",
+       "score": 1.856394,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-58cd4b029a6286f95965954da2cc059a:0-72",
+       "documentId": "doc-58cd4b029a6286f95965954da2cc059a",
+       "start": 0,
+       "end": 72,
+       "text": "Tamsin technical datasheet. Rated boiling noise: 48 dB at full capacity.",
+       "score": 1.856056,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
+       "documentId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
+       "start": 0,
+       "end": 81,
+       "text": "Copperleaf manual. Spare parts are stocked for three years. Boiling noise: 70 dB.",
+       "score": 1.789702,
+       "agentProduced": false
+      }
+     ],
+     "inlined": false,
+     "warnings": [],
+     "summary": "3 hit(s) of 3 matching \"Brindle boiling noise dB\" among 4 span(s) in 4 document(s), ranked by BM25 over lex-v1 (Unicode 15.0.0) terms less stop-en-v1, the whole query as a phrase first, ties by documentId then start; each widened to 600 characters around its chunk-v1 span"
+    },
+    "copperleaf": {
+     "analysisId": "kettles",
+     "query": "Copperleaf boiling noise dB",
+     "skipped": [],
+     "hits": [
+      {
+       "spanId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
+       "documentId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
+       "start": 0,
+       "end": 81,
+       "text": "Copperleaf manual. Spare parts are stocked for three years. Boiling noise: 70 dB.",
+       "score": 3.025956,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-58cd4b029a6286f95965954da2cc059a:0-72",
+       "documentId": "doc-58cd4b029a6286f95965954da2cc059a",
+       "start": 0,
+       "end": 72,
+       "text": "Tamsin technical datasheet. Rated boiling noise: 48 dB at full capacity.",
+       "score": 1.856056,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+       "documentId": "doc-0ece686f0bf071048bd72a0190356f72",
+       "start": 0,
+       "end": 112,
+       "text": "Brindle care guide. Spare parts are stocked for ten years after purchase. The Brindle boils at a measured 55 dB.",
+       "score": 0.320419,
+       "agentProduced": false
+      }
+     ],
+     "inlined": false,
+     "warnings": [],
+     "summary": "3 hit(s) of 3 matching \"Copperleaf boiling noise dB\" among 4 span(s) in 4 document(s), ranked by BM25 over lex-v1 (Unicode 15.0.0) terms less stop-en-v1, the whole query as a phrase first, ties by documentId then start; each widened to 600 characters around its chunk-v1 span"
+    },
+    "tamsin": {
+     "analysisId": "kettles",
+     "query": "Tamsin boiling noise dB",
+     "skipped": [],
+     "hits": [
+      {
+       "spanId": "doc-58cd4b029a6286f95965954da2cc059a:0-72",
+       "documentId": "doc-58cd4b029a6286f95965954da2cc059a",
+       "start": 0,
+       "end": 72,
+       "text": "Tamsin technical datasheet. Rated boiling noise: 48 dB at full capacity.",
+       "score": 2.594176,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4:0-81",
+       "documentId": "doc-c26bc4b58f1d0df5e0fcb5d1a7eb66b4",
+       "start": 0,
+       "end": 81,
+       "text": "Copperleaf manual. Spare parts are stocked for three years. Boiling noise: 70 dB.",
+       "score": 1.789702,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-ac46971fe9b5893beccb10d636568b53:0-80",
+       "documentId": "doc-ac46971fe9b5893beccb10d636568b53",
+       "start": 0,
+       "end": 80,
+       "text": "Tamsin quick start leaflet. Fill to the max line. Descale monthly in hard water.",
+       "score": 0.711732,
+       "agentProduced": false
+      },
+      {
+       "spanId": "doc-0ece686f0bf071048bd72a0190356f72:0-112",
+       "documentId": "doc-0ece686f0bf071048bd72a0190356f72",
+       "start": 0,
+       "end": 112,
+       "text": "Brindle care guide. Spare parts are stocked for ten years after purchase. The Brindle boils at a measured 55 dB.",
+       "score": 0.320419,
+       "agentProduced": false
+      }
+     ],
+     "inlined": false,
+     "warnings": [],
+     "summary": "4 hit(s) of 4 matching \"Tamsin boiling noise dB\" among 4 span(s) in 4 document(s), ranked by BM25 over lex-v1 (Unicode 15.0.0) terms less stop-en-v1, the whole query as a phrase first, ties by documentId then start; each widened to 600 characters around its chunk-v1 span"
+    }
+   }
+  },
+  "criterion": "quietness",
+  "expected": {
+   "action": "ask",
+   "either": false,
+   "prior": null,
+   "session": null,
+   "round": 2,
+   "noContributor": true,
+   "asks": "(?s)(?=.*\\bana\\b)(?=.*\\b(claim|writer|rater|contributor|person|human)\\b)(?=.*(replac|supersed|second|separate|beside|same (scorer|agent|rater)|write as|writing as))",
    "cells": {}
   }
  },
@@ -4339,11 +4750,12 @@
      {
       "contributorId": "scorer",
       "authorId": "scorer",
+      "kind": "agent",
       "latestRound": 1
      }
     ],
     "skipped": [],
-    "summary": "\"spare-parts\": 3 cell(s) in scope, 3 with a live claim; scorer's latest round is 1, so its re-score is round 2. No value, justification, evidence or code is returned: reading this keeps the prior withheld."
+    "summary": "\"spare-parts\": 3 cell(s) in scope, 3 with a live claim; scorer (agent)'s latest round is 1, so its re-score is round 2. No value, justification, evidence or code is returned: reading this keeps the prior withheld."
    },
    "corpus_search, per alternative, over the whole corpus": {
     "brindle": {

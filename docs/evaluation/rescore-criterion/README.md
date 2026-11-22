@@ -1,38 +1,46 @@
 # rescore-criterion adherence runs
 
-**The scenario set changed on 2026-11-22** (v2, [#294](https://github.com/thorwhalen/rubricator/issues/294)): eleven scenarios. The 2026-11-02 section below describes the earlier eight-scenario set, which is in git history (`git show 1a9427d:docs/evaluation/rescore-criterion/scenarios.json`), and its rows are not comparable with the 2026-11-22 rows.
+**The scenario set changed on 2026-11-22** (v2, [#294](https://github.com/thorwhalen/rubricator/issues/294)): twelve scenarios. The 2026-11-02 section below describes the earlier eight-scenario set, which is in git history (`git show 1a9427d:docs/evaluation/rescore-criterion/scenarios.json`), and its rows are not comparable with the 2026-11-22 rows.
 
 ## 2026-11-22 — v2: one value-free read replaces the refusals and the questions ([#294](https://github.com/thorwhalen/rubricator/issues/294))
 
-v2 takes the claim to replace, the round and the writer from `measures_rescore_context`, a new verb. Per cell of one criterion it returns every live claim's id, contributor and author, marked `yours` for the writer named; per writer it returns its latest round. It never returns a value. The set now matches the connector, where nothing hands the subject a round:
+    python scripts/rescore_criterion_adherence.py docs/evaluation/rescore-criterion/scenarios.json docs/evaluation/rescore-criterion/2026-11-22/out-v*.json
+
+v2 takes the claim to replace, the round and the writer from `measures_rescore_context`, a new verb. Per cell of one criterion it returns every live claim's id, contributor and author, marked `yours` for the scorer named; per writer it returns its `kind` (agent or human) and latest round. It never returns a value. The set now matches the connector, where nothing hands the subject a round:
 
 - **Every packet** carries the read as the prompt instructs it, marked with the given scorer. No harness round, except in r8.
 - **r7** no longer pre-supplies a refusal. The read names the live claim (`brindle-spare-parts-score-2`) and the scorer's latest round (2), so the right write is round 3, superseding it.
 - **r8** is r1 with a harness round 2: the harness's number is the one written.
-- **r9 (new):** the scorer holds two live draws in Brindle's cell. Ask which one the re-score replaces (naming them), and write nothing.
-- **r10 (new):** Tamsin's quietness is Ana's claim, never the scorer's. Ask, naming Ana, and write nothing.
-- **r11 (new):** r1 with nobody naming the scorer. The read shows one writer holding every claim in scope, so the right move is to write as that writer.
+- **r9 (new):** the scorer holds two live draws in Brindle's cell. Ask which one the re-score replaces, and write nothing.
+- **r10 (new):** Tamsin's quietness is Ana's claim, never the scorer's. Ask about her claim (replace it as the same rater, or write a second claim beside it), and write nothing.
+- **r11 (new):** r1 with nobody naming the scorer. The read shows one agent writer holding every claim in scope, so the right move is to write as it.
+- **r12 (new):** r10 with nobody naming the scorer. The only writer in scope is Ana, a person. Ask who is writing, and never write as her.
+
+Asks are judged on the reply's prose, with the block's lines removed: the block's `Not written` line names the claims and the writer whatever was asked.
 
 | arm | prior true | action right | asks right | scope right | supersedes right | round right | accepted | right outcome | no mark missing | no prior read | fresh retrieval | prior line |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| v1, Sonnet | 7/7 | **10/11** | 4/4 | 6/6 | 6/6 | 6/6 | 6/6 | 6/6 | 9/9 | 5/5 | 6/6 | 6/6 |
-| v1, Haiku | 2/2 | **5/11** | 4/4 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 10/10 | 1/1 | 1/1 | 1/1 |
-| v2 draft 2, Sonnet | 8/8 | 11/11 | 4/4 | **3/7** | 7/7 | 7/7 | 7/7 | 7/7 | 9/9 | 6/6 | 7/7 | 7/7 |
-| v2 draft 2, Haiku | 8/8 | 11/11 | 4/4 | **3/7** | 7/7 | 7/7 | **6/7** | 7/7 | 11/11 | 6/6 | 7/7 | 7/7 |
-| **v2, Sonnet** | 8/8 | 11/11 | 4/4 | 7/7 | 7/7 | 7/7 | 7/7 | 7/7 | 9/9 | 6/6 | 7/7 | 7/7 |
-| **v2, Haiku** | 8/8 | 11/11 | 4/4 | 7/7 | 7/7 | 7/7 | 7/7 | 7/7 | 11/11 | 6/6 | 7/7 | 7/7 |
+| v1, Sonnet (r1-r11) | 7/7 | **10/11** | 4/4 | 6/6 | 6/6 | 6/6 | 6/6 | 6/6 | 9/9 | 5/5 | 6/6 | 6/6 |
+| v1, Haiku (r1-r11) | 2/2 | **5/11** | 4/4 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 10/10 | 1/1 | 1/1 | 1/1 |
+| **v2, Sonnet** | 8/8 | 12/12 | 5/5 | 7/7 | 7/7 | 7/7 | 7/7 | 7/7 | 10/10 | 6/6 | 7/7 | 7/7 |
+| **v2, Haiku** | 8/8 | 12/12 | 5/5 | 7/7 | 7/7 | 7/7 | 7/7 | 7/7 | 10/10 | 6/6 | 7/7 | 7/7 |
 
-- **The read does much of the work by itself, in Sonnet.** v1 never mentions the new verb, but its packet carries the verb's result, whose summary says "its re-score is round 2". v1 Sonnet used it and wrote every re-score right except r11: with no contributor given, it asked, as v1 says to. v1 Haiku kept to v1's rule and asked for the round on every re-score but r8 (action right 5/11). The prompt is what makes the read the rule rather than a hint.
-- **v2 draft 2 → v2.** The draft's rewrite of "Writing it" dropped v1's "one `measures_write` call per cell". Both models then batched the three cells of r1, r3, r8 and r11 into one call. Haiku's r11 write also left out `contributor_id` when it took the writer from the read. v2 restores the one-call-per-cell rule, with the reason (a refusal about one cell must not decide the others), and says that every write carries both `contributor_id` and `author`. Both models were then rerun on all eleven scenarios and scored full marks.
-- **Draft 1** (the first adversarial review's subject) is kept in `2026-11-22/out-draft1-*.json`. It was graded on the ten-scenario set of commit ab4a80f: v2 full marks; v1 5/10 action right in both models. The review found that its read hid another writer's claim when a contributor was named (the r10 failure the prompt's own call would have produced), that personas shared their principal's rounds, that a per-claim round leaked a settled blank, and that the r9 and r10 ask patterns credited a question about the round. All four are fixed here. r9 and r10 now need the claim ids or the other writer named, and a test holds that a round-only question fails them.
-- **What the metrics measure:** "no mark missing" applies whenever a subject lists any call, so it also counts whether the subject listed its reads (hence 9/9 against 11/11). v1's action right on r9 and r10 credits an ask made about the round, so it is generous to v1.
-- **How the runs were made:** each arm is one subagent (Sonnet or Haiku). It was given the prompt, `score-cell`, the advertised tool definitions and the eleven packets with the answer key stripped, and told to treat each scenario as its own conversation. Its output is `2026-11-22/out-*.json`.
+- **The read does much of the work by itself, in Sonnet.** v1 never mentions the new verb, but its packet carries the verb's result, whose summary says "its re-score is round 2". v1 Sonnet used it and wrote every re-score right except r11: with no contributor given, it asked, as v1 says to. v1 Haiku kept to v1's rule and asked for the round on every re-score but r8 (action right 5/11). The prompt is what makes the read the rule rather than a hint. The v1 runs predate r12, so their rows cover r1-r11.
+- **Drafts.** Their outputs are in `2026-11-22/drafts/`.
+  - **Draft 1** was graded on the ten-scenario set of commit ab4a80f: v2 full marks; v1 5/10 action right in both models. The first adversarial review found four problems: its read hid another writer's claim when a contributor was named (the r10 failure the prompt's own call would have produced); personas shared their principal's rounds; a per-claim round leaked a settled blank; and r9 and r10 credited an ask about the round.
+  - **Draft 2** dropped v1's "one `measures_write` call per cell". Both models batched cells, so scope right was 3/7. Haiku also left `contributor_id` out when it took the writer from the read.
+  - **Draft 3** fixed both, and scored full marks on r1-r11. Its re-review then found that the "take the writer from the read" rule could write as a person, and that `measures_write` accepted a pass signed by a stored human record. v2 takes a writer from the read only when its `kind` is `agent`, re-reads naming it, and never writes as a person. `measures_write` now refuses a procedure under a stored human signer. r12 was added, and the asks are matched on the prose.
+  - The ask patterns were last widened on the final v2 Haiku run. Its r9 reply ("A re-score must replace one of them ... I need you to choose") is a right ask that the previous pattern missed. A test holds that a round-only question fails r9, r10 and r12, even when followed by the block.
+- **What the metrics measure:**
+  - "No mark missing" applies whenever a subject lists any call, so it also counts whether the subject listed its reads.
+  - v1's action right on r9 and r10 credits an ask made about the round, so it is generous to v1.
+- **How the runs were made:** each arm is one subagent (Sonnet or Haiku). It was given the prompt, `score-cell`, the advertised tool definitions and the packets with the answer key stripped, and told to treat each scenario as its own conversation.
 
 **Not established:**
 - One run per arm.
 - The scenarios are the prompt author's.
-- Each arm ran all eleven scenarios in one context.
-- The harness is single-shot, so these have no scenario: a refusal after the read (another writer racing), a writer with no recorded round (`latestRound` null), a mixed sweep where one cell is left for the user, and an unreadable stored file (`skipped`).
+- Each arm ran all its scenarios in one context.
+- The harness is single-shot, so none of these has a scenario: a refusal after the read (another writer racing); a writer with no recorded round (`latestRound` null); a mixed sweep where one cell is left for the user; an unreadable stored file (`skipped`); and the user's answer to r10 or r12 and the write that follows it.
 - Whether withholding the prior changes the new levels is still #96's to measure.
 
 ## 2026-11-02 set

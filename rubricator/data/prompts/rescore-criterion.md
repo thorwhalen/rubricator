@@ -11,7 +11,7 @@ missing-codes:
   - not-assessed
   - deferred
 changelog:
-  - 2 (2026-11-22) — The id to replace, the round and the writer come from one value-free read, `measures_rescore_context` (#294), instead of the default id, a refusal, and a question to the user. Per cell it names every live claim's id, contributor and author, marked `yours` for the writer named, and per writer its latest round, and never a value: the claim to supersede is yours in that cell, the round is the writer's latest plus one unless a harness or the user gives one, the writer is the one given or, when none is, the single writer holding the claims in scope; two live claims of yours in a cell, or only another writer's claims there, go to the user with what each answer leads to, and a round never recorded is asked for. The refusal-driven recovery is gone; any refusal still stops that cell, and an unreadable stored file stops the pass. Revised once before landing, after an adversarial review found that filtering the read by contributor hid another writer's claim, that personas shared their principal's rounds, that a per-claim round leaked a settled blank, and that the connector still asked for the contributor. Hypothesis: in the connector, where no harness gives the round, v1 asked on almost every re-score; v2 writes with the right round and the right `supersedes` without asking, and asks only where the read shows a choice that is the user's (several live claims of one scorer, or another contributor's claim). A second draft dropped v1's one-call-per-cell rule, and both models batched cells; v2 restores it. Measured on eleven constructed scenarios (docs/evaluation/rescore-criterion/): v2 full marks in Sonnet and Haiku; v1 on the same set 10/11 (Sonnet, which used the read's summary unprompted) and 5/11 (Haiku) action right.
+  - 2 (2026-11-22) — The id to replace, the round and the writer come from one value-free read, `measures_rescore_context` (#294), instead of the default id, a refusal, and a question to the user. Per cell it names every live claim's id, contributor and author, marked `yours` for the writer named, and per writer its latest round, and never a value: the claim to supersede is yours in that cell, the round is the writer's latest plus one unless a harness or the user gives one, the writer is the one given or, when none is, the single writer holding the claims in scope; two live claims of yours in a cell, or only another writer's claims there, go to the user with what each answer leads to, and a round never recorded is asked for. The refusal-driven recovery is gone; any refusal still stops that cell, and an unreadable stored file stops the pass. Revised once before landing, after an adversarial review found that filtering the read by contributor hid another writer's claim, that personas shared their principal's rounds, that a per-claim round leaked a settled blank, and that the connector still asked for the contributor. Hypothesis: in the connector, where no harness gives the round, v1 asked on almost every re-score; v2 writes with the right round and the right `supersedes` without asking, and asks only where the read shows a choice that is the user's (several live claims of one scorer, or another contributor's claim). A second draft dropped v1's one-call-per-cell rule, and both models batched cells; v2 restores it. A re-review found that adopting the sole writer from the read could write as a person: v2 adopts only an agent writer, re-reads naming it, and never writes as a person. Measured on twelve constructed scenarios (docs/evaluation/rescore-criterion/): v2 full marks in Sonnet and Haiku; v1 on r1-r11 10/11 (Sonnet, which used the read's summary unprompted) and 5/11 (Haiku) action right.
   - 1 (2026-11-02) — First version (#129). Re-scores one existing criterion, for the alternatives the user names or all of them, after the evidence changed. The earlier scores are withheld from the re-scoring generation by default, so the new level is not anchored on the old one: the prompt names the reads that would show them, reads instead only what carries no earlier value (`analysis_get` criteria and outstanding views), and says that an earlier score already in the conversation makes the pass shown whatever the model now does. The earlier claim is replaced through `measures_write` with `supersedes`, never written beside it, and its id is found without reading it, from the tools' default id and their refusals, which name an owner or a successor and never a value. Evidence is a fresh retrieval over the corpus as it now stands, not the new documents alone. Every per-cell rule is `score-cell`'s. Revised twice before landing, after two adversarial reviews: the round number is asked for rather than counted (a counted number the tools accept on a never-drawn cell files the re-score under the wrong sweep), any `supersedes` refusal other than "already replaced by" now stops that cell and goes to the user instead of writing beside the earlier claim, the value-free views are said to carry counts that must not be worked back from, and a cell whose retrieval could not run is written nothing (a second review found that writing it `not-assessed` with `supersedes` discarded a live score for a tool failure); the contributor id is asked for when not given, like the round. Hypothesis: without it a model re-reads the earlier scores to "update" them (a shown prior, recorded as withheld), retrieves from the new document only, writes the new claim beside the old one, or routes a blank through `measures_mark_missing`, which cannot replace a claim (measured: with `score-cell` alone, neither model named the claim a re-score replaces, and both wrote on a request that changed the criterion's anchors); with it, each re-scored cell is one accepted write that names the claim it replaces and states the prior truthfully. Measured on eight constructed scenarios (docs/evaluation/rescore-criterion/): v1 full marks in Sonnet and Haiku on every metric.
 ---
 
@@ -115,13 +115,18 @@ alternatives in scope, if the user named some), and with `contributor_id` and `a
 harness or the user gave you a scorer: naming them marks your claims `yours`, it never hides anyone
 else's. Per cell it lists every live claim's `assertionId`, `contributorId` and `authorId`, and per
 writer (a contributor and one of its authors: a persona under a contributor is its own writer) its
-`latestRound`. It never shows a value. If its `skipped` is not empty, a stored file could not be read
-and its claims are missing from the list: stop and tell the user.
+`kind` (agent or human) and `latestRound`. It never shows a value. If its `skipped` names your own
+writer's file, your claims cannot be read: stop and tell the user. A colleague's unreadable file
+does not stop you, but its claims are not listed: name it under `Next`.
 
 **Who you write as.** The `contributor_id` and author the harness or the user gives you for this
-scorer. If nobody gives you one, take it from the read: when the live claims in scope are all one
-writer's, write as that writer: `contributor_id` is its `contributorId`, and `author` is an object
-whose `id` is its `authorId`. Every write carries both.
+scorer. If nobody gives you one, take it from the read only when the live claims in scope are all
+one writer's and that writer's `kind` is `agent`: an earlier pass of this same scoring agent. Then
+`contributor_id` is its `contributorId`, `author` is an object whose `id` is its `authorId` and whose
+`kind` is `agent`, and you **call the read again naming them**, so the rules below see which claims
+are yours. Every write carries both. **Never write as a human**: a person's claim is theirs, and a
+re-score signed with their name would put words in their mouth. When the claims in scope are a
+human's, several writers', or nobody's, ask who you are writing as.
 When they are several writers', or there are none, ask: a claim written under an invented id is
 never caught. Set `expected_criteria_version` to the `criteriaVersion` you read. The cell is the one
 `score-cell` emits, plus `supersedes`, for the `score` measure unless the analysis names another
@@ -141,11 +146,13 @@ marked as replaced. Per cell, from the read:
   and the others would stay live beside the new claim. **Write nothing for that cell and ask** which
   the re-score replaces, naming their ids.
 - **Live claims, none of them yours** (another writer's): only that writer can replace them.
-  **Write nothing for that cell and ask**, naming the writer, and say what each answer leads to: if
-  that writer *is* this scorer (the same rater under another id), the re-score is written as that
-  writer, superseding its claim, in its round `latestRound` + 1 (asked for if it has none); if the
-  user wants a second, separate claim, it is written as you without `supersedes`, and both stay
-  live as two raters' claims; otherwise the cell is left as it is.
+  **Write nothing for that cell and ask**, naming the writer, and say what each answer leads to. If
+  the writer is an agent and the user says it *is* this scorer (the same agent under another id),
+  the re-score is written as that writer, superseding its claim, in its round `latestRound` + 1
+  (asked for if it has none). If the writer is a person, only they can replace their claim: the
+  re-score can be a second, separate claim of yours. If the user wants that second claim, it is
+  written as you without `supersedes`, and both stay live as two raters' claims; otherwise the cell
+  is left as it is.
 
 If a write is refused anyway, write nothing more for that cell and ask the user, quoting the
 refusal: it names an owner, a successor or a round, never a value, so reading it keeps the prior

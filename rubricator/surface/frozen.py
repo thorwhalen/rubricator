@@ -690,17 +690,18 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
         contract=(
             "What a re-score of one criterion needs, with the earlier scores still withheld: "
             "per cell (every live alternative, or those named, per measure), every live "
-            "claim's assertionId, contributorId and authorId, marked yours when it is the "
-            "writer named by contributor_id and author_id (author_id defaults to "
-            "contributor_id; naming them marks, never filters); and per writer holding a "
-            "claim there, and the named one, its latestRound. A re-score supersedes its own "
-            "live claim and takes round latestRound + 1. Never returns a value, "
+            "claim's assertionId, contributorId and authorId, marked yours when it is "
+            "contributor_id's (and author_id's, when given; naming marks, never filters); "
+            "and per writer holding a claim there, and the named contributor's, its kind "
+            "(agent or human) and latestRound. A re-score supersedes its own live claim and "
+            "takes round latestRound + 1. Never returns a value, "
             "justification, evidence, code, per-claim round or count by kind: reading it "
             "keeps a pass prior: withheld."
         ),
         determinism="A pure projection of the stored contributions' ids, authors and rounds.",
         failure=(
-            "An unknown analysis, criterion or alternative is refused, listing what exists. "
+            "An unknown analysis, criterion or alternative is refused, listing what exists; "
+            "author_id without contributor_id is refused. "
             "A stored file that cannot be merged is named in skipped, and its claims are "
             "not listed."
         ),
@@ -719,8 +720,8 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
                          ("assertionId", "contributorId", "authorId", "yours")))},
                     ("alternativeId", "measure", "liveClaims"))),
                 "writers": arr(obj(
-                    {"contributorId": S, "authorId": opt(S), "latestRound": opt(I)},
-                    ("contributorId", "authorId", "latestRound"))),
+                    {"contributorId": S, "authorId": opt(S), "kind": opt(S), "latestRound": opt(I)},
+                    ("contributorId", "authorId", "kind", "latestRound"))),
                 "skipped": arr(SKIPPED),
                 "summary": S,
             },
@@ -1174,11 +1175,11 @@ MEASURED: Mapping[str, Any] = {
 AWAITING_MEASUREMENT: Mapping[str, Any] | None = {
     "issue": 199,
     "advertised": {
-        "tools": 21, "bytes": 30666,
-        "sha256": "fa4db861be5e3c2541b87896dff3bbf18baebe9739ee1a0724c17840602c0a3f",
+        "tools": 21, "bytes": 30701,
+        "sha256": "a7e9ef7ff43ba2dd3b1facc4be55e88b7ce8aa30149ae12adbdbd4d874b5ec46",
     },
     "wholeSurface": {
-        "tools": 24, "bytes": 33287,
-        "sha256": "9f9df4d6ece8d2e4cdb1b9738fd743b1c478e1b2b0fa60583d45c0a0fb172e03",
+        "tools": 24, "bytes": 33322,
+        "sha256": "ab8df150e64bdf2c2819549c1f32a92d2d09cec1e3e97c61e596a9465c3b85ab",
     },
 }

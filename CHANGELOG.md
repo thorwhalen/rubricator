@@ -7,11 +7,11 @@ the same label are measuring different things, and the failure mode is silent.
 
 ---
 
-## 2026-11-22 — The rescore-criterion evaluation set is eleven scenarios, built for the connector
+## 2026-11-22 — The rescore-criterion evaluation set is twelve scenarios, built for the connector
 
-`docs/evaluation/rescore-criterion/scenarios.json` changed with `rescore-criterion` v2 ([#294](https://github.com/thorwhalen/rubricator/issues/294)): every packet now carries the `measures_rescore_context` read, no scenario but r8 hands the subject a round, r7 no longer pre-supplies a refusal, r8 is a harness-round re-score instead of an ask, and r9, r10 and r11 are new.
+`docs/evaluation/rescore-criterion/scenarios.json` changed with `rescore-criterion` v2 ([#294](https://github.com/thorwhalen/rubricator/issues/294)): every packet now carries the `measures_rescore_context` read, no scenario but r8 hands the subject a round, r7 no longer pre-supplies a refusal, r8 is a harness-round re-score instead of an ask, and r9 to r12 are new.
 
-**The boundary.** A row graded on the 2026-11-02 set (eight scenarios, harness rounds everywhere) and a row graded on this one measure different things under the same metric names: "action right 8/8" then and "11/11" now are not the same count, and v1 scores far lower here than there with no change to v1. Compare rows only within one set; the earlier set is in git history.
+**The boundary.** A row graded on the 2026-11-02 set (eight scenarios, harness rounds everywhere) and a row graded on this one measure different things under the same metric names: "action right 8/8" then and "12/12" now are not the same count, and v1 scores far lower here than there with no change to v1. Compare rows only within one set; the earlier set is in git history.
 
 ---
 

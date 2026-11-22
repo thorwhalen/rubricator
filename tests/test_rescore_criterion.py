@@ -58,6 +58,8 @@ ASKS = {
           "brindle-spare-parts-score-2): which one should the re-score replace?",
     "r10": "Tamsin's quietness is Ana's claim, not mine, and only Ana can replace it. Is Ana this "
            "scorer under another id, or should I add my own claim beside hers?",
+    "r12": "The only claim on Tamsin's quietness is Ana's, and she is a person: I will not write as "
+           "her. Who am I writing as, and should my re-score be a second claim beside hers?",
 }
 
 
@@ -115,7 +117,7 @@ def test_the_stored_scenarios_are_what_the_tools_return_today(tmp_path) -> None:
 def test_a_faithful_run_grades_full_marks() -> None:
     row = _run()
     assert all(hits == n for hits, n in row.values()), row
-    assert row["accepted"] == [7, 7] and row["action_right"] == [11, 11] and row["round_right"] == [7, 7]
+    assert row["accepted"] == [7, 7] and row["action_right"] == [12, 12] and row["round_right"] == [7, 7]
 
 
 def _claims(scenario):
@@ -128,7 +130,8 @@ def test_the_value_free_read_names_the_live_claim_and_the_round() -> None:
     brindle = next(c for c in claims["cells"] if c["alternativeId"] == "brindle")
     assert brindle["liveClaims"] == [{"assertionId": "brindle-spare-parts-score-2",
                                       "contributorId": "scorer", "authorId": "scorer", "yours": True}]
-    assert claims["writers"] == [{"contributorId": "scorer", "authorId": "scorer", "latestRound": 2}]
+    assert claims["writers"] == [
+        {"contributorId": "scorer", "authorId": "scorer", "kind": "agent", "latestRound": 2}]
     text = json.dumps({k: v for k, v in claims.items() if k != "summary"})
     assert '"value"' not in text and '"justification"' not in text and "Spare parts are" not in text
 
@@ -200,7 +203,7 @@ def test_writing_over_one_of_several_live_claims_is_caught() -> None:
         if scenario["id"] == "r9":
             out["calls"] = copy.deepcopy(_faithful(_scenario("r7"))["calls"])
         return out
-    assert _run(picks)["action_right"] == [10, 11]
+    assert _run(picks)["action_right"] == [11, 12]
 
 
 def test_writing_beside_another_contributors_claim_is_caught() -> None:
@@ -208,14 +211,14 @@ def test_writing_beside_another_contributors_claim_is_caught() -> None:
         if scenario["id"] == "r10":
             out["calls"] = copy.deepcopy(_faithful(_scenario("r2"))["calls"])
         return out
-    assert _run(beside)["action_right"] == [10, 11]
+    assert _run(beside)["action_right"] == [11, 12]
 
 
 def test_a_blank_through_mark_missing_is_caught() -> None:
     def marks(out, scenario):
         out["calls"].append({"tool": "measures_mark_missing", "arguments": {}})
         return out
-    assert _run(marks)["no_mark_missing"] == [0, 11]
+    assert _run(marks)["no_mark_missing"] == [0, 12]
 
 
 def test_narrowing_to_the_alternative_the_new_document_names_is_caught() -> None:
@@ -270,7 +273,7 @@ def test_writing_a_revision_as_a_re_score_is_caught() -> None:
         if scenario["id"] == "r6":
             out["calls"] = copy.deepcopy(_faithful(_scenario("r1"))["calls"])
         return out
-    assert _run(writes_anyway)["action_right"] == [10, 11]
+    assert _run(writes_anyway)["action_right"] == [11, 12]
 
 
 def test_asking_on_a_write_scenario_is_graded_not_crashed() -> None:
@@ -308,7 +311,7 @@ def test_an_empty_ask_is_not_full_marks() -> None:
         if scenario["id"] in ("r6", "r9", "r10"):
             out["reply"] = ""
         return out
-    assert _run(silent)["asks_right"] == [1, 4]
+    assert _run(silent)["asks_right"] == [2, 5]
 
 
 def test_an_ask_about_the_wrong_thing_is_caught() -> None:
@@ -354,7 +357,18 @@ def test_r10s_read_shows_anas_claim_although_the_scorer_is_named() -> None:
 
 
 def test_an_ask_about_the_round_only_is_not_an_ask_about_the_claims() -> None:
-    reply = "Which round number is this sweep? Nothing gives me one."
-    for sid in ("r9", "r10"):
-        row = grader.grade_one(_scenario(sid), {"scenarioId": sid, "calls": [], "reply": reply})
-        assert row["asks_right"] is False, sid
+    """Even followed by the block, whose Not written line names the claims and the writer."""
+    for reply in ("Which round number is this sweep? Nothing gives me one.",
+                  "Which one of these rounds should I use?\nNot written: brindle-spare-parts-score, "
+                  "tamsin (Ana's claim): replace?\nNext: re-score"):
+        for sid in ("r9", "r10", "r12"):
+            row = grader.grade_one(_scenario(sid), {"scenarioId": sid, "calls": [], "reply": reply})
+            assert row["asks_right"] is False, (sid, reply)
+
+
+def test_r12s_read_shows_the_only_writer_is_a_person() -> None:
+    claims = _claims(_scenario("r12"))
+    assert [(w["contributorId"], w["kind"]) for w in claims["writers"]] == [("ana", "human"),
+                                                                            ("scorer", "agent")]
+    tamsin = next(c for c in claims["cells"] if c["alternativeId"] == "tamsin")
+    assert [(c["contributorId"], c["yours"]) for c in tamsin["liveClaims"]] == [("ana", False)]

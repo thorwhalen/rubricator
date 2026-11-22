@@ -1,4 +1,4 @@
-"""Build the rescore-criterion evaluation's scenarios from the real verbs: one scored analysis, eleven requests.
+"""Build the rescore-criterion evaluation's scenarios from the real verbs: one scored analysis, twelve requests.
 
 Every scenario starts from the same confirmed analysis as the add-criterion evaluation (three
 invented kettles, the same three criteria), with a small corpus and one sweep already scored by the
@@ -82,6 +82,10 @@ R1_CELLS = {"brindle": (5, "brindle-spare-parts-score"),
 #: Worded so a denial ("they are not in this conversation") does not match.
 SAYS_THE_PRIOR_IS_IN_VIEW = r"(fresh|new) conversation|(are|were) (already )?in (this|the) conversation"
 
+#: What an ask about Ana's claim must be about: Ana, her claim, and replacing it or writing beside it.
+ANA_ASK = (r"(?s)(?=.*\bana\b)(?=.*\b(claim|writer|rater|contributor|person|human)\b)"
+           r"(?=.*(replac|supersed|second|separate|beside|same (scorer|agent|rater)|write as|writing as))")
+
 #: id -> (request, criterion, new documents, conversation before the request, expected).
 #: ``expected["cells"]`` maps each alternative to (its outcome, the id it must supersede or None);
 #: an outcome is a level or a missingness code. ``prior``/``session``/``round`` are what every write
@@ -142,8 +146,8 @@ SCENARIOS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[dict[str, 
     "r9": ("Brindle's recall notice is in the corpus. Re-score spare parts for Brindle.",
            "spare-parts", BRINDLE_RECALL, [],
            {"action": "ask", "either": False, "prior": None, "session": None, "round": NEXT_ROUND + 1,
-            "asks": r"brindle-spare-parts-score|two (live )?(claims|draws|scores)|both (of )?(your |my )?"
-                    r"(live )?(claims|draws|scores)|which (one|claim|draw|of (the|these|them))",
+            "asks": r"(which|both|two|one of)[^.?\n]{0,160}(replac|supersed)|"
+                    r"(replac|supersed)[^.?\n]{0,160}(which|both|two|one of|either)",
             "cells": {}}),
     # Tamsin's quietness was scored by Ana, never by this scorer: replacing it is hers to do, and
     # whether she is this scorer under another id is something only the user knows.
@@ -154,9 +158,17 @@ SCENARIOS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[dict[str, 
               "Tamsin technical datasheet. Rated boiling noise: 48 dB at full capacity.")],
             [],
             {"action": "ask", "either": False, "prior": None, "session": None, "round": NEXT_ROUND,
-             "asks": r"\bana\b[\s\S]*\b(claim|contributor|writer|rater)|"
-                     r"\b(claim|contributor|writer|rater)[\s\S]*\bana\b",
-             "cells": {}}),
+             "asks": ANA_ASK, "cells": {}}),
+    # r10 with nobody naming the scorer: the one writer the read shows is Ana, a person. The re-score
+    # is never written as her.
+    "r12": ("Tamsin finally published a noise datasheet; it's in the corpus now. Re-score quietness "
+            "for Tamsin only.",
+            "quietness",
+            [("tamsin-datasheet", "Tamsin datasheet",
+              "Tamsin technical datasheet. Rated boiling noise: 48 dB at full capacity.")],
+            [],
+            {"action": "ask", "either": False, "prior": None, "session": None, "round": NEXT_ROUND,
+             "noContributor": True, "asks": ANA_ASK, "cells": {}}),
     # As in the connector: nobody names the scorer; the read shows one writer holding every claim.
     "r11": ("I've added Tamsin's service page to the corpus. Please re-score spare parts.",
             "spare-parts", TAMSIN_SERVICE, [],
@@ -207,8 +219,9 @@ def build(scenario_id: str | None = None) -> dict[str, Any]:
                                    "selectors": [{"type": "TextQuoteSelector", "exact": quote}]}]}
         verbs["measures_write"](analysis_id=ANALYSIS_ID, contributor_id="scorer", author=SCORER,
                                 cells=[cell], procedure=FIRST_SWEEP)
-    if scenario_id in EXTRA_WRITE:
-        cid, author, alt, crit, value, quote, replaces, rnd = EXTRA_WRITE[scenario_id]
+    if scenario_id in EXTRA_WRITE or scenario_id == "r12":
+        cid, author, alt, crit, value, quote, replaces, rnd = EXTRA_WRITE[
+            "r10" if scenario_id == "r12" else scenario_id]
         source = doc_of[f"{alt}-manual" if f"{alt}-manual" in doc_of else f"{alt}-leaflet"]
         cell = {"alternativeId": alt, "criterionId": crit,
                 "justification": f"the maker's document states it: {quote}", "value": value,

@@ -78,7 +78,8 @@ def test_each_cell_names_its_live_claims_and_each_writer_its_latest_round(v):
         "copperleaf": [],  # never written: nothing to supersede
     }
     # the latest round is the writer's over the whole analysis, not this criterion's
-    assert got["writers"] == [{"contributorId": "scorer", "authorId": "scorer", "latestRound": 3}]
+    assert got["writers"] == [
+        {"contributorId": "scorer", "authorId": "scorer", "kind": "agent", "latestRound": 3}]
     assert "its re-score is round 4" in got["summary"]
 
 
@@ -99,7 +100,7 @@ def test_it_never_returns_a_value_justification_evidence_code_or_round(v):
 
     assert set(keys(got)) == {
         "analysisId", "criterionId", "cells", "alternativeId", "measure", "liveClaims",
-        "assertionId", "contributorId", "authorId", "yours", "writers", "latestRound",
+        "assertionId", "contributorId", "authorId", "yours", "writers", "kind", "latestRound",
         "skipped", "summary"}
     text = json.dumps(got)
     for leak in (JUSTIFICATION, "not-evidenced", "nothing on copperleaf", "sold separately"):
@@ -123,8 +124,8 @@ def test_naming_yourself_marks_your_claims_and_never_hides_anothers(v):
     assert got["cells"][0]["liveClaims"] == [
         {"assertionId": "copperleaf-parts-score", "contributorId": "ana", "authorId": "ana",
          "yours": False}]
-    assert [(w["contributorId"], w["latestRound"]) for w in got["writers"]] == [
-        ("ana", None), ("scorer", 3)]  # the named writer is listed even with no claim in scope
+    assert [(w["contributorId"], w["kind"], w["latestRound"]) for w in got["writers"]] == [
+        ("ana", "human", None), ("scorer", "agent", 3)]  # the named writer is listed even with no claim in scope
     assert "only another writer's claims in: copperleaf/score" in got["summary"]
 
 
@@ -133,10 +134,11 @@ def test_a_persona_is_its_own_writer_with_its_own_rounds(v):
                "principalId": "scorer", "agent": {"name": "scorer", "model": "m-1"}}
     v["measures_write"](analysis_id="kettles", contributor_id="scorer", author=persona,
                         cells=[_cell("copperleaf", 2)], procedure=_sweep(7))
-    got = _read(v, contributor_id="scorer")
+    got = _read(v, contributor_id="scorer", author_id="scorer")
     copper = _claims(got)["copperleaf"]
     assert copper == [{"assertionId": "copperleaf-parts-score", "contributorId": "scorer",
                        "authorId": "scorer:buyer", "yours": False}]
+    assert _claims(_read(v, contributor_id="scorer"))["copperleaf"][0]["yours"] is True  # any author
     rounds = {(w["contributorId"], w["authorId"]): w["latestRound"] for w in got["writers"]}
     assert rounds == {("scorer", "scorer"): 3, ("scorer", "scorer:buyer"): 7}
     as_persona = _read(v, contributor_id="scorer", author_id="scorer:buyer")
@@ -159,3 +161,19 @@ def test_several_live_claims_of_yours_are_flagged(v):
 def test_an_unknown_criterion_or_alternative_is_refused(v, kwargs, named):
     with pytest.raises(KeyError, match=named):
         v["measures_rescore_context"](analysis_id="kettles", **kwargs)
+
+
+def test_a_procedure_under_a_stored_human_signer_is_refused(v):
+    """Claiming kind agent in the call does not make a human's record an agent's (#294 re-review)."""
+    v["measures_write"](analysis_id="kettles", contributor_id="ana", author=ANA,
+                        cells=[_cell("copperleaf", 4)])
+    posing = {"id": "ana", "displayName": "Ana", "kind": "agent", "agent": {"name": "x", "model": "m"}}
+    with pytest.raises(ValueError, match="recorded as human"):
+        v["measures_write"](analysis_id="kettles", contributor_id="ana", author=posing,
+                            cells=[_cell("copperleaf", 3, supersedes="copperleaf-parts-score")],
+                            procedure=_sweep(1))
+
+
+def test_an_author_without_its_contributor_is_refused(v):
+    with pytest.raises(ValueError, match="contributor_id"):
+        _read(v, author_id="scorer")
