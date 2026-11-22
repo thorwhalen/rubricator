@@ -1,5 +1,32 @@
 # rescore-criterion adherence runs
 
+**The scenario set changed on 2026-11-22** (v2, [#294](https://github.com/thorwhalen/rubricator/issues/294)); the 2026-11-02 section below describes the earlier eight-scenario set, which is in git history (`git show 1a9427d:docs/evaluation/rescore-criterion/scenarios.json`), and its rows are not comparable with the 2026-11-22 rows.
+
+## 2026-11-22 — v2: one value-free read replaces the refusals and the question ([#294](https://github.com/thorwhalen/rubricator/issues/294))
+
+v2 takes the claim to replace, the round and whose the claims are from `measures_claim_ids`, a new verb that returns, per cell of one criterion, the live claims' ids, contributors and rounds, and per contributor its latest round, never a value. The set now matches the connector, where nothing hands the subject a round:
+
+- **Every packet** carries the `measures_claim_ids` read for the criterion. No harness round, except in r8.
+- **r7** no longer pre-supplies a refusal: the read names the live claim (`brindle-spare-parts-score-2`) and the scorer's latest round (2), so the right write is round 3 superseding it.
+- **r8** is r1 with a harness round 2: the harness's number is the one written.
+- **r9 (new):** the scorer holds two live draws in Brindle's cell. Ask which one the re-score replaces, and write nothing.
+- **r10 (new):** Tamsin's quietness is Ana's claim, never the scorer's. Ask, naming Ana, and write nothing.
+
+| arm | prior true | action right | asks right | scope right | supersedes right | round right | accepted | right outcome | no mark missing | no prior read | fresh retrieval | prior line |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| v1, Sonnet | 2/2 | **5/10** | **3/4** | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 |
+| v1, Haiku | 2/2 | **5/10** | 4/4 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 10/10 | 1/1 | 1/1 | 1/1 |
+| **v2, Sonnet** | 7/7 | 10/10 | 4/4 | 6/6 | 6/6 | 6/6 | 6/6 | 6/6 | 8/8 | 5/5 | 6/6 | 6/6 |
+| **v2, Haiku** | 7/7 | 10/10 | 4/4 | 6/6 | 6/6 | 6/6 | 6/6 | 6/6 | 8/8 | 5/5 | 6/6 | 6/6 |
+
+- **v1 on this set is the problem #294 named.** With no round from a harness it asks for one on every re-score but r8, so it writes in one scenario of six; that one write is right. On r9 and r10 it also writes nothing, but because of the round: Haiku's replies name the two live claims and Ana's claim as well, while Sonnet's r10 reply asks only for the round and never mentions Ana (asks right 3/4).
+- **v2** writes all six re-scores with the read's round and `supersedes`, and asks on r5, r6, r9 and r10 about the right thing. Every write was accepted by the real verb on replay.
+- **How the runs were made:** each arm is one subagent (Sonnet or Haiku) given the prompt, `score-cell`, the advertised tool definitions and the ten packets with the answer key stripped, told to treat each scenario as its own conversation, writing `out-*.json` in `2026-11-22/`. The grader is unchanged apart from the set.
+
+**Not established:** one run per arm; the scenarios are the prompt author's; each arm still ran all ten scenarios in one context; the harness is single-shot, so a refusal after the read (a race with another writer) has no scenario; whether withholding the prior changes the new levels is still #96's to measure.
+
+## 2026-11-02 set
+
 Eight requests to re-score one criterion of a confirmed, already-scored analysis on an invented domain (the add-criterion evaluation's three fictional kettles and three criteria, a three-document corpus, and one sweep scored by the agent contributor `scorer`). The analysis is built by driving the real verbs. Each scenario adds its own new documents and asks for one criterion to be re-scored. The subject sees only what the prompt allows it to read with the prior withheld: the `analysis_get` criteria and outstanding views, and what `corpus_search` returns for each alternative over the corpus as it now stands. It also sees the conversation before the request (the earlier scores appear there only where the scenario puts them), the contributor to write as, and what the harness hands it (`harness.round`, empty in r8). It writes the ordered tool calls it would make and its reply. `scripts/rescore_criterion_adherence.py` grades them with no model call, and **replays every `measures_write` call, in order, against a fresh copy of the scenario's analysis**. So "accepted", including whether `supersedes` named a claim the verb would replace, is what the real verb returned. This is the evidence the `rubricator-dev-prompt-change` skill requires before a prompt lands, until the ADR-0008 suite can run a prompt arm itself ([#148](https://github.com/thorwhalen/rubricator/issues/148)).
 
     python scripts/rescore_criterion_scenarios.py docs/evaluation/rescore-criterion/scenarios.json

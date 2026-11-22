@@ -366,3 +366,18 @@ The `rescore-criterion` prompt (#129) does not exist yet; it should write a re-s
 **Migration.** If comparanda later gains a provenance slot on `Alternative` (option (b) of #274), the side record moves into it and `unsourced` reads it from there; nothing else changes.
 
 **Not re-measured.** `MEASURED` below is still the 2026-10-12 count; `AWAITING_MEASUREMENT` in `frozen.py` pins what is now served (20 advertised tools, 29,389 bytes, digest `9614708b9327`; the whole surface, 23 tools, 32,010 bytes, digest `036b98537cd6`) and still names #199, which owes the count. No estimate is recorded as a count.
+
+### 2026-11-22 — A new row, `measures_claim_ids`, the value-free read a re-score needs (#294)
+
+- **Status:** accepted
+- **Date:** 2026-11-22
+- **Deciders:** Thor Whalen
+
+**One new row.** `measures_claim_ids` (family measures, stage 5, implemented, cut rank 3) takes `analysis_id`, `criterion_id`, and optionally `alternative_ids` (at least one) and `contributor_id`. It returns, per cell of that criterion (every live alternative, or those named, per measure), `liveClaims`: each live assertion's `assertionId`, `contributorId` and `round` (the number of the round its `roundId` names, null when it was written with none); and per contributor holding a live claim there (or the one named), `latestRound` over the whole analysis. It never returns a value, a justification, evidence, a missingness code or a count by kind, so reading it keeps a re-scoring pass `prior: withheld`. An unknown criterion or alternative is refused with `KeyError`, listing what exists.
+
+**Why a row and not a sentinel.** A re-score needs three facts the surface could not give without also giving the earlier claim: the id to name in `supersedes`, the round to file the new draw under, and whose the claims are. The `rescore-criterion` prompt v1 worked around them with the default id, a refusal that names a successor, and a question to the user, and in the connector, where nothing supplies the round, that was a question on almost every re-score. A `supersedes: "own-live"` sentinel resolved inside `measures_write` would have settled the id only. This is also the seam #102 asks for ("one cell's material for re-scoring without its live assertions"): what a re-score reads grows here as output fields, without a second verb.
+
+**Cut rank 3**, beside `criteria_reject`: without it `rescore-criterion` falls back to asking the user, which is a usability regression and not a loss of capability.
+
+**Not re-measured.** `MEASURED` below is still the 2026-10-12 count; `AWAITING_MEASUREMENT` in `frozen.py` pins what is now served (21 advertised tools, 30,357 bytes, digest `acfd40560da4`; the whole surface, 24 tools, 32,978 bytes, digest `ea5ee332e7c6`) and still names #199, which owes the count. No estimate is recorded as a count.
+

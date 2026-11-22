@@ -1166,11 +1166,11 @@ MEASURED: Mapping[str, Any] = {
 AWAITING_MEASUREMENT: Mapping[str, Any] | None = {
     "issue": 199,
     "advertised": {
-        "tools": 20, "bytes": 29389,
-        "sha256": "9614708b9327f082466a0daf46a48418839e65bd4072765b8cfb0d9936b4efcf",
+        "tools": 21, "bytes": 30357,
+        "sha256": "acfd40560da429a9c4d123176c541ee1645dc7834660821b2e069452dbaa13bb",
     },
     "wholeSurface": {
-        "tools": 23, "bytes": 32010,
-        "sha256": "036b98537cd6a08ee237cf1b399ab92a53abd8a4b0a0ea3fab313dfcb8639025",
+        "tools": 24, "bytes": 32978,
+        "sha256": "ea5ee332e7c69cdba2af0bde389a2ab275aa98f8fdbf8093ff412d70ec09bc3e",
     },
 }
