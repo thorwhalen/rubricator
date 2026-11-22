@@ -997,6 +997,15 @@ def measures_write(
     # The record the store holds for this author, not the argument: a later call cannot
     # restate the model a stored assertion was signed under (#99).
     signer = next(a for a in contribution["authors"] if a["id"] == author["id"])
+    if facts is not None and signer.get("kind") != "agent":
+        # the stored record decides who signs: a call cannot make a person's draw an agent's pass.
+        # (Without a procedure a stored record never locks its contributor out: see
+        # test_an_author_already_stored_is_not_this_calls_problem.)
+        raise ValueError(
+            f'refused, nothing was written: author "{signer["id"]}" is recorded as '
+            f'{signer.get("kind", "not an agent")}, and a procedure record describes an agent\'s '
+            "pass. Write as your own contributor and author, not as someone else's."
+        )
     facts = stored_prior_applied(facts, contribution, signer["id"], contributor_id)
     index = {
         (c["alternativeId"], c["criterionId"], c["measure"]): c

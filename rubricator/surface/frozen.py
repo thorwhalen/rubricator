@@ -685,6 +685,54 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
         ),
     ),
     ToolSpec(
+        name="measures_rescore_context", family="measures", stage="5", status="implemented",
+        minimum_viable=False, cut_rank=3, research_row=None, issue=294,
+        contract=(
+            "What a re-score of one criterion needs, with the earlier scores still withheld: "
+            "per cell (every live alternative, or those named, per measure), every live "
+            "claim's assertionId, contributorId and authorId, marked yours when it is the "
+            "writer named by contributor_id and author_id (author_id defaults to "
+            "contributor_id; naming marks, never filters); and per writer holding a claim "
+            "there, and the named one, its stored kind, model and latestRound. A re-score supersedes its own live claim and "
+            "takes round latestRound + 1. Never returns a value, "
+            "justification, evidence, code, per-claim round or count by kind: reading it "
+            "keeps a pass prior: withheld."
+        ),
+        determinism="A pure projection of the stored contributions' ids, authors and rounds.",
+        failure=(
+            "An unknown analysis, criterion or alternative is refused, listing what exists; "
+            "author_id without contributor_id is refused. "
+            "A stored file that cannot be merged is named in skipped, and its claims are "
+            "not listed."
+        ),
+        input_schema=obj(
+            {"analysis_id": S, "criterion_id": S, "alternative_ids": at_least_one(S),
+             "contributor_id": S, "author_id": S},
+            ("analysis_id", "criterion_id"),
+        ),
+        output_schema=obj(
+            {
+                "analysisId": S, "criterionId": S,
+                "cells": arr(obj(
+                    {"alternativeId": S, "measure": S,
+                     "liveClaims": arr(obj(
+                         {"assertionId": S, "contributorId": S, "authorId": opt(S), "yours": B},
+                         ("assertionId", "contributorId", "authorId", "yours")))},
+                    ("alternativeId", "measure", "liveClaims"))),
+                "writers": arr(obj(
+                    {"contributorId": S, "authorId": opt(S), "kind": opt(S), "model": opt(S),
+                     "latestRound": opt(I)},
+                    ("contributorId", "authorId", "kind", "model", "latestRound"))),
+                "skipped": arr(SKIPPED),
+                "summary": S,
+            },
+            ("analysisId", "criterionId", "cells", "writers", "skipped", "summary"),
+        ),
+        notes=("Not in the research's 19: added by #294 for rescore-criterion. It is the seam "
+               "#102 asks for: a criterion's definition and anchors can be added as output "
+               "fields; retrieved spans would need retrieval inputs, an input amendment.",),
+    ),
+    ToolSpec(
         name="analysis_validate", family="analysis", stage="5, 6", status="planned",
         minimum_viable=True, cut_rank=None, research_row=12, issue=61,
         contract=(
@@ -1128,11 +1176,11 @@ MEASURED: Mapping[str, Any] = {
 AWAITING_MEASUREMENT: Mapping[str, Any] | None = {
     "issue": 199,
     "advertised": {
-        "tools": 20, "bytes": 29389,
-        "sha256": "9614708b9327f082466a0daf46a48418839e65bd4072765b8cfb0d9936b4efcf",
+        "tools": 21, "bytes": 30729,
+        "sha256": "3c5d4d243ef8e2c07eb2bcfaa2fa3533dc2d45c95f48bbb14f3125502e540da7",
     },
     "wholeSurface": {
-        "tools": 23, "bytes": 32010,
-        "sha256": "036b98537cd6a08ee237cf1b399ab92a53abd8a4b0a0ea3fab313dfcb8639025",
+        "tools": 24, "bytes": 33350,
+        "sha256": "0d07a94c5ab1b4808338e526f268a7fb22287fb0b70cea589831a20d79cdfca8",
     },
 }

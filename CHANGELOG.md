@@ -7,6 +7,14 @@ the same label are measuring different things, and the failure mode is silent.
 
 ---
 
+## 2026-11-22 — The rescore-criterion evaluation set is twelve scenarios, built for the connector
+
+`docs/evaluation/rescore-criterion/scenarios.json` changed with `rescore-criterion` v2 ([#294](https://github.com/thorwhalen/rubricator/issues/294)): every packet now carries the `measures_rescore_context` read, no scenario but r8 hands the subject a round, r7 no longer pre-supplies a refusal, r8 is a harness-round re-score instead of an ask, and r9 to r12 are new.
+
+**The boundary.** A row graded on the 2026-11-02 set (eight scenarios, harness rounds everywhere) and a row graded on this one measure different things under the same metric names: "action right 8/8" then and "12/12" now are not the same count, and v1 scores far lower here than there with no change to v1. Compare rows only within one set; the earlier set is in git history.
+
+---
+
 ## 2026-10-20 — `tokenEstimate` counts a character outside ASCII as a token
 
 `corpus_add`'s `tokenEstimate` and `corpusTokenEstimate`, and the size `corpus_search` checks against the ADR-0010 inline threshold, were four characters a token for every script. For CJK text that is several times too low: 90,000 CJK characters were estimated at 22,500 tokens and inlined under a 25,000-token threshold ([#227](https://github.com/thorwhalen/rubricator/issues/227)). The estimate is now four ASCII characters a token and one token for every other character (`rubricator.tools.corpus.token_estimate`).
