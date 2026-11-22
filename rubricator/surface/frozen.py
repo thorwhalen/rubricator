@@ -685,6 +685,44 @@ FROZEN_TOOLS: tuple[ToolSpec, ...] = (
         ),
     ),
     ToolSpec(
+        name="measures_claim_ids", family="measures", stage="5", status="implemented",
+        minimum_viable=False, cut_rank=3, research_row=None, issue=294,
+        contract=(
+            "What a re-score of one criterion needs, with the earlier scores still withheld: "
+            "per cell (every live alternative, or those named), the live claims' assertionId, "
+            "contributorId and round, and per contributor its latestRound, so the re-score "
+            "names its own live claim in supersedes, writes as that contributor, and takes "
+            "round latestRound + 1. Never returns a value, justification, evidence, code or "
+            "count by kind: reading it keeps a pass prior: withheld."
+        ),
+        determinism="A pure projection of the stored contributions' ids and rounds.",
+        failure="An unknown analysis, criterion or alternative is refused, listing what exists.",
+        input_schema=obj(
+            {"analysis_id": S, "criterion_id": S, "alternative_ids": at_least_one(S),
+             "contributor_id": S},
+            ("analysis_id", "criterion_id"),
+        ),
+        output_schema=obj(
+            {
+                "analysisId": S, "criterionId": S,
+                "cells": arr(obj(
+                    {"alternativeId": S, "measure": S,
+                     "liveClaims": arr(obj(
+                         {"assertionId": S, "contributorId": S, "round": opt(I)},
+                         ("assertionId", "contributorId", "round")))},
+                    ("alternativeId", "measure", "liveClaims"))),
+                "contributors": arr(obj(
+                    {"contributorId": S, "latestRound": opt(I)},
+                    ("contributorId", "latestRound"))),
+                "skipped": arr(SKIPPED),
+                "summary": S,
+            },
+            ("analysisId", "criterionId", "cells", "contributors", "skipped", "summary"),
+        ),
+        notes=("Not in the research's 19: added by #294 for rescore-criterion, and the seam "
+               "#102 asks for, so a re-score's material grows here as output fields.",),
+    ),
+    ToolSpec(
         name="analysis_validate", family="analysis", stage="5, 6", status="planned",
         minimum_viable=True, cut_rank=None, research_row=12, issue=61,
         contract=(

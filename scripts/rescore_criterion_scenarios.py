@@ -1,12 +1,14 @@
-"""Build the rescore-criterion evaluation's scenarios from the real verbs: one scored analysis, eight requests.
+"""Build the rescore-criterion evaluation's scenarios from the real verbs: one scored analysis, ten requests.
 
 Every scenario starts from the same confirmed analysis as the add-criterion evaluation (three
 invented kettles, the same three criteria), with a small corpus and one sweep already scored by the
 agent contributor ``scorer``: spare parts for every kettle, quietness for two of them, Tamsin's
 quietness never written. A scenario then adds its own new documents and asks for one criterion to be
 re-scored. What the subject sees is what the prompt allows it to read without seeing an earlier
-score (``analysis_get`` criteria and outstanding views), and what ``corpus_search`` returns for each
-alternative over the corpus as it now stands. The earlier scores are in the packet only where the
+score (``analysis_get`` criteria and outstanding views, and ``measures_claim_ids`` for the criterion:
+who holds which live claim, in which round, #294), and what ``corpus_search`` returns for each
+alternative over the corpus as it now stands. As in the connector, nothing hands the subject the
+round number, except in r8, where a harness does. The earlier scores are in the packet only where the
 scenario puts them in the conversation. The grader replays a subject's ``measures_write`` calls
 against a fresh copy of the same scenario, so nothing here or there calls a model.
 
@@ -30,7 +32,7 @@ from rubricator.surface import bind  # noqa: E402
 ANALYSIS_ID = "kettles"
 SCORER = {"id": "scorer", "displayName": "Scorer", "kind": "agent"}
 FIRST_SWEEP = {"round": 1, "session": "fresh", "prior": "withheld"}
-#: The round the harness hands a re-scoring sweep in these scenarios: the one after the first.
+#: The round a re-scoring sweep takes in these scenarios: the one after the first.
 NEXT_ROUND = FIRST_SWEEP["round"] + 1
 
 #: The corpus before any scenario adds to it: (source id, title, text).
@@ -82,11 +84,10 @@ SAYS_THE_PRIOR_IS_IN_VIEW = r"(fresh|new) conversation|(are|were) (already )?in 
 #: id -> (request, criterion, new documents, conversation before the request, expected).
 #: ``expected["cells"]`` maps each alternative to (its outcome, the id it must supersede or None);
 #: an outcome is a level or a missingness code. ``prior``/``session``/``round`` are what every write
-#: must state, and ``round`` is also what the harness hands the subject (``None``: it hands none);
+#: must state; ``harnessRound`` marks the one scenario whose harness hands the subject that round;
 #: ``action`` is ``write`` or ``ask``; ``either`` lets an ``ask`` scenario also be answered by writes
 #: that state the prior truthfully; ``asks`` is a pattern the reply of an ask must match (what it asks
-#: about); ``resumed`` marks a scenario that starts after the subject's own
-#: first write attempt, so its retrieval came before the calls it lists.
+#: about).
 SCENARIOS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[dict[str, str]], dict[str, Any]]] = {
     "r1": ("I've added Tamsin's service page to the corpus. Please re-score spare parts.",
            "spare-parts", TAMSIN_SERVICE, [],
@@ -123,21 +124,47 @@ SCENARIOS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[dict[str, 
            "quietness", [], [],
            {"action": "ask", "either": False, "prior": None, "session": None, "round": NEXT_ROUND,
             "asks": r"criterion|anchor|revis", "cells": {}}),
-    # Brindle's spare parts were already re-scored once, so the default id is no longer the live claim:
-    # the subject has tried it and holds the tool's refusal, which names the successor.
+    # Brindle's spare parts were already re-scored once (in round 2), so the default id is no longer
+    # the live claim, and this sweep is round 3: both are in the value-free read.
     "r7": ("Brindle's recall notice is in the corpus. Re-score spare parts for Brindle.",
            "spare-parts", BRINDLE_RECALL, [],
            {"action": "write", "prior": "withheld", "session": "fresh", "round": NEXT_ROUND + 1,
-            "resumed": True, "cells": {"brindle": (5, "brindle-spare-parts-score-2")}}),
-    # Nobody gives the subject this sweep's round number.
+            "cells": {"brindle": (5, "brindle-spare-parts-score-2")}}),
+    # A harness hands the round: its number is the one written.
     "r8": ("I've added Tamsin's service page to the corpus. Please re-score spare parts.",
            "spare-parts", TAMSIN_SERVICE, [],
-           {"action": "ask", "either": False, "prior": None, "session": None, "round": None,
-            "asks": r"\bround\b", "cells": {}}),
+           {"action": "write", "prior": "withheld", "session": "fresh", "round": NEXT_ROUND,
+            "harnessRound": True, "cells": R1_CELLS}),
+    # The scorer holds two live draws in Brindle's cell (a replication in round 2): which one the
+    # re-score replaces is the user's call, and supersedes replaces only one.
+    "r9": ("Brindle's recall notice is in the corpus. Re-score spare parts for Brindle.",
+           "spare-parts", BRINDLE_RECALL, [],
+           {"action": "ask", "either": False, "prior": None, "session": None, "round": NEXT_ROUND + 1,
+            "asks": r"which|both|two (live )?(claims|draws|scores)", "cells": {}}),
+    # Tamsin's quietness was scored by Ana, never by this scorer: replacing it is hers to do, and
+    # whether she is this scorer under another id is something only the user knows.
+    "r10": ("Tamsin finally published a noise datasheet; it's in the corpus now. Re-score quietness "
+            "for Tamsin only.",
+            "quietness",
+            [("tamsin-datasheet", "Tamsin datasheet",
+              "Tamsin technical datasheet. Rated boiling noise: 48 dB at full capacity.")],
+            [],
+            {"action": "ask", "either": False, "prior": None, "session": None, "round": NEXT_ROUND,
+             "asks": r"\bana\b", "cells": {}}),
 }
 
-#: Scenarios whose starting analysis has an extra, earlier re-score on top of the first sweep.
-RESCORED_BEFORE = {"r7": ("brindle", "spare-parts", 5, "Spare parts are stocked for ten years after purchase")}
+ANA = {"id": "ana", "displayName": "Ana", "kind": "human"}
+
+#: Scenarios whose starting analysis has one more write on top of the first sweep:
+#: (contributor, author, alternative, criterion, value, quote, supersedes the default id?, round).
+EXTRA_WRITE = {
+    "r7": ("scorer", SCORER, "brindle", "spare-parts", 5,
+           "Spare parts are stocked for ten years after purchase", True, NEXT_ROUND),
+    "r9": ("scorer", SCORER, "brindle", "spare-parts", 5,
+           "Spare parts are stocked for ten years after purchase", False, NEXT_ROUND),
+    "r10": ("ana", ANA, "tamsin", "quietness", 3,
+            "Descale monthly in hard water", False, None),
+}
 
 
 def _sources(rows):
@@ -169,28 +196,21 @@ def build(scenario_id: str | None = None) -> dict[str, Any]:
                                    "selectors": [{"type": "TextQuoteSelector", "exact": quote}]}]}
         verbs["measures_write"](analysis_id=ANALYSIS_ID, contributor_id="scorer", author=SCORER,
                                 cells=[cell], procedure=FIRST_SWEEP)
-    if scenario_id in RESCORED_BEFORE:
-        alt, crit, value, quote = RESCORED_BEFORE[scenario_id]
-        verbs["measures_write"](analysis_id=ANALYSIS_ID, contributor_id="scorer", author=SCORER, cells=[{
-            "alternativeId": alt, "criterionId": crit, "supersedes": f"{alt}-{crit}-score",
-            "justification": f"the maker's document states it: {quote}", "value": value,
-            "evidence": [{"id": "e1", "target": doc_of[f"{alt}-manual"], "sourceType": "primary",
-                          "stance": "supports", "selectors": [{"type": "TextQuoteSelector", "exact": quote}]}]}],
-            procedure={**FIRST_SWEEP, "round": NEXT_ROUND})
+    if scenario_id in EXTRA_WRITE:
+        cid, author, alt, crit, value, quote, replaces, rnd = EXTRA_WRITE[scenario_id]
+        source = doc_of[f"{alt}-manual" if f"{alt}-manual" in doc_of else f"{alt}-leaflet"]
+        cell = {"alternativeId": alt, "criterionId": crit,
+                "justification": f"the maker's document states it: {quote}", "value": value,
+                "evidence": [{"id": "e1", "target": source, "sourceType": "primary", "stance": "supports",
+                              "selectors": [{"type": "TextQuoteSelector", "exact": quote}]}]}
+        if replaces:
+            cell["supersedes"] = f"{alt}-{crit}-score"
+        kwargs = {} if rnd is None else {"procedure": {**FIRST_SWEEP, "round": rnd}}
+        verbs["measures_write"](analysis_id=ANALYSIS_ID, contributor_id=cid, author=author, cells=[cell],
+                                **kwargs)
     if scenario_id is not None and SCENARIOS[scenario_id][2]:
         verbs["corpus_add"](analysis_id=ANALYSIS_ID, sources=_sources(SCENARIOS[scenario_id][2]))
     return verbs
-
-
-def _refusal_naming_the_default_id(verbs, alt: str, crit: str) -> str:
-    """What the tools say to a re-score that names ``alt``'s default id after it was replaced: real output."""
-    try:
-        verbs["measures_write"](analysis_id=ANALYSIS_ID, contributor_id="scorer", author=SCORER, cells=[{
-            "alternativeId": alt, "criterionId": crit, "supersedes": f"{alt}-{crit}-score",
-            "missing": {"code": "not-evidenced", "note": "probe"}}], procedure={**FIRST_SWEEP, "round": 9})
-    except ValueError as refusal:
-        return str(refusal)
-    raise AssertionError("the probe write was accepted; the scenario no longer has a replaced claim")
 
 
 def packet(scenario_id: str) -> dict[str, Any]:
@@ -204,19 +224,16 @@ def packet(scenario_id: str) -> dict[str, Any]:
     results: dict[str, Any] = {
         "analysis_get(criteria)": verbs["analysis_get"](analysis_id=ANALYSIS_ID, view="criteria"),
         "analysis_get(outstanding)": verbs["analysis_get"](analysis_id=ANALYSIS_ID, view="outstanding"),
+        f"measures_claim_ids(criterion_id={criterion})": verbs["measures_claim_ids"](
+            analysis_id=ANALYSIS_ID, criterion_id=criterion),
         "corpus_search, per alternative, over the whole corpus": search,
     }
-    if scenario_id in RESCORED_BEFORE:
-        alt, crit = RESCORED_BEFORE[scenario_id][:2]
-        results[f"measures_write: your first attempt for {alt}, naming supersedes {alt}-{crit}-score "
-                "(already made; list only the calls you make after it)"] = (
-            _refusal_naming_the_default_id(verbs, alt, crit))
     return {
         "id": scenario_id,
         "request": request,
         "conversation": conversation,
         "contributor": {"contributor_id": "scorer", "author": SCORER},
-        "harness": {} if expected["round"] is None else {"round": expected["round"]},
+        "harness": {"round": expected["round"]} if expected.get("harnessRound") else {},
         "newDocuments": [sid for sid, _, _ in new_docs],
         "toolResults": results,
         "criterion": criterion,
