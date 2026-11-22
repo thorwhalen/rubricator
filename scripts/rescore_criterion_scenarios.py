@@ -22,7 +22,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from add_criterion_scenarios import CRITERIA, KETTLES, MONDAY  # noqa: E402
+from kettle_fixture import CRITERIA, KETTLES, MONDAY  # noqa: E402
 
 from rubricator.compose import build_runtime  # noqa: E402
 from rubricator.surface import bind  # noqa: E402

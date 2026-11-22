@@ -15,52 +15,16 @@ from __future__ import annotations
 
 import json
 import sys
+from pathlib import Path
 from typing import Any
 
-from rubricator.compose import build_runtime
-from rubricator.surface import bind
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-MONDAY = "2026-10-12T09:30:00Z"
-ANA = {"id": "ana", "displayName": "Ana", "kind": "human"}
-KETTLES = [("brindle", "Brindle"), ("copperleaf", "Copperleaf"), ("tamsin", "Tamsin")]
+from kettle_fixture import ANA, CRITERIA, KETTLES, MONDAY  # noqa: E402
 
+from rubricator.compose import build_runtime  # noqa: E402
+from rubricator.surface import bind  # noqa: E402
 
-def _criterion(cid, label, objective, question, anchors, exclusions):
-    return {
-        "id": cid, "label": label, "preference": "increasing",
-        "anchors": [{"level": lvl, "text": text} for lvl, text in zip(("1", "3", "5"), anchors)],
-        "definition": {
-            "objective": objective, "question": question,
-            "evidenceRule": "The maker's own manual or support pages; a retailer's summary is secondary.",
-            "missingRules": [
-                {"when": "No source the maker publishes says.", "code": "not-evidenced"},
-                {"when": "The maker's sources disagree.", "code": "indeterminate"},
-            ],
-            "exclusions": exclusions,
-        },
-    }
-
-
-CRITERIA = [
-    _criterion("repair-policy", "Repair policy", "A broken kettle is fixed rather than replaced",
-               "What does the maker commit to repairing, and for how long?",
-               ("A source states the maker repairs nothing.",
-                "A source states a repair policy that names some parts and no period.",
-                "A source states a dated repair policy naming every part it covers."),
-               ["How long spare parts are stocked; that is spare-parts."]),
-    _criterion("spare-parts", "Spare parts", "A broken kettle is fixed rather than replaced",
-               "For how long does the maker state it stocks spare parts?",
-               ("A source states no spare parts are sold.",
-                "A source states parts are stocked for under five years.",
-                "A source states parts are stocked for ten years or more."),
-               ["What the maker repairs itself; that is repair-policy."]),
-    _criterion("quietness", "Quietness", "The kitchen stays usable for calls",
-               "How loud is the kettle while boiling, as the maker states it?",
-               ("A source states a boiling noise above 65 dB.",
-                "A source states a boiling noise between 50 and 65 dB.",
-                "A source states a boiling noise below 50 dB."),
-               ["Noise from the lid or switch."]),
-]
 SPAN = {"id": "e1", "target": "doc:brindle-manual", "sourceType": "primary", "stance": "supports",
         "excerpt": "spare parts are stocked for ten years after purchase"}
 

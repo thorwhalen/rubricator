@@ -21,6 +21,10 @@ from typing import Any, Mapping
 from rubricator.compose import build_runtime
 from rubricator.surface import bind
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from grading import arm_lines, tally  # noqa: E402
+
 FENCE = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.S)
 #: A stand-in a decider or context field must not carry: it is a blank written as a value.
 PLACEHOLDER = re.compile(r"^\s*(unknown|n/?a|none|unspecified|not (stated|specified)|tbd|the (user|team)|you)\s*\.?\s*$", re.I)
@@ -76,23 +80,11 @@ def grade_one(scenario: Mapping[str, Any], output: str) -> dict[str, bool | None
 
 
 def grade(scenarios, outputs) -> dict[str, tuple[int, int]]:
-    by_id = {o["scenarioId"]: o["output"] for o in outputs}
-    totals: dict[str, list[int]] = {}
-    for s in scenarios:
-        for metric, ok in grade_one(s, by_id.get(s["id"], "")).items():
-            if ok is None:
-                continue
-            t = totals.setdefault(metric, [0, 0])
-            t[0] += bool(ok)
-            t[1] += 1
-    return {k: (v[0], v[1]) for k, v in totals.items()}
+    return tally(scenarios, outputs, grade_one)
 
 
 def main(scenarios_path: str, *runs: str) -> None:
-    scenarios = json.loads(Path(scenarios_path).read_text())
-    for run in runs:
-        row = grade(scenarios, json.loads(Path(run).read_text()))
-        print(Path(run).name, " | ".join(f"{k} {a}/{n}" for k, (a, n) in row.items()))
+    arm_lines(grade, scenarios_path, *runs)
 
 
 if __name__ == "__main__":

@@ -9,22 +9,15 @@ named for it.
 from __future__ import annotations
 
 import copy
-import importlib.util
 import json
 import re
 from pathlib import Path
 
 from rubricator.prompts import prompts
+from script_loader import script as _script
 
 ROOT = Path(__file__).resolve().parents[1]
 SCENARIOS = ROOT / "docs/evaluation/add-criterion/scenarios.json"
-
-
-def _script(name: str):
-    spec = importlib.util.spec_from_file_location(name, ROOT / f"scripts/{name}.py")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
 
 
 grader, builder = _script("add_criterion_adherence"), _script("add_criterion_scenarios")

@@ -16,7 +16,6 @@ so a run that writes nothing cannot score on what it did not do.
 
 from __future__ import annotations
 
-import json
 import re
 import sys
 from pathlib import Path
@@ -24,6 +23,7 @@ from typing import Any, Mapping
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from grading import all_or_none, line, table, tally  # noqa: E402
 from rescore_criterion_scenarios import ANALYSIS_ID, build  # noqa: E402
 
 #: Reads that return a stored cell's value, justification or evidence, or rates over them.
@@ -32,11 +32,6 @@ PRIOR_READS = {"report_weaknesses", "aggregate_assertions", "stability_report", 
                "resources/read"}
 METRICS = ("prior_true", "action_right", "asks_right", "scope_right", "supersedes_right", "round_right", "accepted",
            "right_outcome", "no_mark_missing", "no_prior_read", "fresh_retrieval", "prior_line")
-
-
-def _line(reply: str, label: str) -> str | None:
-    match = re.search(rf"^\W*{re.escape(label)}\W*:\s*(.+)$", reply, re.M | re.I)
-    return match.group(1) if match else None
 
 
 def _reads_prior(call: Mapping[str, Any]) -> bool:
@@ -73,10 +68,6 @@ def _searched_each(calls, alternatives) -> bool:
     return all(own.values())
 
 
-def _all_or_none(checks: list[bool]) -> bool | None:
-    return all(checks) if checks else None
-
-
 def _ask_row(want: Mapping[str, Any], writes, reply: str, row: dict) -> dict:
     row["action_right"] = not writes
     row["asks_right"] = bool(re.search(want["asks"], reply, re.I))
@@ -101,49 +92,35 @@ def grade_one(scenario: Mapping[str, Any], output: Mapping[str, Any]) -> dict[st
         return row
     cells = [(cell, args.get("procedure") or {}) for args in writes for cell in args.get("cells") or []]
     procs = [proc for _, proc in cells]
-    row["prior_true"] = _all_or_none([
+    row["prior_true"] = all_or_none([
         p.get("prior") == want["prior"] and (want["session"] is None or p.get("session") == want["session"])
         for p in procs])
-    row["round_right"] = _all_or_none([p.get("round") == want["round"] for p in procs])
+    row["round_right"] = all_or_none([p.get("round") == want["round"] for p in procs])
     expected = {alt: tuple(v) for alt, v in want["cells"].items()}
     written = {cell.get("alternativeId"): cell for cell, _ in cells if cell.get("criterionId") == scenario["criterion"]}
     row["scope_right"] = (set(written) == set(expected) and len(cells) == len(written)
                           and all(len(w.get("cells") or []) == 1 for w in writes))
     both = [alt for alt in expected if alt in written]
-    row["supersedes_right"] = _all_or_none([written[a].get("supersedes") == expected[a][1] for a in both])
-    row["right_outcome"] = _all_or_none([_outcome(written[a]) == expected[a][0] for a in both])
+    row["supersedes_right"] = all_or_none([written[a].get("supersedes") == expected[a][1] for a in both])
+    row["right_outcome"] = all_or_none([_outcome(written[a]) == expected[a][0] for a in both])
     row["accepted"] = _accepted(scenario["id"], writes)
     if want["prior"] == "withheld":
         row["no_prior_read"] = not any(_reads_prior(c) for c in calls[: at[-1] + 1])
     if not want.get("resumed"):
         row["fresh_retrieval"] = _searched_each(
             [c for c in calls[: at[0]] if c.get("tool") == "corpus_search"], expected)
-    row["prior_line"] = (_line(reply, "Prior") or "").strip().lower().startswith(want["prior"])
+    row["prior_line"] = (line(reply, "Prior") or "").strip().lower().startswith(want["prior"])
     return row
 
 
 def grade(scenarios: list[Mapping[str, Any]], outputs: list[Mapping[str, Any]]) -> dict[str, list[int]]:
     """Per metric, ``[hits, applicable]`` over the scenarios a run answered."""
-    by_id = {o["scenarioId"]: o for o in outputs}
-    totals = {m: [0, 0] for m in METRICS}
-    for scenario in scenarios:
-        if scenario["id"] not in by_id:
-            continue
-        for metric, ok in grade_one(scenario, by_id[scenario["id"]]).items():
-            if ok is not None:
-                totals[metric][0] += ok
-                totals[metric][1] += 1
-    return totals
+    totals = tally(scenarios, outputs, grade_one, unwrap=lambda o: o, metrics=METRICS, answered_only=True)
+    return {metric: list(hits_n) for metric, hits_n in totals.items()}
 
 
 def main(scenarios_path: str, *runs: str) -> None:
-    scenarios = json.loads(Path(scenarios_path).read_text())
-    print("| arm | " + " | ".join(m.replace("_", " ") for m in METRICS) + " |")
-    print("|---" * (len(METRICS) + 1) + "|")
-    for run in runs:
-        row = grade(scenarios, json.loads(Path(run).read_text()))
-        cells = " | ".join(f"{h}/{n}" if n else "n/a" for h, n in row.values())
-        print(f"| {Path(run).stem} | {cells} |")
+    table(grade, METRICS, scenarios_path, *runs, header=lambda m: m.replace("_", " "))
 
 
 if __name__ == "__main__":
