@@ -12,11 +12,14 @@ to redefine sent back for re-scoring is the failure this prompt exists to stop.
 
 from __future__ import annotations
 
-import json
 import re
 import sys
 from pathlib import Path
 from typing import Any, Mapping
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from grading import arm_lines, tally  # noqa: E402
 
 LINES = {
     "Re-score with more evidence": "rescore",
@@ -82,23 +85,11 @@ def grade_one(scenario: Mapping[str, Any], output: str) -> dict[str, bool | None
 
 
 def grade(scenarios, outputs) -> dict[str, tuple[int, int]]:
-    by_id = {o["scenarioId"]: o["output"] for o in outputs}
-    totals: dict[str, list[int]] = {}
-    for s in scenarios:
-        for metric, ok in grade_one(s, by_id.get(s["id"], "")).items():
-            if ok is None:
-                continue
-            t = totals.setdefault(metric, [0, 0])
-            t[0] += bool(ok)
-            t[1] += 1
-    return {k: (v[0], v[1]) for k, v in totals.items()}
+    return tally(scenarios, outputs, grade_one)
 
 
 def main(scenarios_path: str, *runs: str) -> None:
-    scenarios = json.loads(Path(scenarios_path).read_text())
-    for run in runs:
-        row = grade(scenarios, json.loads(Path(run).read_text()))
-        print(Path(run).name, " | ".join(f"{k} {a}/{n}" for k, (a, n) in row.items()))
+    arm_lines(grade, scenarios_path, *runs)
 
 
 if __name__ == "__main__":

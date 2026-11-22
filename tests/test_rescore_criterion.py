@@ -8,23 +8,16 @@ marks, and each failure the prompt is written against is caught by the metric na
 from __future__ import annotations
 
 import copy
-import importlib.util
 import json
 import re
 from pathlib import Path
 
 from rubricator.prompts import prompts
+from script_loader import script as _script
 
 ROOT = Path(__file__).resolve().parents[1]
 SCENARIOS = ROOT / "docs/evaluation/rescore-criterion/scenarios.json"
 SEARCH = "corpus_search, per alternative, over the whole corpus"
-
-
-def _script(name: str):
-    spec = importlib.util.spec_from_file_location(name, ROOT / f"scripts/{name}.py")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
 
 
 builder = _script("rescore_criterion_scenarios")

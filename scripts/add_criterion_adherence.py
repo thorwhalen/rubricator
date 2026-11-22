@@ -13,8 +13,6 @@ into the call supersedes its cells, which is the regression this prompt exists t
 
 from __future__ import annotations
 
-import json
-import re
 import sys
 from pathlib import Path
 from typing import Any, Mapping
@@ -22,16 +20,12 @@ from typing import Any, Mapping
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from add_criterion_scenarios import build  # noqa: E402
+from grading import line, table, tally  # noqa: E402
 
 WRITES = {"measures_write", "measures_mark_missing"}
 DEFINITION = ("objective", "question", "evidenceRule", "missingRules", "exclusions")
 METRICS = ("existing_untouched", "action_right", "no_cell_written", "accepted", "new_fully_defined",
            "nothing_superseded", "says_not_assessed", "next_is_confirm", "names_the_criterion")
-
-
-def _line(reply: str, label: str) -> str | None:
-    match = re.search(rf"^\W*{re.escape(label)}\W*:\s*(.+)$", reply, re.M | re.I)
-    return match.group(1) if match else None
 
 
 def grade_one(scenario: Mapping[str, Any], output: Mapping[str, Any]) -> dict[str, bool | None]:
@@ -49,9 +43,9 @@ def grade_one(scenario: Mapping[str, Any], output: Mapping[str, Any]) -> dict[st
                 next(c["label"] for c in existing if c["id"] == want["names"]).lower() in reply.lower())
         return row
     row["action_right"] = len(sets) == 1
-    column = _line(reply, "New column") or ""
+    column = line(reply, "New column") or ""
     row["says_not_assessed"] = "not-assessed" in column or "nobody has looked" in column.lower()
-    row["next_is_confirm"] = "confirm" in (_line(reply, "Next") or "").lower()
+    row["next_is_confirm"] = "confirm" in (line(reply, "Next") or "").lower()
     if not sets:
         return row
     sent = sets[0].get("criteria") or []
@@ -72,26 +66,12 @@ def grade_one(scenario: Mapping[str, Any], output: Mapping[str, Any]) -> dict[st
 
 def grade(scenarios: list[Mapping[str, Any]], outputs: list[Mapping[str, Any]]) -> dict[str, list[int]]:
     """Per metric, ``[hits, applicable]`` over the scenarios a run answered."""
-    by_id = {o["scenarioId"]: o for o in outputs}
-    totals = {m: [0, 0] for m in METRICS}
-    for scenario in scenarios:
-        if scenario["id"] not in by_id:
-            continue
-        for metric, ok in grade_one(scenario, by_id[scenario["id"]]).items():
-            if ok is not None:
-                totals[metric][0] += ok
-                totals[metric][1] += 1
-    return totals
+    totals = tally(scenarios, outputs, grade_one, unwrap=lambda o: o, metrics=METRICS, answered_only=True)
+    return {metric: list(hits_n) for metric, hits_n in totals.items()}
 
 
 def main(scenarios_path: str, *runs: str) -> None:
-    scenarios = json.loads(Path(scenarios_path).read_text())
-    print("| arm | " + " | ".join(m.replace("_", " ") for m in METRICS) + " |")
-    print("|---" * (len(METRICS) + 1) + "|")
-    for run in runs:
-        row = grade(scenarios, json.loads(Path(run).read_text()))
-        cells = " | ".join(f"{h}/{n}" if n else "n/a" for h, n in row.values())
-        print(f"| {Path(run).stem} | {cells} |")
+    table(grade, METRICS, scenarios_path, *runs, header=lambda m: m.replace("_", " "))
 
 
 if __name__ == "__main__":

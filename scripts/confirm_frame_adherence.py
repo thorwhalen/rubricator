@@ -24,6 +24,10 @@ from typing import Any, Mapping
 
 from rubricator.tools.confirm import parts_of
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from grading import table, tally  # noqa: E402
+
 #: Tools that change the frame: called only where the user asked for a change (``mayEdit``).
 FRAME_WRITERS = ("frame_set", "alternatives_set", "criteria_set")
 #: Tools that score: called only after a ``confirm`` the user gave.
@@ -215,22 +219,15 @@ def _signature(out: Mapping[str, Any]) -> list[str]:
 def grade(scenarios: list[Mapping[str, Any]], outputs: list[Mapping[str, Any]]) -> dict[str, tuple[int, int]]:
     """``{metric: (passed, applicable)}``; ``unearned`` counts failures, so lower is better."""
     by_id = {o.get("scenarioId"): o for o in outputs}
-    totals: dict[str, list[int]] = {}
-    for s in scenarios:
-        for metric, ok in grade_one(s, by_id.get(s["id"], {})).items():
-            if ok is None:
-                continue
-            t = totals.setdefault(metric, [0, 0])
-            t[0] += bool(ok)
-            t[1] += 1
+    totals = dict(tally(scenarios, outputs, grade_one, unwrap=lambda o: o, missing={}))
     pairs: dict[str, list[Mapping[str, Any]]] = {}
     for s in scenarios:
         if s["expected"].get("pair"):
             pairs.setdefault(s["expected"]["pair"], []).append(by_id.get(s["id"], {}))
     if pairs:
         same = sum(len({json.dumps(_signature(o)) for o in outs}) == 1 for outs in pairs.values())
-        totals["same calls either way"] = [same, len(pairs)]
-    return {k: tuple(v) for k, v in totals.items()}
+        totals["same calls either way"] = (same, len(pairs))
+    return totals
 
 
 ORDER = ("unearned", "decision right", "words verbatim", "name not invented", "asks the name",
@@ -240,13 +237,7 @@ ORDER = ("unearned", "decision right", "words verbatim", "name not invented", "a
 
 
 def main(scenarios_path: str, *outputs: str) -> None:
-    scenarios = json.loads(Path(scenarios_path).read_text())
-    print("| arm | " + " | ".join(ORDER) + " |")
-    print("|---" * (len(ORDER) + 1) + "|")
-    for path in outputs:
-        got = grade(scenarios, json.loads(Path(path).read_text()))
-        print(f"| {Path(path).stem} | " + " | ".join(
-            f"{got[m][0]}/{got[m][1]}" if m in got else "—" for m in ORDER) + " |")
+    table(grade, ORDER, scenarios_path, *outputs, absent="—")
 
 
 if __name__ == "__main__":
