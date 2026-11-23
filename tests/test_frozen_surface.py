@@ -531,7 +531,7 @@ def test_the_digest_pin_catches_a_same_length_edit() -> None:
 SELECTORS = [
     {"type": "TextQuoteSelector", "exact": "until 2029", "prefix": "supported ", "suffix": "."},
     {"type": "TextPositionSelector", "start": 10, "end": 20},
-    {"type": "PageRegionSelector", "page": 3, "rect": {"x": 0, "y": 0, "w": 100, "h": 20}},
+    {"type": "PageRegionSelector", "page": 3, "rect": {"x": 0, "y": 0, "w": 0.5, "h": 0.2}},
     {"type": "LineRangeSelector", "startLine": 1, "endLine": 2, "contentHash": "abc"},
     {"type": "TimeRangeSelector", "startSeconds": 1.5, "endSeconds": 2.5},
     {"type": "PathSelector", "syntax": "xpath", "value": "//p"},

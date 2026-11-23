@@ -238,6 +238,9 @@ def test_a_quote_of_only_a_zero_width_space_is_blank() -> None:
     ({"page": 1, "rect": {"x": 0, "y": 0, "w": 0, "h": 1}}, "no area"),
     ({"page": 1, "rect": {"x": -0.1, "y": 0, "w": 1, "h": 1}}, "non-negative"),
     ({"page": 1, "rect": {"x": 0, "y": 0, "w": float("inf"), "h": 1}}, "NaN or infinite"),
+    ({"page": 3, "rect": {"x": 0, "y": 0, "w": 100, "h": 20}}, "fractions of the page"),
+    ({"page": 0, "rect": {"x": 0.6, "y": 0, "w": 0.5, "h": 0.1}}, "fractions of the page"),
+    ({"page": 0, "rect": {"x": 0, "y": 0.95, "w": 0.1, "h": 0.1}}, "fractions of the page"),
 ])
 def test_a_page_region_is_checked(region, why) -> None:
     (problem,) = profile_problems([_quoted(selectors=[
@@ -245,10 +248,12 @@ def test_a_page_region_is_checked(region, why) -> None:
     assert "PageRegionSelector" in problem and why in problem
 
 
-def test_a_page_region_in_page_fractions_or_pixels_is_in_the_profile() -> None:
-    for rect in ({"x": 0.1, "y": 0.2, "w": 0.5, "h": 0.1}, {"x": 0, "y": 0, "w": 100, "h": 20}):
-        assert profile_problems([_quoted(selectors=[
-            {"type": "PageRegionSelector", "page": 3, "rect": rect}])]) == []
+def test_a_page_region_in_page_fractions_on_a_zero_based_page_is_in_the_profile() -> None:
+    for page, rect in ((3, {"x": 0.1, "y": 0.2, "w": 0.5, "h": 0.1}),
+                       (0, {"x": 0, "y": 0, "w": 1, "h": 1}),  # the whole first page
+                       (0, None)):
+        region = {"type": "PageRegionSelector", "page": page, **({"rect": rect} if rect else {})}
+        assert profile_problems([_quoted(selectors=[region])]) == []
 
 
 @pytest.mark.parametrize("extra, why", [
