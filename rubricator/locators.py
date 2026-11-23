@@ -394,14 +394,19 @@ _AS_PROFILE = {
 }
 
 
+#: Float rounding allowed past the page's edge (``0.7 + 0.3`` is not exactly 1 in floats).
+_FRACTION_SLACK = 1e-9
+
+
 def _page_region(stored: Mapping[str, Any]) -> None:
     """comparanda v1's ``PageRegionSelector``: a whole page number and, optionally, a box on it.
 
-    The box must select an area at a non-negative position. Its unit is not
-    held here: the companion documents fractions of the page, and producers
-    have written pixels, so bounding it at 1 is an open contract question
-    rather than a rule. The profile has no type of its own for it, so it is
-    checked here and stored as given.
+    ``page`` counts from 0, like the profile's own ``PageSelector``. ``rect`` is
+    in fractions of the page's width and height, as the companion documents, so
+    the box survives a re-render at another DPI: it must select an area and lie
+    on the page (``0 <= x``, ``x + w <= 1``, and the same for ``y`` and ``h``).
+    A box in pixels is refused (#198). The profile has no type of its own for
+    it, so it is checked here and stored as given.
     """
     def number(value: Any) -> bool:
         return isinstance(value, (int, float)) and not isinstance(value, bool)
@@ -420,6 +425,9 @@ def _page_region(stored: Mapping[str, Any]) -> None:
     _require(all(number(v) and v >= 0 for v in sides.values()),
              f"rect's x, y, w and h are non-negative numbers, got {sides!r}")
     _require(sides["w"] > 0 and sides["h"] > 0, "rect selects no area: w and h must be above 0")
+    _require(sides["x"] + sides["w"] <= 1 + _FRACTION_SLACK and sides["y"] + sides["h"] <= 1 + _FRACTION_SLACK,
+             "rect is in fractions of the page's width and height, so it lies within 0..1 "
+             f"(x + w and y + h at most 1; pixels are not a unit it takes), got {sides!r}")
 
 
 def _hash_problems(ref: Mapping[str, Any]) -> list[str]:
